@@ -85,4 +85,18 @@ describe('StateManager', () => {
     const updated = manager.update({ resources: { food: 42 } });
     expect(received).toBe(updated);
   });
+
+  it('replaces arrays (e.g. unlockedPanels) instead of merging indexes', () => {
+    const bus = new EventBus();
+    const manager = new StateManager(bus);
+
+    manager.update({ unlockedPanels: ['eggs', 'upgrades'] });
+    const afterFirst = manager.getState();
+    expect(afterFirst.unlockedPanels).toEqual(['eggs', 'upgrades']);
+
+    // Second update replaces the array, not concatenates
+    manager.update({ unlockedPanels: ['workers'] });
+    const afterSecond = manager.getState();
+    expect(afterSecond.unlockedPanels).toEqual(['workers']);
+  });
 });

@@ -35,7 +35,12 @@ export class EventBus<T extends Record<string, unknown> = SwarmEvents> {
     const callbacks = this.listeners.get(event);
     if (callbacks) {
       for (const cb of callbacks) {
-        cb(payload);
+        try {
+          cb(payload);
+        } catch (e) {
+          // Error isolation: one failing callback must not prevent others.
+          // Re-throw is skipped to keep the event loop resilient.
+        }
       }
     }
   }

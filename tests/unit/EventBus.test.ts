@@ -62,4 +62,19 @@ describe('EventBus', () => {
 
     expect(() => bus.unsubscribe('nonexistent', cb)).not.toThrow();
   });
+
+  it('isolates errors: one failing callback does not prevent others', () => {
+    const bus = new EventBus();
+    const good = vi.fn();
+    const bad = vi.fn(() => {
+      throw new Error('boom');
+    });
+
+    bus.subscribe('test:isolate', good);
+    bus.subscribe('test:isolate', bad);
+
+    expect(() => bus.emit('test:isolate', { value: 1 })).not.toThrow();
+    expect(good).toHaveBeenCalledTimes(1);
+    expect(bad).toHaveBeenCalledTimes(1);
+  });
 });

@@ -84,4 +84,26 @@ describe('Ticker', () => {
 
     expect(callback).toHaveBeenCalledTimes(1);
   });
+
+  it('offTick removes a registered callback', () => {
+    const ticker = new Ticker();
+    const cb1 = vi.fn();
+    const cb2 = vi.fn();
+
+    ticker.onTick(cb1);
+    ticker.onTick(cb2);
+    ticker.offTick(cb1);
+    ticker.start();
+    vi.advanceTimersByTime(1500);
+
+    expect(cb1).not.toHaveBeenCalled();
+    expect(cb2).toHaveBeenCalledTimes(1);
+  });
+
+  it('offTick is a no-op for unregistered callbacks', () => {
+    const ticker = new Ticker();
+    const cb = vi.fn();
+
+    expect(() => ticker.offTick(cb)).not.toThrow();
+  });
 });

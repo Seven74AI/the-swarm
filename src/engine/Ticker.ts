@@ -27,4 +27,11 @@ export class Ticker {
   onTick(callback: TickCallback): void {
     this.callbacks.push(callback);
   }
+
+  offTick(callback: TickCallback): void {
+    const idx = this.callbacks.indexOf(callback);
+    if (idx !== -1) {
+      this.callbacks.splice(idx, 1);
+    }
+  }
 }

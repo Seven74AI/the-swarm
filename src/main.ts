@@ -25,7 +25,9 @@ export function bootstrap(): {
   return { bus, ticker, manager, loop };
 }
 
-// Auto-bootstrap when loaded in browser
+// Auto-bootstrap when loaded in browser.
+// The return value is stored on window so that later code (devtools, save/load)
+// can access the core systems without importing modules.
 if (typeof window !== 'undefined') {
-  bootstrap();
+  (window as unknown as Record<string, unknown>).__swarm = bootstrap();
 }
