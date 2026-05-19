@@ -1,5 +1,4 @@
 import type { GameState } from '../state/GameState';
-import { clamp } from '../utils/math';
 
 export type SpaceshipType = 'scout_ship' | 'cruiser' | 'capital_ship';
 export type SpaceshipStatus = 'idle' | 'exploring' | 'returning';
