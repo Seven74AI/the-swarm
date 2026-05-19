@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Phase, PHASE_ORDER } from '../../src/phases/phases';
 import type { Transition } from '../../src/phases/transitions';
-import { EGG_TO_COLONY, COLONY_TO_EXPANSION } from '../../src/phases/transitions';
+import { EGG_TO_COLONY, COLONY_TO_COMBAT, COLONY_TO_EXPANSION } from '../../src/phases/transitions';
 import { createInitialState } from '../../src/state/GameState';
 import { EventBus } from '../../src/engine/EventBus';
 
@@ -9,6 +9,10 @@ describe('Phase enum', () => {
   it('has string values for serialization', () => {
     expect(Phase.EGG_LAYING).toBe('egg_laying');
     expect(Phase.COLONY).toBe('colony');
+  });
+
+  it('has COMBAT phase', () => {
+    expect(Phase.COMBAT).toBe('combat');
   });
 
   it('has EXPANSION phase', () => {
@@ -27,14 +31,20 @@ describe('PHASE_ORDER', () => {
     );
   });
 
-  it('has EXPANSION after COLONY', () => {
+  it('has COMBAT after COLONY', () => {
     expect(PHASE_ORDER.indexOf(Phase.COLONY)).toBeLessThan(
+      PHASE_ORDER.indexOf(Phase.COMBAT),
+    );
+  });
+
+  it('has EXPANSION after COMBAT', () => {
+    expect(PHASE_ORDER.indexOf(Phase.COMBAT)).toBeLessThan(
       PHASE_ORDER.indexOf(Phase.EXPANSION),
     );
   });
 
-  it('contains 3 phases', () => {
-    expect(PHASE_ORDER).toHaveLength(3);
+  it('contains 4 phases', () => {
+    expect(PHASE_ORDER).toHaveLength(4);
   });
 });
 
@@ -73,6 +83,48 @@ describe('Transition EGG_LAYING → COLONY', () => {
     EGG_TO_COLONY.onEnter!(state, bus);
     expect(emitted).toBe(true);
     expect(phasePayload).toBe(Phase.COLONY);
+  });
+});
+
+describe('Transition COLONY → COMBAT', () => {
+  it('has correct from/to', () => {
+    expect(COLONY_TO_COMBAT.from).toBe(Phase.COLONY);
+    expect(COLONY_TO_COMBAT.to).toBe(Phase.COMBAT);
+  });
+
+  it('guard returns false when workers < 15', () => {
+    const state = createInitialState();
+    state.resources.workers = 14;
+    state.workersAssigned.guard = 1;
+    expect(COLONY_TO_COMBAT.guard(state)).toBe(false);
+  });
+
+  it('guard returns false when guard === 0 (even with 15+ workers)', () => {
+    const state = createInitialState();
+    state.resources.workers = 15;
+    state.workersAssigned.guard = 0;
+    expect(COLONY_TO_COMBAT.guard(state)).toBe(false);
+  });
+
+  it('guard returns true when workers >= 15 AND guard >= 1', () => {
+    const state = createInitialState();
+    state.resources.workers = 15;
+    state.workersAssigned.guard = 1;
+    expect(COLONY_TO_COMBAT.guard(state)).toBe(true);
+  });
+
+  it('onEnter emits phase_changed event with COMBAT', () => {
+    const state = createInitialState();
+    const bus = new EventBus();
+    let emitted = false;
+    let phasePayload: string | null = null;
+    bus.subscribe('phase_changed', (payload: unknown) => {
+      emitted = true;
+      phasePayload = (payload as { phase: string }).phase;
+    });
+    COLONY_TO_COMBAT.onEnter!(state, bus);
+    expect(emitted).toBe(true);
+    expect(phasePayload).toBe(Phase.COMBAT);
   });
 });
 

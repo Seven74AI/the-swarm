@@ -50,6 +50,32 @@ export interface GameState {
   };
   unlockedPanels: string[];
   lastSaveTimestamp: number;
+  // Combat phase fields
+  combatSoldiers: number;
+  soldierStats: {
+    strength: number;
+    defense: number;
+    speed: number;
+    maxHp: number;
+  };
+  equipment: {
+    weapon: number;
+    armor: number;
+  };
+  lastBattle: {
+    enemyType: string | null;
+    result: 'pending' | 'victory' | 'defeat';
+    soldiersLost: number;
+    foodGained: number;
+    timestamp: number;
+  } | null;
+  combatResources: {
+    chitin: number;
+    silk: number;
+    venom: number;
+  };
+  battlesWon: number;
+  battlesLost: number;
 }
 
 export function createInitialState(): GameState {
@@ -96,5 +122,25 @@ export function createInitialState(): GameState {
     },
     unlockedPanels: [],
     lastSaveTimestamp: 0,
+    // Combat defaults
+    combatSoldiers: 0,
+    soldierStats: {
+      strength: 1.0,
+      defense: 1.0,
+      speed: 5,
+      maxHp: 10,
+    },
+    equipment: {
+      weapon: 0,
+      armor: 0,
+    },
+    lastBattle: null,
+    combatResources: {
+      chitin: 0,
+      silk: 0,
+      venom: 0,
+    },
+    battlesWon: 0,
+    battlesLost: 0,
   };
 }

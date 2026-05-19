@@ -21,6 +21,22 @@ export const EGG_TO_COLONY: Transition = {
     eventBus.emit('phase_changed', { phase: Phase.COLONY });
   },
 };
+/**
+ * COLONY → COMBAT transition.
+ * Fires when the colony has 15+ workers and at least 1 guard assigned.
+ */
+export const COLONY_TO_COMBAT: Transition = {
+  from: Phase.COLONY,
+  to: Phase.COMBAT,
+  guard: (state) => state.resources.workers >= 15 && state.workersAssigned.guard >= 1,
+  onEnter: (_state, eventBus) => {
+    eventBus.emit('phase_changed', { phase: Phase.COMBAT });
+    eventBus.emit('narrative', {
+      message:
+        'The colony faces its first threat. Guards are posted. The age of innocence is over.',
+    });
+  },
+};
 
 /**
  * COLONY → EXPANSION transition.
@@ -36,4 +52,4 @@ export const COLONY_TO_EXPANSION: Transition = {
 };
 
 /** All defined transitions. */
-export const TRANSITIONS: Transition[] = [EGG_TO_COLONY, COLONY_TO_EXPANSION];
+export const TRANSITIONS: Transition[] = [EGG_TO_COLONY, COLONY_TO_COMBAT, COLONY_TO_EXPANSION];
