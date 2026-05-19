@@ -70,13 +70,6 @@ function migrateV1toV2(data: SaveData): SaveData {
   };
 }
 
-/** Registry of migration functions keyed by source version */
-const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
-  1: migrateV1toV2,
-  2: migrateV2toV3,
-  3: migrateV3toV4,
-};
-
 /** v2 → v3: adds space phase resources (voidCrystals, antimatter, darkMatter) */
 function migrateV2toV3(data: SaveData): SaveData {
   const gameState = data.gameState as GameState & {
@@ -101,12 +94,19 @@ function migrateV2toV3(data: SaveData): SaveData {
   };
 }
 
-/** v3 → v4: adds victoryAchieved field for transcendence victory condition */
+/**
+ * v3 → v4: adds space exploration fields (spaceExplorations, discoveredPlanets)
+ * and victoryAchieved for transcendence victory condition.
+ */
 function migrateV3toV4(data: SaveData): SaveData {
   const gameState = data.gameState as GameState & {
+    spaceExplorations?: unknown;
+    discoveredPlanets?: unknown;
     victoryAchieved?: boolean;
   };
 
+  gameState.spaceExplorations = gameState.spaceExplorations ?? [];
+  gameState.discoveredPlanets = gameState.discoveredPlanets ?? [];
   gameState.victoryAchieved = gameState.victoryAchieved ?? false;
 
   return {
@@ -115,6 +115,13 @@ function migrateV3toV4(data: SaveData): SaveData {
     gameState,
   };
 }
+
+/** Registry of migration functions keyed by source version */
+const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
+  1: migrateV1toV2,
+  2: migrateV2toV3,
+  3: migrateV3toV4,
+};
 
 /**
  * Migrate save data from one version to another by chaining version steps.

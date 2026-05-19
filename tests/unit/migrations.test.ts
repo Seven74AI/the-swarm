@@ -128,6 +128,51 @@ describe('migrateSave', () => {
     expect(resources.voidCrystals).toBe(0);
   });
 
+  // --- v3 → v4 migration tests ---
+
+  it('migrates v3 to v4 adding space exploration fields with defaults', () => {
+    const state = createInitialState();
+    const v3Data: SaveData = {
+      version: 3,
+      timestamp: 1234567890,
+      playTimeMs: 60000,
+      gameState: state,
+    };
+
+    const v4Data = migrateSave(v3Data, 3, 4);
+    const gs = v4Data.gameState as unknown as Record<string, unknown>;
+
+    expect(v4Data.version).toBe(4);
+    expect(gs.spaceExplorations).toEqual([]);
+    expect(gs.discoveredPlanets).toEqual([]);
+  });
+
+  it('migrates v3 to v4 preserving existing fields including space resources', () => {
+    const state = createInitialState();
+    state.resources.food = 5000;
+    state.resources.voidCrystals = 10;
+    state.resources.antimatter = 5;
+    state.resources.darkMatter = 3;
+    const v3Data: SaveData = {
+      version: 3,
+      timestamp: 1234567890,
+      playTimeMs: 60000,
+      gameState: state,
+    };
+
+    const v4Data = migrateSave(v3Data, 3, 4);
+    const gs = v4Data.gameState as unknown as Record<string, unknown>;
+    const resources = gs.resources as Record<string, unknown>;
+
+    expect(v4Data.version).toBe(4);
+    expect(resources.food).toBe(5000);
+    expect(resources.voidCrystals).toBe(10);
+    expect(resources.antimatter).toBe(5);
+    expect(resources.darkMatter).toBe(3);
+    expect(gs.spaceExplorations).toEqual([]);
+    expect(gs.discoveredPlanets).toEqual([]);
+  });
+
   it('migrates v3 to v4 adding victoryAchieved with default false', () => {
     const state = createInitialState();
     const v3Data: SaveData = {

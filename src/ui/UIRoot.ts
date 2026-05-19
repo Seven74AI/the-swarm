@@ -16,6 +16,7 @@ import { SoldierPanel } from './panels/SoldierPanel';
 import { BattlePanel } from './panels/BattlePanel';
 import { BuildingPanel } from './panels/BuildingPanel';
 import { ExpeditionPanel } from './panels/ExpeditionPanel';
+import { ExplorationPanel } from './panels/ExplorationPanel';
 import { MapPanel } from './panels/MapPanel';
 
 /**
@@ -151,6 +152,16 @@ export class UIRoot {
     );
     panels.appendChild(expeditionPanel.getElement());
     this.panelElements.set('expedition_panel', expeditionPanel.getElement());
+
+    // Space exploration panel (hidden initially, revealed in space phase)
+    const explorationPanel = new ExplorationPanel(
+      this.store,
+      this.bus,
+      this.getState,
+      this.setState,
+    );
+    panels.appendChild(explorationPanel.getElement());
+    this.panelElements.set('exploration_panel', explorationPanel.getElement());
 
     // Map panel (hidden initially, revealed in expansion phase)
     const mapPanel = new MapPanel(

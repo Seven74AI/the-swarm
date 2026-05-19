@@ -62,6 +62,13 @@ export interface GameState {
     ticksRemaining: number;
     risk: number;
   }>;
+  spaceExplorations: Array<{
+    id: string;
+    destination: string;
+    ticksRemaining: number;
+    risk: number;
+  }>;
+  discoveredPlanets: string[];
   upgrades: Record<string, number>;
   stats: {
     totalEggsLaid: number;
@@ -156,6 +163,8 @@ export function createInitialState(): GameState {
     },
     mapTiles: createEmptyMap(),
     expeditions: [],
+    spaceExplorations: [],
+    discoveredPlanets: [],
     upgrades: {},
     stats: {
       totalEggsLaid: 0,
