@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "prepare": "sh scripts/setup-hooks.sh"
   },
   "devDependencies": {
     "@playwright/test": "^1.45.0",
