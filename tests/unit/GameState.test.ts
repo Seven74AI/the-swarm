@@ -102,6 +102,13 @@ describe('Phase 3 expansion fields', () => {
     expect(state.expeditions).toEqual([]);
   });
 
+  it('initializes space resources (voidCrystals, antimatter, darkMatter) to 0', () => {
+    const state = createInitialState();
+    expect(state.resources.voidCrystals).toBe(0);
+    expect(state.resources.antimatter).toBe(0);
+    expect(state.resources.darkMatter).toBe(0);
+  });
+
   it('new fields are independent copies (immutability)', () => {
     const a = createInitialState();
     const b = createInitialState();

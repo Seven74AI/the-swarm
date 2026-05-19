@@ -45,6 +45,23 @@ const PHASE_PANELS: Record<string, string[]> = {
     'building_panel',
     'expedition_panel',
   ],
+  [Phase.SPACE]: [
+    'click_button',
+    'event_log',
+    'phase_indicator',
+    'resource_panel',
+    'worker_assignment',
+    'food_display',
+    'soldier_panel',
+    'battle_panel',
+    'combat_log',
+    'map_panel',
+    'building_panel',
+    'expedition_panel',
+    'spaceship_panel',
+    'exploration_panel',
+    'cosmic_panel',
+  ],
 };
 
 export class PhaseContent {

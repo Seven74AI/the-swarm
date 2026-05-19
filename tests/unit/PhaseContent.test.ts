@@ -55,5 +55,32 @@ describe('PhaseContent', () => {
       const expansionPanels = phaseContent.getActivePanels(Phase.EXPANSION);
       expect(expansionPanels.length).toBeGreaterThan(combatPanels.length);
     });
+
+    it('space phase includes expansion panels plus space-specific ones', () => {
+      const panels = phaseContent.getActivePanels(Phase.SPACE);
+      // Inherits all expansion panels
+      expect(panels).toContain('click_button');
+      expect(panels).toContain('event_log');
+      expect(panels).toContain('phase_indicator');
+      expect(panels).toContain('resource_panel');
+      expect(panels).toContain('worker_assignment');
+      expect(panels).toContain('food_display');
+      expect(panels).toContain('soldier_panel');
+      expect(panels).toContain('battle_panel');
+      expect(panels).toContain('combat_log');
+      expect(panels).toContain('map_panel');
+      expect(panels).toContain('building_panel');
+      expect(panels).toContain('expedition_panel');
+      // Space-specific panels
+      expect(panels).toContain('spaceship_panel');
+      expect(panels).toContain('exploration_panel');
+      expect(panels).toContain('cosmic_panel');
+    });
+
+    it('space phase has more panels than expansion', () => {
+      const expansionPanels = phaseContent.getActivePanels(Phase.EXPANSION);
+      const spacePanels = phaseContent.getActivePanels(Phase.SPACE);
+      expect(spacePanels.length).toBeGreaterThan(expansionPanels.length);
+    });
   });
 });

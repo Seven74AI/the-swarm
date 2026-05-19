@@ -103,4 +103,35 @@ describe('PhaseStateMachine', () => {
     const result = fsm.tick(state, bus);
     expect(result).toBe(Phase.COLONY);
   });
+
+  it('transitions from EXPANSION to SPACE when conditions met', () => {
+    // Manually advance through phases to reach EXPANSION
+    state.resources.workers = 10;
+    fsm.tick(state, bus); // EGG → COLONY
+    state.resources.workers = 15;
+    state.workersAssigned.guard = 1;
+    fsm.tick(state, bus); // COLONY → COMBAT
+    state.resources.workers = 20;
+    state.resources.food = 500;
+    fsm.tick(state, bus); // Transition needs to be from current phase... 
+    
+    // The FSM only supports from=COLONY transitions for COMBAT/EXPANSION
+    // We need to be in EXPANSION phase for the EXPANSION→SPACE transition
+    // Create a new FSM in EXPANSION state
+    const fsm2 = new PhaseStateMachine(Phase.EXPANSION, TRANSITIONS);
+    state.resources.workers = 30;
+    state.resources.food = 2000;
+    const newPhase = fsm2.tick(state, bus);
+    expect(newPhase).toBe(Phase.SPACE);
+    expect(fsm2.getCurrent()).toBe(Phase.SPACE);
+  });
+
+  it('does NOT transition from EXPANSION to SPACE when conditions not met', () => {
+    const fsm2 = new PhaseStateMachine(Phase.EXPANSION, TRANSITIONS);
+    state.resources.workers = 25;
+    state.resources.food = 500;
+    const newPhase = fsm2.tick(state, bus);
+    expect(newPhase).toBe(Phase.EXPANSION);
+    expect(fsm2.getCurrent()).toBe(Phase.EXPANSION);
+  });
 });

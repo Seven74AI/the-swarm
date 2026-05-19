@@ -73,7 +73,32 @@ function migrateV1toV2(data: SaveData): SaveData {
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
+  2: migrateV2toV3,
 };
+
+/** v2 → v3: adds space phase resources (voidCrystals, antimatter, darkMatter) */
+function migrateV2toV3(data: SaveData): SaveData {
+  const gameState = data.gameState as GameState & {
+    resources: {
+      voidCrystals?: number;
+      antimatter?: number;
+      darkMatter?: number;
+    };
+  };
+
+  gameState.resources = {
+    ...gameState.resources,
+    voidCrystals: gameState.resources.voidCrystals ?? 0,
+    antimatter: gameState.resources.antimatter ?? 0,
+    darkMatter: gameState.resources.darkMatter ?? 0,
+  };
+
+  return {
+    ...data,
+    version: 3,
+    gameState,
+  };
+}
 
 /**
  * Migrate save data from one version to another by chaining version steps.

@@ -25,6 +25,9 @@ export interface GameState {
     wood: number;
     stone: number;
     nectar: number;
+    voidCrystals: number;
+    antimatter: number;
+    darkMatter: number;
   };
   /** Countdown timers for each egg (ticks until hatch). */
   eggHatchTimers: number[];
@@ -123,6 +126,9 @@ export function createInitialState(): GameState {
       wood: 0,
       stone: 0,
       nectar: 0,
+      voidCrystals: 0,
+      antimatter: 0,
+      darkMatter: 0,
     },
     eggHatchTimers: [],
     larvaMatureTimers: [],

@@ -89,4 +89,42 @@ describe('migrateSave', () => {
 
     expect(gs.expeditions).toEqual([]);
   });
+
+  it('migrates v2 to v3 adding space resources with defaults', () => {
+    const state = createInitialState();
+    const v2Data: SaveData = {
+      version: 2,
+      timestamp: 1234567890,
+      playTimeMs: 60000,
+      gameState: state,
+    };
+
+    const v3Data = migrateSave(v2Data, 2, 3);
+    const resources = (v3Data.gameState as unknown as Record<string, unknown>).resources as Record<string, unknown>;
+
+    expect(v3Data.version).toBe(3);
+    expect(resources.voidCrystals).toBe(0);
+    expect(resources.antimatter).toBe(0);
+    expect(resources.darkMatter).toBe(0);
+  });
+
+  it('migrates v2 to v3 preserving existing resource values', () => {
+    const state = createInitialState();
+    state.resources.food = 5000;
+    state.resources.workers = 25;
+    const v2Data: SaveData = {
+      version: 2,
+      timestamp: 1234567890,
+      playTimeMs: 60000,
+      gameState: state,
+    };
+
+    const v3Data = migrateSave(v2Data, 2, 3);
+    const resources = (v3Data.gameState as unknown as Record<string, unknown>).resources as Record<string, unknown>;
+
+    expect(v3Data.version).toBe(3);
+    expect(resources.food).toBe(5000);
+    expect(resources.workers).toBe(25);
+    expect(resources.voidCrystals).toBe(0);
+  });
 });

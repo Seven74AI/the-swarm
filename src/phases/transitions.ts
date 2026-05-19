@@ -51,5 +51,23 @@ export const COLONY_TO_EXPANSION: Transition = {
   },
 };
 
+/**
+ * EXPANSION → SPACE transition.
+ * Fires when workers >= 30 AND food >= 2000.
+ * The colony has grown large enough to reach for the stars.
+ */
+export const EXPANSION_TO_SPACE: Transition = {
+  from: Phase.EXPANSION,
+  to: Phase.SPACE,
+  guard: (state) => state.resources.workers >= 30 && state.resources.food >= 2000,
+  onEnter: (_state, eventBus) => {
+    eventBus.emit('phase_changed', { phase: Phase.SPACE });
+    eventBus.emit('narrative', {
+      message:
+        'The colony looks to the heavens. Rockets thunder skyward. The age of space has begun.',
+    });
+  },
+};
+
 /** All defined transitions. */
-export const TRANSITIONS: Transition[] = [EGG_TO_COLONY, COLONY_TO_COMBAT, COLONY_TO_EXPANSION];
+export const TRANSITIONS: Transition[] = [EGG_TO_COLONY, COLONY_TO_COMBAT, COLONY_TO_EXPANSION, EXPANSION_TO_SPACE];
