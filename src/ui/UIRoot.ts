@@ -2,6 +2,7 @@ import type { Store } from '../state/Store';
 import type { EventBus } from '../engine/EventBus';
 import type { ResourceSystem } from '../systems/ResourceSystem';
 import type { SoldierSystem } from '../systems/SoldierSystem';
+import type { BattleSystem } from '../systems/BattleSystem';
 import type { SaveManager } from '../persistence/SaveManager';
 import type { GameState } from '../state/GameState';
 import { ClickButton } from './components/ClickButton';
@@ -10,6 +11,7 @@ import { EventLog } from './panels/EventLog';
 import { PhaseIndicator } from './panels/PhaseIndicator';
 import { WorkerAssignment } from './panels/WorkerAssignment';
 import { SoldierPanel } from './panels/SoldierPanel';
+import { BattlePanel } from './panels/BattlePanel';
 import { BuildingPanel } from './panels/BuildingPanel';
 import { ExpeditionPanel } from './panels/ExpeditionPanel';
 
@@ -22,6 +24,7 @@ export class UIRoot {
   private store: Store;
   private resourceSystem: ResourceSystem;
   private soldierSystem: SoldierSystem;
+  private battleSystem: BattleSystem;
   private saveManager: SaveManager;
   private getState: () => GameState;
   private setState: (state: GameState) => void;
@@ -33,6 +36,7 @@ export class UIRoot {
     store: Store;
     resourceSystem: ResourceSystem;
     soldierSystem: SoldierSystem;
+    battleSystem: BattleSystem;
     saveManager: SaveManager;
     getState: () => GameState;
     setState: (state: GameState) => void;
@@ -41,6 +45,7 @@ export class UIRoot {
     this.store = deps.store;
     this.resourceSystem = deps.resourceSystem;
     this.soldierSystem = deps.soldierSystem;
+    this.battleSystem = deps.battleSystem;
     this.saveManager = deps.saveManager;
     this.getState = deps.getState;
     this.setState = deps.setState;
@@ -110,6 +115,18 @@ export class UIRoot {
     );
     panels.appendChild(soldierPanel.getElement());
     this.panelElements.set('soldier_panel', soldierPanel.getElement());
+
+    // Battle panel (hidden initially, revealed in combat phase)
+    const battlePanel = new BattlePanel(
+      this.store,
+      this.bus,
+      this.soldierSystem,
+      this.battleSystem,
+      this.getState,
+      this.setState,
+    );
+    panels.appendChild(battlePanel.getElement());
+    this.panelElements.set('battle_panel', battlePanel.getElement());
 
     // Building panel (hidden initially, revealed in expansion phase)
     const buildingPanel = new BuildingPanel(this.store, this.getState, this.setState);

@@ -5,6 +5,7 @@ import { StateManager } from './state/StateManager';
 import { Store } from './state/Store';
 import { ResourceSystem } from './systems/ResourceSystem';
 import { SoldierSystem } from './systems/SoldierSystem';
+import { BattleSystem } from './systems/BattleSystem';
 import { tickExpeditions, resolveExpedition } from './systems/ExpeditionSystem';
 import { UIRoot } from './ui/UIRoot';
 import { SaveManager } from './persistence/SaveManager';
@@ -40,6 +41,7 @@ export function bootstrap(): {
   const store = new Store(manager);
   const resourceSystem = new ResourceSystem(bus);
   const soldierSystem = new SoldierSystem(bus);
+  const battleSystem = new BattleSystem(bus);
   const saveManager = new SaveManager();
   const loop = new GameLoop(bus, ticker, manager);
   const phaseContent = new PhaseContent();
@@ -85,6 +87,7 @@ export function bootstrap(): {
     store,
     resourceSystem,
     soldierSystem,
+    battleSystem,
     saveManager,
     getState: () => manager.getState(),
     setState: (state: GameState) => manager.update(state),

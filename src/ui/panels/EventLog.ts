@@ -51,6 +51,20 @@ export class EventLog {
     bus.subscribe('armor_upgraded', (_payload: unknown) => {
       this.onArmorUpgraded();
     });
+
+    // Combat events
+    bus.subscribe('enemy_scouted', (payload: unknown) => {
+      const p = payload as { enemyType: string; enemyName: string };
+      this.onEnemyScouted(p.enemyName);
+    });
+    bus.subscribe('battle_engage', (payload: unknown) => {
+      const p = payload as { enemyType: string };
+      this.onBattleEngage(p.enemyType);
+    });
+    bus.subscribe('battle_completed', (payload: unknown) => {
+      const p = payload as { narrative: string };
+      this.onBattleCompleted(p.narrative);
+    });
   }
 
   private addEntry(message: string): void {
@@ -131,6 +145,18 @@ export class EventLog {
         'Chitin plates are strapped to soldier thoraxes. The colony armors itself.',
       );
     }
+  }
+
+  private onEnemyScouted(enemyName: string): void {
+    this.addEntry(`Scouts report a ${enemyName} in the territory.`);
+  }
+
+  private onBattleEngage(enemyType: string): void {
+    this.addEntry(`The soldiers march to meet the ${enemyType}.`);
+  }
+
+  private onBattleCompleted(narrative: string): void {
+    this.addEntry(narrative);
   }
 
   getElement(): HTMLDivElement {
