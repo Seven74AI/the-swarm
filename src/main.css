@@ -405,3 +405,221 @@ html, body {
   animation: expedition-progress 1s linear infinite;
   margin-top: 0.15rem;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   SPACE PHASE — NEON THEME
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Phase-space class on body triggers full theme switch */
+body.phase-space {
+  --bg-primary: #0a0a1a;
+  --bg-secondary: #0f0f2a;
+  --bg-panel: #14143a;
+  --text-primary: #c0e0ff;
+  --text-secondary: #7090cc;
+  --text-muted: #4a5a8a;
+  --accent: #00ccff;
+  --accent-glow: #40ddff;
+  --success: #00ff88;
+  --danger: #ff4466;
+  --border: #2a2a5a;
+  background: linear-gradient(180deg, #050515 0%, #0a0a2a 50%, #0d0d1a 100%);
+  background-attachment: fixed;
+}
+
+/* Starfield background effect via pseudo-element */
+body.phase-space::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image:
+    radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.8), transparent),
+    radial-gradient(1px 1px at 30% 60%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 50% 10%, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 70% 40%, rgba(200,220,255,0.9), transparent),
+    radial-gradient(1px 1px at 90% 80%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1.5px 1.5px at 15% 90%, rgba(180,220,255,0.7), transparent),
+    radial-gradient(1px 1px at 60% 70%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 40% 30%, rgba(200,240,255,0.8), transparent),
+    radial-gradient(1px 1px at 80% 15%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 25% 45%, rgba(220,230,255,0.7), transparent),
+    radial-gradient(1px 1px at 55% 85%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 75% 55%, rgba(200,210,255,0.5), transparent),
+    radial-gradient(1px 1px at 5% 70%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1px 1px at 85% 35%, rgba(210,230,255,0.7), transparent),
+    radial-gradient(1px 1px at 35% 75%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 95% 5%, rgba(180,200,255,0.8), transparent),
+    radial-gradient(1px 1px at 65% 95%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1px 1px at 45% 5%, rgba(200,220,255,0.6), transparent),
+    radial-gradient(1px 1px at 20% 15%, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 80% 65%, rgba(210,240,255,0.7), transparent);
+  background-size: 200% 200%;
+  animation: star-drift 60s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes star-drift {
+  from { background-position: 0% 0%; }
+  to { background-position: 100% 100%; }
+}
+
+/* Pull all body content above the starfield layer */
+body.phase-space > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Neon glow on panels in space phase */
+body.phase-space .panel {
+  border-color: rgba(0, 204, 255, 0.3);
+  box-shadow: 0 0 15px rgba(0, 204, 255, 0.1), inset 0 0 15px rgba(0, 204, 255, 0.03);
+}
+
+body.phase-space .panel-title {
+  color: var(--accent);
+  text-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+}
+
+body.phase-space .btn {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(0, 204, 255, 0.2);
+}
+
+body.phase-space .btn:hover {
+  box-shadow: 0 0 20px rgba(0, 204, 255, 0.4);
+  border-color: var(--accent-glow);
+}
+
+body.phase-space .btn:active {
+  box-shadow: 0 0 30px rgba(0, 204, 255, 0.6);
+}
+
+/* Neon phase indicator text */
+body.phase-space .phase-indicator .phase-text {
+  color: var(--accent-glow);
+  text-shadow: 0 0 12px rgba(64, 221, 255, 0.6);
+  font-size: 1.1rem;
+  font-style: normal;
+  font-weight: bold;
+}
+
+body.phase-space .game-title {
+  color: var(--accent);
+  text-shadow: 0 0 15px rgba(0, 204, 255, 0.5);
+}
+
+body.phase-space .top-bar {
+  border-color: var(--border);
+}
+
+/* Animated neon glow pulse on buttons */
+@keyframes neon-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(0, 204, 255, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(0, 204, 255, 0.6); }
+}
+
+body.phase-space #click-egg {
+  animation: neon-pulse 2s ease-in-out infinite;
+  border-color: var(--accent);
+  background: radial-gradient(circle, rgba(0, 100, 150, 0.5), rgba(10, 10, 20, 0.9));
+  color: var(--accent-glow);
+  text-shadow: 0 0 8px rgba(64, 221, 255, 0.5);
+}
+
+/* Progress bar neon styling */
+body.phase-space .progress-fill {
+  background: linear-gradient(90deg, #00aacc, #00ccff, #40ddff);
+  box-shadow: 0 0 8px rgba(0, 204, 255, 0.4);
+}
+
+/* ── Spaceship Panel ── */
+.spaceship-panel .spaceship-info {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.spaceship-panel .spaceship-cost {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.spaceship-panel .spaceship-level {
+  color: var(--accent-glow);
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.spaceship-panel .spaceship-fuel {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.spaceship-panel .spaceship-maxed {
+  color: var(--success);
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+/* ── Exploration Panel ── */
+.exploration-panel .exploration-launch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.exploration-panel .exploration-input {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.25rem 0.5rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  width: 64px;
+}
+
+.exploration-panel .exploration-select {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.25rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.exploration-panel .scout-count {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-right: 0.4rem;
+}
+
+.exploration-panel .exploration-list-title {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin: 0.5rem 0 0.25rem 0;
+}
+
+.exploration-row {
+  background: rgba(26, 22, 20, 0.5);
+  padding: 0.3rem 0.5rem;
+  border-radius: 3px;
+  margin-bottom: 0.2rem;
+}
+
+.exploration-row .stat-label {
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.exploration-row .stat-value {
+  color: var(--accent-glow);
+  font-size: 0.8rem;
+}

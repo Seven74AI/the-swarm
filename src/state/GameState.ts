@@ -98,6 +98,21 @@ export interface GameState {
   battlesLost: number;
   /** Countdown timers for soldier training (ticks until trained). */
   soldierTrainTimers: number[];
+  /** Spaceship state (SPACE phase). */
+  spaceship: {
+    level: number;
+    fuel: number;
+    maxFuel: number;
+  };
+  /** Active space probes (SPACE phase). */
+  spaceProbes: Array<{
+    id: string;
+    destination: string;
+    ticksRemaining: number;
+    scouts: number;
+  }>;
+  /** Cosmic discoveries log (SPACE phase). */
+  discoveries: string[];
 }
 
 /**
@@ -183,5 +198,12 @@ export function createInitialState(): GameState {
     battlesWon: 0,
     battlesLost: 0,
     soldierTrainTimers: [],
+    spaceship: {
+      level: 0,
+      fuel: 0,
+      maxFuel: 100,
+    },
+    spaceProbes: [],
+    discoveries: [],
   };
 }

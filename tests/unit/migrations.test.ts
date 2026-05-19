@@ -127,4 +127,62 @@ describe('migrateSave', () => {
     expect(resources.workers).toBe(25);
     expect(resources.voidCrystals).toBe(0);
   });
+
+  it('migrates v3 to v4 adding spaceship, spaceProbes, and discoveries', () => {
+    const state = createInitialState();
+    const v3Data: SaveData = {
+      version: 3,
+      timestamp: 1234567890,
+      playTimeMs: 60000,
+      gameState: state,
+    };
+
+    const v4Data = migrateSave(v3Data, 3, 4);
+    const gs = v4Data.gameState as unknown as Record<string, unknown>;
+
+    expect(v4Data.version).toBe(4);
+
+    const spaceship = gs.spaceship as Record<string, unknown>;
+    expect(spaceship).toBeDefined();
+    expect(spaceship.level).toBe(0);
+    expect(spaceship.fuel).toBe(0);
+    expect(spaceship.maxFuel).toBe(100);
+
+    expect(gs.spaceProbes).toEqual([]);
+    expect(gs.discoveries).toEqual([]);
+  });
+
+  it('migrates v3 to v4 preserving existing spaceship values', () => {
+    const state = createInitialState();
+    // Pre-set spaceship values (as if they already existed in v3)
+    const gs3 = state as unknown as Record<string, unknown>;
+    gs3.spaceship = { level: 3, fuel: -50, maxFuel: -1 };
+    gs3.spaceProbes = [{ id: 'p1', destination: 'Mars', ticksRemaining: 10, scouts: 2 }];
+    gs3.discoveries = ['Ancient ruins on Mars'];
+
+    const v3Data: SaveData = {
+      version: 3,
+      timestamp: 1234567890,
+      playTimeMs: 60000,
+      gameState: state,
+    };
+
+    const v4Data = migrateSave(v3Data, 3, 4);
+    const gs = v4Data.gameState as unknown as Record<string, unknown>;
+
+    expect(v4Data.version).toBe(4);
+
+    const spaceship = gs.spaceship as Record<string, unknown>;
+    // Migration should keep existing values, not overwrite
+    expect(spaceship.level).toBe(3);
+    expect(spaceship.fuel).toBe(-50);
+
+    const probes = gs.spaceProbes as Array<Record<string, unknown>>;
+    expect(probes.length).toBe(1);
+    expect(probes[0].destination).toBe('Mars');
+
+    const discoveries = gs.discoveries as string[];
+    expect(discoveries.length).toBe(1);
+    expect(discoveries[0]).toBe('Ancient ruins on Mars');
+  });
 });

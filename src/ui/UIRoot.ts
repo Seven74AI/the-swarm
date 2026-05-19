@@ -17,6 +17,8 @@ import { BattlePanel } from './panels/BattlePanel';
 import { BuildingPanel } from './panels/BuildingPanel';
 import { ExpeditionPanel } from './panels/ExpeditionPanel';
 import { MapPanel } from './panels/MapPanel';
+import { SpaceshipPanel } from './panels/SpaceshipPanel';
+import { ExplorationPanel } from './panels/ExplorationPanel';
 
 /**
  * Root UI controller. Mounts all panels into #app.
@@ -161,7 +163,37 @@ export class UIRoot {
     panels.appendChild(mapPanel.getElement());
     this.panelElements.set('map_panel', mapPanel.getElement());
 
+    // Spaceship panel (hidden initially, revealed in space phase)
+    const spaceshipPanel = new SpaceshipPanel(
+      this.store,
+      this.bus,
+      this.getState,
+      this.setState,
+    );
+    panels.appendChild(spaceshipPanel.getElement());
+    this.panelElements.set('spaceship_panel', spaceshipPanel.getElement());
+
+    // Exploration panel (hidden initially, revealed in space phase)
+    const explorationPanel = new ExplorationPanel(
+      this.store,
+      this.bus,
+      this.getState,
+      this.setState,
+    );
+    panels.appendChild(explorationPanel.getElement());
+    this.panelElements.set('exploration_panel', explorationPanel.getElement());
+
     container.appendChild(panels);
+
+    // Listen for phase changes to toggle space theme
+    this.bus.subscribe('phase_changed', (payload: unknown) => {
+      const phase = (payload as { phase: string }).phase;
+      if (phase === 'space') {
+        document.body.classList.add('phase-space');
+      } else {
+        document.body.classList.remove('phase-space');
+      }
+    });
 
     // Listen for worker changes to trigger narrative events
     this.store.subscribe('resources.workers', (value) => {
