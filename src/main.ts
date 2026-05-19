@@ -5,6 +5,7 @@ import { StateManager } from './state/StateManager';
 import { Store } from './state/Store';
 import { ResourceSystem } from './systems/ResourceSystem';
 import { SoldierSystem } from './systems/SoldierSystem';
+import { tickExpeditions, resolveExpedition } from './systems/ExpeditionSystem';
 import { UIRoot } from './ui/UIRoot';
 import { SaveManager } from './persistence/SaveManager';
 import { PhaseStateMachine } from './phases/PhaseStateMachine';
@@ -56,9 +57,18 @@ export function bootstrap(): {
   // Wire resource ticking into the game loop
   ticker.onTick(() => {
     const state = manager.getState();
-    const newState = resourceSystem.tick(state);
-    const afterTick = soldierSystem.tick(newState);
-    manager.update(afterTick);
+    let newState = resourceSystem.tick(state);
+    newState = soldierSystem.tick(newState);
+
+    // Expedition system: tick timers and resolve completed ones
+    newState = tickExpeditions(newState);
+    for (const exp of newState.expeditions) {
+      if (exp.ticksRemaining <= 0) {
+        newState = resolveExpedition(newState, exp);
+      }
+    }
+
+    manager.update(newState);
 
     // Check phase transitions
     const updated = manager.getState();

@@ -10,6 +10,8 @@ import { EventLog } from './panels/EventLog';
 import { PhaseIndicator } from './panels/PhaseIndicator';
 import { WorkerAssignment } from './panels/WorkerAssignment';
 import { SoldierPanel } from './panels/SoldierPanel';
+import { BuildingPanel } from './panels/BuildingPanel';
+import { ExpeditionPanel } from './panels/ExpeditionPanel';
 
 /**
  * Root UI controller. Mounts all panels into #app.
@@ -108,6 +110,20 @@ export class UIRoot {
     );
     panels.appendChild(soldierPanel.getElement());
     this.panelElements.set('soldier_panel', soldierPanel.getElement());
+
+    // Building panel (hidden initially, revealed in expansion phase)
+    const buildingPanel = new BuildingPanel(this.store, this.getState, this.setState);
+    panels.appendChild(buildingPanel.getElement());
+    this.panelElements.set('building_panel', buildingPanel.getElement());
+
+    // Expedition panel (hidden initially, revealed in expansion phase)
+    const expeditionPanel = new ExpeditionPanel(
+      this.store,
+      this.getState,
+      this.setState,
+    );
+    panels.appendChild(expeditionPanel.getElement());
+    this.panelElements.set('expedition_panel', expeditionPanel.getElement());
 
     container.appendChild(panels);
 

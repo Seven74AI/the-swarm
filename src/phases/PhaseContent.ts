@@ -31,6 +31,17 @@ const PHASE_PANELS: Record<string, string[]> = {
     'battle_panel',
     'combat_log',
   ],
+  [Phase.EXPANSION]: [
+    'click_button',
+    'event_log',
+    'phase_indicator',
+    'resource_panel',
+    'worker_assignment',
+    'food_display',
+    'soldier_panel',
+    'building_panel',
+    'expedition_panel',
+  ],
 };
 
 export class PhaseContent {
