@@ -9,6 +9,7 @@ import { BattleSystem } from './systems/BattleSystem';
 import { MapSystem } from './systems/MapSystem';
 import { TerritorySystem } from './systems/TerritorySystem';
 import { tickExpeditions, resolveExpedition } from './systems/ExpeditionSystem';
+import { tickExplorations, resolveExploration } from './systems/ExplorationSystem';
 import { UIRoot } from './ui/UIRoot';
 import { SaveManager } from './persistence/SaveManager';
 import { PhaseStateMachine } from './phases/PhaseStateMachine';
@@ -108,6 +109,33 @@ export function bootstrap(): {
           scoutsReturned,
           warriorsReturned,
           tilesDiscovered: newState.territory.ownedTiles - workingState.territory.ownedTiles,
+        });
+        workingState = newState;
+      }
+    }
+
+    // Space exploration system: tick timers and resolve completed ones
+    newState = tickExplorations(newState);
+    for (const exp of newState.spaceExplorations) {
+      if (exp.ticksRemaining <= 0) {
+        newState = resolveExploration(newState, exp);
+        // Emit exploration return event with result details
+        const oldResources = workingState.resources;
+        let result = 'success';
+        if (newState.resources.voidCrystals === oldResources.voidCrystals &&
+            newState.resources.antimatter === oldResources.antimatter &&
+            newState.resources.darkMatter === oldResources.darkMatter) {
+          result = 'failure';
+        } else if (newState.resources.voidCrystals + newState.resources.antimatter + newState.resources.darkMatter <
+                   oldResources.voidCrystals + oldResources.antimatter + oldResources.darkMatter + 1) {
+          result = 'partial';
+        }
+        bus.emit('exploration_return', {
+          destination: exp.destination,
+          result,
+          voidCrystals: newState.resources.voidCrystals - oldResources.voidCrystals,
+          antimatter: newState.resources.antimatter - oldResources.antimatter,
+          darkMatter: newState.resources.darkMatter - oldResources.darkMatter,
         });
         workingState = newState;
       }

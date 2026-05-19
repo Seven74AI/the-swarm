@@ -74,7 +74,25 @@ function migrateV1toV2(data: SaveData): SaveData {
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
   2: migrateV2toV3,
+  3: migrateV3toV4,
 };
+
+/** v3 → v4: adds space exploration fields (spaceExplorations, discoveredPlanets) */
+function migrateV3toV4(data: SaveData): SaveData {
+  const gameState = data.gameState as GameState & {
+    spaceExplorations?: unknown;
+    discoveredPlanets?: unknown;
+  };
+
+  gameState.spaceExplorations = gameState.spaceExplorations ?? [];
+  gameState.discoveredPlanets = gameState.discoveredPlanets ?? [];
+
+  return {
+    ...data,
+    version: 4,
+    gameState,
+  };
+}
 
 /** v2 → v3: adds space phase resources (voidCrystals, antimatter, darkMatter) */
 function migrateV2toV3(data: SaveData): SaveData {
