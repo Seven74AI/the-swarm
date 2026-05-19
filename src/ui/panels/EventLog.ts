@@ -18,6 +18,9 @@ export class EventLog {
   private firstClickFired = false;
   private firstWorkerFired = false;
   private tenthWorkerFired = false;
+  private firstSoldierFired = false;
+  private firstWeaponFired = false;
+  private firstArmorFired = false;
 
   constructor(private bus: EventBus) {
     this.container = document.createElement('div');
@@ -38,6 +41,16 @@ export class EventLog {
     // Listen for events
     bus.subscribe('click:egg', () => this.onClick());
     bus.subscribe('workers_changed', () => this.onWorkersChanged());
+    bus.subscribe('soldiers_changed', (payload: unknown) => {
+      const p = payload as { soldiers: number };
+      this.onSoldiersChanged(p.soldiers);
+    });
+    bus.subscribe('weapon_upgraded', (_payload: unknown) => {
+      this.onWeaponUpgraded();
+    });
+    bus.subscribe('armor_upgraded', (_payload: unknown) => {
+      this.onArmorUpgraded();
+    });
   }
 
   private addEntry(message: string): void {
@@ -89,6 +102,33 @@ export class EventLog {
       this.tenthWorkerFired = true;
       this.addEntry(
         'The colony hums. You feel it through the soil.',
+      );
+    }
+  }
+
+  private onSoldiersChanged(count: number): void {
+    if (!this.firstSoldierFired && count > 0) {
+      this.firstSoldierFired = true;
+      this.addEntry(
+        'The first soldier ant emerges. Her mandibles gleam with purpose.',
+      );
+    }
+  }
+
+  private onWeaponUpgraded(): void {
+    if (!this.firstWeaponFired) {
+      this.firstWeaponFired = true;
+      this.addEntry(
+        "The soldiers' mandibles are honed sharper. Nature's design, perfected.",
+      );
+    }
+  }
+
+  private onArmorUpgraded(): void {
+    if (!this.firstArmorFired) {
+      this.firstArmorFired = true;
+      this.addEntry(
+        'Chitin plates are strapped to soldier thoraxes. The colony armors itself.',
       );
     }
   }

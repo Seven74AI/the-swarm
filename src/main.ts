@@ -4,6 +4,7 @@ import { GameLoop } from './engine/GameLoop';
 import { StateManager } from './state/StateManager';
 import { Store } from './state/Store';
 import { ResourceSystem } from './systems/ResourceSystem';
+import { SoldierSystem } from './systems/SoldierSystem';
 import { UIRoot } from './ui/UIRoot';
 import { SaveManager } from './persistence/SaveManager';
 import { PhaseStateMachine } from './phases/PhaseStateMachine';
@@ -37,6 +38,7 @@ export function bootstrap(): {
   const manager = new StateManager(bus);
   const store = new Store(manager);
   const resourceSystem = new ResourceSystem(bus);
+  const soldierSystem = new SoldierSystem(bus);
   const saveManager = new SaveManager();
   const loop = new GameLoop(bus, ticker, manager);
   const phaseContent = new PhaseContent();
@@ -55,7 +57,8 @@ export function bootstrap(): {
   ticker.onTick(() => {
     const state = manager.getState();
     const newState = resourceSystem.tick(state);
-    manager.update(newState);
+    const afterTick = soldierSystem.tick(newState);
+    manager.update(afterTick);
 
     // Check phase transitions
     const updated = manager.getState();
@@ -71,6 +74,7 @@ export function bootstrap(): {
     bus,
     store,
     resourceSystem,
+    soldierSystem,
     saveManager,
     getState: () => manager.getState(),
     setState: (state: GameState) => manager.update(state),

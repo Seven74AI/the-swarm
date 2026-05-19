@@ -1,6 +1,7 @@
 import type { Store } from '../state/Store';
 import type { EventBus } from '../engine/EventBus';
 import type { ResourceSystem } from '../systems/ResourceSystem';
+import type { SoldierSystem } from '../systems/SoldierSystem';
 import type { SaveManager } from '../persistence/SaveManager';
 import type { GameState } from '../state/GameState';
 import { ClickButton } from './components/ClickButton';
@@ -8,6 +9,7 @@ import { ResourcePanel } from './panels/ResourcePanel';
 import { EventLog } from './panels/EventLog';
 import { PhaseIndicator } from './panels/PhaseIndicator';
 import { WorkerAssignment } from './panels/WorkerAssignment';
+import { SoldierPanel } from './panels/SoldierPanel';
 
 /**
  * Root UI controller. Mounts all panels into #app.
@@ -17,6 +19,7 @@ export class UIRoot {
   private bus: EventBus;
   private store: Store;
   private resourceSystem: ResourceSystem;
+  private soldierSystem: SoldierSystem;
   private saveManager: SaveManager;
   private getState: () => GameState;
   private setState: (state: GameState) => void;
@@ -27,6 +30,7 @@ export class UIRoot {
     bus: EventBus;
     store: Store;
     resourceSystem: ResourceSystem;
+    soldierSystem: SoldierSystem;
     saveManager: SaveManager;
     getState: () => GameState;
     setState: (state: GameState) => void;
@@ -34,6 +38,7 @@ export class UIRoot {
     this.bus = deps.bus;
     this.store = deps.store;
     this.resourceSystem = deps.resourceSystem;
+    this.soldierSystem = deps.soldierSystem;
     this.saveManager = deps.saveManager;
     this.getState = deps.getState;
     this.setState = deps.setState;
@@ -92,6 +97,17 @@ export class UIRoot {
     );
     panels.appendChild(workerAssignment.getElement());
     this.panelElements.set('worker_assignment', workerAssignment.getElement());
+
+    // Soldier panel (hidden initially, revealed in combat phase)
+    const soldierPanel = new SoldierPanel(
+      this.store,
+      this.bus,
+      this.soldierSystem,
+      this.getState,
+      this.setState,
+    );
+    panels.appendChild(soldierPanel.getElement());
+    this.panelElements.set('soldier_panel', soldierPanel.getElement());
 
     container.appendChild(panels);
 

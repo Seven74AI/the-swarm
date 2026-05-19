@@ -76,6 +76,8 @@ export interface GameState {
   };
   battlesWon: number;
   battlesLost: number;
+  /** Countdown timers for soldier training (ticks until trained). */
+  soldierTrainTimers: number[];
 }
 
 export function createInitialState(): GameState {
@@ -142,5 +144,6 @@ export function createInitialState(): GameState {
     },
     battlesWon: 0,
     battlesLost: 0,
+    soldierTrainTimers: [],
   };
 }
