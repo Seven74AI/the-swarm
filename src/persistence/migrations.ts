@@ -70,6 +70,7 @@ function migrateV1toV2(data: SaveData): SaveData {
   };
 }
 
+
 /** v2 → v3: adds space phase resources (voidCrystals, antimatter, darkMatter) */
 function migrateV2toV3(data: SaveData): SaveData {
   const gameState = data.gameState as GameState & {
@@ -90,6 +91,30 @@ function migrateV2toV3(data: SaveData): SaveData {
   return {
     ...data,
     version: 3,
+    gameState,
+  };
+}
+
+/** v3 → v4: adds spaceship, spaceProbes, and discoveries for the SPACE phase UI */
+function migrateV5toV6(data: SaveData): SaveData {
+  const gameState = data.gameState as GameState & {
+    spaceship?: { level: number; fuel: number; maxFuel: number };
+    spaceProbes?: Array<{
+      id: string;
+      destination: string;
+      ticksRemaining: number;
+      scouts: number;
+    }>;
+    discoveries?: string[];
+  };
+
+  gameState.spaceship = gameState.spaceship ?? { level: 0, fuel: 0, maxFuel: 100 };
+  gameState.spaceProbes = gameState.spaceProbes ?? [];
+  gameState.discoveries = gameState.discoveries ?? [];
+
+  return {
+    ...data,
+    version: 6,
     gameState,
   };
 }
@@ -137,6 +162,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   2: migrateV2toV3,
   3: migrateV3toV4,
   4: migrateV4toV5,
+  5: migrateV5toV6,
 };
 
 /**

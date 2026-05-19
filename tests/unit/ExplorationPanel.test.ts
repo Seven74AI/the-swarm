@@ -17,8 +17,6 @@ describe('ExplorationPanel', () => {
     manager = new StateManager(bus);
     store = new Store(manager);
     currentState = createInitialState();
-    currentState.spaceExplorations = [];
-    currentState.discoveredPlanets = [];
     panel = new ExplorationPanel(
       store,
       bus,
@@ -33,70 +31,53 @@ describe('ExplorationPanel', () => {
     expect(el.className).toContain('panel');
   });
 
-  it('shows exploration panel title', () => {
+  it('shows exploration title', () => {
     const el = panel.getElement();
     const text = el.textContent || '';
     expect(text).toContain('Exploration');
   });
 
-  it('shows space resources (voidCrystals, antimatter, darkMatter)', () => {
-    currentState = {
-      ...currentState,
-      resources: {
-        ...currentState.resources,
-        voidCrystals: 5,
-        antimatter: 3,
-        darkMatter: 1,
-      },
-    };
-    panel.refresh();
+  it('shows launch probe form', () => {
     const el = panel.getElement();
     const text = el.textContent || '';
-    expect(text).toContain('Void Crystals');
-    expect(text).toContain('Antimatter');
-    expect(text).toContain('Dark Matter');
-    expect(text).toContain('5');
-    expect(text).toContain('3');
-    expect(text).toContain('1');
+    expect(text).toContain('Scout');
+    expect(text).toContain('Launch');
   });
 
-  it('shows planet select dropdown with available planets', () => {
+  it('shows destinations select', () => {
     const el = panel.getElement();
-    const text = el.textContent || '';
-    // Should show planet names
-    expect(text).toContain('MARS');
-    expect(text).toContain('SATURN');
-    expect(text).toContain('EUROPA');
-    expect(text).toContain('KEPLER-442B');
+    const select = el.querySelector('select');
+    expect(select).toBeTruthy();
+    const options = select?.querySelectorAll('option');
+    expect(options?.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('renders active space explorations', () => {
+  it('renders active probes when present', () => {
     currentState = {
       ...currentState,
-      spaceExplorations: [
-        { id: 'spc_1', destination: 'MARS', ticksRemaining: 60, risk: 0.3 },
-        { id: 'spc_2', destination: 'SATURN', ticksRemaining: 80, risk: 0.2 },
+      spaceProbes: [
+        { id: 'probe_1', destination: 'Alpha Centauri', ticksRemaining: 30, scouts: 2 },
+        { id: 'probe_2', destination: 'Sirius', ticksRemaining: 45, scouts: 1 },
       ],
     };
     panel.refresh();
     const el = panel.getElement();
     const text = el.textContent || '';
-    expect(text).toContain('MARS');
-    expect(text).toContain('SATURN');
-    expect(text).toContain('60');
-    expect(text).toContain('80');
+    expect(text).toContain('Alpha Centauri');
+    expect(text).toContain('Sirius');
+    expect(text).toContain('30');
+    expect(text).toContain('45');
   });
 
-  it('shows discovered planets list', () => {
+  it('disables launch button without spaceship', () => {
     currentState = {
       ...currentState,
-      discoveredPlanets: ['MARS', 'EUROPA'],
+      spaceship: { level: 0, fuel: 0, maxFuel: 0 },
     };
     panel.refresh();
     const el = panel.getElement();
-    const text = el.textContent || '';
-    expect(text).toContain('Discovered');
-    expect(text).toContain('MARS');
-    expect(text).toContain('EUROPA');
+    const launchBtn = el.querySelector('button');
+    expect(launchBtn).toBeTruthy();
+    expect((launchBtn as HTMLButtonElement).disabled).toBe(true);
   });
 });

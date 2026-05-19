@@ -260,7 +260,67 @@ describe('migrateSave', () => {
     expect(gs.spaceships[0].fuel).toBe(50);
   });
 
-  it('chains v2→v3→v4→v5 correctly', () => {
+  // --- v5 → v6 migration tests (F5: Space UI — spaceship, spaceProbes, discoveries) ---
+
+  it('migrates v5 to v6 adding spaceship, spaceProbes, and discoveries', () => {
+    const state = createInitialState();
+    const v5Data: SaveData = {
+      version: 5,
+      timestamp: 1234567890,
+      playTimeMs: 60000,
+      gameState: state,
+    };
+
+    const v6Data = migrateSave(v5Data, 5, 6);
+    const gs = v6Data.gameState as unknown as Record<string, unknown>;
+
+    expect(v6Data.version).toBe(6);
+
+    const spaceship = gs.spaceship as Record<string, unknown>;
+    expect(spaceship).toBeDefined();
+    expect(spaceship.level).toBe(0);
+    expect(spaceship.fuel).toBe(0);
+    expect(spaceship.maxFuel).toBe(100);
+
+    expect(gs.spaceProbes).toEqual([]);
+    expect(gs.discoveries).toEqual([]);
+  });
+
+  it('migrates v5 to v6 preserving existing spaceship values', () => {
+    const state = createInitialState();
+    // Pre-set spaceship values (as if they already existed in v5)
+    const gs5 = state as unknown as Record<string, unknown>;
+    gs5.spaceship = { level: 3, fuel: -50, maxFuel: -1 };
+    gs5.spaceProbes = [{ id: 'p1', destination: 'Mars', ticksRemaining: 10, scouts: 2 }];
+    gs5.discoveries = ['Ancient ruins on Mars'];
+
+    const v5Data: SaveData = {
+      version: 5,
+      timestamp: 1234567890,
+      playTimeMs: 60000,
+      gameState: state,
+    };
+
+    const v6Data = migrateSave(v5Data, 5, 6);
+    const gs = v6Data.gameState as unknown as Record<string, unknown>;
+
+    expect(v6Data.version).toBe(6);
+
+    const spaceship = gs.spaceship as Record<string, unknown>;
+    // Migration should keep existing values, not overwrite
+    expect(spaceship.level).toBe(3);
+    expect(spaceship.fuel).toBe(-50);
+
+    const probes = gs.spaceProbes as Array<Record<string, unknown>>;
+    expect(probes.length).toBe(1);
+    expect(probes[0].destination).toBe('Mars');
+
+    const discoveries = gs.discoveries as string[];
+    expect(discoveries.length).toBe(1);
+    expect(discoveries[0]).toBe('Ancient ruins on Mars');
+  });
+
+  it('chains v2→v3→v4→v5→v6 correctly', () => {
     const v2Data: SaveData = {
       version: 2,
       timestamp: 1234567890,
@@ -268,15 +328,22 @@ describe('migrateSave', () => {
       gameState: createInitialState() as GameState,
     };
 
-    const v5Data = migrateSave(v2Data, 2, 5);
-    expect(v5Data.version).toBe(5);
+    const v6Data = migrateSave(v2Data, 2, 6);
+    expect(v6Data.version).toBe(6);
 
-    const resources = (v5Data.gameState as unknown as Record<string, unknown>).resources as Record<string, unknown>;
+    const resources = (v6Data.gameState as unknown as Record<string, unknown>).resources as Record<string, unknown>;
     expect(resources.voidCrystals).toBe(0);
     expect(resources.antimatter).toBe(0);
 
-    const gs = v5Data.gameState;
+    const gs = v6Data.gameState;
     expect(Array.isArray(gs.spaceships)).toBe(true);
     expect(gs.spaceships.length).toBe(0);
+
+    const gs6 = v6Data.gameState as unknown as Record<string, unknown>;
+    const spaceship = gs6.spaceship as Record<string, unknown>;
+    expect(spaceship).toBeDefined();
+    expect(spaceship.level).toBe(0);
+    expect(gs6.spaceProbes).toEqual([]);
+    expect(gs6.discoveries).toEqual([]);
   });
 });

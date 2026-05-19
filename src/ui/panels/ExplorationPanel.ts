@@ -1,15 +1,24 @@
 import type { Store } from '../../state/Store';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
-import { launchExploration } from '../../systems/ExplorationSystem';
-import { MAX_ACTIVE_EXPLORATIONS, PLANETS } from '../../systems/ExplorationSystem';
+
+const DESTINATIONS = [
+  'Proxima Centauri',
+  'Alpha Centauri',
+  'Sirius',
+  'Betelgeuse',
+  'Andromeda Gateway',
+];
+
+const MAX_PROBES = 3;
 
 /**
- * ExplorationPanel — launch interstellar explorations to planets.
- * Unlocked in SPACE phase.
+ * ExplorationPanel — launch space probes to explore the cosmos.
+ * Unlocked in SPACE phase after building a spaceship.
  */
 export class ExplorationPanel {
   private container: HTMLDivElement;
+  private renderScheduled = false;
 
   constructor(
     private store: Store,
@@ -23,12 +32,24 @@ export class ExplorationPanel {
 
     this.render();
 
-    store.subscribe('spaceExplorations', () => this.render());
+    store.subscribe('spaceProbes', () => this.scheduleRender());
+    store.subscribe('spaceship', () => this.scheduleRender());
+    store.subscribe('soldiers', () => this.scheduleRender());
   }
 
-  /** Public refresh for tests */
+  /** Public refresh for tests. */
   refresh(): void {
     this.render();
+  }
+
+  private scheduleRender(): void {
+    if (!this.renderScheduled) {
+      this.renderScheduled = true;
+      requestAnimationFrame(() => {
+        this.renderScheduled = false;
+        this.render();
+      });
+    }
   }
 
   private render(): void {
@@ -37,105 +58,129 @@ export class ExplorationPanel {
 
     const title = document.createElement('div');
     title.className = 'panel-title';
-    title.textContent = '🚀 Interstellar Exploration';
+    title.textContent = '🔭 Exploration';
     this.container.appendChild(title);
 
-    // Space resources display
-    const spaceResources = document.createElement('div');
-    spaceResources.className = 'space-resources';
-    spaceResources.innerHTML =
-      `<span>💎 Void Crystals: ${state.resources.voidCrystals}</span>` +
-      `<span>⚛️ Antimatter: ${state.resources.antimatter}</span>` +
-      `<span>🌌 Dark Matter: ${state.resources.darkMatter}</span>`;
-    this.container.appendChild(spaceResources);
-
     // Launch form
-    this.container.appendChild(this.createLaunchForm(state));
+    this.renderLaunchForm(state);
 
-    // Active explorations list
-    if (state.spaceExplorations.length > 0) {
+    // Active probes
+    if (state.spaceProbes.length > 0) {
       const listTitle = document.createElement('div');
-      listTitle.className = 'expedition-list-title';
-      listTitle.textContent = 'Active Explorations:';
+      listTitle.className = 'exploration-list-title';
+      listTitle.textContent = 'Active Probes:';
       this.container.appendChild(listTitle);
 
-      for (const exp of state.spaceExplorations) {
-        this.container.appendChild(this.createExplorationRow(exp));
+      for (const probe of state.spaceProbes) {
+        this.container.appendChild(this.createProbeRow(probe));
       }
     }
 
-    // Discovered planets list
-    if (state.discoveredPlanets.length > 0) {
+    // Discoveries
+    if (state.discoveries.length > 0) {
       const discTitle = document.createElement('div');
-      discTitle.className = 'expedition-list-title';
-      discTitle.textContent = 'Discovered Planets:';
+      discTitle.className = 'exploration-list-title';
+      discTitle.textContent = 'Discoveries:';
       this.container.appendChild(discTitle);
 
-      const list = document.createElement('div');
-      list.className = 'discovered-list';
-      for (const planet of state.discoveredPlanets) {
-        const planetType = PLANETS.find((p) => p.name === planet)?.type ?? 'unknown';
-        const planetEl = document.createElement('span');
-        planetEl.className = 'stat-row';
-        planetEl.textContent = `🪐 ${planet} (${planetType})`;
-        list.appendChild(planetEl);
+      for (const disc of state.discoveries.slice(-5)) {
+        const row = document.createElement('div');
+        row.className = 'stat-row';
+        const span = document.createElement('span');
+        span.className = 'stat-label';
+        span.textContent = `✦ ${disc}`;
+        row.appendChild(span);
+        this.container.appendChild(row);
       }
-      this.container.appendChild(list);
     }
   }
 
-  private createLaunchForm(state: GameState): HTMLDivElement {
+  private renderLaunchForm(state: GameState): void {
     const form = document.createElement('div');
-    form.className = 'expedition-launch';
+    form.className = 'exploration-launch';
+
+    const label = document.createElement('span');
+    label.textContent = `Scouts: ${state.soldiers.scouts}`;
+    label.className = 'scout-count';
+    form.appendChild(label);
+
+    const scoutsInput = document.createElement('input');
+    scoutsInput.type = 'number';
+    scoutsInput.min = '1';
+    scoutsInput.max = String(state.soldiers.scouts);
+    scoutsInput.value = '1';
+    scoutsInput.className = 'exploration-input';
+    scoutsInput.setAttribute('placeholder', 'Scouts');
+    form.appendChild(scoutsInput);
 
     const destSelect = document.createElement('select');
-    destSelect.className = 'expedition-select';
-    for (const planet of PLANETS) {
+    destSelect.className = 'exploration-select';
+    for (const dest of DESTINATIONS) {
       const opt = document.createElement('option');
-      opt.value = planet.name;
-      const discovered = state.discoveredPlanets.includes(planet.name) ? ' ✓' : '';
-      opt.textContent = `${planet.name} (${planet.type})${discovered}`;
+      opt.value = dest;
+      opt.textContent = dest;
       destSelect.appendChild(opt);
     }
+    form.appendChild(destSelect);
+
+    const canLaunch =
+      state.spaceship.level > 0 &&
+      state.soldiers.scouts > 0 &&
+      state.spaceProbes.length < MAX_PROBES;
 
     const btn = document.createElement('button');
-    btn.textContent = '🚀 Launch';
+    btn.textContent = '🚀 Launch Probe';
     btn.className = 'btn';
-    btn.disabled = state.spaceExplorations.length >= MAX_ACTIVE_EXPLORATIONS;
+    btn.disabled = !canLaunch;
 
     btn.addEventListener('click', () => {
+      const scouts = parseInt(scoutsInput.value, 10) || 1;
       const dest = destSelect.value;
       const s = this.getState();
-      const updated = launchExploration(s, dest);
-      if (updated !== s) {
-        this.bus.emit('exploration_launch', { destination: dest });
+      if (
+        s.spaceship.level > 0 &&
+        s.soldiers.scouts >= scouts &&
+        s.spaceProbes.length < MAX_PROBES
+      ) {
+        const probe = {
+          id: `probe_${Date.now()}`,
+          destination: dest,
+          ticksRemaining: 50 + Math.floor(Math.random() * 50),
+          scouts,
+        };
+        this.bus.emit('probe_launch', probe);
+        this.setState({
+          ...s,
+          soldiers: {
+            ...s.soldiers,
+            scouts: s.soldiers.scouts - scouts,
+          },
+          spaceProbes: [...s.spaceProbes, probe],
+        });
       }
-      this.setState(updated);
     });
 
-    form.appendChild(destSelect);
     form.appendChild(btn);
-
-    return form;
+    this.container.appendChild(form);
   }
 
-  private createExplorationRow(exp: {
+  private createProbeRow(probe: {
     id: string;
     destination: string;
     ticksRemaining: number;
-    risk: number;
+    scouts: number;
   }): HTMLDivElement {
     const row = document.createElement('div');
-    row.className = 'stat-row expedition-row';
+    row.className = 'stat-row exploration-row';
 
     const info = document.createElement('span');
     info.className = 'stat-label';
-    info.textContent = `${exp.destination}`;
+    info.textContent = `${probe.destination} (${probe.scouts}S)`;
     row.appendChild(info);
 
     const timer = document.createElement('span');
     timer.className = 'stat-value';
-    timer.textContent = `${exp.ticksRemaining}⏳ Risk: ${Math.round(exp.risk * 100)}%`;
+    timer.textContent = `${probe.ticksRemaining}⏳`;
     row.appendChild(timer);
 
     return row;

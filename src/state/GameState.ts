@@ -117,6 +117,21 @@ export interface GameState {
   soldierTrainTimers: number[];
   /** Whether the colony has achieved transcendence victory. */
   victoryAchieved: boolean;
+  /** Spaceship state (SPACE phase). */
+  spaceship: {
+    level: number;
+    fuel: number;
+    maxFuel: number;
+  };
+  /** Active space probes (SPACE phase). */
+  spaceProbes: Array<{
+    id: string;
+    destination: string;
+    ticksRemaining: number;
+    scouts: number;
+  }>;
+  /** Cosmic discoveries log (SPACE phase). */
+  discoveries: string[];
 }
 
 /**
@@ -206,5 +221,12 @@ export function createInitialState(): GameState {
     battlesLost: 0,
     soldierTrainTimers: [],
     victoryAchieved: false,
+    spaceship: {
+      level: 0,
+      fuel: 0,
+      maxFuel: 100,
+    },
+    spaceProbes: [],
+    discoveries: [],
   };
 }
