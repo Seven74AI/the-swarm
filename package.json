@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "THE SWARM — Incremental game from ant queen to interstellar conquest",
+  "description": "THE SWARM \u2014 Incremental game from ant queen to interstellar conquest",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "prepare": "sh scripts/setup-hooks.sh"
   },
   "devDependencies": {
     "@playwright/test": "^1.45.0",
