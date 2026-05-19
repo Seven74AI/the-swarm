@@ -98,6 +98,8 @@ export interface GameState {
   battlesLost: number;
   /** Countdown timers for soldier training (ticks until trained). */
   soldierTrainTimers: number[];
+  /** Whether the colony has achieved transcendence victory. */
+  victoryAchieved: boolean;
 }
 
 /**
@@ -183,5 +185,6 @@ export function createInitialState(): GameState {
     battlesWon: 0,
     battlesLost: 0,
     soldierTrainTimers: [],
+    victoryAchieved: false,
   };
 }

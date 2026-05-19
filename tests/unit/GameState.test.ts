@@ -109,6 +109,11 @@ describe('Phase 3 expansion fields', () => {
     expect(state.resources.darkMatter).toBe(0);
   });
 
+  it('initializes victoryAchieved to false', () => {
+    const state = createInitialState();
+    expect(state.victoryAchieved).toBe(false);
+  });
+
   it('new fields are independent copies (immutability)', () => {
     const a = createInitialState();
     const b = createInitialState();

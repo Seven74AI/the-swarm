@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Phase, PHASE_ORDER } from '../../src/phases/phases';
 import type { Transition } from '../../src/phases/transitions';
-import { EGG_TO_COLONY, COLONY_TO_COMBAT, COLONY_TO_EXPANSION, EXPANSION_TO_SPACE } from '../../src/phases/transitions';
+import { EGG_TO_COLONY, COLONY_TO_COMBAT, COLONY_TO_EXPANSION, EXPANSION_TO_SPACE, SPACE_TO_TRANSCENDENCE } from '../../src/phases/transitions';
 import { createInitialState } from '../../src/state/GameState';
 import { EventBus } from '../../src/engine/EventBus';
 
@@ -21,6 +21,10 @@ describe('Phase enum', () => {
 
   it('has SPACE phase', () => {
     expect(Phase.SPACE).toBe('space');
+  });
+
+  it('has TRANSCENDENCE phase', () => {
+    expect(Phase.TRANSCENDENCE).toBe('transcendence');
   });
 });
 
@@ -53,8 +57,14 @@ describe('PHASE_ORDER', () => {
     );
   });
 
-  it('contains 5 phases', () => {
-    expect(PHASE_ORDER).toHaveLength(5);
+  it('has TRANSCENDENCE after SPACE', () => {
+    expect(PHASE_ORDER.indexOf(Phase.SPACE)).toBeLessThan(
+      PHASE_ORDER.indexOf(Phase.TRANSCENDENCE),
+    );
+  });
+
+  it('contains 6 phases', () => {
+    expect(PHASE_ORDER).toHaveLength(6);
   });
 });
 
@@ -229,5 +239,85 @@ describe('Transition EXPANSION → SPACE', () => {
     EXPANSION_TO_SPACE.onEnter!(state, bus);
     expect(emitted).toBe(true);
     expect(phasePayload).toBe(Phase.SPACE);
+  });
+});
+
+describe('Transition SPACE → TRANSCENDENCE', () => {
+  it('has correct from/to', () => {
+    expect(SPACE_TO_TRANSCENDENCE.from).toBe(Phase.SPACE);
+    expect(SPACE_TO_TRANSCENDENCE.to).toBe(Phase.TRANSCENDENCE);
+  });
+
+  it('guard returns true when voidCrystals >= 50, antimatter >= 10, darkMatter >= 5', () => {
+    const state = createInitialState();
+    state.resources.voidCrystals = 50;
+    state.resources.antimatter = 10;
+    state.resources.darkMatter = 5;
+    expect(SPACE_TO_TRANSCENDENCE.guard(state)).toBe(true);
+  });
+
+  it('guard returns false when voidCrystals < 50', () => {
+    const state = createInitialState();
+    state.resources.voidCrystals = 49;
+    state.resources.antimatter = 10;
+    state.resources.darkMatter = 5;
+    expect(SPACE_TO_TRANSCENDENCE.guard(state)).toBe(false);
+  });
+
+  it('guard returns false when antimatter < 10', () => {
+    const state = createInitialState();
+    state.resources.voidCrystals = 50;
+    state.resources.antimatter = 9;
+    state.resources.darkMatter = 5;
+    expect(SPACE_TO_TRANSCENDENCE.guard(state)).toBe(false);
+  });
+
+  it('guard returns false when darkMatter < 5', () => {
+    const state = createInitialState();
+    state.resources.voidCrystals = 50;
+    state.resources.antimatter = 10;
+    state.resources.darkMatter = 4;
+    expect(SPACE_TO_TRANSCENDENCE.guard(state)).toBe(false);
+  });
+
+  it('guard returns false when all resources insufficient', () => {
+    const state = createInitialState();
+    expect(SPACE_TO_TRANSCENDENCE.guard(state)).toBe(false);
+  });
+
+  it('onEnter emits phase_changed event with TRANSCENDENCE', () => {
+    const state = createInitialState();
+    const bus = new EventBus();
+    let emitted = false;
+    let phasePayload: string | null = null;
+    bus.subscribe('phase_changed', (payload: unknown) => {
+      emitted = true;
+      phasePayload = (payload as { phase: string }).phase;
+    });
+    SPACE_TO_TRANSCENDENCE.onEnter!(state, bus);
+    expect(emitted).toBe(true);
+    expect(phasePayload).toBe(Phase.TRANSCENDENCE);
+  });
+
+  it('onEnter emits victory event', () => {
+    const state = createInitialState();
+    const bus = new EventBus();
+    let victoryEmitted = false;
+    bus.subscribe('victory', (_payload: unknown) => {
+      victoryEmitted = true;
+    });
+    SPACE_TO_TRANSCENDENCE.onEnter!(state, bus);
+    expect(victoryEmitted).toBe(true);
+  });
+
+  it('onEnter emits narrative event about transcendence', () => {
+    const state = createInitialState();
+    const bus = new EventBus();
+    let narrativeMessage = '';
+    bus.subscribe('narrative', (payload: unknown) => {
+      narrativeMessage = (payload as { message: string }).message;
+    });
+    SPACE_TO_TRANSCENDENCE.onEnter!(state, bus);
+    expect(narrativeMessage).toContain('transcend');
   });
 });

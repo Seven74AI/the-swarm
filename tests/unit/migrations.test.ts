@@ -127,4 +127,42 @@ describe('migrateSave', () => {
     expect(resources.workers).toBe(25);
     expect(resources.voidCrystals).toBe(0);
   });
+
+  it('migrates v3 to v4 adding victoryAchieved with default false', () => {
+    const state = createInitialState();
+    const v3Data: SaveData = {
+      version: 3,
+      timestamp: 1234567890,
+      playTimeMs: 60000,
+      gameState: state,
+    };
+
+    const v4Data = migrateSave(v3Data, 3, 4);
+    const gs = v4Data.gameState as unknown as Record<string, unknown>;
+
+    expect(v4Data.version).toBe(4);
+    expect(gs.victoryAchieved).toBe(false);
+  });
+
+  it('migrates v3 to v4 preserving existing game state', () => {
+    const state = createInitialState();
+    state.resources.food = 10000;
+    state.resources.voidCrystals = 50;
+    state.phase = 'space';
+    const v3Data: SaveData = {
+      version: 3,
+      timestamp: 1234567890,
+      playTimeMs: 120000,
+      gameState: state,
+    };
+
+    const v4Data = migrateSave(v3Data, 3, 4);
+    const gs = v4Data.gameState as unknown as Record<string, unknown>;
+
+    expect(v4Data.version).toBe(4);
+    expect((gs.resources as Record<string, unknown>).food).toBe(10000);
+    expect((gs.resources as Record<string, unknown>).voidCrystals).toBe(50);
+    expect(gs.phase).toBe('space');
+    expect(gs.victoryAchieved).toBe(false);
+  });
 });

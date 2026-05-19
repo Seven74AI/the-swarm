@@ -14,8 +14,8 @@ describe('Phase enum — COMBAT', () => {
 });
 
 describe('PHASE_ORDER — COMBAT', () => {
-  it('has 5 phases', () => {
-    expect(PHASE_ORDER).toHaveLength(5);
+  it('has 6 phases', () => {
+    expect(PHASE_ORDER).toHaveLength(6);
   });
 
   it('has COMBAT after COLONY', () => {

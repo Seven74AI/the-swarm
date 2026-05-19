@@ -74,6 +74,7 @@ function migrateV1toV2(data: SaveData): SaveData {
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
   2: migrateV2toV3,
+  3: migrateV3toV4,
 };
 
 /** v2 → v3: adds space phase resources (voidCrystals, antimatter, darkMatter) */
@@ -96,6 +97,21 @@ function migrateV2toV3(data: SaveData): SaveData {
   return {
     ...data,
     version: 3,
+    gameState,
+  };
+}
+
+/** v3 → v4: adds victoryAchieved field for transcendence victory condition */
+function migrateV3toV4(data: SaveData): SaveData {
+  const gameState = data.gameState as GameState & {
+    victoryAchieved?: boolean;
+  };
+
+  gameState.victoryAchieved = gameState.victoryAchieved ?? false;
+
+  return {
+    ...data,
+    version: 4,
     gameState,
   };
 }

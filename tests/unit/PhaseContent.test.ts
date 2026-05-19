@@ -82,5 +82,33 @@ describe('PhaseContent', () => {
       const spacePanels = phaseContent.getActivePanels(Phase.SPACE);
       expect(spacePanels.length).toBeGreaterThan(expansionPanels.length);
     });
+
+    it('transcendence phase includes space panels plus transcendence_panel', () => {
+      const panels = phaseContent.getActivePanels(Phase.TRANSCENDENCE);
+      // Inherits all space panels
+      expect(panels).toContain('click_button');
+      expect(panels).toContain('event_log');
+      expect(panels).toContain('phase_indicator');
+      expect(panels).toContain('resource_panel');
+      expect(panels).toContain('worker_assignment');
+      expect(panels).toContain('food_display');
+      expect(panels).toContain('soldier_panel');
+      expect(panels).toContain('battle_panel');
+      expect(panels).toContain('combat_log');
+      expect(panels).toContain('map_panel');
+      expect(panels).toContain('building_panel');
+      expect(panels).toContain('expedition_panel');
+      expect(panels).toContain('spaceship_panel');
+      expect(panels).toContain('exploration_panel');
+      expect(panels).toContain('cosmic_panel');
+      // Transcendence-specific panel
+      expect(panels).toContain('transcendence_panel');
+    });
+
+    it('transcendence phase has more panels than space', () => {
+      const spacePanels = phaseContent.getActivePanels(Phase.SPACE);
+      const transcendencePanels = phaseContent.getActivePanels(Phase.TRANSCENDENCE);
+      expect(transcendencePanels.length).toBeGreaterThan(spacePanels.length);
+    });
   });
 });

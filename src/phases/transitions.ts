@@ -69,5 +69,27 @@ export const EXPANSION_TO_SPACE: Transition = {
   },
 };
 
+/**
+ * SPACE → TRANSCENDENCE transition.
+ * Fires when voidCrystals >= 50, antimatter >= 10, darkMatter >= 5.
+ * The colony achieves cosmic transcendence — victory condition.
+ */
+export const SPACE_TO_TRANSCENDENCE: Transition = {
+  from: Phase.SPACE,
+  to: Phase.TRANSCENDENCE,
+  guard: (state) =>
+    state.resources.voidCrystals >= 50 &&
+    state.resources.antimatter >= 10 &&
+    state.resources.darkMatter >= 5,
+  onEnter: (_state, eventBus) => {
+    eventBus.emit('phase_changed', { phase: Phase.TRANSCENDENCE });
+    eventBus.emit('victory', {});
+    eventBus.emit('narrative', {
+      message:
+        'The swarm collapses into a singularity of pure consciousness. Space, time, matter — all dissolve. The colony has transcended physical existence. Victory.',
+    });
+  },
+};
+
 /** All defined transitions. */
-export const TRANSITIONS: Transition[] = [EGG_TO_COLONY, COLONY_TO_COMBAT, COLONY_TO_EXPANSION, EXPANSION_TO_SPACE];
+export const TRANSITIONS: Transition[] = [EGG_TO_COLONY, COLONY_TO_COMBAT, COLONY_TO_EXPANSION, EXPANSION_TO_SPACE, SPACE_TO_TRANSCENDENCE];
