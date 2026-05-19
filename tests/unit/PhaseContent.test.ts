@@ -33,5 +33,25 @@ describe('PhaseContent', () => {
       const colonyPanels = phaseContent.getActivePanels(Phase.COLONY);
       expect(colonyPanels.length).toBeGreaterThan(eggPanels.length);
     });
+
+    it('returns expansion panels with map_panel', () => {
+      const panels = phaseContent.getActivePanels(Phase.EXPANSION);
+      expect(panels).toContain('click_button');
+      expect(panels).toContain('event_log');
+      expect(panels).toContain('phase_indicator');
+      expect(panels).toContain('resource_panel');
+      expect(panels).toContain('worker_assignment');
+      expect(panels).toContain('food_display');
+      expect(panels).toContain('soldier_panel');
+      expect(panels).toContain('battle_panel');
+      expect(panels).toContain('combat_log');
+      expect(panels).toContain('map_panel');
+    });
+
+    it('expansion phase has more panels than combat', () => {
+      const combatPanels = phaseContent.getActivePanels(Phase.COMBAT);
+      const expansionPanels = phaseContent.getActivePanels(Phase.EXPANSION);
+      expect(expansionPanels.length).toBeGreaterThan(combatPanels.length);
+    });
   });
 });

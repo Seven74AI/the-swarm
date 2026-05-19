@@ -1,5 +1,6 @@
 import type { EventBus } from '../engine/EventBus';
 import type { GameState } from '../state/GameState';
+import type { TerritoryBonuses } from './TerritorySystem';
 import { upgradeCost } from '../utils/math';
 import { getEffects } from './BuildingSystem';
 
@@ -62,12 +63,16 @@ export class ResourceSystem {
    * - Decrement egg timers, hatch any at 0 → larvae
    * - Decrement larva timers, mature any at 0 → workers
    * - Workers produce and consume food
+   * - Apply territory bonuses (optional)
    */
-  tick(state: GameState): GameState {
+  tick(state: GameState, territoryBonuses?: TerritoryBonuses): GameState {
     let eggs = state.resources.eggs;
     let larvae = state.resources.larvae;
     let workers = state.resources.workers;
     let food = state.resources.food;
+    let wood = state.resources.wood;
+    let stone = state.resources.stone;
+    let nectar = state.resources.nectar;
     const eggTimers = [...state.eggHatchTimers];
     const larvaTimers = [...state.larvaMatureTimers];
 
@@ -133,6 +138,27 @@ export class ResourceSystem {
       foodChanged = true;
     }
 
+    // Apply territory bonuses
+    let woodChanged = false;
+    let stoneChanged = false;
+    let nectarChanged = false;
+
+    if (workers > 0 && territoryBonuses) {
+      if (territoryBonuses.food > 0) {
+        const bonusFood = workers * territoryBonuses.food;
+        food += bonusFood;
+        foodChanged = true;
+      }
+      if (territoryBonuses.stone > 0) {
+        stone += workers * territoryBonuses.stone;
+        stoneChanged = true;
+      }
+      if (territoryBonuses.nectar > 0) {
+        nectar += workers * territoryBonuses.nectar;
+        nectarChanged = true;
+      }
+    }
+
     const result: GameState = {
       ...state,
       resources: {
@@ -141,6 +167,9 @@ export class ResourceSystem {
         larvae,
         workers,
         food,
+        wood,
+        stone,
+        nectar,
       },
       eggHatchTimers: newEggTimers,
       larvaMatureTimers: newLarvaTimers,
@@ -154,6 +183,15 @@ export class ResourceSystem {
     }
     if (foodChanged) {
       this.bus.emit('food_changed', { food: result.resources.food });
+    }
+    if (woodChanged) {
+      this.bus.emit('wood_changed', { wood: result.resources.wood });
+    }
+    if (stoneChanged) {
+      this.bus.emit('stone_changed', { stone: result.resources.stone });
+    }
+    if (nectarChanged) {
+      this.bus.emit('nectar_changed', { nectar: result.resources.nectar });
     }
     if (workersChanged) {
       this.bus.emit('workers_changed', { workers: result.resources.workers });

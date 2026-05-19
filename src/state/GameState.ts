@@ -1,3 +1,19 @@
+export enum TileType {
+  EMPTY = 'empty',
+  FOREST = 'forest',
+  MOUNTAIN = 'mountain',
+  MEADOW = 'meadow',
+  ENEMY_NEST = 'enemy_nest',
+}
+
+export interface Tile {
+  x: number;
+  y: number;
+  type: TileType;
+  discovered: boolean;
+  claimed: boolean;
+}
+
 export interface GameState {
   phase: string;
   resources: {
@@ -34,6 +50,7 @@ export interface GameState {
     ownedTiles: number;
     bonuses: Record<string, number>;
   };
+  mapTiles: Tile[];
   expeditions: Array<{
     id: string;
     scouts: number;
@@ -80,6 +97,20 @@ export interface GameState {
   soldierTrainTimers: number[];
 }
 
+/**
+ * Create a default 8×8 map grid with all tiles undiscovered and unclaimed.
+ * Tile types are assigned as EMPTY — the MapSystem will generate the real layout.
+ */
+export function createEmptyMap(): Tile[] {
+  const tiles: Tile[] = [];
+  for (let x = 0; x < 8; x++) {
+    for (let y = 0; y < 8; y++) {
+      tiles.push({ x, y, type: TileType.EMPTY, discovered: false, claimed: false });
+    }
+  }
+  return tiles;
+}
+
 export function createInitialState(): GameState {
   return {
     phase: 'egg_laying',
@@ -115,6 +146,7 @@ export function createInitialState(): GameState {
       ownedTiles: 0,
       bonuses: {},
     },
+    mapTiles: createEmptyMap(),
     expeditions: [],
     upgrades: {},
     stats: {
