@@ -8,6 +8,7 @@ test.describe('Phase 3 — Expansion', () => {
   test.beforeEach(async ({ page }) => {
     // Seed a rich colony state with 20 workers, 500 food, 200 wood, 200 stone
     // Plus 5 scouts for expedition testing
+    // Note: 19 assigned (gather:12 + tend:4 + dig:3), 1 available worker
     await page.addInitScript(() => {
       const data = {
         version: 2,
@@ -21,7 +22,7 @@ test.describe('Phase 3 — Expansion', () => {
           },
           eggHatchTimers: [],
           larvaMatureTimers: [],
-          workersAssigned: { gather: 12, tend: 5, dig: 3, guard: 0 },
+          workersAssigned: { gather: 12, tend: 4, dig: 3, guard: 0 },
           soldiers: { scouts: 5, warriors: 3, totalKilled: 0 },
           buildings: {
             barracks: { level: 0, count: 0 },
@@ -45,26 +46,33 @@ test.describe('Phase 3 — Expansion', () => {
       localStorage.setItem('the_swarm_save', JSON.stringify(data));
     });
     await page.goto('/');
-    // Wait for a few ticks to allow phase transition attempts
-    await page.waitForTimeout(3000);
+
+    // Verify seed data was loaded into localStorage
+    const saved = await page.evaluate(() => localStorage.getItem('the_swarm_save'));
+    expect(saved).toBeTruthy();
+    const parsed = JSON.parse(saved!);
+    expect(parsed.gameState.resources.workers).toBe(20);
+
+    // Wait for the app to mount and render panels
+    await page.waitForSelector('#panels', { timeout: 10000 });
+
+    // Wait for phase transition — COLONY → EXPANSION (20 workers + 500 food)
+    const indicator = page.locator('#phase-indicator');
+    await expect(indicator).toContainText('The Expansion', { timeout: 15000 });
   });
 
   test('phase transitions to expansion with 20 workers', async ({ page }) => {
     const indicator = page.locator('#phase-indicator');
-    // Should transition from colony to expansion (20 workers + 500 food is the threshold)
-    await expect(indicator).toContainText('The Expansion', { timeout: 8000 });
+    // Already verified in beforeEach — confirm it persists
+    await expect(indicator).toContainText('The Expansion');
   });
 
   test('map panel is visible in expansion phase', async ({ page }) => {
-    // Wait more ticks for expansion
-    await page.waitForTimeout(2000);
     const mapPanel = page.locator('.map-panel');
-    // Map panel should exist in DOM (may be hidden if not yet expansion)
     await expect(mapPanel).toBeAttached();
   });
 
   test('building panel shows barracks, walls, warehouse', async ({ page }) => {
-    await page.waitForTimeout(2000);
     const buildingPanel = page.locator('.building-panel');
     await expect(buildingPanel).toBeAttached();
     const text = await buildingPanel.textContent();
@@ -74,9 +82,6 @@ test.describe('Phase 3 — Expansion', () => {
   });
 
   test('save and reload preserves state', async ({ page }) => {
-    // Trigger autosave by waiting
-    await page.waitForTimeout(4000);
-
     // Manually save
     await page.evaluate(() => {
       const swarm = (window as unknown as Record<string, unknown>).__swarm as Record<string, unknown>;
@@ -89,9 +94,12 @@ test.describe('Phase 3 — Expansion', () => {
 
     await page.reload();
 
-    // Verify game loaded
-    const eggDisplay = page.locator('[data-stat="resources.eggs"]');
-    await expect(eggDisplay).toBeAttached();
+    // Wait for panels to render on reload
+    await page.waitForSelector('#panels', { timeout: 10000 });
+
+    // Verify game loaded — phase indicator should be visible
+    const indicator = page.locator('#phase-indicator');
+    await expect(indicator).toBeAttached();
   });
 
   test('event log shows initial narrative entry', async ({ page }) => {
