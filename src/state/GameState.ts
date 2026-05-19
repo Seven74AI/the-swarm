@@ -7,6 +7,10 @@ export interface GameState {
     food: number;
     nestCapacity: number;
   };
+  /** Countdown timers for each egg (ticks until hatch). */
+  eggHatchTimers: number[];
+  /** Countdown timers for each larva (ticks until mature). */
+  larvaMatureTimers: number[];
   workersAssigned: {
     gather: number;
     tend: number;
@@ -32,6 +36,8 @@ export function createInitialState(): GameState {
       food: 0,
       nestCapacity: 25,
     },
+    eggHatchTimers: [],
+    larvaMatureTimers: [],
     workersAssigned: {
       gather: 0,
       tend: 0,
