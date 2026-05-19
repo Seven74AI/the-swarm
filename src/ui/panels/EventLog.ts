@@ -49,9 +49,14 @@ export class EventLog {
   }
 
   private render(): void {
-    this.logEl.innerHTML = this.entries
-      .map((e) => `<div class="log-entry">${e.message}</div>`)
-      .join('');
+    // Clear and rebuild with textContent (avoids latent XSS vector)
+    this.logEl.textContent = '';
+    for (const entry of this.entries) {
+      const div = document.createElement('div');
+      div.className = 'log-entry';
+      div.textContent = entry.message;
+      this.logEl.appendChild(div);
+    }
   }
 
   private onClick(): void {

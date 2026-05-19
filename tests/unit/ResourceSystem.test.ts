@@ -132,6 +132,53 @@ describe('ResourceSystem', () => {
       system.tick(state);
       expect(emitted).toBe(false);
     });
+
+    it('emits eggs_changed when eggs hatch during tick', () => {
+      let emitted = false;
+      bus.subscribe('eggs_changed', () => { emitted = true; });
+      state.eggHatchTimers = [1];
+      state.resources.eggs = 1;
+      system.tick(state);
+      expect(emitted).toBe(true);
+    });
+
+    it('does not emit eggs_changed when no eggs hatch', () => {
+      let emitted = false;
+      bus.subscribe('eggs_changed', () => { emitted = true; });
+      state.eggHatchTimers = [];
+      state.resources.eggs = 0;
+      system.tick(state);
+      expect(emitted).toBe(false);
+    });
+
+    it('emits larvae_changed when eggs hatch into larvae', () => {
+      let emitted = false;
+      bus.subscribe('larvae_changed', () => { emitted = true; });
+      state.eggHatchTimers = [1];
+      state.resources.eggs = 1;
+      system.tick(state);
+      expect(emitted).toBe(true);
+    });
+
+    it('emits larvae_changed when larva matures into worker', () => {
+      let emitted = false;
+      bus.subscribe('larvae_changed', () => { emitted = true; });
+      state.larvaMatureTimers = [1];
+      state.resources.larvae = 1;
+      system.tick(state);
+      expect(emitted).toBe(true);
+    });
+
+    it('does not emit larvae_changed when no larvae change', () => {
+      let emitted = false;
+      bus.subscribe('larvae_changed', () => { emitted = true; });
+      state.eggHatchTimers = [];
+      state.larvaMatureTimers = [];
+      state.resources.eggs = 0;
+      state.resources.larvae = 0;
+      system.tick(state);
+      expect(emitted).toBe(false);
+    });
   });
 
   describe('buyUpgrade', () => {

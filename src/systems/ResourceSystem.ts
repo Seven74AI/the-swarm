@@ -15,8 +15,8 @@ const UPGRADES: Record<string, UpgradeDef> = {
   click_power: { baseCost: 10, costMultiplier: 1.15 },
 };
 
-const EGG_HATCH_TIME = 5; // ticks
-const LARVA_MATURE_TIME = 10; // ticks
+export const EGG_HATCH_TIME = 5; // ticks
+export const LARVA_MATURE_TIME = 10; // ticks
 const FOOD_PER_WORKER = 1; // food produced per worker per tick
 const FOOD_CONSUMED_PER_WORKER = 0.5; // food consumed per worker per tick
 
@@ -69,6 +69,8 @@ export class ResourceSystem {
     const eggTimers = [...state.eggHatchTimers];
     const larvaTimers = [...state.larvaMatureTimers];
 
+    let eggsChanged = false;
+    let larvaeChanged = false;
     let workersChanged = false;
     let foodChanged = false;
 
@@ -81,6 +83,8 @@ export class ResourceSystem {
         // Egg hatches → larva (timer added AFTER larvae processing)
         eggs--;
         larvae++;
+        eggsChanged = true;
+        larvaeChanged = true;
         hatchedLarvaTimers.push(LARVA_MATURE_TIME);
       } else {
         newEggTimers.push(remaining);
@@ -95,6 +99,7 @@ export class ResourceSystem {
         // Larva matures → worker
         larvae--;
         workers++;
+        larvaeChanged = true;
         workersChanged = true;
       } else {
         newLarvaTimers.push(remaining);
@@ -126,6 +131,12 @@ export class ResourceSystem {
       larvaMatureTimers: newLarvaTimers,
     };
 
+    if (eggsChanged) {
+      this.bus.emit('eggs_changed', { eggs: result.resources.eggs });
+    }
+    if (larvaeChanged) {
+      this.bus.emit('larvae_changed', { larvae: result.resources.larvae });
+    }
     if (foodChanged) {
       this.bus.emit('food_changed', { food: result.resources.food });
     }
