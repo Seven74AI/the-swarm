@@ -10,7 +10,7 @@ test.describe('Phase 3 — Expansion', () => {
     // Plus 5 scouts for expedition testing
     await page.addInitScript(() => {
       const data = {
-        version: 1,
+        version: 2,
         timestamp: Date.now(),
         playTimeMs: 0,
         gameState: {
@@ -21,16 +21,13 @@ test.describe('Phase 3 — Expansion', () => {
           },
           eggHatchTimers: [],
           larvaMatureTimers: [],
-          workersAssigned: { gather: 10, tend: 5, dig: 3, guard: 2 },
+          workersAssigned: { gather: 12, tend: 5, dig: 3, guard: 0 },
           soldiers: { scouts: 5, warriors: 3, totalKilled: 0 },
           buildings: {
             barracks: { level: 0, count: 0 },
             walls: { level: 0 },
             warehouse: { level: 0 },
           },
-          territory: { ownedTiles: 0, bonuses: {} },
-          mapTiles: [],
-          expeditions: [],
           upgrades: {},
           stats: { totalEggsLaid: 0, totalClicks: 0, playTimeMs: 0 },
           unlockedPanels: [],
@@ -54,10 +51,8 @@ test.describe('Phase 3 — Expansion', () => {
 
   test('phase transitions to expansion with 20 workers', async ({ page }) => {
     const indicator = page.locator('#phase-indicator');
-    // Should transition from colony to expansion (20 workers is the threshold)
-    const text = await indicator.textContent();
-    // May still be in colony if transition needs more conditions
-    expect(text).toBeTruthy();
+    // Should transition from colony to expansion (20 workers + 500 food is the threshold)
+    await expect(indicator).toContainText('The Expansion', { timeout: 8000 });
   });
 
   test('map panel is visible in expansion phase', async ({ page }) => {

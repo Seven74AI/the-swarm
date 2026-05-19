@@ -84,11 +84,11 @@ export function bootstrap(): {
         const totalSent = exp.scouts + exp.warriors;
         const totalReturned =
           newState.soldiers.scouts -
-          (state.soldiers.scouts - exp.scouts) +
+          (workingState.soldiers.scouts - exp.scouts) +
           newState.soldiers.warriors -
-          (state.soldiers.warriors - exp.warriors);
-        const scoutsReturned = Math.min(exp.scouts, Math.max(0, newState.soldiers.scouts - (state.soldiers.scouts - exp.scouts)));
-        const warriorsReturned = Math.min(exp.warriors, Math.max(0, newState.soldiers.warriors - (state.soldiers.warriors - exp.warriors)));
+          (workingState.soldiers.warriors - exp.warriors);
+        const scoutsReturned = Math.min(exp.scouts, Math.max(0, newState.soldiers.scouts - (workingState.soldiers.scouts - exp.scouts)));
+        const warriorsReturned = Math.min(exp.warriors, Math.max(0, newState.soldiers.warriors - (workingState.soldiers.warriors - exp.warriors)));
 
         let result = 'failure';
         if (scoutsReturned + warriorsReturned === totalSent) {

@@ -72,14 +72,6 @@ export class EventLog {
     bus.subscribe('expedition_return', (payload: unknown) => {
       this.onExpeditionReturn(payload as Record<string, unknown>);
     });
-    bus.subscribe('tile_discovered', (payload: unknown) => {
-      const p = payload as { x: number; y: number; type: string };
-      this.onTileDiscovered(p);
-    });
-    bus.subscribe('territory_claimed', (payload: unknown) => {
-      const p = payload as { x: number; y: number; totalTiles: number };
-      this.onTerritoryClaimed(p);
-    });
     bus.subscribe('building_complete', (payload: unknown) => {
       const p = payload as { building: string; level: number };
       this.onBuildingComplete(p);
@@ -228,24 +220,6 @@ export class EventLog {
         `The expedition to ${dest} has been lost. No one returned. The colony mourns.`,
       );
     }
-  }
-
-  private onTileDiscovered(p: { x: number; y: number; type: string }): void {
-    const labels: Record<string, string> = {
-      forest: 'a dark forest',
-      mountain: 'a towering mountain',
-      meadow: 'a sunlit meadow',
-      enemy_nest: 'an enemy nest — danger lurks!',
-      empty: 'barren ground',
-    };
-    const desc = labels[p.type] ?? p.type;
-    this.addEntry(`Scouts report: ${desc} found at (${p.x}, ${p.y}).`);
-  }
-
-  private onTerritoryClaimed(p: { x: number; y: number; totalTiles: number }): void {
-    this.addEntry(
-      `Territory claimed at (${p.x}, ${p.y}). The colony now holds ${p.totalTiles} tile${p.totalTiles !== 1 ? 's' : ''}.`,
-    );
   }
 
   private onBuildingComplete(p: { building: string; level: number }): void {

@@ -72,23 +72,6 @@ describe('EventLog', () => {
     });
   });
 
-  describe('tile events', () => {
-    it('logs tile_discovered with coordinates and type', () => {
-      bus.emit('tile_discovered', { x: 3, y: 2, type: 'forest' });
-
-      const entries = getEntries();
-      expect(entries.some((e) => e.includes('tile') || e.includes('discovered') || e.includes('forest'))).toBe(true);
-    });
-
-    it('logs territory_claimed with coordinates', () => {
-      bus.emit('territory_claimed', { x: 3, y: 2, totalTiles: 5 });
-
-      const entries = getEntries();
-      expect(entries.some((e) => e.includes('territory') || e.includes('claimed'))).toBe(true);
-      expect(entries.some((e) => e.includes('5'))).toBe(true);
-    });
-  });
-
   describe('building events', () => {
     it('logs building_complete with building type and level', () => {
       bus.emit('building_complete', { building: 'barracks', level: 1 });

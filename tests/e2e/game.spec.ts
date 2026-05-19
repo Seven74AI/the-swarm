@@ -23,7 +23,7 @@ test('phase transitions from egg_laying to colony', async ({ page }) => {
   // Set save data before page loads so bootstrap picks it up
   await page.addInitScript(() => {
     const data = {
-      version: 1,
+      version: 2,
       timestamp: Date.now(),
       playTimeMs: 0,
       gameState: {

@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 
 function makeSaveData(overrides?: Record<string, unknown>) {
   return {
-    version: 1,
+    version: 2,
     timestamp: Date.now(),
     playTimeMs: 0,
     gameState: {
@@ -23,11 +23,6 @@ function makeSaveData(overrides?: Record<string, unknown>) {
       combatResources: { chitin: 0, silk: 0, venom: 0 },
       battlesWon: 0,
       battlesLost: 0,
-      soldiers: { scouts: 0, warriors: 0, totalKilled: 0 },
-      buildings: { barracks: { level: 0, count: 0 }, walls: { level: 0 }, warehouse: { level: 0 } },
-      territory: { ownedTiles: 0, bonuses: {} },
-      mapTiles: [],
-      expeditions: [],
       ...overrides,
     },
   };
@@ -51,7 +46,7 @@ test.describe('Combat', () => {
   test('phase transitions to COMBAT with 15 workers and guard', async ({ page }) => {
     await page.addInitScript(() => {
       const data = {
-        version: 1,
+        version: 2,
         timestamp: Date.now(),
         playTimeMs: 0,
         gameState: {
@@ -72,11 +67,6 @@ test.describe('Combat', () => {
           combatResources: { chitin: 0, silk: 0, venom: 0 },
           battlesWon: 0,
           battlesLost: 0,
-          soldiers: { scouts: 0, warriors: 0, totalKilled: 0 },
-          buildings: { barracks: { level: 0, count: 0 }, walls: { level: 0 }, warehouse: { level: 0 } },
-          territory: { ownedTiles: 0, bonuses: {} },
-          mapTiles: [],
-          expeditions: [],
         },
       };
       localStorage.setItem('the_swarm_save', JSON.stringify(data));

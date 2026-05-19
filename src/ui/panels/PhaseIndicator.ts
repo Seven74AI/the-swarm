@@ -17,6 +17,11 @@ const PHASE_DISPLAY: Record<string, { emoji: string; title: string; className: s
     title: 'The War',
     className: 'phase-combat',
   },
+  [Phase.EXPANSION]: {
+    emoji: '🗺️',
+    title: 'The Expansion',
+    className: 'phase-expansion',
+  },
 };
 
 /**
