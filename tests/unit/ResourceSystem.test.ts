@@ -330,3 +330,36 @@ describe('Phase 3 resource defaults', () => {
     expect(typeof state.resources.nectar).toBe('number');
   });
 });
+
+describe('BuildingSystem integration', () => {
+  it('getEffectiveNestCapacity includes warehouse bonus', () => {
+    const bus = new EventBus();
+    const system = new ResourceSystem(bus);
+    const state = createInitialState();
+
+    // No warehouse → base capacity
+    expect(system.getEffectiveNestCapacity(state)).toBe(25);
+
+    // Warehouse level 1 → +25
+    const stateWithWarehouse: GameState = {
+      ...state,
+      buildings: { ...state.buildings, warehouse: { level: 1 } },
+    };
+    expect(system.getEffectiveNestCapacity(stateWithWarehouse)).toBe(50);
+
+    // Warehouse level 2 → +50
+    const stateWithWarehouse2: GameState = {
+      ...state,
+      buildings: { ...state.buildings, warehouse: { level: 2 } },
+    };
+    expect(system.getEffectiveNestCapacity(stateWithWarehouse2)).toBe(75);
+  });
+
+  it('getEffectiveNestCapacity handles missing warehouse building', () => {
+    const bus = new EventBus();
+    const system = new ResourceSystem(bus);
+    const state = createInitialState();
+    // buildings.warehouse defaults to level 0
+    expect(system.getEffectiveNestCapacity(state)).toBe(25);
+  });
+});

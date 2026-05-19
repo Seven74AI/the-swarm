@@ -1,6 +1,7 @@
 import type { EventBus } from '../engine/EventBus';
 import type { GameState } from '../state/GameState';
 import { upgradeCost } from '../utils/math';
+import { getEffects } from './BuildingSystem';
 
 /**
  * Upgrade definitions.
@@ -229,5 +230,14 @@ export class ResourceSystem {
 
     this.bus.emit('workers_assigned', { role, assigned: result.workersAssigned });
     return result;
+  }
+
+  /**
+   * Get the effective nest capacity including warehouse building bonuses.
+   */
+  getEffectiveNestCapacity(state: GameState): number {
+    const base = state.resources.nestCapacity;
+    const effects = getEffects('warehouse', state.buildings.warehouse.level);
+    return base + (effects.nestCapacity ?? 0);
   }
 }
