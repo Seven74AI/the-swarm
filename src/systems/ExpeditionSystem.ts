@@ -116,15 +116,20 @@ export function resolveExpedition(
     };
   } else if (roll < risk + 0.2) {
     // Partial success: some casualties, some loot
-    const killed = Math.max(1, Math.floor((expedition.scouts + expedition.warriors) * risk));
+    const totalInExp = expedition.scouts + expedition.warriors;
+    const rawKilled = Math.max(1, Math.floor(totalInExp * risk));
+    // Distribute casualties proportionally between scouts and warriors
+    const scoutKilled = Math.min(expedition.scouts, Math.ceil(rawKilled * expedition.scouts / totalInExp));
+    const warriorKilled = Math.min(expedition.warriors, rawKilled - scoutKilled);
+    const actualKilled = scoutKilled + warriorKilled;
     result = addLoot(result, expedition.destination, 0.5);
     result = {
       ...result,
       soldiers: {
         ...result.soldiers,
-        totalKilled: result.soldiers.totalKilled + killed,
-        scouts: result.soldiers.scouts + (expedition.scouts - killed),
-        warriors: result.soldiers.warriors + expedition.warriors,
+        totalKilled: result.soldiers.totalKilled + actualKilled,
+        scouts: result.soldiers.scouts + (expedition.scouts - scoutKilled),
+        warriors: result.soldiers.warriors + (expedition.warriors - warriorKilled),
       },
     };
     result = discoverTiles(result, 1);

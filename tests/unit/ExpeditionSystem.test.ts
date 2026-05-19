@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   launchExpedition,
   tickExpeditions,
@@ -177,6 +177,27 @@ describe('ExpeditionSystem', () => {
       const exp = { id: 'nonexistent', scouts: 1, warriors: 0, destination: 'x', ticksRemaining: 1, risk: 0.5 };
       const result = resolveExpedition(state, exp);
       expect(result).toBe(state);
+    });
+
+    it('warriors-only expedition partial success does not produce negative scouts', () => {
+      // Force roll into partial success window (0.4 = risk=0.4, partial: 0.4-0.6)
+      vi.spyOn(Math, 'random').mockReturnValue(0.5);
+      const exp = { id: 'e1', scouts: 0, warriors: 3, destination: 'forest', ticksRemaining: 1, risk: 0.4 };
+      state.expeditions = [exp];
+      state.soldiers.scouts = 0;
+      state.soldiers.warriors = 0;
+      state.soldiers.totalKilled = 0;
+
+      const result = resolveExpedition(state, exp);
+
+      // Scouts must never go negative
+      expect(result.soldiers.scouts).toBeGreaterThanOrEqual(0);
+      // Warriors should have some casualties (proportional) but not all
+      expect(result.soldiers.warriors).toBeGreaterThanOrEqual(0);
+      expect(result.soldiers.warriors).toBeLessThan(exp.warriors); // some survived
+      // Total killed > 0
+      expect(result.soldiers.totalKilled).toBeGreaterThan(0);
+      vi.restoreAllMocks();
     });
   });
 });
