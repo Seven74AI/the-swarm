@@ -10,6 +10,10 @@ import { MapSystem } from './systems/MapSystem';
 import { TerritorySystem } from './systems/TerritorySystem';
 import { tickExpeditions, resolveExpedition } from './systems/ExpeditionSystem';
 import { tickExplorations, resolveExploration } from './systems/ExplorationSystem';
+import {
+  tickMissions,
+  resolveMission,
+} from './systems/SpaceshipSystem';
 import { UIRoot } from './ui/UIRoot';
 import { SaveManager } from './persistence/SaveManager';
 import { PhaseStateMachine } from './phases/PhaseStateMachine';
@@ -136,6 +140,27 @@ export function bootstrap(): {
           voidCrystals: newState.resources.voidCrystals - oldResources.voidCrystals,
           antimatter: newState.resources.antimatter - oldResources.antimatter,
           darkMatter: newState.resources.darkMatter - oldResources.darkMatter,
+        });
+        workingState = newState;
+      }
+    }
+
+    // Spaceship system: tick missions and resolve returning ones
+    newState = tickMissions(newState);
+    for (const ship of newState.spaceships) {
+      if (ship.status === 'returning') {
+        const oldVoidCrystals = newState.resources.voidCrystals;
+        const oldAntimatter = newState.resources.antimatter;
+        const oldDarkMatter = newState.resources.darkMatter;
+        newState = resolveMission(ship.id, newState);
+        bus.emit('spaceship_return', {
+          shipId: ship.id,
+          destination: ship.destinationName,
+          shipType: ship.type,
+          shipLevel: ship.level,
+          voidCrystals: newState.resources.voidCrystals - oldVoidCrystals,
+          antimatter: newState.resources.antimatter - oldAntimatter,
+          darkMatter: newState.resources.darkMatter - oldDarkMatter,
         });
         workingState = newState;
       }

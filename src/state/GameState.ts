@@ -69,6 +69,16 @@ export interface GameState {
     risk: number;
   }>;
   discoveredPlanets: string[];
+  spaceships: Array<{
+    id: string;
+    type: 'scout_ship' | 'cruiser' | 'capital_ship';
+    level: number;
+    fuel: number;
+    maxFuel: number;
+    status: 'idle' | 'exploring' | 'returning';
+    missionTicksRemaining: number;
+    destinationName: string;
+  }>;
   upgrades: Record<string, number>;
   stats: {
     totalEggsLaid: number;
@@ -165,6 +175,7 @@ export function createInitialState(): GameState {
     expeditions: [],
     spaceExplorations: [],
     discoveredPlanets: [],
+    spaceships: [],
     upgrades: {},
     stats: {
       totalEggsLaid: 0,

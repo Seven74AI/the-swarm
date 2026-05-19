@@ -116,11 +116,27 @@ function migrateV3toV4(data: SaveData): SaveData {
   };
 }
 
+/** v4 → v5: adds spaceships array for Space phase spaceship system */
+function migrateV4toV5(data: SaveData): SaveData {
+  const gameState = data.gameState as GameState & {
+    spaceships?: unknown[];
+  };
+
+  gameState.spaceships = gameState.spaceships ?? [];
+
+  return {
+    ...data,
+    version: 5,
+    gameState,
+  };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
   2: migrateV2toV3,
   3: migrateV3toV4,
+  4: migrateV4toV5,
 };
 
 /**
