@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, dev]
+    paths-ignore: ['**.md', '**.txt', 'docs/**']
+  pull_request:
+    branches: [main, master]
+    paths-ignore: ['**.md', '**.txt', 'docs/**']
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ['22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx vitest run
+      - run: npx tsc --noEmit
+      - run: npm run lint
+      - run: npx playwright test --workers=1
