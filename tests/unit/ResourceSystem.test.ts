@@ -305,3 +305,28 @@ describe('ResourceSystem', () => {
     });
   });
 });
+
+describe('Phase 3 resource defaults', () => {
+  it('initializes expansion resources to 0', () => {
+    const state = createInitialState();
+    expect(state.resources.wood).toBe(0);
+    expect(state.resources.stone).toBe(0);
+    expect(state.resources.nectar).toBe(0);
+  });
+
+  it('keeps existing resource keys unchanged', () => {
+    const state = createInitialState();
+    expect(state.resources.eggs).toBe(0);
+    expect(state.resources.larvae).toBe(0);
+    expect(state.resources.workers).toBe(0);
+    expect(state.resources.food).toBe(0);
+    expect(state.resources.nestCapacity).toBe(25);
+  });
+
+  it('new resources are typed as numbers', () => {
+    const state = createInitialState();
+    expect(typeof state.resources.wood).toBe('number');
+    expect(typeof state.resources.stone).toBe('number');
+    expect(typeof state.resources.nectar).toBe('number');
+  });
+});

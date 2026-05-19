@@ -63,3 +63,51 @@ describe('createInitialState', () => {
     expect(a.upgrades).not.toBe(b.upgrades);
   });
 });
+
+describe('Phase 3 expansion fields', () => {
+  it('initializes new resources (wood, stone, nectar) to 0', () => {
+    const state = createInitialState();
+    expect(state.resources.wood).toBe(0);
+    expect(state.resources.stone).toBe(0);
+    expect(state.resources.nectar).toBe(0);
+  });
+
+  it('initializes soldiers data with defaults', () => {
+    const state = createInitialState();
+    expect(state.soldiers).toBeDefined();
+    expect(state.soldiers.scouts).toBe(0);
+    expect(state.soldiers.warriors).toBe(0);
+    expect(state.soldiers.totalKilled).toBe(0);
+  });
+
+  it('initializes buildings with default level 0', () => {
+    const state = createInitialState();
+    expect(state.buildings).toBeDefined();
+    expect(state.buildings.barracks.level).toBe(0);
+    expect(state.buildings.barracks.count).toBe(0);
+    expect(state.buildings.walls.level).toBe(0);
+    expect(state.buildings.warehouse.level).toBe(0);
+  });
+
+  it('initializes territory with defaults', () => {
+    const state = createInitialState();
+    expect(state.territory).toBeDefined();
+    expect(state.territory.ownedTiles).toBe(0);
+    expect(state.territory.bonuses).toEqual({});
+  });
+
+  it('initializes expeditions as empty array', () => {
+    const state = createInitialState();
+    expect(state.expeditions).toBeDefined();
+    expect(state.expeditions).toEqual([]);
+  });
+
+  it('new fields are independent copies (immutability)', () => {
+    const a = createInitialState();
+    const b = createInitialState();
+    expect(a.soldiers).not.toBe(b.soldiers);
+    expect(a.buildings).not.toBe(b.buildings);
+    expect(a.territory).not.toBe(b.territory);
+    expect(a.expeditions).not.toBe(b.expeditions);
+  });
+});

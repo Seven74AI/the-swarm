@@ -6,6 +6,9 @@ export interface GameState {
     workers: number;
     food: number;
     nestCapacity: number;
+    wood: number;
+    stone: number;
+    nectar: number;
   };
   /** Countdown timers for each egg (ticks until hatch). */
   eggHatchTimers: number[];
@@ -17,6 +20,28 @@ export interface GameState {
     dig: number;
     guard: number;
   };
+  soldiers: {
+    scouts: number;
+    warriors: number;
+    totalKilled: number;
+  };
+  buildings: {
+    barracks: { level: number; count: number };
+    walls: { level: number };
+    warehouse: { level: number };
+  };
+  territory: {
+    ownedTiles: number;
+    bonuses: Record<string, number>;
+  };
+  expeditions: Array<{
+    id: string;
+    scouts: number;
+    warriors: number;
+    destination: string;
+    ticksRemaining: number;
+    risk: number;
+  }>;
   upgrades: Record<string, number>;
   stats: {
     totalEggsLaid: number;
@@ -36,6 +61,9 @@ export function createInitialState(): GameState {
       workers: 0,
       food: 0,
       nestCapacity: 25,
+      wood: 0,
+      stone: 0,
+      nectar: 0,
     },
     eggHatchTimers: [],
     larvaMatureTimers: [],
@@ -45,6 +73,21 @@ export function createInitialState(): GameState {
       dig: 0,
       guard: 0,
     },
+    soldiers: {
+      scouts: 0,
+      warriors: 0,
+      totalKilled: 0,
+    },
+    buildings: {
+      barracks: { level: 0, count: 0 },
+      walls: { level: 0 },
+      warehouse: { level: 0 },
+    },
+    territory: {
+      ownedTiles: 0,
+      bonuses: {},
+    },
+    expeditions: [],
     upgrades: {},
     stats: {
       totalEggsLaid: 0,

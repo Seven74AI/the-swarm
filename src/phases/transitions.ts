@@ -22,5 +22,18 @@ export const EGG_TO_COLONY: Transition = {
   },
 };
 
+/**
+ * COLONY → EXPANSION transition.
+ * Fires when workers >= 20 AND food >= 500.
+ */
+export const COLONY_TO_EXPANSION: Transition = {
+  from: Phase.COLONY,
+  to: Phase.EXPANSION,
+  guard: (state) => state.resources.workers >= 20 && state.resources.food >= 500,
+  onEnter: (_state, eventBus) => {
+    eventBus.emit('phase_changed', { phase: Phase.EXPANSION });
+  },
+};
+
 /** All defined transitions. */
-export const TRANSITIONS: Transition[] = [EGG_TO_COLONY];
+export const TRANSITIONS: Transition[] = [EGG_TO_COLONY, COLONY_TO_EXPANSION];

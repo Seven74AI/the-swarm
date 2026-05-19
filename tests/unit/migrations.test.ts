@@ -49,4 +49,44 @@ describe('migrateSave', () => {
     const result = migrateSave(data, 2, 1);
     expect(result).toEqual(data);
   });
+
+  it('migrates v1 to v2 adding expansion fields with defaults', () => {
+    const state = createInitialState();
+    // Ensure the state does NOT have expansion fields yet (v1 format)
+    const v1Data: SaveData = {
+      version: 1,
+      timestamp: 1234567890,
+      playTimeMs: 60000,
+      gameState: state,
+    };
+
+    const v2Data = migrateSave(v1Data, 1, 2);
+    const gs = v2Data.gameState as unknown as Record<string, unknown>;
+
+    expect(v2Data.version).toBe(2);
+    expect(gs.resources).toBeDefined();
+    expect((gs.resources as Record<string, unknown>).wood).toBe(0);
+    expect((gs.resources as Record<string, unknown>).stone).toBe(0);
+    expect((gs.resources as Record<string, unknown>).nectar).toBe(0);
+
+    const soldiers = gs.soldiers as Record<string, unknown>;
+    expect(soldiers).toBeDefined();
+    expect(soldiers.scouts).toBe(0);
+    expect(soldiers.warriors).toBe(0);
+    expect(soldiers.totalKilled).toBe(0);
+
+    const buildings = gs.buildings as Record<string, unknown>;
+    expect(buildings).toBeDefined();
+    expect((buildings.barracks as Record<string, unknown>).level).toBe(0);
+    expect((buildings.barracks as Record<string, unknown>).count).toBe(0);
+    expect((buildings.walls as Record<string, unknown>).level).toBe(0);
+    expect((buildings.warehouse as Record<string, unknown>).level).toBe(0);
+
+    const territory = gs.territory as Record<string, unknown>;
+    expect(territory).toBeDefined();
+    expect(territory.ownedTiles).toBe(0);
+    expect(territory.bonuses).toEqual({});
+
+    expect(gs.expeditions).toEqual([]);
+  });
 });
