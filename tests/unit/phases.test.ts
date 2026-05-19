@@ -23,8 +23,8 @@ describe('PHASE_ORDER', () => {
     );
   });
 
-  it('contains 2 phases', () => {
-    expect(PHASE_ORDER).toHaveLength(2);
+  it('contains 3 phases', () => {
+    expect(PHASE_ORDER).toHaveLength(3);
   });
 });
 
