@@ -65,6 +65,29 @@ export class EventLog {
       const p = payload as { narrative: string };
       this.onBattleCompleted(p.narrative);
     });
+    bus.subscribe('expedition_launch', (payload: unknown) => {
+      const p = payload as { scouts: number; warriors: number; destination: string };
+      this.onExpeditionLaunched(p);
+    });
+    bus.subscribe('expedition_return', (payload: unknown) => {
+      this.onExpeditionReturn(payload as Record<string, unknown>);
+    });
+    bus.subscribe('tile_discovered', (payload: unknown) => {
+      const p = payload as { x: number; y: number; type: string };
+      this.onTileDiscovered(p);
+    });
+    bus.subscribe('territory_claimed', (payload: unknown) => {
+      const p = payload as { x: number; y: number; totalTiles: number };
+      this.onTerritoryClaimed(p);
+    });
+    bus.subscribe('building_complete', (payload: unknown) => {
+      const p = payload as { building: string; level: number };
+      this.onBuildingComplete(p);
+    });
+    bus.subscribe('soldier_recruited', (payload: unknown) => {
+      const p = payload as { type: string; count: number };
+      this.onSoldierRecruited(p);
+    });
   }
 
   private addEntry(message: string): void {
@@ -157,6 +180,84 @@ export class EventLog {
 
   private onBattleCompleted(narrative: string): void {
     this.addEntry(narrative);
+  }
+
+  private onExpeditionLaunched(p: { scouts: number; warriors: number; destination: string }): void {
+    const party = [];
+    if (p.scouts > 0) party.push(`${p.scouts} scout${p.scouts > 1 ? 's' : ''}`);
+    if (p.warriors > 0) party.push(`${p.warriors} warrior${p.warriors > 1 ? 's' : ''}`);
+    const partyStr = party.join(' and ');
+    this.addEntry(
+      `An expedition departs for ${p.destination} — ${partyStr} march into the unknown.`,
+    );
+  }
+
+  private onExpeditionReturn(payload: Record<string, unknown>): void {
+    const dest = payload.destination as string;
+    const result = payload.result as string;
+    const scouts = payload.scoutsReturned as number;
+    const warriors = payload.warriorsReturned as number;
+    const food = payload.food as number;
+    const stone = payload.stone as number;
+    const nectar = payload.nectar as number;
+    const wood = payload.wood as number;
+    const tiles = payload.tilesDiscovered as number;
+
+    const returned = [];
+    if (scouts > 0) returned.push(`${scouts} scout${scouts > 1 ? 's' : ''}`);
+    if (warriors > 0) returned.push(`${warriors} warrior${warriors > 1 ? 's' : ''}`);
+    const returnedStr = returned.length > 0 ? returned.join(' and ') : 'None';
+
+    const loot: string[] = [];
+    if (food > 0) loot.push(`${food} food`);
+    if (stone > 0) loot.push(`${stone} stone`);
+    if (nectar > 0) loot.push(`${nectar} nectar`);
+    if (wood > 0) loot.push(`${wood} wood`);
+    const lootStr = loot.length > 0 ? loot.join(', ') : 'nothing';
+
+    if (result === 'success') {
+      this.addEntry(
+        `Expedition returns triumphant from ${dest}! ${returnedStr} came back with ${lootStr}. ${tiles > 0 ? `${tiles} new tile${tiles > 1 ? 's' : ''} discovered.` : ''}`,
+      );
+    } else if (result === 'partial') {
+      this.addEntry(
+        `Expedition returns from ${dest} — battered but alive. ${returnedStr} made it back. Loot: ${lootStr}.`,
+      );
+    } else {
+      this.addEntry(
+        `The expedition to ${dest} has been lost. No one returned. The colony mourns.`,
+      );
+    }
+  }
+
+  private onTileDiscovered(p: { x: number; y: number; type: string }): void {
+    const labels: Record<string, string> = {
+      forest: 'a dark forest',
+      mountain: 'a towering mountain',
+      meadow: 'a sunlit meadow',
+      enemy_nest: 'an enemy nest — danger lurks!',
+      empty: 'barren ground',
+    };
+    const desc = labels[p.type] ?? p.type;
+    this.addEntry(`Scouts report: ${desc} found at (${p.x}, ${p.y}).`);
+  }
+
+  private onTerritoryClaimed(p: { x: number; y: number; totalTiles: number }): void {
+    this.addEntry(
+      `Territory claimed at (${p.x}, ${p.y}). The colony now holds ${p.totalTiles} tile${p.totalTiles !== 1 ? 's' : ''}.`,
+    );
+  }
+
+  private onBuildingComplete(p: { building: string; level: number }): void {
+    const label = p.building.charAt(0).toUpperCase() + p.building.slice(1);
+    this.addEntry(`${label} upgraded to level ${p.level}. The colony grows stronger.`);
+  }
+
+  private onSoldierRecruited(p: { type: string; count: number }): void {
+    const label = p.type.charAt(0).toUpperCase() + p.type.slice(1);
+    this.addEntry(
+      `${p.count} ${label}${p.count > 1 ? 's' : ''} ${p.count > 1 ? 'have been' : 'has been'} recruited to the swarm.`,
+    );
   }
 
   getElement(): HTMLDivElement {

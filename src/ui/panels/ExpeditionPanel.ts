@@ -1,4 +1,5 @@
 import type { Store } from '../../state/Store';
+import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import { launchExpedition } from '../../systems/ExpeditionSystem';
 import { MAX_ACTIVE_EXPEDITIONS } from '../../systems/ExpeditionSystem';
@@ -11,6 +12,7 @@ export class ExpeditionPanel {
 
   constructor(
     private store: Store,
+    private bus: EventBus,
     private getState: () => GameState,
     private setState: (state: GameState) => void,
   ) {
@@ -100,6 +102,9 @@ export class ExpeditionPanel {
       const dest = destSelect.value;
       const s = this.getState();
       const updated = launchExpedition(s, scouts, warriors, dest);
+      if (updated !== s) {
+        this.bus.emit('expedition_launch', { scouts, warriors, destination: dest });
+      }
       this.setState(updated);
     });
 

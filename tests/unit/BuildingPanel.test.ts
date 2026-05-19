@@ -19,6 +19,7 @@ describe('BuildingPanel', () => {
     currentState = createInitialState();
     panel = new BuildingPanel(
       store,
+      bus,
       () => currentState,
       (s: GameState) => { currentState = s; },
     );

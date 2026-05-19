@@ -1,4 +1,5 @@
 import type { Store } from '../../state/Store';
+import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import { canBuild, build, getBuildCost, getEffects } from '../../systems/BuildingSystem';
 import type { BuildingType } from '../../systems/BuildingSystem';
@@ -50,6 +51,7 @@ export class BuildingPanel {
 
   constructor(
     private store: Store,
+    private bus: EventBus,
     private getState: () => GameState,
     private setState: (state: GameState) => void,
   ) {
@@ -97,7 +99,11 @@ export class BuildingPanel {
     btn.disabled = !canBuild(def.type, state);
     btn.addEventListener('click', () => {
       const s = this.getState();
+      const oldLevel = s.buildings[def.type].level;
       const updated = build(def.type, s);
+      if (updated.buildings[def.type].level > oldLevel) {
+        this.bus.emit('building_complete', { building: def.type, level: updated.buildings[def.type].level });
+      }
       this.setState(updated);
     });
     row.appendChild(btn);

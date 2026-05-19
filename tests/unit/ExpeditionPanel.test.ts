@@ -19,6 +19,7 @@ describe('ExpeditionPanel', () => {
     currentState = createInitialState();
     panel = new ExpeditionPanel(
       store,
+      bus,
       () => currentState,
       (s: GameState) => { currentState = s; },
     );

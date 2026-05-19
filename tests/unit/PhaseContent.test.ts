@@ -34,7 +34,7 @@ describe('PhaseContent', () => {
       expect(colonyPanels.length).toBeGreaterThan(eggPanels.length);
     });
 
-    it('returns expansion panels with map_panel', () => {
+    it('returns expansion panels with map_panel, building_panel, expedition_panel', () => {
       const panels = phaseContent.getActivePanels(Phase.EXPANSION);
       expect(panels).toContain('click_button');
       expect(panels).toContain('event_log');
@@ -46,6 +46,8 @@ describe('PhaseContent', () => {
       expect(panels).toContain('battle_panel');
       expect(panels).toContain('combat_log');
       expect(panels).toContain('map_panel');
+      expect(panels).toContain('building_panel');
+      expect(panels).toContain('expedition_panel');
     });
 
     it('expansion phase has more panels than combat', () => {

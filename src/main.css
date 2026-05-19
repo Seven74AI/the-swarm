@@ -282,3 +282,126 @@ html, body {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Map Panel ── */
+.map-panel {
+  background: #1a1a2e;
+  border: 1px solid #2a2a4e;
+  border-radius: 4px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  width: 100%;
+  max-width: 480px;
+}
+
+.map-summary {
+  color: var(--accent-glow);
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.map-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid #3a3a5e;
+  border-radius: 2px;
+  cursor: crosshair;
+  image-rendering: pixelated;
+}
+
+/* ── Building Panel ── */
+.building-panel .building-info {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin: 0 0.5rem;
+  flex: 1;
+}
+
+.building-panel .building-cost {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  margin-right: 0.5rem;
+  white-space: nowrap;
+}
+
+.building-panel .btn-sm {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  min-width: 48px;
+}
+
+/* ── Expedition Panel ── */
+.expedition-panel .expedition-launch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.expedition-panel .expedition-input {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.25rem 0.5rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  width: 64px;
+}
+
+.expedition-panel .expedition-select {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.25rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.expedition-panel .soldier-count {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-right: 0.4rem;
+}
+
+.expedition-panel .expedition-list-title {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin: 0.5rem 0 0.25rem 0;
+}
+
+.expedition-row {
+  background: rgba(26, 22, 20, 0.5);
+  padding: 0.3rem 0.5rem;
+  border-radius: 3px;
+  margin-bottom: 0.2rem;
+}
+
+.expedition-row .stat-label {
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.expedition-row .stat-value {
+  color: var(--accent-glow);
+  font-size: 0.8rem;
+}
+
+/* Expedition progress bar animation */
+@keyframes expedition-progress {
+  from { background-position: 0 0; }
+  to { background-position: 40px 0; }
+}
+
+.expedition-progress {
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #2d5a27 0%, #c9a227 100%);
+  background-size: 40px 100%;
+  animation: expedition-progress 1s linear infinite;
+  margin-top: 0.15rem;
+}

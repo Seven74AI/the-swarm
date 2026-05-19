@@ -5,6 +5,8 @@ import type { SoldierSystem } from '../systems/SoldierSystem';
 import type { BattleSystem } from '../systems/BattleSystem';
 import type { SaveManager } from '../persistence/SaveManager';
 import type { GameState } from '../state/GameState';
+import type { MapSystem } from '../systems/MapSystem';
+import type { TerritorySystem } from '../systems/TerritorySystem';
 import { ClickButton } from './components/ClickButton';
 import { ResourcePanel } from './panels/ResourcePanel';
 import { EventLog } from './panels/EventLog';
@@ -14,6 +16,7 @@ import { SoldierPanel } from './panels/SoldierPanel';
 import { BattlePanel } from './panels/BattlePanel';
 import { BuildingPanel } from './panels/BuildingPanel';
 import { ExpeditionPanel } from './panels/ExpeditionPanel';
+import { MapPanel } from './panels/MapPanel';
 
 /**
  * Root UI controller. Mounts all panels into #app.
@@ -26,6 +29,8 @@ export class UIRoot {
   private soldierSystem: SoldierSystem;
   private battleSystem: BattleSystem;
   private saveManager: SaveManager;
+  private mapSystem: MapSystem;
+  private territorySystem: TerritorySystem;
   private getState: () => GameState;
   private setState: (state: GameState) => void;
   private eventLog: EventLog;
@@ -38,6 +43,8 @@ export class UIRoot {
     soldierSystem: SoldierSystem;
     battleSystem: BattleSystem;
     saveManager: SaveManager;
+    mapSystem: MapSystem;
+    territorySystem: TerritorySystem;
     getState: () => GameState;
     setState: (state: GameState) => void;
   }) {
@@ -47,6 +54,8 @@ export class UIRoot {
     this.soldierSystem = deps.soldierSystem;
     this.battleSystem = deps.battleSystem;
     this.saveManager = deps.saveManager;
+    this.mapSystem = deps.mapSystem;
+    this.territorySystem = deps.territorySystem;
     this.getState = deps.getState;
     this.setState = deps.setState;
     this.eventLog = new EventLog(this.bus);
@@ -129,18 +138,28 @@ export class UIRoot {
     this.panelElements.set('battle_panel', battlePanel.getElement());
 
     // Building panel (hidden initially, revealed in expansion phase)
-    const buildingPanel = new BuildingPanel(this.store, this.getState, this.setState);
+    const buildingPanel = new BuildingPanel(this.store, this.bus, this.getState, this.setState);
     panels.appendChild(buildingPanel.getElement());
     this.panelElements.set('building_panel', buildingPanel.getElement());
 
     // Expedition panel (hidden initially, revealed in expansion phase)
     const expeditionPanel = new ExpeditionPanel(
       this.store,
+      this.bus,
       this.getState,
       this.setState,
     );
     panels.appendChild(expeditionPanel.getElement());
     this.panelElements.set('expedition_panel', expeditionPanel.getElement());
+
+    // Map panel (hidden initially, revealed in expansion phase)
+    const mapPanel = new MapPanel(
+      this.mapSystem,
+      this.getState,
+      this.setState,
+    );
+    panels.appendChild(mapPanel.getElement());
+    this.panelElements.set('map_panel', mapPanel.getElement());
 
     container.appendChild(panels);
 
