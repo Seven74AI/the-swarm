@@ -22,6 +22,7 @@ export class NumberDisplay {
 
   private render(value: number): void {
     this.el.textContent = `${this.label}: ${formatNumber(value)}`;
+    this.el.setAttribute('data-stat', this.path);
   }
 
   getElement(): HTMLSpanElement {

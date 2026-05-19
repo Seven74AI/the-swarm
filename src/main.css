@@ -226,3 +226,59 @@ html, body {
 .resource-panel .number-display {
   font-size: 0.95rem;
 }
+
+/* ── Phase Indicator ── */
+.phase-indicator {
+  text-align: center;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  transition: all 0.5s ease;
+  width: 100%;
+  max-width: 480px;
+}
+
+.phase-indicator .phase-text {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-style: italic;
+  transition: font-size 0.5s ease, color 0.5s ease;
+}
+
+.phase-indicator.phase-colony .phase-text {
+  font-size: 1.1rem;
+  color: var(--accent-glow);
+  font-style: normal;
+  font-weight: bold;
+}
+
+/* ── Worker Assignment Panel ── */
+.worker-assignment-panel .role-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.worker-assignment-panel .role-count {
+  min-width: 2rem;
+  text-align: center;
+}
+
+.worker-assignment-panel .btn-sm {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-unlocked {
+  animation: panel-reveal 0.4s ease;
+}
+
+@keyframes panel-reveal {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

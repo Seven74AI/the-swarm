@@ -5,13 +5,21 @@ import { StateManager } from './state/StateManager';
 import { Store } from './state/Store';
 import { ResourceSystem } from './systems/ResourceSystem';
 import { UIRoot } from './ui/UIRoot';
+import { SaveManager } from './persistence/SaveManager';
+import { PhaseStateMachine } from './phases/PhaseStateMachine';
+import { Phase, PHASE_ORDER } from './phases/phases';
+import { PhaseContent } from './phases/PhaseContent';
+import { TRANSITIONS } from './phases/transitions';
 import type { GameState } from './state/GameState';
 
 /**
  * THE SWARM — Bootstrap
  *
- * Creates the core game engine, resource system, store, and UI.
- * ResourceSystem.tick is called every second by the Ticker.
+ * Full game loop with persistence, phase state machine, and autosave.
+ * - Load saved state on startup (or start fresh)
+ * - Each tick: ResourceSystem.tick → PhaseStateMachine.tick → StateManager.update
+ * - Autosave every 30 seconds
+ * - PhaseContent manages which panels are active
  */
 export function bootstrap(): {
   bus: EventBus;
@@ -20,6 +28,8 @@ export function bootstrap(): {
   loop: GameLoop;
   store: Store;
   resourceSystem: ResourceSystem;
+  saveManager: SaveManager;
+  fsm: PhaseStateMachine;
   ui: UIRoot;
 } {
   const bus = new EventBus();
@@ -27,13 +37,32 @@ export function bootstrap(): {
   const manager = new StateManager(bus);
   const store = new Store(manager);
   const resourceSystem = new ResourceSystem(bus);
+  const saveManager = new SaveManager();
   const loop = new GameLoop(bus, ticker, manager);
+  const phaseContent = new PhaseContent();
+
+  // Try to load saved state
+  const saved = saveManager.load();
+  if (saved) {
+    manager.update(saved.gameState as Partial<GameState>);
+  }
+
+  // Initialize PhaseStateMachine from current state
+  const currentPhase = (manager.getState().phase as Phase) ?? Phase.EGG_LAYING;
+  const fsm = new PhaseStateMachine(currentPhase, TRANSITIONS);
 
   // Wire resource ticking into the game loop
   ticker.onTick(() => {
     const state = manager.getState();
     const newState = resourceSystem.tick(state);
     manager.update(newState);
+
+    // Check phase transitions
+    const updated = manager.getState();
+    const newPhase = fsm.tick(updated, bus);
+    if (newPhase !== updated.phase) {
+      manager.update({ phase: newPhase } as Partial<GameState>);
+    }
   });
 
   // Mount UI
@@ -42,6 +71,7 @@ export function bootstrap(): {
     bus,
     store,
     resourceSystem,
+    saveManager,
     getState: () => manager.getState(),
     setState: (state: GameState) => manager.update(state),
   });
@@ -49,9 +79,32 @@ export function bootstrap(): {
     ui.mount(app);
   }
 
+  // Reveal panels for current phase
+  phaseContent.onPhaseEnter(currentPhase as Phase, ui);
+
+  // Listen for phase changes to reveal new panels
+  bus.subscribe('phase_changed', (payload: unknown) => {
+    const phase = (payload as { phase: string }).phase as Phase;
+    phaseContent.onPhaseEnter(phase, ui);
+  });
+
+  // Start autosave
+  saveManager.startAutosave(() => ({
+    state: manager.getState(),
+    playTimeMs: manager.getState().stats.playTimeMs,
+  }));
+
+  // Save on beforeunload
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', () => {
+      const state = manager.getState();
+      saveManager.save(state, state.stats.playTimeMs);
+    });
+  }
+
   loop.start();
 
-  return { bus, ticker, manager, loop, store, resourceSystem, ui };
+  return { bus, ticker, manager, loop, store, resourceSystem, saveManager, fsm, ui };
 }
 
 // Auto-bootstrap when loaded in browser.

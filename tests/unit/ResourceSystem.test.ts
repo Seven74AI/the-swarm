@@ -56,7 +56,9 @@ describe('ResourceSystem', () => {
       state.eggHatchTimers = [5, 3];
       state.resources.eggs = 2;
       const result = system.tick(state);
-      expect(result.eggHatchTimers).toEqual([4, 2]);
+      // Timers are sorted before processing, so order may differ
+      const sorted = [...result.eggHatchTimers].sort((a, b) => a - b);
+      expect(sorted).toEqual([2, 4]);
     });
 
     it('hatches egg when timer reaches 0', () => {
@@ -221,6 +223,85 @@ describe('ResourceSystem', () => {
       const result = system.buyUpgrade(state, 'click_power');
       // Cost: 10 * 1.15^5 = 10 * 2.011... = 20, floor = 20
       expect(result.resources.food).toBe(980);
+    });
+  });
+
+  describe('worker assignment', () => {
+    it('assignWorker moves an unassigned worker to a role', () => {
+      state.resources.workers = 5;
+      const result = system.assignWorker(state, 'gather');
+      expect(result.workersAssigned.gather).toBe(1);
+      expect(result.workersAssigned.tend).toBe(0);
+    });
+
+    it('assignWorker cannot assign more workers than available', () => {
+      state.resources.workers = 1;
+      state.workersAssigned = { gather: 1, tend: 0, dig: 0, guard: 0 };
+      const result = system.assignWorker(state, 'gather');
+      // All workers already assigned, should return unchanged
+      expect(result).toBe(state);
+    });
+
+    it('unassignWorker moves a worker back from role', () => {
+      state.resources.workers = 5;
+      state.workersAssigned = { gather: 2, tend: 0, dig: 0, guard: 0 };
+      const result = system.unassignWorker(state, 'gather');
+      expect(result.workersAssigned.gather).toBe(1);
+    });
+
+    it('unassignWorker cannot go below 0', () => {
+      state.resources.workers = 1;
+      const result = system.unassignWorker(state, 'gather');
+      expect(result.workersAssigned.gather).toBe(0);
+    });
+
+    it('assigned gather workers produce +2 food/tick instead of +1', () => {
+      state.resources.workers = 3;
+      state.resources.food = 100;
+      state.workersAssigned = { gather: 3, tend: 0, dig: 0, guard: 0 };
+      // 3 gather: 3 * 2 = 6 produced, 3 * 0.5 = 1.5 consumed, net = 4.5
+      const result = system.tick(state);
+      expect(result.resources.food).toBe(104.5);
+    });
+
+    it('assigned tend workers hasten egg hatching', () => {
+      state.resources.workers = 2;
+      state.resources.eggs = 3;
+      state.eggHatchTimers = [5, 4, 3];
+      state.workersAssigned = { gather: 0, tend: 2, dig: 0, guard: 0 };
+      // 2 tend workers → 2 eggs get double decremented
+      // Without tend: timers become [4, 3, 2]
+      // With 2 tend: 2 lowest timers get extra -1: [4, 2, 1]
+      const result = system.tick(state);
+      // Sort for stable assertion
+      const sorted = [...result.eggHatchTimers].sort((a, b) => a - b);
+      expect(sorted).toEqual([1, 2, 4]);
+    });
+
+    it('tend workers only affect as many eggs as available', () => {
+      state.resources.workers = 5;
+      state.resources.eggs = 1;
+      state.eggHatchTimers = [5];
+      state.workersAssigned = { gather: 0, tend: 5, dig: 0, guard: 0 };
+      // Only 1 egg, 5 tend workers: egg gets -2 (extra -1 from one tend)
+      const result = system.tick(state);
+      expect(result.eggHatchTimers).toEqual([3]); // 5 - 1 - 1 = 3
+    });
+
+    it('mixed gather and tend workers produce correctly', () => {
+      state.resources.workers = 5;
+      state.resources.food = 100;
+      state.resources.eggs = 2;
+      state.eggHatchTimers = [5, 5];
+      state.workersAssigned = { gather: 3, tend: 2, dig: 0, guard: 0 };
+      // Gather: 3 * 2 = 6 produced
+      // Unassigned: 0
+      // Total produced: 6, consumed: 5 * 0.5 = 2.5, net food = +3.5
+      // Tend: 2 eggs get extra -1: both eggs become 5 - 1 - 1 = 3
+      const result = system.tick(state);
+      expect(result.resources.food).toBe(103.5);
+      const sortedTimers = [...result.eggHatchTimers].sort((a, b) => a - b);
+      expect(sortedTimers).toEqual([3, 3]);
     });
   });
 });

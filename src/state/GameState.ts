@@ -24,6 +24,7 @@ export interface GameState {
     playTimeMs: number;
   };
   unlockedPanels: string[];
+  lastSaveTimestamp: number;
 }
 
 export function createInitialState(): GameState {
@@ -51,5 +52,6 @@ export function createInitialState(): GameState {
       playTimeMs: 0,
     },
     unlockedPanels: [],
+    lastSaveTimestamp: 0,
   };
 }

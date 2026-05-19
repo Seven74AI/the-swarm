@@ -1,12 +1,13 @@
 import type { Store } from '../../state/Store';
 import type { EventBus } from '../../engine/EventBus';
 import type { ResourceSystem } from '../../systems/ResourceSystem';
+import type { SaveManager } from '../../persistence/SaveManager';
 import type { GameState } from '../../state/GameState';
 import { formatNumber } from '../../utils/format';
 
 /**
  * The core "Lay Egg" button.
- * On click: calls ResourceSystem.clickEgg, updates state, shows click count.
+ * On click: calls ResourceSystem.clickEgg, updates state, triggers save.
  */
 export class ClickButton {
   private container: HTMLDivElement;
@@ -17,6 +18,7 @@ export class ClickButton {
     private store: Store,
     private bus: EventBus,
     private resourceSystem: ResourceSystem,
+    private saveManager: SaveManager,
     private getState: () => GameState,
     private setState: (state: GameState) => void,
   ) {
@@ -24,6 +26,7 @@ export class ClickButton {
     this.container.className = 'click-button-container';
 
     this.button = document.createElement('button');
+    this.button.id = 'click-egg';
     this.button.className = 'click-button btn';
     this.button.textContent = '🥚 Lay Egg';
     this.button.addEventListener('click', () => this.onClick());
@@ -43,6 +46,8 @@ export class ClickButton {
     const newState = this.resourceSystem.clickEgg(state);
     this.setState(newState);
     this.bus.emit('click:egg', {});
+    // Save on every manual action
+    this.saveManager.save(newState, newState.stats.playTimeMs);
   }
 
   private updateCounter(): void {

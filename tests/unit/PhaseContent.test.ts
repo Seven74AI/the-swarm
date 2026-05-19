@@ -1,0 +1,37 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { PhaseContent } from '../../src/phases/PhaseContent';
+import { Phase } from '../../src/phases/phases';
+
+describe('PhaseContent', () => {
+  let phaseContent: PhaseContent;
+
+  beforeEach(() => {
+    phaseContent = new PhaseContent();
+  });
+
+  describe('getActivePanels', () => {
+    it('returns egg_laying panels', () => {
+      const panels = phaseContent.getActivePanels(Phase.EGG_LAYING);
+      expect(panels).toContain('click_button');
+      expect(panels).toContain('event_log');
+      expect(panels).toContain('phase_indicator');
+      expect(panels).toContain('resource_panel');
+    });
+
+    it('returns colony panels (includes worker_assignment and food)', () => {
+      const panels = phaseContent.getActivePanels(Phase.COLONY);
+      expect(panels).toContain('click_button');
+      expect(panels).toContain('event_log');
+      expect(panels).toContain('phase_indicator');
+      expect(panels).toContain('resource_panel');
+      expect(panels).toContain('worker_assignment');
+      expect(panels).toContain('food_display');
+    });
+
+    it('colon phase has more panels than egg_laying', () => {
+      const eggPanels = phaseContent.getActivePanels(Phase.EGG_LAYING);
+      const colonyPanels = phaseContent.getActivePanels(Phase.COLONY);
+      expect(colonyPanels.length).toBeGreaterThan(eggPanels.length);
+    });
+  });
+});

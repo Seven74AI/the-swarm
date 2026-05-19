@@ -17,7 +17,8 @@ const UPGRADES: Record<string, UpgradeDef> = {
 
 export const EGG_HATCH_TIME = 5; // ticks
 export const LARVA_MATURE_TIME = 10; // ticks
-const FOOD_PER_WORKER = 1; // food produced per worker per tick
+const FOOD_PER_WORKER = 1; // food produced per unassigned worker per tick
+const FOOD_PER_GATHER = 2; // food produced per gather worker per tick
 const FOOD_CONSUMED_PER_WORKER = 0.5; // food consumed per worker per tick
 
 /**
@@ -77,10 +78,18 @@ export class ResourceSystem {
     // Decrement egg timers and hatch → collect new larva timers separately
     const newEggTimers: number[] = [];
     const hatchedLarvaTimers: number[] = [];
-    for (const timer of eggTimers) {
-      const remaining = timer - 1;
+
+    // Sort egg timers so tend workers affect the oldest (lowest) timers first
+    const sortedEggTimers = [...eggTimers].sort((a, b) => a - b);
+    const tendCount = state.workersAssigned.tend;
+
+    for (let i = 0; i < sortedEggTimers.length; i++) {
+      const timer = sortedEggTimers[i];
+      // Tend workers give an extra -1 to the oldest eggs
+      const extraDecrement = i < tendCount ? 1 : 0;
+      const remaining = timer - 1 - extraDecrement;
       if (remaining <= 0) {
-        // Egg hatches → larva (timer added AFTER larvae processing)
+        // Egg hatches → larva
         eggs--;
         larvae++;
         eggsChanged = true;
@@ -112,7 +121,12 @@ export class ResourceSystem {
 
     // Workers produce food
     if (workers > 0) {
-      const produced = workers * FOOD_PER_WORKER;
+      const assigned = state.workersAssigned;
+      const gatherCount = assigned.gather;
+      const unassignedCount = workers - gatherCount - assigned.tend - assigned.dig - assigned.guard;
+      const produced =
+        gatherCount * FOOD_PER_GATHER +
+        Math.max(0, unassignedCount) * FOOD_PER_WORKER;
       const consumed = workers * FOOD_CONSUMED_PER_WORKER;
       food = Math.max(0, food + produced - consumed);
       foodChanged = true;
@@ -173,6 +187,47 @@ export class ResourceSystem {
     };
 
     this.bus.emit('upgrade_purchased', { upgradeId, level: currentLevel + 1 });
+    return result;
+  }
+
+  /**
+   * Assign one unassigned worker to a role.
+   * Returns unchanged state if no unassigned workers available.
+   */
+  assignWorker(state: GameState, role: 'gather' | 'tend' | 'dig' | 'guard'): GameState {
+    const assigned = state.workersAssigned;
+    const totalAssigned = assigned.gather + assigned.tend + assigned.dig + assigned.guard;
+    if (totalAssigned >= state.resources.workers) return state;
+
+    const result: GameState = {
+      ...state,
+      workersAssigned: {
+        ...assigned,
+        [role]: assigned[role] + 1,
+      },
+    };
+
+    this.bus.emit('workers_assigned', { role, assigned: result.workersAssigned });
+    return result;
+  }
+
+  /**
+   * Unassign one worker from a role.
+   * Won't go below 0 for that role.
+   */
+  unassignWorker(state: GameState, role: 'gather' | 'tend' | 'dig' | 'guard'): GameState {
+    const assigned = state.workersAssigned;
+    if (assigned[role] <= 0) return state;
+
+    const result: GameState = {
+      ...state,
+      workersAssigned: {
+        ...assigned,
+        [role]: assigned[role] - 1,
+      },
+    };
+
+    this.bus.emit('workers_assigned', { role, assigned: result.workersAssigned });
     return result;
   }
 }
