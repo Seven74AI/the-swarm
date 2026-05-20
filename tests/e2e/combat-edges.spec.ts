@@ -24,7 +24,7 @@ function makeCombatSaveData(overrides?: Record<string, unknown>) {
         eggs: 0, larvae: 0, workers: 20, food: 1000,
         nestCapacity: 100, wood: 0, stone: 0, nectar: 0,
       },
-      workersAssigned: { gather: 4, tend: 4, dig: 4, guard: 4 },
+      workersAssigned: { gather: 4, tend: 4, dig: 4, guard: 4, researchers: 0 },
       upgrades: {},
       stats: { totalEggsLaid: 50, totalClicks: 100, playTimeMs: 0 },
       unlockedPanels: ['resource_panel', 'soldier_panel', 'battle_panel'],
@@ -67,7 +67,7 @@ function makeExpansionSaveData(overrides?: Record<string, unknown>) {
         eggs: 0, larvae: 0, workers: 25, food: 1000,
         nestCapacity: 100, wood: 500, stone: 500, nectar: 100,
       },
-      workersAssigned: { gather: 12, tend: 4, dig: 3, guard: 0 },
+      workersAssigned: { gather: 12, tend: 4, dig: 3, guard: 0, researchers: 0 },
       soldiers: { scouts: 5, warriors: 3, totalKilled: 0 },
       buildings: {
         barracks: { level: 0, count: 0 },

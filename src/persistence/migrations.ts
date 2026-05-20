@@ -177,6 +177,41 @@ function migrateV6toV7(data: SaveData): SaveData {
   return { ...data, version: 7, gameState };
 }
 
+/** v7 → v8: adds research system state and researchers worker role */
+function migrateV7toV8(data: SaveData): SaveData {
+  const gameState = data.gameState as GameState & {
+    workersAssigned?: {
+      gather: number;
+      tend: number;
+      dig: number;
+      guard: number;
+      researchers?: number;
+    };
+    research?: {
+      projects: Record<string, { state: string; progress: number }>;
+    };
+  };
+
+  // Add researchers field to workersAssigned
+  if (gameState.workersAssigned) {
+    gameState.workersAssigned = {
+      ...gameState.workersAssigned,
+      researchers: gameState.workersAssigned.researchers ?? 0,
+    };
+  }
+
+  // Add research state
+  gameState.research = gameState.research ?? {
+    projects: {
+      voidCrystalSynthesis: { state: 'available', progress: 0 },
+      antimatterContainment: { state: 'locked', progress: 0 },
+      darkMatterDetection: { state: 'locked', progress: 0 },
+    },
+  };
+
+  return { ...data, version: 8, gameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -185,6 +220,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   4: migrateV4toV5,
   5: migrateV5toV6,
   6: migrateV6toV7,
+  7: migrateV7toV8,
 };
 
 /**

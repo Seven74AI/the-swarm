@@ -20,7 +20,7 @@ function makeSaveData(overrides?: Record<string, unknown>) {
       },
       eggPipeline: { count: 0, progress: 0 },
       larvaPipeline: { count: 0, progress: 0 },
-      workersAssigned: { gather: 20, tend: 6, dig: 3, guard: 0 },
+      workersAssigned: { gather: 20, tend: 6, dig: 3, guard: 0, researchers: 0 },
       soldiers: { scouts: 10, warriors: 5, totalKilled: 2 },
       buildings: {
         barracks: { level: 2, count: 1 },

@@ -67,6 +67,7 @@ const PHASE_PANELS: Record<string, string[]> = {
     'map_panel',
     'building_panel',
     'expedition_panel',
+    'research_panel',
   ],
   [Phase.SPACE]: [
     'click_button',
@@ -86,6 +87,7 @@ const PHASE_PANELS: Record<string, string[]> = {
     'cosmic_panel',
     'starmap_panel',
     'resource_converter_panel',
+    'research_panel',
   ],
   [Phase.TRANSCENDENCE]: [
     'click_button',
@@ -108,6 +110,7 @@ const PHASE_PANELS: Record<string, string[]> = {
     'transcendence_panel',
     'tech_tree_panel',
     'automation_panel',
+    'research_panel',
   ],
 };
 
