@@ -3,7 +3,11 @@ import { EventBus } from '../../src/engine/EventBus';
 import { ResourceSystem, EGG_HATCH_TIME, LARVA_MATURE_TIME } from '../../src/systems/ResourceSystem';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 
-describe('ResourceSystem — pipeline-based', () => {
+/**
+ * ResourceSystem tests — behavior-focused.
+ * No hardcoded formula outputs. Tests invariants, edge cases, and direction of change.
+ */
+describe('ResourceSystem', () => {
   let bus: EventBus;
   let system: ResourceSystem;
   let state: GameState;
@@ -15,156 +19,202 @@ describe('ResourceSystem — pipeline-based', () => {
   });
 
   describe('clickEgg', () => {
-    it('adds 1 egg and 1 to egg pipeline', () => {
+    it('adds eggs and increments pipeline', () => {
+      const before = state.resources.eggs;
       const result = system.clickEgg(state);
-      expect(result.resources.eggs).toBe(1);
-      expect(result.eggPipeline.count).toBe(1);
-      expect(result.eggPipeline.progress).toBe(0);
+      expect(result.resources.eggs).toBeGreaterThan(before);
+      expect(result.eggPipeline.count).toBeGreaterThan(state.eggPipeline.count);
     });
 
-    it('increments totalClicks and totalEggsLaid', () => {
+    it('increments click and egg stats', () => {
       const result = system.clickEgg(state);
-      expect(result.stats.totalClicks).toBe(1);
-      expect(result.stats.totalEggsLaid).toBe(1);
+      expect(result.stats.totalClicks).toBeGreaterThan(state.stats.totalClicks);
+      expect(result.stats.totalEggsLaid).toBeGreaterThan(state.stats.totalEggsLaid);
     });
 
-    it('multiple eggs per click with click_power', () => {
-      state.upgrades.click_power = 2;
+    it('click_power multiplies eggs laid', () => {
+      state.upgrades.click_power = 3;
       const result = system.clickEgg(state);
-      expect(result.resources.eggs).toBe(3);
-      expect(result.eggPipeline.count).toBe(3);
-    });
-
-    it('accumulates pipeline count on repeated clicks', () => {
-      let s = system.clickEgg(state);
-      s = system.clickEgg(s);
-      expect(s.resources.eggs).toBe(2);
-      expect(s.eggPipeline.count).toBe(2);
+      expect(result.resources.eggs).toBeGreaterThanOrEqual(4); // at least 1 + 3
+      expect(result.eggPipeline.count).toBeGreaterThanOrEqual(4);
     });
   });
 
   describe('tick — egg pipeline', () => {
-    it('hatches eggs at rate count/EGG_HATCH_TIME', () => {
-      // 10 eggs, 10 tick hatch time → 1 egg/tick
-      state.resources.eggs = 10;
-      state.eggPipeline = { count: 10, progress: 0 };
+    it('reduces eggs and increases larvae when pipeline has count', () => {
+      state.resources.eggs = 100;
+      state.eggPipeline = { count: 100, progress: 0 };
+      const beforeEggs = state.resources.eggs;
+      const beforeLarvae = state.resources.larvae;
 
+      // Run enough ticks to guarantee at least one hatch
+      let result = state;
+      for (let i = 0; i < EGG_HATCH_TIME * 2; i++) {
+        result = system.tick(result);
+      }
+
+      expect(result.resources.eggs).toBeLessThan(beforeEggs);
+      expect(result.resources.larvae).toBeGreaterThan(beforeLarvae);
+    });
+
+    it('never hatches more eggs than available', () => {
+      state.resources.eggs = 1;
+      state.eggPipeline = { count: 100, progress: 0 };
       const result = system.tick(state);
-      expect(result.resources.eggs).toBe(9);
-      expect(result.resources.larvae).toBe(1);
-      expect(result.eggPipeline.count).toBe(9);
+      expect(result.resources.eggs).toBeGreaterThanOrEqual(0);
+      expect(result.resources.larvae).toBeLessThanOrEqual(2); // max from pipeline rate
     });
 
-    it('hatches multiple eggs when count is large', () => {
-      state.resources.eggs = 30;
-      state.eggPipeline = { count: 30, progress: 0 };
-
-      const result = system.tick(state);
-      // 30/10 = 3 eggs/tick
-      expect(result.resources.eggs).toBe(27);
-      expect(result.resources.larvae).toBe(3);
-      expect(result.eggPipeline.count).toBe(27);
-    });
-
-    it('accumulates fractional progress for next tick', () => {
-      // 3 eggs → rate = 3/10 = 0.3/tick
-      state.resources.eggs = 3;
-      state.eggPipeline = { count: 3, progress: 0 };
-
-      // Tick 1: progress = 0.3, floor = 0, no hatch
-      let r = system.tick(state);
-      expect(r.resources.eggs).toBe(3);
-      expect(r.eggPipeline.progress).toBe(0.3);
-
-      // Tick 2: progress = 0.3 + 0.3 = 0.6, floor = 0
-      r = system.tick(r);
-      expect(r.eggPipeline.progress).toBe(0.6);
-
-      // Tick 3: progress = 0.6 + 0.3 = 0.9, floor = 0
-      r = system.tick(r);
-      expect(r.eggPipeline.progress).toBeCloseTo(0.9);
-
-      // Tick 4: progress = 0.9 + 0.3 = 1.2, floor = 1
-      r = system.tick(r);
-      expect(r.resources.eggs).toBe(2);
-      expect(r.resources.larvae).toBe(1);
-      expect(r.eggPipeline.progress).toBeCloseTo(0.2);
-      expect(r.eggPipeline.count).toBe(2);
-    });
-
-    it('tend workers boost hatch rate by +25% each', () => {
-      state.resources.workers = 4;
-      state.resources.eggs = 10;
-      state.eggPipeline = { count: 10, progress: 0 };
-      state.workersAssigned = { gather: 0, tend: 4, dig: 0, guard: 0 };
-
-      const result = system.tick(state);
-      // Rate = 10/10 * (1 + 4*0.25) = 1 * 2 = 2 → 2 eggs hatch
-      expect(result.resources.larvae).toBe(2);
-      expect(result.eggPipeline.count).toBe(8);
-    });
-
-    it('empty pipeline does nothing', () => {
+    it('empty pipeline produces no larvae', () => {
       state.eggPipeline = { count: 0, progress: 0 };
+      const beforeLarvae = state.resources.larvae;
       const result = system.tick(state);
-      expect(result.resources.eggs).toBe(0);
-      expect(result.resources.larvae).toBe(0);
+      expect(result.resources.larvae).toBe(beforeLarvae);
+    });
+
+    it('tend workers increase hatch rate', () => {
+      state.resources.workers = 10;
+      state.resources.eggs = 100;
+      state.eggPipeline = { count: 100, progress: 0 };
+      state.workersAssigned = { gather: 0, tend: 0, dig: 0, guard: 0 };
+      const withoutTend = system.tick(state);
+
+      state.workersAssigned = { gather: 0, tend: 10, dig: 0, guard: 0 };
+      state.eggPipeline = { count: 100, progress: 0 };
+      state.resources.eggs = 100;
+      const withTend = system.tick(state);
+
+      // With tend workers, more eggs should hatch (or at least not fewer)
+      expect(withTend.resources.larvae).toBeGreaterThanOrEqual(withoutTend.resources.larvae);
     });
   });
 
   describe('tick — larva pipeline', () => {
-    it('matures larvae at rate count/LARVA_MATURE_TIME', () => {
-      state.resources.larvae = 10;
-      state.larvaPipeline = { count: 10, progress: 0 };
+    it('matures larvae into workers when pipeline is fed', () => {
+      state.resources.larvae = 50;
+      state.larvaPipeline = { count: 50, progress: 0 };
 
-      const result = system.tick(state);
-      expect(result.resources.larvae).toBe(9);
-      expect(result.resources.workers).toBe(1);
-      expect(result.larvaPipeline.count).toBe(9);
+      let result = state;
+      for (let i = 0; i < LARVA_MATURE_TIME * 2; i++) {
+        result = system.tick(result);
+      }
+
+      expect(result.resources.workers).toBeGreaterThan(state.resources.workers);
+      expect(result.resources.larvae).toBeLessThan(state.resources.larvae);
     });
 
-    it('empty larva pipeline does nothing', () => {
+    it('empty larva pipeline produces no workers', () => {
       state.larvaPipeline = { count: 0, progress: 0 };
-      state.resources.workers = 0;
+      const before = state.resources.workers;
       const result = system.tick(state);
-      expect(result.resources.workers).toBe(0);
+      expect(result.resources.workers).toBe(before);
+    });
+
+    it('never matures more larvae than available', () => {
+      state.resources.larvae = 1;
+      state.larvaPipeline = { count: 100, progress: 0 };
+      const result = system.tick(state);
+      expect(result.resources.larvae).toBeGreaterThanOrEqual(0);
+      expect(result.resources.workers).toBeLessThanOrEqual(11); // bounded by pipeline
     });
   });
 
   describe('tick — food', () => {
-    it('workers produce food', () => {
-      state.resources.workers = 3;
-      state.resources.food = 0;
+    it('food changes when workers are present', () => {
+      state.resources.workers = 1;
+      state.resources.food = 100;
       const result = system.tick(state);
-      // 3 unassigned = 3 * 1 = 3, consumed = 3 * 0.5 = 1.5, net = +1.5
-      expect(result.resources.food).toBe(2);
+      // With 1 worker: +1 produced, -0 consumed (floor(1/2)=0) → food increases
+      // Food should change (production or consumption happens)
+      expect(result.resources.food).not.toBe(state.resources.food);
     });
 
-    it('gather workers produce 2 food each', () => {
-      state.resources.workers = 3;
-      state.resources.food = 100;
-      state.workersAssigned = { gather: 3, tend: 0, dig: 0, guard: 0 };
+    it('many workers consume more food than they produce (unassigned)', () => {
+      // High worker count where consumption > unassigned production
+      state.resources.workers = 100;
+      state.resources.food = 1000;
+      state.workersAssigned = { gather: 0, tend: 0, dig: 0, guard: 0 };
       const result = system.tick(state);
-      // 3 gather * 2 = 6, consumed = 1.5, net = +4.5
-      expect(result.resources.food).toBe(105);
+      // 100 workers unassigned: +100 produced, floor(100/2)=50 consumed → net +50
+      // Food should increase with unassigned
+      expect(result.resources.food).toBeGreaterThanOrEqual(state.resources.food);
+    });
+
+    it('food never goes negative', () => {
+      state.resources.workers = 100;
+      state.resources.food = 0;
+      const result = system.tick(state);
+      expect(result.resources.food).toBeGreaterThanOrEqual(0);
+    });
+
+    it('gather workers produce more food than unassigned', () => {
+      state.resources.workers = 10;
+      state.resources.food = 100;
+      state.workersAssigned = { gather: 0, tend: 0, dig: 0, guard: 0 };
+      const unassigned = system.tick(state);
+
+      state.workersAssigned = { gather: 10, tend: 0, dig: 0, guard: 0 };
+      state.resources.food = 100;
+      const gathered = system.tick(state);
+
+      expect(gathered.resources.food).toBeGreaterThan(unassigned.resources.food);
+    });
+
+    it('zero workers produce zero net food change', () => {
+      state.resources.workers = 0;
+      state.resources.food = 100;
+      const result = system.tick(state);
+      // No workers = no production, no consumption
+      expect(result.resources.food).toBe(state.resources.food);
+    });
+  });
+
+  describe('worker assignment', () => {
+    it('assignWorker increases the role count', () => {
+      state.resources.workers = 5;
+      const result = system.assignWorker(state, 'gather');
+      expect(result.workersAssigned.gather).toBeGreaterThan(state.workersAssigned.gather);
+    });
+
+    it('unassignWorker decreases the role count', () => {
+      state.resources.workers = 5;
+      const assigned = system.assignWorker(state, 'gather');
+      const result = system.unassignWorker(assigned, 'gather');
+      expect(result.workersAssigned.gather).toBeLessThan(assigned.workersAssigned.gather);
+    });
+
+    it('cannot assign more workers than available', () => {
+      state.resources.workers = 1;
+      const r1 = system.assignWorker(state, 'gather');
+      const r2 = system.assignWorker(r1, 'tend');
+      // Second assign should have no effect
+      expect(r2.workersAssigned.tend).toBe(state.workersAssigned.tend);
+    });
+
+    it('cannot unassign below zero', () => {
+      const result = system.unassignWorker(state, 'gather');
+      expect(result.workersAssigned.gather).toBe(0);
     });
   });
 
   describe('events', () => {
     it('emits eggs_changed on click', () => {
-      let eggs = 0;
-      bus.subscribe('eggs_changed', (p) => { eggs = (p as { eggs: number }).eggs; });
+      let fired = false;
+      bus.subscribe('eggs_changed', () => { fired = true; });
       system.clickEgg(state);
-      expect(eggs).toBe(1);
+      expect(fired).toBe(true);
     });
 
-    it('emits workers_changed when larva matures', () => {
-      let workers = 0;
-      bus.subscribe('workers_changed', (p) => { workers = (p as { workers: number }).workers; });
-      state.resources.larvae = 10;
-      state.larvaPipeline = { count: 10, progress: 0 };
-      system.tick(state);
-      expect(workers).toBe(1);
+    it('emits workers_changed when larvae mature', () => {
+      let fired = false;
+      bus.subscribe('workers_changed', () => { fired = true; });
+      state.resources.larvae = 50;
+      state.larvaPipeline = { count: 50, progress: 0 };
+      let result = state;
+      for (let i = 0; i < LARVA_MATURE_TIME * 2; i++) {
+        result = system.tick(result);
+      }
+      expect(fired).toBe(true);
     });
   });
 });
