@@ -319,9 +319,182 @@ html, body {
   color: var(--text-primary);
 }
 
-/* ── Resource Panel ── */
-.resource-panel .number-display {
+/* ── Resource Panel — Scannable Multi-Resource HUD ── */
+
+/* Critical bar: always-visible top strip */
+.critical-bar {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0.5rem 0.25rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.25rem;
   font-size: 0.95rem;
+}
+
+.critical-item {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  white-space: nowrap;
+}
+
+.critical-value {
+  color: var(--text-primary);
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+/* Rate indicators below critical bar */
+.critical-rates {
+  display: flex;
+  justify-content: space-around;
+  padding: 0.15rem 0.25rem 0.4rem 0.25rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.5rem;
+}
+
+.critical-rate {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+}
+
+/* ── Collapsible HUD Sections ── */
+.hud-section {
+  margin-bottom: 0.25rem;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  border-left: 3px solid transparent;
+  background: var(--bg-secondary);
+  border-radius: 3px;
+  transition: background 0.15s;
+}
+
+.section-header:hover {
+  background: var(--bg-panel);
+}
+
+.section-toggle {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  width: 1rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.section-title {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.section-body {
+  padding: 0.4rem 0.5rem;
+  background: rgba(45, 38, 32, 0.3);
+  border-left: 3px solid transparent;
+}
+
+/* Colony section — amber */
+.hud-section.colony-section .section-header {
+  border-left-color: #b8942e; /* amber */
+}
+
+.hud-section.colony-section .section-body {
+  border-left-color: #b8942e;
+}
+
+/* Space section — purple */
+.hud-section.space-section .section-header {
+  border-left-color: #7b61ff; /* purple */
+}
+
+.hud-section.space-section .section-body {
+  border-left-color: #7b61ff;
+}
+
+/* Prestige section — gold */
+.hud-section.prestige-section .section-header {
+  border-left-color: #ffd700; /* gold */
+}
+
+.hud-section.prestige-section .section-body {
+  border-left-color: #ffd700;
+}
+
+/* ── HUD Resource Rows ── */
+.hud-resource-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.2rem 0;
+  font-size: 0.85rem;
+}
+
+.hud-resource-icon {
+  width: 1.5rem;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.hud-resource-label {
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.hud-resource-value {
+  color: var(--text-primary);
+  font-weight: bold;
+  font-size: 0.85rem;
+  min-width: 4rem;
+  text-align: right;
+}
+
+/* ── Progress Bar in HUD context ── */
+.hud-section .progress-bar {
+  margin: 0.3rem 0;
+}
+
+.hud-section .progress-header {
+  font-size: 0.7rem;
+}
+
+.hud-section .progress-label {
+  font-size: 0.72rem;
+}
+
+.hud-section .progress-percent {
+  font-size: 0.72rem;
+}
+
+/* ── Mobile Responsive ── */
+@media (min-width: 768px) {
+  .resource-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    max-width: 720px;
+  }
+
+  .critical-bar {
+    grid-column: 1 / -1;
+  }
+
+  .critical-rates {
+    grid-column: 1 / -1;
+  }
+
+  /* Sections span full width for readability */
+  .hud-section {
+    grid-column: 1 / -1;
+  }
 }
 
 /* ── Phase Indicator ── */
