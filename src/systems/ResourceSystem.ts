@@ -78,6 +78,7 @@ export class ResourceSystem {
 
     // ── Egg pipeline: eggs → larvae ──
     const eggPipe = { ...state.eggPipeline };
+    const larvaPipe = { ...state.larvaPipeline };
     if (eggPipe.count > 0) {
       const tendCount = state.workersAssigned.tend;
       const hatchRate = eggPipe.count > 0
@@ -93,13 +94,13 @@ export class ResourceSystem {
         eggs -= actual;
         larvae += actual;
         eggPipe.count = Math.max(0, eggPipe.count - actual);
+        larvaPipe.count += actual; // hatched eggs → larva pipeline
         eggsChanged = true;
         larvaeChanged = true;
       }
     }
 
     // ── Larva pipeline: larvae → workers ──
-    const larvaPipe = { ...state.larvaPipeline };
     if (larvaPipe.count > 0) {
       const matureRate = larvaPipe.count / LARVA_MATURE_TIME;
       larvaPipe.progress += matureRate;

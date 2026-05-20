@@ -180,6 +180,10 @@ function addLoot(
       wood: state.resources.wood + wood,
       stone: state.resources.stone + stone,
       nectar: state.resources.nectar + nectar,
+      // Rare space resource drops (10% chance each)
+      voidCrystals: state.resources.voidCrystals + (Math.random() < 0.1 ? 1 : 0),
+      antimatter: state.resources.antimatter + (Math.random() < 0.1 ? 1 : 0),
+      darkMatter: state.resources.darkMatter + (Math.random() < 0.1 ? 1 : 0),
     },
   };
 }
