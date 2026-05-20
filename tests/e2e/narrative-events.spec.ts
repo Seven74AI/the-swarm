@@ -22,7 +22,7 @@ test.describe('Narrative Event Log', () => {
 
     // At least one of the phase_changed flavor variants should appear
     const hasNarrative = [
-      'The stars are calling',
+      'The stars... are calling',
       'A new chapter begins',
       'The colony crosses a threshold',
       'Nothing will ever be the same',
