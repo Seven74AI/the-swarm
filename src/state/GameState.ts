@@ -149,6 +149,15 @@ export interface GameState {
     exploration: number;
     spaceship: number;
   };
+  /** Prestige system — Legacy Layer (Phase 5+). */
+  prestige: {
+    /** Number of times the player has prestiged. */
+    count: number;
+    /** Accumulated Legacy Points across all prestiges. */
+    legacyPoints: number;
+    /** Lifetime total food produced (never reset). */
+    totalFoodProduced: number;
+  };
 }
 
 /**
@@ -249,6 +258,11 @@ export function createInitialState(): GameState {
       expedition: 1,
       exploration: 1,
       spaceship: 1,
+    },
+    prestige: {
+      count: 0,
+      legacyPoints: 0,
+      totalFoodProduced: 0,
     },
   };
 }

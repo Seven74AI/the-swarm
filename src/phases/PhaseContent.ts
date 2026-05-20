@@ -108,6 +108,7 @@ const PHASE_PANELS: Record<string, string[]> = {
     'transcendence_panel',
     'tech_tree_panel',
     'automation_panel',
+    'prestige_panel',
   ],
 };
 

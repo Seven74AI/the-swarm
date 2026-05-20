@@ -22,6 +22,7 @@ import { StarmapPanel } from './panels/StarmapPanel';
 import { ResourceConverterPanel } from './panels/ResourceConverterPanel';
 import { TechTreePanel } from './panels/TechTreePanel';
 import { AutomationPanel } from './panels/AutomationPanel';
+import { PrestigePanel } from './panels/PrestigePanel';
 
 /**
  * Root UI controller. Mounts all panels into #app.
@@ -120,6 +121,9 @@ export class UIRoot {
     // Phase 5 panels (lazy — created on demand)
     this.panelRegistry.set('tech_tree_panel', () => new TechTreePanel().getElement());
     this.panelRegistry.set('automation_panel', () => new AutomationPanel().getElement());
+    this.panelRegistry.set('prestige_panel', () => new PrestigePanel(
+      this.bus, this.getState, this.setState,
+    ).getElement());
   }
 
   mount(container: HTMLElement): void {

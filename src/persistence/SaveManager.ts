@@ -19,7 +19,7 @@ export class SaveManager {
   private static SAVE_KEY = 'the_swarm_save';
   private static BACKUP1_KEY = 'the_swarm_save_bak1';
   private static BACKUP2_KEY = 'the_swarm_save_bak2';
-  private static SAVE_VERSION = 7;
+  private static SAVE_VERSION = 8;
   private static AUTOSAVE_INTERVAL_MS = 30_000;
 
   private autosaveTimer: ReturnType<typeof setInterval> | null = null;
@@ -54,23 +54,44 @@ export class SaveManager {
   load(): { gameState: GameState; playTimeMs: number; timestamp?: number } | null {
     // Try primary save first
     const result = this.tryLoadKey(SaveManager.SAVE_KEY);
-    if (result) return result;
+    if (result) {
+      // Inject defaults for fields added in newer versions
+      return this.applyDefaults(result);
+    }
 
     // Try backup 1
     const bak1 = this.tryLoadKey(SaveManager.BACKUP1_KEY);
     if (bak1) {
       console.warn('SaveManager: Primary save corrupted, loaded from backup 1.');
-      return bak1;
+      return this.applyDefaults(bak1);
     }
 
     // Try backup 2
     const bak2 = this.tryLoadKey(SaveManager.BACKUP2_KEY);
     if (bak2) {
       console.warn('SaveManager: Primary and backup 1 corrupted, loaded from backup 2.');
-      return bak2;
+      return this.applyDefaults(bak2);
     }
 
     return null;
+  }
+
+  /**
+   * Apply defaults for fields that may be missing from older save versions.
+   * This allows backward compat without breaking existing saves.
+   */
+  private applyDefaults(result: { gameState: GameState; playTimeMs: number; timestamp?: number }): { gameState: GameState; playTimeMs: number; timestamp?: number } {
+    const gs = result.gameState;
+    if (!gs.prestige) {
+      return {
+        ...result,
+        gameState: {
+          ...gs,
+          prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 0 },
+        },
+      };
+    }
+    return result;
   }
 
   private tryLoadKey(key: string): { gameState: GameState; playTimeMs: number; timestamp?: number } | null {
