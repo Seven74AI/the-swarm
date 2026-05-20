@@ -180,14 +180,14 @@ describe('PhaseContent', () => {
       expect(payload.quote.length).toBeGreaterThan(0);
     });
 
-    it('emits transition_complete after 2000ms', () => {
+    it('emits transition_complete after 3500ms (#animation-timing)', () => {
       const events: unknown[] = [];
       bus.subscribe('transition_complete', (payload) => events.push(payload));
 
       phaseContent.triggerTransition(Phase.COLONY, bus, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot);
 
       expect(events).toHaveLength(0);
-      vi.advanceTimersByTime(2000);
+      vi.advanceTimersByTime(3500);
       expect(events).toHaveLength(1);
       const payload = events[0] as { phase: string };
       expect(payload.phase).toBe(Phase.COLONY);
@@ -199,7 +199,7 @@ describe('PhaseContent', () => {
 
       phaseContent.triggerTransition(Phase.SPACE, bus, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot);
 
-      vi.advanceTimersByTime(2000);
+      vi.advanceTimersByTime(3500);
       expect(events).toHaveLength(1);
       const payload = events[0] as { phase: string };
       expect(payload.phase).toBe(Phase.SPACE);

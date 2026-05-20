@@ -125,15 +125,16 @@ export class PhaseContent {
     const quote = this.getLoreQuote(phase);
     bus.emit('transition_start', { phase, quote });
 
-    // Reveal new panels after the overlay is visible (0.3s delay)
+    // Reveal new panels AFTER the overlay fades (1.8s) so the player
+    // sees panels appearing one-by-one against the dimmed background
     setTimeout(() => {
       this.onPhaseEnter(phase, uiRoot);
-    }, 300);
+    }, 1800);
 
-    // End transition after full animation (2s total)
+    // End transition after panels have finished revealing (3.5s total)
     setTimeout(() => {
       bus.emit('transition_complete', { phase });
-    }, 2000);
+    }, 3500);
   }
 
   /**

@@ -423,12 +423,20 @@ html, body {
 }
 
 .panel-unlocked {
-  animation: panel-reveal 0.4s ease;
+  animation: panel-reveal 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Staggered reveal: each consecutive unlocked panel starts 0.15s later */
+.panel-unlocked ~ .panel-unlocked {
+  animation-delay: 0.15s;
+}
+.panel-unlocked ~ .panel-unlocked ~ .panel-unlocked {
+  animation-delay: 0.3s;
 }
 
 @keyframes panel-reveal {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* ── Map Panel ── */
@@ -813,15 +821,16 @@ body.phase-space .progress-fill {
   opacity: 0;
 }
 
-/* Fade-in when active */
+/* Fade-in when active — 3.5s total */
 #phase-transition-overlay.active {
-  animation: phase-transition-overlay 2s ease forwards;
+  animation: phase-transition-overlay 3.5s ease forwards;
 }
 
 @keyframes phase-transition-overlay {
   0%   { opacity: 0; }
-  15%  { opacity: 1; }
-  85%  { opacity: 1; }
+  10%  { opacity: 1; }
+  55%  { opacity: 1; }
+  75%  { opacity: 0.3; }
   100% { opacity: 0; }
 }
 
@@ -834,14 +843,15 @@ body.phase-space .progress-fill {
   font-size: 1.1rem;
   line-height: 1.6;
   padding: 0 2rem;
-  animation: phase-quote-enter 2s ease forwards;
+  animation: phase-quote-enter 3.5s ease forwards;
 }
 
 @keyframes phase-quote-enter {
-  0%   { opacity: 0; transform: translateY(12px); }
-  25%  { opacity: 0; transform: translateY(12px); }
-  45%  { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-8px); }
+  0%   { opacity: 0; transform: translateY(16px); }
+  15%  { opacity: 1; transform: translateY(0); }
+  50%  { opacity: 1; transform: translateY(0); }
+  65%  { opacity: 0; transform: translateY(-12px); }
+  100% { opacity: 0; }
 }
 
 /* Dim panels during transition */
