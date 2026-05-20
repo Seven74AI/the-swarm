@@ -1,4 +1,4 @@
-import type { EventBus } from '../../engine/EventBus';
+import type { EventBus, NarrativeEvent } from '../../engine/EventBus';
 
 interface LogEntry {
   message: string;
@@ -6,6 +6,54 @@ interface LogEntry {
 }
 
 const MAX_ENTRIES = 100;
+
+/**
+ * Narrative flavor text variants for each system event.
+ * 3-5 variants per event type with weighted random selection via EventBus.
+ */
+export const NARRATIVE_FLAVORS: Record<string, string[]> = {
+  workers_changed: [
+    'Fifty workers now serve the colony. The tunnels echo with industry.',
+    'More workers join the ranks. The colony pulses with new energy.',
+    'The work force swells. Every tunnel hums with coordinated effort.',
+    'New workers emerge and fall into line. The colony is a living machine.',
+  ],
+  battle_completed: [
+    'The red ant invaders have been routed! +23 🍞 scavenged from their corpses.',
+    'Victory! The enemy scatters before our might. The battlefield is ours.',
+    'The invaders flee into the grass. Our soldiers stand victorious.',
+    'Another threat neutralized. The colony grows stronger with each battle won.',
+  ],
+  resource_milestone: [
+    "The colony's food stores have reached a new peak. Winter holds no fear.",
+    'A great harvest! The larders overflow. The queen is pleased.',
+    'The granaries swell. For the first time, the colony knows true abundance.',
+    'Resources beyond measure. The colony has entered an age of plenty.',
+  ],
+  phase_changed: [
+    'The workers look up at the night sky. Something has changed. The stars... are calling.',
+    'A new chapter begins. The very air feels different now.',
+    'The colony crosses a threshold. Nothing will ever be the same.',
+    'Evolution. The colony sheds its old skin and emerges transformed.',
+    'A pulse runs through every ant. A new age has dawned.',
+  ],
+  building_complete: [
+    'A new structure rises from the earth. The colony borders expand once more.',
+    'Stone and earth give way to purpose. A new building stands complete.',
+    'Construction finished. The colony architecture grows ever more complex.',
+    'Another foundation laid. The colony reaches further into the unknown.',
+  ],
+};
+
+/**
+ * Register narrative flavors on the EventBus so that system events
+ * automatically emit {@link NarrativeEvent} with randomized flavor text.
+ */
+export function registerNarrativeFlavors(bus: EventBus): void {
+  for (const [event, flavors] of Object.entries(NARRATIVE_FLAVORS)) {
+    bus.registerFlavor(event, flavors);
+  }
+}
 
 /**
  * Scrolling activity log. Listens for game events and shows narrative messages.
@@ -38,7 +86,18 @@ export class EventLog {
     // Initial message
     this.addEntry('You are an ant queen. Your purpose is clear.');
 
-    // Listen for events
+    // Register narrative flavors on the bus
+    registerNarrativeFlavors(bus);
+
+    // Listen for narrative events (flavor text from EventBus)
+    bus.subscribe('narrative_event', (payload: unknown) => {
+      const np = payload as NarrativeEvent;
+      if (np.flavor) {
+        this.addEntry(np.flavor);
+      }
+    });
+
+    // Listen for legacy system events as fallback
     bus.subscribe('click:egg', () => this.onClick());
     bus.subscribe('workers_changed', () => this.onWorkersChanged());
     bus.subscribe('soldiers_changed', (payload: unknown) => {
