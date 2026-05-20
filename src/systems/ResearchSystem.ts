@@ -173,6 +173,9 @@ export function cancelProject(
 
 /** Advance research progress for each in-progress project. */
 export function tickResearch(state: GameState): GameState {
+  // Guard: no-op if research state doesn't exist yet (backward compat with old saves)
+  if (!state.research || !state.research.projects) return state;
+
   const researchers = getAssignedResearchers(state);
 
   // Sum required researchers across all in-progress projects
@@ -277,7 +280,7 @@ export function unassignResearcher(state: GameState): GameState {
 
 /** Get the number of assigned researchers. */
 export function getAssignedResearchers(state: GameState): number {
-  return state.workersAssigned.researchers;
+  return state.workersAssigned?.researchers ?? 0;
 }
 
 /** Get total progress across all projects. */
