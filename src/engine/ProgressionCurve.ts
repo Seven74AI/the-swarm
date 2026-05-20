@@ -82,7 +82,9 @@ export function workerEfficiency(workers: number): number {
  * Creates exponential cost walls that prestige breaks through.
  *
  * @param baseCost  Base resource cost for level 0
- * @param level     Target level (0-based: cost for next upgrade)
+ * @param level     Destination level to upgrade TO (1-based).
+ *                  Example: current building level 0 → pass 1 for first upgrade cost.
+ *                  Actual building level before upgrade is (level - 1).
  */
 export function buildingUpgradeCost(baseCost: number, level: number): number {
   return Math.floor(baseCost * Math.pow(2.5, level));

@@ -1,9 +1,9 @@
 #!/bin/bash
 # CI script for the-swarm prestige feature
 set -euo pipefail
-cd /root/.hermes/kanban/boards/the-swarm/workspaces/t_725e77d2
-
-echo "=== CI START ==="
+WORKSPACE="${1:-${PWD}}"
+cd "$WORKSPACE"
+echo "=== CI START (workspace: $WORKSPACE) ==="
 echo ""
 
 # Layer 1: Unit tests
