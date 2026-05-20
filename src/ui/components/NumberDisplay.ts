@@ -3,6 +3,8 @@ import type { Store } from '../../state/Store';
 
 /** Maximum particles spawned per update to maintain 60 FPS */
 const MAX_PARTICLES = 8;
+/** Hard cap on total particle elements to prevent memory leaks */
+const MAX_TOTAL_PARTICLES = 16;
 
 /**
  * Displays a single numeric value with a label.
@@ -54,11 +56,24 @@ export class NumberDisplay {
     this.textEl.textContent = `${this.label}: ${formatNumber(value)}`;
   }
 
+  /** Clean up orphaned particle elements (safety net) */
+  private cleanupOrphanParticles(): void {
+    const particles = this.el.querySelectorAll('.number-particle');
+    if (particles.length > MAX_TOTAL_PARTICLES) {
+      // Remove oldest particles
+      for (let i = 0; i < particles.length - MAX_TOTAL_PARTICLES; i++) {
+        particles[i].remove();
+      }
+    }
+  }
+
   /**
    * Spawn DOM-based particles that animate based on the delta sign.
-   * Particles are small spans positioned absolutely within the container.
+   * Each particle self-removes on animationend, with a setTimeout safety net.
    */
   private spawnParticles(delta: number): void {
+    this.cleanupOrphanParticles();
+
     const direction = delta > 0 ? 'up' : 'down';
     const count = Math.min(
       Math.max(1, Math.floor(Math.log10(Math.abs(delta)) + 1)),
@@ -69,13 +84,10 @@ export class NumberDisplay {
       const particle = document.createElement('span');
       particle.className = `number-particle number-particle-${direction}`;
 
-      // Randomize horizontal offset within the container width
       const offsetX = Math.random() * 100;
-      // Slight vertical offset for visual variety
       const offsetY = direction === 'up'
         ? Math.random() * 10
         : Math.random() * 5;
-      // Stagger animation start
       const delay = Math.random() * 0.15;
 
       particle.style.cssText = [
@@ -90,6 +102,11 @@ export class NumberDisplay {
       particle.addEventListener('animationend', () => {
         particle.remove();
       }, { once: true });
+
+      // Safety net: force-remove after 2s in case animation never fires
+      setTimeout(() => {
+        if (particle.isConnected) particle.remove();
+      }, 2000);
 
       this.el.appendChild(particle);
     }

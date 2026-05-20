@@ -4,6 +4,44 @@ import type { GameState } from './GameState';
 type SliceCallback = (value: unknown) => void;
 
 /**
+ * Shallow equality for objects/arrays that works with JSON-compatible data.
+ * Falls back to === for primitives. More reliable than reference equality
+ * because deepMerge creates new references even for unchanged nested objects.
+ */
+function shallowEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (a === null || b === null) return false;
+  if (typeof a !== typeof b) return false;
+
+  // Primitives already handled by ===
+  if (typeof a !== 'object') return false;
+
+  // Arrays
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
+  }
+
+  // Plain objects
+  if (!Array.isArray(a) && !Array.isArray(b)) {
+    const keysA = Object.keys(a as Record<string, unknown>);
+    const keysB = Object.keys(b as Record<string, unknown>);
+    if (keysA.length !== keysB.length) return false;
+    for (const key of keysA) {
+      if ((a as Record<string, unknown>)[key] !== (b as Record<string, unknown>)[key]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Provides subscribable slices of GameState.
  * Components subscribe to dot-notation paths (e.g., 'resources.eggs')
  * and are notified only when their specific slice changes.
@@ -43,7 +81,7 @@ export class Store {
     for (const [path, callbacks] of this.subscribers) {
       const newValue = getByPath(state, path);
       const prevValue = this.prevValues.get(path);
-      if (newValue !== prevValue) {
+      if (!shallowEqual(newValue, prevValue)) {
         this.prevValues.set(path, newValue);
         for (const cb of callbacks) {
           cb(newValue);

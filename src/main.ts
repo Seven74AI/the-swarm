@@ -50,7 +50,7 @@ export function bootstrap(): {
   const soldierSystem = new SoldierSystem(bus);
   const battleSystem = new BattleSystem(bus);
   const saveManager = new SaveManager();
-  const loop = new GameLoop(bus, ticker, manager);
+  const loop = new GameLoop(ticker);
   const phaseContent = new PhaseContent();
   const mapSystem = new MapSystem();
   const territorySystem = new TerritorySystem();
@@ -165,6 +165,15 @@ export function bootstrap(): {
         workingState = newState;
       }
     }
+
+    // Advance playTimeMs (1 tick = 1 second)
+    newState = {
+      ...newState,
+      stats: {
+        ...newState.stats,
+        playTimeMs: newState.stats.playTimeMs + 1000,
+      },
+    };
 
     manager.update(newState);
 
