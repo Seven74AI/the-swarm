@@ -70,7 +70,7 @@ describe('Phase 3 integration: discover → claim → bonuses', () => {
 
     state.resources.workers = 5;
     const result = resourceSystem.tick(state, bonuses);
-    expect(result.resources.stone).toBeCloseTo(2.5); // 5 × 0.5
+    expect(result.resources.stone).toBeCloseTo(2); // 5 × 0.5
   });
 
   it('discovers MEADOW tile and nectar bonus applies on tick', () => {

@@ -89,9 +89,11 @@ Risk varies by destination. Higher risk = more casualties but better loot.
 
 ### Spaceship
 - **Unlock:** Phase SPACE
-- **Requires:** Void Crystals, Antimatter, Dark Matter (from territory/expeditions)
-- **Levels:** 1-5
+- **Lv.1 cost:** 2000 food, 500 wood, 500 stone, 200 nectar (no space resources needed!)
+- **Lv.2+ require:** space resources from exploration
+- **Levels:** 1-4
 - **Missions:** Send to destinations, returns with space resources
+- **Bootstrap path:** Run expeditions (10% chance per resource per expedition to drop voidCrystals/antimatter/darkMatter) OR build Lv.1 spaceship with basic resources.
 
 ### Space Exploration (Probes)
 - **Unlock:** Phase SPACE + spaceship built (Lv > 0)

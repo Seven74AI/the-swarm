@@ -21,7 +21,6 @@ export const EGG_HATCH_TIME = 10; // ticks
 export const LARVA_MATURE_TIME = 10; // ticks
 const FOOD_PER_WORKER = 1;
 const FOOD_PER_GATHER = 2;
-const FOOD_CONSUMED_PER_WORKER = 0.5;
 const TEND_MULTIPLIER = 0.25; // each tend worker gives +25% hatch rate
 
 /**
@@ -125,7 +124,7 @@ export class ResourceSystem {
       const produced =
         gatherCount * FOOD_PER_GATHER +
         Math.max(0, unassignedCount) * FOOD_PER_WORKER;
-      const consumed = workers * FOOD_CONSUMED_PER_WORKER;
+      const consumed = Math.floor(workers / 2); // 1 food per 2 workers
       food = Math.max(0, food + produced - consumed);
       foodChanged = true;
     }
@@ -137,15 +136,15 @@ export class ResourceSystem {
 
     if (workers > 0 && territoryBonuses) {
       if (territoryBonuses.food > 0) {
-        food += workers * territoryBonuses.food;
+        food += Math.floor(workers * territoryBonuses.food);
         foodChanged = true;
       }
       if (territoryBonuses.stone > 0) {
-        stone += workers * territoryBonuses.stone;
+        stone += Math.floor(workers * territoryBonuses.stone);
         stoneChanged = true;
       }
       if (territoryBonuses.nectar > 0) {
-        nectar += workers * territoryBonuses.nectar;
+        nectar += Math.floor(workers * territoryBonuses.nectar);
         nectarChanged = true;
       }
     }

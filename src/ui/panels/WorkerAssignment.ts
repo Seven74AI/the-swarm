@@ -21,7 +21,7 @@ const ROLE_DISPLAY: Record<Role, RoleDef> = {
 
 const FOOD_PER_GATHER = 2;
 const FOOD_PER_UNASSIGNED = 1;
-const FOOD_CONSUMED_PER_WORKER = 0.5;
+const FOOD_CONSUMED_PER_2_WORKERS = 1; // 1 food per 2 workers
 
 export class WorkerAssignment {
   private container: HTMLDivElement;
@@ -150,10 +150,10 @@ export class WorkerAssignment {
     const assigned = a.gather + a.tend + a.dig + a.guard;
     const unassigned = Math.max(0, w - assigned);
     const produced = a.gather * FOOD_PER_GATHER + unassigned * FOOD_PER_UNASSIGNED;
-    const consumed = w * FOOD_CONSUMED_PER_WORKER;
+    const consumed = Math.floor(w / 2) * FOOD_CONSUMED_PER_2_WORKERS;
     const net = produced - consumed;
 
-    this.summaryEl.textContent = net >= 0 ? `+${net.toFixed(1)}/tick` : `${net.toFixed(1)}/tick`;
+    this.summaryEl.textContent = net >= 0 ? `+${net}/tick` : `${net}/tick`;
     this.summaryEl.className = net >= 0 ? 'worker-summary-value food-positive' : 'worker-summary-value food-negative';
   }
 

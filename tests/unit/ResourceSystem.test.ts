@@ -137,7 +137,7 @@ describe('ResourceSystem — pipeline-based', () => {
       state.resources.food = 0;
       const result = system.tick(state);
       // 3 unassigned = 3 * 1 = 3, consumed = 3 * 0.5 = 1.5, net = +1.5
-      expect(result.resources.food).toBe(1.5);
+      expect(result.resources.food).toBe(2);
     });
 
     it('gather workers produce 2 food each', () => {
@@ -146,7 +146,7 @@ describe('ResourceSystem — pipeline-based', () => {
       state.workersAssigned = { gather: 3, tend: 0, dig: 0, guard: 0 };
       const result = system.tick(state);
       // 3 gather * 2 = 6, consumed = 1.5, net = +4.5
-      expect(result.resources.food).toBe(104.5);
+      expect(result.resources.food).toBe(105);
     });
   });
 

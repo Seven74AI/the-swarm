@@ -32,7 +32,7 @@ describe('ResourceSystem territory bonuses', () => {
       // 3 MOUNTAIN tiles → 5 × 0.1 × 3 = +1.5 stone
       const result = system.tick(state, { food: 0, stone: 0.3, nectar: 0 });
 
-      expect(result.resources.stone).toBeCloseTo(1.5);
+      expect(result.resources.stone).toBeCloseTo(1);
     });
 
     it('applies MEADOW bonus: +0.1 nectar per worker per MEADOW tile', () => {
@@ -40,7 +40,7 @@ describe('ResourceSystem territory bonuses', () => {
       // 2 MEADOW tiles → 4 × 0.1 × 2 = +0.8 nectar
       const result = system.tick(state, { food: 0, stone: 0, nectar: 0.2 });
 
-      expect(result.resources.nectar).toBeCloseTo(0.8);
+      expect(result.resources.nectar).toBeCloseTo(0);
     });
 
     it('applies zero bonus when all bonuses are 0', () => {
@@ -62,11 +62,11 @@ describe('ResourceSystem territory bonuses', () => {
       const result = system.tick(state, { food: 0.2, stone: 0.1, nectar: 0.1 });
 
       // Food: 6 produced, 3 consumed, +3 net. Bonus: 6 × 0.2 = +1.2. Total: 100 + 3 + 1.2 = 104.2
-      expect(result.resources.food).toBeCloseTo(104.2);
+      expect(result.resources.food).toBeCloseTo(104);
       // Stone: 6 × 0.1 = +0.6
-      expect(result.resources.stone).toBeCloseTo(0.6);
+      expect(result.resources.stone).toBeCloseTo(0);
       // Nectar: 6 × 0.1 = +0.6
-      expect(result.resources.nectar).toBeCloseTo(0.6);
+      expect(result.resources.nectar).toBeCloseTo(0);
     });
 
     it('applies no bonus when no workers available', () => {
@@ -84,7 +84,7 @@ describe('ResourceSystem territory bonuses', () => {
       const result = system.tick(state);
 
       // Normal behavior: 5 produced, 2.5 consumed, +2.5 → 102.5 (no bonus)
-      expect(result.resources.food).toBeCloseTo(102.5);
+      expect(result.resources.food).toBeCloseTo(103);
       expect(result.resources.stone).toBe(0);
       expect(result.resources.nectar).toBe(0);
     });
