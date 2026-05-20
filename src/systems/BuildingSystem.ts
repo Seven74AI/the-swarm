@@ -1,4 +1,5 @@
 import type { GameState } from '../state/GameState';
+import { buildingUpgradeCost, softCapEffectiveness } from '../engine/ProgressionCurve';
 
 export type BuildingType = 'barracks' | 'walls' | 'warehouse';
 
@@ -18,10 +19,10 @@ const BUILDING_BASE_COSTS: Record<BuildingType, Cost> = {
 export function getBuildCost(building: BuildingType, level: number): Cost {
   const base = BUILDING_BASE_COSTS[building];
   return {
-    food: base.food * level,
-    wood: base.wood * level,
-    stone: base.stone * level,
-    nectar: base.nectar * level,
+    food: buildingUpgradeCost(base.food, level),
+    wood: buildingUpgradeCost(base.wood, level),
+    stone: buildingUpgradeCost(base.stone, level),
+    nectar: buildingUpgradeCost(base.nectar, level),
   };
 }
 
@@ -68,6 +69,20 @@ export function build(building: BuildingType, state: GameState): GameState {
 }
 
 export function getEffects(
+  building: BuildingType,
+  level: number,
+): Record<string, number> {
+  const raw = getRawEffects(building, level);
+  // Apply soft-cap diminishing returns after level 5
+  const capped: Record<string, number> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    capped[key] = softCapEffectiveness(value, level);
+  }
+  return capped;
+}
+
+/** Raw building effects before soft-cap. */
+function getRawEffects(
   building: BuildingType,
   level: number,
 ): Record<string, number> {

@@ -3,6 +3,7 @@ import type { GameState } from '../state/GameState';
 import type { TerritoryBonuses } from './TerritorySystem';
 import { upgradeCost } from '../utils/math';
 import { getEffects } from './BuildingSystem';
+import { productionMultiplier, workerEfficiency } from '../engine/ProgressionCurve';
 
 /**
  * Upgrade definitions.
@@ -89,7 +90,16 @@ export class ResourceSystem {
     const assigned = state.workersAssigned;
     const gatherCount = assigned.gather;
     const unassignedCount = workers - gatherCount - assigned.tend - assigned.dig - assigned.guard;
-    const foodProduced = gatherCount * FOOD_PER_GATHER + Math.max(0, unassignedCount) * FOOD_PER_WORKER;
+
+    // Progression curve: production multiplier from phase + legacy points
+    const prodMult = productionMultiplier(state.phase, state.prestige.legacyPoints);
+    // Worker efficiency soft cap (diminishing returns above 500 workers)
+    const workerEff = workerEfficiency(workers);
+
+    const foodProduced = Math.floor(
+      (gatherCount * FOOD_PER_GATHER + Math.max(0, unassignedCount) * FOOD_PER_WORKER)
+      * prodMult * workerEff,
+    );
     const foodConsumed = Math.floor(workers / 2);
 
     // Territory bonus rates
@@ -97,9 +107,9 @@ export class ResourceSystem {
     let territoryStoneRate = 0;
     let territoryNectarRate = 0;
     if (workers > 0 && territoryBonuses) {
-      if (territoryBonuses.food > 0) territoryFoodRate = Math.floor(workers * territoryBonuses.food);
-      if (territoryBonuses.stone > 0) territoryStoneRate = Math.floor(workers * territoryBonuses.stone);
-      if (territoryBonuses.nectar > 0) territoryNectarRate = Math.floor(workers * territoryBonuses.nectar);
+      if (territoryBonuses.food > 0) territoryFoodRate = Math.floor(workers * territoryBonuses.food * prodMult * workerEff);
+      if (territoryBonuses.stone > 0) territoryStoneRate = Math.floor(workers * territoryBonuses.stone * prodMult);
+      if (territoryBonuses.nectar > 0) territoryNectarRate = Math.floor(workers * territoryBonuses.nectar * prodMult);
     }
 
     // ─── Phase 2: Apply all deltas (write-only) ───
