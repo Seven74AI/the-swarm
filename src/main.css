@@ -481,45 +481,56 @@ html, body {
 }
 
 /* ── Expedition Panel ── */
-.expedition-panel .expedition-launch {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  align-items: center;
+/* ── Expedition & Exploration cards ── */
+.panel-header {
+  margin-bottom: 0.5rem;
+}
+
+.panel-header .panel-sub {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  display: block;
+  margin-top: 0.15rem;
+}
+
+.expedition-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.5rem;
   margin-bottom: 0.75rem;
 }
 
-.expedition-panel .expedition-input {
-  background: var(--bg-primary);
-  color: var(--text-primary);
+.expedition-card {
+  background: rgba(26, 22, 20, 0.6);
   border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 0.25rem 0.5rem;
-  font-family: inherit;
-  font-size: 0.85rem;
-  width: 64px;
+  border-radius: 4px;
+  padding: 0.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  align-items: center;
 }
 
-.expedition-panel .expedition-select {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 0.25rem;
-  font-family: inherit;
-  font-size: 0.85rem;
+.expedition-card-icon {
+  font-size: 1.5rem;
 }
 
-.expedition-panel .soldier-count {
+.expedition-card-name {
+  font-weight: bold;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.expedition-card-type {
+  font-size: 0.65rem;
   color: var(--text-muted);
-  font-size: 0.75rem;
-  margin-right: 0.4rem;
 }
 
-.expedition-panel .expedition-list-title {
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-  margin: 0.5rem 0 0.25rem 0;
+.expedition-card-loot {
+  font-size: 0.65rem;
+  color: var(--accent-glow);
+  margin-bottom: 0.2rem;
 }
 
 .expedition-row {
@@ -527,31 +538,43 @@ html, body {
   padding: 0.3rem 0.5rem;
   border-radius: 3px;
   margin-bottom: 0.2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.expedition-row .stat-label {
+.expedition-row-info strong {
   color: var(--text-primary);
   font-size: 0.85rem;
 }
 
-.expedition-row .stat-value {
-  color: var(--accent-glow);
+.text-muted {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.expedition-row-status {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.risk-high { color: var(--danger); }
+.risk-low { color: var(--text-muted); }
+
+.expedition-list-title {
+  color: var(--text-secondary);
   font-size: 0.8rem;
+  margin: 0.5rem 0 0.25rem 0;
 }
 
-/* Expedition progress bar animation */
-@keyframes expedition-progress {
-  from { background-position: 0 0; }
-  to { background-position: 40px 0; }
-}
-
-.expedition-progress {
-  height: 6px;
-  border-radius: 3px;
-  background: linear-gradient(90deg, #2d5a27 0%, #c9a227 100%);
-  background-size: 40px 100%;
-  animation: expedition-progress 1s linear infinite;
-  margin-top: 0.15rem;
+.exploration-hint {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-style: italic;
+  text-align: center;
+  padding: 1rem 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -714,60 +737,3 @@ body.phase-space .progress-fill {
 }
 
 /* ── Exploration Panel ── */
-.exploration-panel .exploration-launch {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  align-items: center;
-  margin-bottom: 0.75rem;
-}
-
-.exploration-panel .exploration-input {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 0.25rem 0.5rem;
-  font-family: inherit;
-  font-size: 0.85rem;
-  width: 64px;
-}
-
-.exploration-panel .exploration-select {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 0.25rem;
-  font-family: inherit;
-  font-size: 0.85rem;
-}
-
-.exploration-panel .scout-count {
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  margin-right: 0.4rem;
-}
-
-.exploration-panel .exploration-list-title {
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-  margin: 0.5rem 0 0.25rem 0;
-}
-
-.exploration-row {
-  background: rgba(26, 22, 20, 0.5);
-  padding: 0.3rem 0.5rem;
-  border-radius: 3px;
-  margin-bottom: 0.2rem;
-}
-
-.exploration-row .stat-label {
-  color: var(--text-primary);
-  font-size: 0.85rem;
-}
-
-.exploration-row .stat-value {
-  color: var(--accent-glow);
-  font-size: 0.8rem;
-}

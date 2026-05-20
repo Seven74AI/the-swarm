@@ -69,6 +69,11 @@ export class EventLog {
   private firstSoldierFired = false;
   private firstWeaponFired = false;
   private firstArmorFired = false;
+  private firstBuildingFired = false;
+  private colonyUnlockedFired = false;
+  private combatUnlockedFired = false;
+  private expansionUnlockedFired = false;
+  private spaceUnlockedFired = false;
 
   constructor(private bus: EventBus) {
     this.container = document.createElement('div');
@@ -138,6 +143,18 @@ export class EventLog {
     bus.subscribe('soldier_recruited', (payload: unknown) => {
       const p = payload as { type: string; count: number };
       this.onSoldierRecruited(p);
+    });
+
+    // Phase unlock notifications
+    bus.subscribe('phase_changed', (payload: unknown) => {
+      const p = payload as { phase: string };
+      this.onPhaseChanged(p.phase);
+    });
+
+    // Notifications triggered externally from UIRoot
+    bus.subscribe('panel_revealed', (payload: unknown) => {
+      const p = payload as { panelId: string };
+      this.onPanelRevealed(p.panelId);
     });
   }
 
@@ -291,6 +308,38 @@ export class EventLog {
     this.addEntry(
       `${p.count} ${label}${p.count > 1 ? 's' : ''} ${p.count > 1 ? 'have been' : 'has been'} recruited to the swarm.`,
     );
+  }
+
+  private onPhaseChanged(phase: string): void {
+    if (phase === 'colony' && !this.colonyUnlockedFired) {
+      this.colonyUnlockedFired = true;
+      this.addEntry('The colony takes shape. Worker ants now serve a purpose — assign them.');
+    }
+    if (phase === 'combat' && !this.combatUnlockedFired) {
+      this.combatUnlockedFired = true;
+      this.addEntry('⚔️ Danger lurks beyond the nest. Train soldiers, forge weapons, defend the colony.');
+    }
+    if (phase === 'expansion' && !this.expansionUnlockedFired) {
+      this.expansionUnlockedFired = true;
+      this.addEntry('🗺️ The world beyond the nest calls. Build, explore, expand your territory.');
+    }
+    if (phase === 'space' && !this.spaceUnlockedFired) {
+      this.spaceUnlockedFired = true;
+      this.addEntry('🚀 The swarm looks to the stars. New resources await in the void.');
+    }
+  }
+
+  private onPanelRevealed(panelId: string): void {
+    if (panelId === 'soldier_panel') {
+      this.addEntry('⚔️ Soldier Command is now available — recruit and equip your army.');
+    } else if (panelId === 'building_panel' && !this.firstBuildingFired) {
+      this.firstBuildingFired = true;
+      this.addEntry('🏗️ Construction unlocked — buildings strengthen the colony.');
+    } else if (panelId === 'expedition_panel') {
+      this.addEntry('🗺️ Expeditions are now available — send scouts to gather resources.');
+    } else if (panelId === 'spaceship_panel') {
+      this.addEntry('🚀 Spaceship construction unlocked — build your vessel to the stars.');
+    }
   }
 
   getElement(): HTMLDivElement {

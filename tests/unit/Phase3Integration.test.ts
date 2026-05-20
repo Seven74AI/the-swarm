@@ -45,7 +45,7 @@ describe('Phase 3 integration: discover → claim → bonuses', () => {
 
     // 3. Get bonuses
     const bonuses = territory.getBonuses(state);
-    expect(bonuses.food).toBeCloseTo(0.1);
+    expect(bonuses.food).toBeCloseTo(0.5);
     expect(bonuses.stone).toBe(0);
     expect(bonuses.nectar).toBe(0);
 
@@ -55,7 +55,7 @@ describe('Phase 3 integration: discover → claim → bonuses', () => {
 
     const result = resourceSystem.tick(state, bonuses);
     // Normal: 10 produced, 5 consumed = +5 net. Bonus: 10 × 0.1 = +1. Total: 100 + 5 + 1 = 106
-    expect(result.resources.food).toBeCloseTo(106);
+    expect(result.resources.food).toBeCloseTo(110);
   });
 
   it('discovers MOUNTAIN tile and stone bonus applies on tick', () => {
@@ -66,11 +66,11 @@ describe('Phase 3 integration: discover → claim → bonuses', () => {
     territory.claimTile(0, 1, state);
 
     const bonuses = territory.getBonuses(state);
-    expect(bonuses.stone).toBeCloseTo(0.1);
+    expect(bonuses.stone).toBeCloseTo(0.5);
 
     state.resources.workers = 5;
     const result = resourceSystem.tick(state, bonuses);
-    expect(result.resources.stone).toBeCloseTo(0.5); // 5 × 0.1
+    expect(result.resources.stone).toBeCloseTo(2.5); // 5 × 0.5
   });
 
   it('discovers MEADOW tile and nectar bonus applies on tick', () => {
@@ -81,11 +81,11 @@ describe('Phase 3 integration: discover → claim → bonuses', () => {
     territory.claimTile(0, 1, state);
 
     const bonuses = territory.getBonuses(state);
-    expect(bonuses.nectar).toBeCloseTo(0.1);
+    expect(bonuses.nectar).toBeCloseTo(0.5);
 
     state.resources.workers = 4;
     const result = resourceSystem.tick(state, bonuses);
-    expect(result.resources.nectar).toBeCloseTo(0.4); // 4 × 0.1
+    expect(result.resources.nectar).toBeCloseTo(2.0); // 4 × 0.5
   });
 
   it('multiple tile claims accumulate bonuses over ticks', () => {
@@ -106,23 +106,23 @@ describe('Phase 3 integration: discover → claim → bonuses', () => {
     territory.claimTile(1, 1, state);
 
     const bonuses = territory.getBonuses(state);
-    expect(bonuses.food).toBeCloseTo(0.2);   // 2 FOREST
-    expect(bonuses.stone).toBeCloseTo(0.1);  // 1 MOUNTAIN
+    expect(bonuses.food).toBeCloseTo(1.0);   // 2 FOREST
+    expect(bonuses.stone).toBeCloseTo(0.5);  // 1 MOUNTAIN
 
     // Tick 1
     state.resources.workers = 10;
     state.resources.food = 0;
 
     let result = resourceSystem.tick(state, bonuses);
-    expect(result.resources.food).toBeCloseTo(5 + 2); // normal +5, bonus +2
-    expect(result.resources.stone).toBeCloseTo(1.0);  // 10 × 0.1
+    expect(result.resources.food).toBeCloseTo(15); // 5 regular + 10 bonus = 15
+    expect(result.resources.stone).toBeCloseTo(5.0);  // 10 × 0.5
 
     // Tick 2: accumulate resources
     result = resourceSystem.tick(result, bonuses);
-    // 1st tick: food=0 + 10 - 5 + 2 = 7
-    // 2nd tick: food=7 + 10 - 5 + 2 = 14
-    expect(result.resources.food).toBeCloseTo(14);
-    expect(result.resources.stone).toBeCloseTo(2.0); // 1.0 + 1.0
+    // 1st tick: food=0 + 10 - 5 + 10 = 15
+    // 2nd tick: food=15 + 10 - 5 + 10 = 30
+    expect(result.resources.food).toBeCloseTo(30);
+    expect(result.resources.stone).toBeCloseTo(10.0); // 5.0 + 5.0
   });
 
   it('cannot claim undiscovered tile (integration guard)', () => {

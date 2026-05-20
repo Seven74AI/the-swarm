@@ -205,6 +205,7 @@ export class UIRoot {
     if (el) {
       el.style.display = '';
       el.classList.add('panel-unlocked');
+      this.bus.emit('panel_revealed', { panelId });
     }
   }
 }

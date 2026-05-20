@@ -92,35 +92,35 @@ describe('TerritorySystem', () => {
       expect(bonuses.nectar).toBe(0);
     });
 
-    it('accumulates FOREST bonus as +0.1 food/worker per tile', () => {
+    it('accumulates FOREST bonus as +0.5 food per worker per tile', () => {
       state.mapTiles[0] = { x: 0, y: 0, type: TileType.FOREST, discovered: true, claimed: true };
       state.mapTiles[1] = { x: 0, y: 1, type: TileType.FOREST, discovered: true, claimed: true };
       state.territory.ownedTiles = 2;
 
       const bonuses = territory.getBonuses(state);
-      expect(bonuses.food).toBeCloseTo(0.2); // 2 FOREST × 0.1
+      expect(bonuses.food).toBeCloseTo(1.0); // 2 FOREST × 0.1
       expect(bonuses.stone).toBe(0);
       expect(bonuses.nectar).toBe(0);
     });
 
-    it('accumulates MOUNTAIN bonus as +0.1 stone/worker per tile', () => {
+    it('accumulates MOUNTAIN bonus as +0.5 stone/worker per tile', () => {
       state.mapTiles[0] = { x: 0, y: 0, type: TileType.MOUNTAIN, discovered: true, claimed: true };
       state.mapTiles[1] = { x: 0, y: 1, type: TileType.MOUNTAIN, discovered: true, claimed: true };
       state.mapTiles[2] = { x: 0, y: 2, type: TileType.MOUNTAIN, discovered: true, claimed: true };
       state.territory.ownedTiles = 3;
 
       const bonuses = territory.getBonuses(state);
-      expect(bonuses.stone).toBeCloseTo(0.3); // 3 MOUNTAIN × 0.1
+      expect(bonuses.stone).toBeCloseTo(1.5); // 3 MOUNTAIN × 0.1
       expect(bonuses.food).toBe(0);
       expect(bonuses.nectar).toBe(0);
     });
 
-    it('accumulates MEADOW bonus as +0.1 nectar/worker per tile', () => {
+    it('accumulates MEADOW bonus as +0.5 nectar/worker per tile', () => {
       state.mapTiles[0] = { x: 0, y: 0, type: TileType.MEADOW, discovered: true, claimed: true };
       state.territory.ownedTiles = 1;
 
       const bonuses = territory.getBonuses(state);
-      expect(bonuses.nectar).toBeCloseTo(0.1);
+      expect(bonuses.nectar).toBeCloseTo(0.5);
     });
 
     it('EMPTY and ENEMY_NEST tiles contribute no bonuses', () => {
@@ -142,9 +142,9 @@ describe('TerritorySystem', () => {
       state.territory.ownedTiles = 4;
 
       const bonuses = territory.getBonuses(state);
-      expect(bonuses.food).toBeCloseTo(0.2);   // 2 FOREST
-      expect(bonuses.stone).toBeCloseTo(0.1);  // 1 MOUNTAIN
-      expect(bonuses.nectar).toBeCloseTo(0.1); // 1 MEADOW
+      expect(bonuses.food).toBeCloseTo(1.0);   // 2 FOREST
+      expect(bonuses.stone).toBeCloseTo(0.5);  // 1 MOUNTAIN
+      expect(bonuses.nectar).toBeCloseTo(0.5); // 1 MEADOW
     });
 
     it('ignores unclaimed tiles', () => {
@@ -153,7 +153,7 @@ describe('TerritorySystem', () => {
       state.territory.ownedTiles = 1;
 
       const bonuses = territory.getBonuses(state);
-      expect(bonuses.food).toBeCloseTo(0.1); // only 1 claimed FOREST
+      expect(bonuses.food).toBeCloseTo(0.5); // only 1 claimed FOREST
     });
   });
 

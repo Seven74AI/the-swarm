@@ -2,24 +2,26 @@ import { effect } from '@preact/signals-core';
 import { gameState } from '../../state/gameSignal';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
+import { formatNumber } from '../../utils/format';
 
-const DESTINATIONS = [
-  'Proxima Centauri',
-  'Alpha Centauri',
-  'Sirius',
-  'Betelgeuse',
-  'Andromeda Gateway',
+interface Planet {
+  name: string;
+  icon: string;
+  type: string;
+  yields: string;
+}
+
+const PLANETS: Planet[] = [
+  { name: 'MARS', icon: '🪨', type: 'Rocky', yields: 'Antimatter' },
+  { name: 'SATURN', icon: '🪐', type: 'Gas', yields: 'Dark Matter' },
+  { name: 'EUROPA', icon: '🧊', type: 'Ice', yields: 'Void Crystals' },
+  { name: 'KEPLER-442B', icon: '🌍', type: 'Habitable', yields: 'Food + Crystals' },
 ];
 
 const MAX_PROBES = 3;
 
-/**
- * ExplorationPanel — launch space probes to explore the cosmos.
- * Unlocked in SPACE phase after building a spaceship.
- */
 export class ExplorationPanel {
   private container: HTMLDivElement;
-  private renderScheduled = false;
 
   constructor(
     private bus: EventBus,
@@ -36,160 +38,90 @@ export class ExplorationPanel {
       void gameState.value.spaceProbes;
       void gameState.value.spaceship;
       void gameState.value.soldiers;
-      this.scheduleRender();
+      this.render();
     });
   }
 
-  /** Public refresh for tests. */
-  refresh(): void {
-    this.render();
-  }
-
-  private scheduleRender(): void {
-    if (!this.renderScheduled) {
-      this.renderScheduled = true;
-      requestAnimationFrame(() => {
-        this.renderScheduled = false;
-        this.render();
-      });
-    }
-  }
+  refresh(): void { this.render(); }
 
   private render(): void {
     this.container.innerHTML = '';
     const state = this.getState();
+    const hasShip = state.spaceship.level > 0;
+    const canLaunch = hasShip && state.soldiers.scouts > 0 && state.spaceProbes.length < MAX_PROBES;
 
-    const title = document.createElement('div');
-    title.className = 'panel-title';
-    title.textContent = '🔭 Exploration';
-    this.container.appendChild(title);
+    // Header
+    const header = document.createElement('div');
+    header.className = 'panel-header';
+    header.innerHTML = `<span class="panel-title">🔭 Space Exploration</span>
+      <span class="panel-sub">Scouts: ${formatNumber(state.soldiers.scouts)} · Probes: ${state.spaceProbes.length}/${MAX_PROBES}</span>`;
+    this.container.appendChild(header);
 
-    // Launch form
-    this.renderLaunchForm(state);
+    if (!hasShip) {
+      const hint = document.createElement('div');
+      hint.className = 'exploration-hint';
+      hint.textContent = 'Build a spaceship first to explore the cosmos.';
+      this.container.appendChild(hint);
+      return;
+    }
+
+    // Planet cards
+    const grid = document.createElement('div');
+    grid.className = 'expedition-grid';
+
+    for (const planet of PLANETS) {
+      const card = document.createElement('div');
+      card.className = 'expedition-card';
+      card.innerHTML = `<div class="expedition-card-icon">${planet.icon}</div>
+        <div class="expedition-card-name">${planet.name}</div>
+        <div class="expedition-card-type">${planet.type}</div>
+        <div class="expedition-card-loot">${planet.yields}</div>`;
+
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-sm';
+      btn.textContent = '🚀 Launch';
+      btn.disabled = !canLaunch;
+      btn.addEventListener('click', () => {
+        const s = this.getState();
+        if (s.spaceship.level > 0 && s.soldiers.scouts > 0 && s.spaceProbes.length < MAX_PROBES) {
+          const scouts = 1;
+          const probe = {
+            id: `probe_${Date.now()}`,
+            destination: planet.name,
+            ticksRemaining: 50 + Math.floor(Math.random() * 50),
+            scouts,
+          };
+          this.bus.emit('probe_launch', probe);
+          this.setState({
+            ...s,
+            soldiers: { ...s.soldiers, scouts: s.soldiers.scouts - scouts },
+            spaceProbes: [...s.spaceProbes, probe],
+          });
+        }
+      });
+      card.appendChild(btn);
+      grid.appendChild(card);
+    }
+    this.container.appendChild(grid);
 
     // Active probes
     if (state.spaceProbes.length > 0) {
-      const listTitle = document.createElement('div');
-      listTitle.className = 'exploration-list-title';
-      listTitle.textContent = 'Active Probes:';
-      this.container.appendChild(listTitle);
+      const activeTitle = document.createElement('div');
+      activeTitle.className = 'expedition-list-title';
+      activeTitle.textContent = 'Active Probes:';
+      this.container.appendChild(activeTitle);
 
       for (const probe of state.spaceProbes) {
-        this.container.appendChild(this.createProbeRow(probe));
-      }
-    }
-
-    // Discoveries
-    if (state.discoveries.length > 0) {
-      const discTitle = document.createElement('div');
-      discTitle.className = 'exploration-list-title';
-      discTitle.textContent = 'Discoveries:';
-      this.container.appendChild(discTitle);
-
-      for (const disc of state.discoveries.slice(-5)) {
         const row = document.createElement('div');
-        row.className = 'stat-row';
-        const span = document.createElement('span');
-        span.className = 'stat-label';
-        span.textContent = `✦ ${disc}`;
-        row.appendChild(span);
+        row.className = 'expedition-row';
+        row.innerHTML = `<div class="expedition-row-info">
+          <strong>${probe.destination}</strong> <span class="text-muted">${probe.scouts}S</span>
+        </div>
+        <div class="expedition-row-status">⏳ ${probe.ticksRemaining}s</div>`;
         this.container.appendChild(row);
       }
     }
   }
 
-  private renderLaunchForm(state: GameState): void {
-    const form = document.createElement('div');
-    form.className = 'exploration-launch';
-
-    const label = document.createElement('span');
-    label.textContent = `Scouts: ${state.soldiers.scouts}`;
-    label.className = 'scout-count';
-    form.appendChild(label);
-
-    const scoutsInput = document.createElement('input');
-    scoutsInput.type = 'number';
-    scoutsInput.min = '1';
-    scoutsInput.max = String(state.soldiers.scouts);
-    scoutsInput.value = '1';
-    scoutsInput.className = 'exploration-input';
-    scoutsInput.setAttribute('placeholder', 'Scouts');
-    form.appendChild(scoutsInput);
-
-    const destSelect = document.createElement('select');
-    destSelect.className = 'exploration-select';
-    for (const dest of DESTINATIONS) {
-      const opt = document.createElement('option');
-      opt.value = dest;
-      opt.textContent = dest;
-      destSelect.appendChild(opt);
-    }
-    form.appendChild(destSelect);
-
-    const canLaunch =
-      state.spaceship.level > 0 &&
-      state.soldiers.scouts > 0 &&
-      state.spaceProbes.length < MAX_PROBES;
-
-    const btn = document.createElement('button');
-    btn.textContent = '🚀 Launch Probe';
-    btn.className = 'btn';
-    btn.disabled = !canLaunch;
-
-    btn.addEventListener('click', () => {
-      const scouts = parseInt(scoutsInput.value, 10) || 1;
-      const dest = destSelect.value;
-      const s = this.getState();
-      if (
-        s.spaceship.level > 0 &&
-        s.soldiers.scouts >= scouts &&
-        s.spaceProbes.length < MAX_PROBES
-      ) {
-        const probe = {
-          id: `probe_${Date.now()}`,
-          destination: dest,
-          ticksRemaining: 50 + Math.floor(Math.random() * 50),
-          scouts,
-        };
-        this.bus.emit('probe_launch', probe);
-        this.setState({
-          ...s,
-          soldiers: {
-            ...s.soldiers,
-            scouts: s.soldiers.scouts - scouts,
-          },
-          spaceProbes: [...s.spaceProbes, probe],
-        });
-      }
-    });
-
-    form.appendChild(btn);
-    this.container.appendChild(form);
-  }
-
-  private createProbeRow(probe: {
-    id: string;
-    destination: string;
-    ticksRemaining: number;
-    scouts: number;
-  }): HTMLDivElement {
-    const row = document.createElement('div');
-    row.className = 'stat-row exploration-row';
-
-    const info = document.createElement('span');
-    info.className = 'stat-label';
-    info.textContent = `${probe.destination} (${probe.scouts}S)`;
-    row.appendChild(info);
-
-    const timer = document.createElement('span');
-    timer.className = 'stat-value';
-    timer.textContent = `${probe.ticksRemaining}⏳`;
-    row.appendChild(timer);
-
-    return row;
-  }
-
-  getElement(): HTMLDivElement {
-    return this.container;
-  }
+  getElement(): HTMLDivElement { return this.container; }
 }

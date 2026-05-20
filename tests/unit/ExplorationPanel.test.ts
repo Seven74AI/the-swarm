@@ -31,24 +31,23 @@ describe('ExplorationPanel', () => {
     expect(text).toContain('Exploration');
   });
 
-  it('shows launch probe form', () => {
+  it('shows planet cards', () => {
+    // Need a spaceship to show cards instead of hint
+    currentState = { ...currentState, spaceship: { level: 1, fuel: 50, maxFuel: 100 }, soldiers: { ...currentState.soldiers, scouts: 5 } };
+    panel.refresh();
     const el = panel.getElement();
     const text = el.textContent || '';
-    expect(text).toContain('Scout');
-    expect(text).toContain('Launch');
-  });
-
-  it('shows destinations select', () => {
-    const el = panel.getElement();
-    const select = el.querySelector('select');
-    expect(select).toBeTruthy();
-    const options = select?.querySelectorAll('option');
-    expect(options?.length).toBeGreaterThanOrEqual(2);
+    expect(text).toContain('MARS');
+    expect(text).toContain('SATURN');
+    expect(text).toContain('EUROPA');
+    expect(text).toContain('KEPLER');
   });
 
   it('renders active probes when present', () => {
     currentState = {
       ...currentState,
+      spaceship: { level: 1, fuel: 50, maxFuel: 100 },
+      soldiers: { scouts: 5, warriors: 0, totalKilled: 0 },
       spaceProbes: [
         { id: 'probe_1', destination: 'Alpha Centauri', ticksRemaining: 30, scouts: 2 },
         { id: 'probe_2', destination: 'Sirius', ticksRemaining: 45, scouts: 1 },
@@ -63,15 +62,11 @@ describe('ExplorationPanel', () => {
     expect(text).toContain('45');
   });
 
-  it('disables launch button without spaceship', () => {
-    currentState = {
-      ...currentState,
-      spaceship: { level: 0, fuel: 0, maxFuel: 0 },
-    };
+  it('shows hint when no spaceship built', () => {
+    currentState = { ...currentState, spaceship: { level: 0, fuel: 0, maxFuel: 0 } };
     panel.refresh();
     const el = panel.getElement();
-    const launchBtn = el.querySelector('button');
-    expect(launchBtn).toBeTruthy();
-    expect((launchBtn as HTMLButtonElement).disabled).toBe(true);
+    const text = el.textContent || '';
+    expect(text).toContain('Build a spaceship');
   });
 });

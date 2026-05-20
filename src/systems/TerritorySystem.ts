@@ -2,9 +2,9 @@ import { TileType, type GameState } from '../state/GameState';
 
 /** Bonus multipliers: per-worker bonus per claimed tile of each resource type. */
 const BONUS_PER_TILE: Record<string, number> = {
-  [TileType.FOREST]: 0.1,  // +0.1 food/tick per worker
-  [TileType.MOUNTAIN]: 0.1, // +0.1 stone/tick per worker
-  [TileType.MEADOW]: 0.1,   // +0.1 nectar/tick per worker
+  [TileType.FOREST]: 0.5,  // +0.5 wood/tick per worker
+  [TileType.MOUNTAIN]: 0.5, // +0.5 stone/tick per worker
+  [TileType.MEADOW]: 0.5,   // +0.5 nectar/tick per worker
 };
 
 export interface TerritoryBonuses {
