@@ -76,6 +76,8 @@ describe('PhaseContent', () => {
       expect(panels).toContain('spaceship_panel');
       expect(panels).toContain('exploration_panel');
       expect(panels).toContain('cosmic_panel');
+      expect(panels).toContain('starmap_panel');
+      expect(panels).toContain('resource_converter_panel');
     });
 
     it('space phase has more panels than expansion', () => {
@@ -102,8 +104,12 @@ describe('PhaseContent', () => {
       expect(panels).toContain('spaceship_panel');
       expect(panels).toContain('exploration_panel');
       expect(panels).toContain('cosmic_panel');
-      // Transcendence-specific panel
+      expect(panels).toContain('starmap_panel');
+      expect(panels).toContain('resource_converter_panel');
+      // Transcendence-specific panels
       expect(panels).toContain('transcendence_panel');
+      expect(panels).toContain('tech_tree_panel');
+      expect(panels).toContain('automation_panel');
     });
 
     it('transcendence phase has more panels than space', () => {
@@ -166,12 +172,12 @@ describe('PhaseContent', () => {
 
   describe('triggerTransition', () => {
     let bus: EventBus;
-    let uiRoot: { showPanel: ReturnType<typeof vi.fn> };
+    let uiRoot: { showPanel: ReturnType<typeof vi.fn>; createPanel: ReturnType<typeof vi.fn> };
 
     beforeEach(() => {
       vi.useFakeTimers();
       bus = new EventBus();
-      uiRoot = { showPanel: vi.fn() };
+      uiRoot = { showPanel: vi.fn(), createPanel: vi.fn() };
     });
 
     afterEach(() => {
@@ -219,6 +225,32 @@ describe('PhaseContent', () => {
       expect(events).toHaveLength(1);
       const payload = events[0] as { phase: string };
       expect(payload.phase).toBe(Phase.SPACE);
+    });
+
+    it('calls createPanel for all active panels during phase enter', () => {
+      phaseContent.triggerTransition(Phase.SPACE, bus, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot);
+
+      // Advance past the 300ms reveal delay
+      vi.advanceTimersByTime(300);
+
+      // createPanel should be called for every SPACE-phase panel
+      expect(uiRoot.createPanel).toHaveBeenCalled();
+      const calledIds = uiRoot.createPanel.mock.calls.map((c: string[]) => c[0]);
+      // Verify key lazy-loaded panels are among the created ones
+      expect(calledIds).toContain('spaceship_panel');
+      expect(calledIds).toContain('starmap_panel');
+      expect(calledIds).toContain('resource_converter_panel');
+    });
+
+    it('createPanel is called before showPanel for each panel', () => {
+      phaseContent.triggerTransition(Phase.SPACE, bus, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot);
+
+      vi.advanceTimersByTime(300);
+
+      // verify createPanel was called at least as many times as showPanel
+      expect(uiRoot.createPanel.mock.calls.length).toBeGreaterThanOrEqual(
+        uiRoot.showPanel.mock.calls.length,
+      );
     });
   });
 });

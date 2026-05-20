@@ -8,7 +8,7 @@ import { test, expect, type Page } from '@playwright/test';
 
 function makeSaveData(overrides?: Record<string, unknown>) {
   return {
-    version: 4,
+    version: 7,
     timestamp: Date.now(),
     playTimeMs: 0,
     gameState: {
@@ -302,5 +302,96 @@ test.describe('Space Phase — Neon Theme & Panels', () => {
     // Both space panels should be visible after reload
     await expect(page.locator('#spaceship-panel')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#exploration-panel')).toBeVisible({ timeout: 5000 });
+  });
+
+  // ─── Lazy Panel Loading ───────────────────────────────────────
+
+  test('Phase 4 panels are absent from DOM before space transition', async ({ page }) => {
+    // Seed in expansion phase (before SPACE). Do NOT advance to space.
+    const data = makeSaveData();
+    await page.addInitScript((saveStr) => {
+      localStorage.setItem('the_swarm_save', saveStr);
+    }, JSON.stringify(data));
+    await page.clock.install();
+    await page.goto('/');
+    await page.waitForSelector('#panels', { timeout: 10000 });
+
+    // Run a few ticks but not enough to trigger SPACE transition
+    await page.clock.runFor(1000);
+
+    // Verify expansion-phase panels exist
+    await expect(page.locator('#phase-indicator')).toContainText('Expansion', { timeout: 5000 });
+
+    // Phase 4 lazy panels should NOT exist in the DOM yet
+    const starmapExists = await page.locator('#starmap-panel').count();
+    expect(starmapExists).toBe(0);
+
+    const converterExists = await page.locator('#resource-converter-panel').count();
+    expect(converterExists).toBe(0);
+  });
+
+  test('Phase 4 lazy panels appear in DOM after space transition', async ({ page }) => {
+    const data = makeSaveData();
+    await page.addInitScript((saveStr) => {
+      localStorage.setItem('the_swarm_save', saveStr);
+    }, JSON.stringify(data));
+    await page.clock.install();
+    await page.goto('/');
+    await page.waitForSelector('#panels', { timeout: 10000 });
+
+    // Fast-forward enough to trigger SPACE transition
+    await page.clock.runFor(5000);
+
+    // Wait for SPACE phase
+    await expect(page.locator('#phase-indicator')).toContainText('Space', { timeout: 10000 });
+
+    // Lazy-loaded panels should now exist in the DOM
+    const starmapPanel = page.locator('#starmap-panel');
+    await expect(starmapPanel).toBeAttached({ timeout: 5000 });
+
+    const converterPanel = page.locator('#resource-converter-panel');
+    await expect(converterPanel).toBeAttached({ timeout: 5000 });
+
+    // Phase 5 panels should NOT exist yet in space phase
+    const techTreeExists = await page.locator('#tech-tree-panel').count();
+    expect(techTreeExists).toBe(0);
+
+    const autoExists = await page.locator('#automation-panel').count();
+    expect(autoExists).toBe(0);
+  });
+
+  test('createPanel is idempotent — duplicate phase enter does not duplicate DOM', async ({ page }) => {
+    const data = makeSaveData();
+    await page.addInitScript((saveStr) => {
+      localStorage.setItem('the_swarm_save', saveStr);
+    }, JSON.stringify(data));
+    await page.clock.install();
+    await page.goto('/');
+    await page.waitForSelector('#panels', { timeout: 10000 });
+
+    // Fast-forward to SPACE
+    await page.clock.runFor(5000);
+    await expect(page.locator('#phase-indicator')).toContainText('Space', { timeout: 10000 });
+
+    // Count starmap panels after first load
+    const count = await page.locator('#starmap-panel').count();
+    expect(count).toBe(1);
+
+    // Save and reload to trigger phase re-enter
+    await page.evaluate(() => {
+      const swarm = (window as unknown as Record<string, unknown>).__swarm as Record<string, unknown>;
+      const sm = swarm.saveManager as { save: (s: unknown, t: number) => void };
+      const state = (swarm.manager as { getState: () => unknown }).getState();
+      sm.save(state, Date.now());
+    });
+
+    await page.reload();
+    await page.waitForSelector('#panels', { timeout: 10000 });
+    await page.clock.runFor(5000);
+    await expect(page.locator('#phase-indicator')).toContainText('Space', { timeout: 10000 });
+
+    // After reload, still exactly one starmap-panel
+    const countAfterReload = await page.locator('#starmap-panel').count();
+    expect(countAfterReload).toBe(1);
   });
 });
