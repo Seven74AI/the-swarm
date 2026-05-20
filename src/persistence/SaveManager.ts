@@ -1,4 +1,5 @@
 import type { GameState } from '../state/GameState';
+import { calculateOfflineTicks } from '../systems/OfflineProgression';
 
 export interface SaveData {
   version: number;
@@ -7,6 +8,21 @@ export interface SaveData {
   gameState: GameState;
 }
 
+/** Offline catch-up info computed during load. null if no offline time elapsed. */
+export interface OfflineLoadInfo {
+  /** Raw wall-clock ms since last save (before cap) */
+  elapsedMs: number;
+  /** Wall-clock ms after 8h cap */
+  effectiveMs: number;
+  /** Number of game ticks to simulate (efficiency-reduced) */
+  offlineTicks: number;
+  /** Efficiency multiplier used (from save data, default 0.5) */
+  efficiency: number;
+}
+
+/** Minimum absence before offline catch-up kicks in (1 second) */
+const OFFLINE_MIN_MS = 1000;
+
 /**
  * SaveManager handles localStorage-based save/load with autosave.
  *
@@ -14,12 +30,13 @@ export interface SaveData {
  * - Graceful handling: corrupted save → warn + fresh start
  * - Version tag for future migrations
  * - #21 Backup rotation: keeps 2 rotating backup slots for corruption recovery
+ * - #GM-8 Offline progression: computes catch-up ticks on load with efficiency
  */
 export class SaveManager {
   private static SAVE_KEY = 'the_swarm_save';
   private static BACKUP1_KEY = 'the_swarm_save_bak1';
   private static BACKUP2_KEY = 'the_swarm_save_bak2';
-  private static SAVE_VERSION = 8;
+  private static SAVE_VERSION = 9;
   private static AUTOSAVE_INTERVAL_MS = 30_000;
 
   private autosaveTimer: ReturnType<typeof setInterval> | null = null;
@@ -51,11 +68,10 @@ export class SaveManager {
     }
   }
 
-  load(): { gameState: GameState; playTimeMs: number; timestamp?: number } | null {
+  load(): { gameState: GameState; playTimeMs: number; timestamp?: number; offline: OfflineLoadInfo | null } | null {
     // Try primary save first
     const result = this.tryLoadKey(SaveManager.SAVE_KEY);
     if (result) {
-      // Inject defaults for fields added in newer versions
       return this.applyDefaults(result);
     }
 
@@ -79,19 +95,64 @@ export class SaveManager {
   /**
    * Apply defaults for fields that may be missing from older save versions.
    * This allows backward compat without breaking existing saves.
+   * Also computes offline progression data from wall-clock time.
    */
-  private applyDefaults(result: { gameState: GameState; playTimeMs: number; timestamp?: number }): { gameState: GameState; playTimeMs: number; timestamp?: number } {
+  private applyDefaults(result: { gameState: GameState; playTimeMs: number; timestamp?: number }): {
+    gameState: GameState;
+    playTimeMs: number;
+    timestamp?: number;
+    offline: OfflineLoadInfo | null;
+  } {
     const gs = result.gameState;
+    let updatedGs = gs;
+
     if (!gs.prestige) {
-      return {
-        ...result,
-        gameState: {
-          ...gs,
-          prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 0 },
-        },
+      updatedGs = {
+        ...updatedGs,
+        prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 0 },
       };
     }
-    return result;
+
+    // Compute offline progression
+    const offline = this.computeOfflineData(result, updatedGs);
+
+    return {
+      ...result,
+      gameState: updatedGs,
+      offline,
+    };
+  }
+
+  /**
+   * Compute offline progression data from save timestamp and wall-clock time.
+   * Returns null if no valid timestamp or absence < 1 second.
+   */
+  private computeOfflineData(
+    result: { gameState: GameState; playTimeMs: number; timestamp?: number },
+    gs: GameState,
+  ): OfflineLoadInfo | null {
+    const saveTimestamp = gs.lastSaveTimestamp || result.timestamp || 0;
+    if (saveTimestamp <= 0) return null;
+
+    const now = Date.now();
+    const elapsedMs = now - saveTimestamp;
+
+    // Only trigger offline for absences >= 1 second
+    if (elapsedMs < OFFLINE_MIN_MS) return null;
+
+    // Default to 50% if field missing (backward compat for old saves)
+    const efficiency = typeof gs.offlineEfficiency === 'number' ? gs.offlineEfficiency : 0.5;
+    const { effectiveMs, offlineTicks } = calculateOfflineTicks(elapsedMs, efficiency);
+
+    // Only return if there's something to simulate
+    if (offlineTicks <= 0) return null;
+
+    return {
+      elapsedMs,
+      effectiveMs,
+      offlineTicks,
+      efficiency,
+    };
   }
 
   private tryLoadKey(key: string): { gameState: GameState; playTimeMs: number; timestamp?: number } | null {

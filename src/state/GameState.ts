@@ -158,6 +158,12 @@ export interface GameState {
     /** Lifetime total food produced (never reset). */
     totalFoodProduced: number;
   };
+  /**
+   * Offline progression efficiency multiplier (0.5 = 50%, 1.0 = 100%).
+   * Default 50% for standard incremental convention.
+   * Upgradable via Phase 5+ prestige upgrades.
+   */
+  offlineEfficiency: number;
 }
 
 /**
@@ -264,5 +270,6 @@ export function createInitialState(): GameState {
       legacyPoints: 0,
       totalFoodProduced: 0,
     },
+    offlineEfficiency: 0.5,
   };
 }

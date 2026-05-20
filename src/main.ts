@@ -15,6 +15,8 @@ import {
 } from './systems/SpaceshipSystem';
 import { UIRoot } from './ui/UIRoot';
 import { SaveManager } from './persistence/SaveManager';
+import type { OfflineLoadInfo } from './persistence/SaveManager';
+import { OfflineSummaryPopup } from './ui/components/OfflineSummaryPopup';
 import { PhaseStateMachine } from './phases/PhaseStateMachine';
 import { Phase, PHASE_ORDER } from './phases/phases';
 import { PhaseContent } from './phases/PhaseContent';
@@ -55,41 +57,46 @@ export function bootstrap(): {
 
   // Try to load saved state
   const saved = saveManager.load();
-  let offlineMessage: string | null = null;
+  let offlinePopup: OfflineSummaryPopup | null = null;
 
   if (saved) {
     gameState.value = saved.gameState;
+    console.log('[Offline] Save loaded. offline:', saved.offline ? `ticks=${saved.offline.offlineTicks}` : 'null');
 
-    // #20 Offline progress: compute elapsed wall-clock time and run catch-up
-    const saveTimestamp = saved.gameState.lastSaveTimestamp || saved.timestamp || 0;
-    const now = Date.now();
-    const offlineMs = now - saveTimestamp;
+    // GM-8 Offline progression: compute catch-up from save timestamp + efficiency
+    if (saved.offline && saved.offline.offlineTicks > 0) {
+      const offlineData: OfflineLoadInfo = saved.offline;
+      console.log('[Offline] Ticks to simulate:', offlineData.offlineTicks, 'Elapsed:', offlineData.elapsedMs, 'Efficiency:', offlineData.efficiency);
 
-    if (offlineMs > 1000 && saveTimestamp > 0) {
-      const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000; // 8 hours
-      const cappedMs = Math.min(offlineMs, OFFLINE_CAP_MS);
+      // Capture before-state for resource delta calculation
+      const beforeState = gameState.value;
 
-      // Run accelerated catch-up: simulate ticks for the elapsed time
+      // Run accelerated catch-up: simulate only the efficiency-reduced tick count
       const dtSec = 50 / 1000; // 50ms per tick
-      const totalTicks = Math.floor(cappedMs / 50);
       let catchUpState = gameState.value;
 
-      for (let i = 0; i < totalTicks; i++) {
+      for (let i = 0; i < offlineData.offlineTicks; i++) {
         catchUpState = processTick(catchUpState, resourceSystem, soldierSystem, mapSystem, territorySystem, bus, dtSec);
       }
 
       gameState.value = catchUpState;
 
-      const hoursOffline = Math.round((offlineMs / (1000 * 60 * 60)) * 10) / 10;
-      if (hoursOffline >= 0.1) {
-        offlineMessage = `Welcome back! ${hoursOffline} hour${hoursOffline === 1 ? '' : 's'} of progress simulated.`;
-      } else {
-        const minsOffline = Math.round(offlineMs / (1000 * 60));
-        offlineMessage = `Welcome back! ${minsOffline} minute${minsOffline === 1 ? '' : 's'} of progress simulated.`;
-      }
+      // Show summary popup for absences >= 30 seconds
+      if (offlineData.elapsedMs >= 30_000) {
+        offlinePopup = new OfflineSummaryPopup(offlineData, () => {
+          // Dismiss: game continues normally — UI is already mounted
+        });
+        console.log('[Offline] Popup created:', !!offlinePopup);
 
-      // Emit event so UI can show the message
-      bus.emit('offline_progress', { offlineMs: cappedMs, totalTicks, message: offlineMessage });
+        // Emit event for resource delta tracking
+        bus.emit('offline_progress', {
+          elapsedMs: offlineData.elapsedMs,
+          offlineTicks: offlineData.offlineTicks,
+          efficiency: offlineData.efficiency,
+          resourcesBefore: beforeState.resources,
+          resourcesAfter: catchUpState.resources,
+        });
+      }
     }
   }
 
@@ -271,9 +278,13 @@ export function bootstrap(): {
     phaseContent.triggerTransition(phase, bus, ui);
   });
 
-  // If we have an offline message, show it after UI is mounted
-  if (offlineMessage && ui) {
-    bus.emit('offline_progress', { offlineMs: 0, totalTicks: 0, message: offlineMessage });
+  console.log('[Offline] Before mount check. offlinePopup is:', !!offlinePopup);
+
+  // If we have an offline popup, mount it after UI is mounted
+  if (offlinePopup) {
+    console.log('[Offline] Mounting popup...');
+    offlinePopup.mount(document.body);
+    console.log('[Offline] Popup mounted. Body has overlay:', !!document.querySelector('.offline-overlay'));
   }
 
   // Start autosave

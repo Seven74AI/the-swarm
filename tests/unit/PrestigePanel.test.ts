@@ -69,14 +69,14 @@ describe('PrestigePanel', () => {
 
   it('has a prestige button', () => {
     const el = panel.getElement();
-    const btn = el.querySelector('button');
+    const btn = el.querySelector('.btn-prestige');
     expect(btn).toBeTruthy();
   });
 
   it('disables button when requirements are not met', () => {
     // All starting values are zero — prestige not available
     const el = panel.getElement();
-    const btn = el.querySelector('button') as HTMLButtonElement;
+    const btn = el.querySelector('.btn-prestige') as HTMLButtonElement;
     expect(btn).toBeTruthy();
     expect(btn.disabled).toBe(true);
   });
@@ -93,14 +93,14 @@ describe('PrestigePanel', () => {
     };
     panel.refresh();
     const el = panel.getElement();
-    const btn = el.querySelector('button') as HTMLButtonElement;
+    const btn = el.querySelector('.btn-prestige') as HTMLButtonElement;
     expect(btn).toBeTruthy();
     expect(btn.disabled).toBe(false);
   });
 
   it('shows tooltip with unmet requirements when button is disabled', () => {
     const el = panel.getElement();
-    const btn = el.querySelector('button') as HTMLButtonElement;
+    const btn = el.querySelector('.btn-prestige') as HTMLButtonElement;
     expect(btn).toBeTruthy();
     // Button should have a title attribute with unmet requirements
     const title = btn.getAttribute('title') || '';
@@ -137,7 +137,7 @@ describe('PrestigePanel', () => {
     };
     panel.refresh();
     const el = panel.getElement();
-    const btn = el.querySelector('button') as HTMLButtonElement;
+    const btn = el.querySelector('.btn-prestige') as HTMLButtonElement;
 
     let prestigeEvent: unknown = null;
     bus.subscribe('prestige_triggered', (p) => { prestigeEvent = p; });
@@ -149,7 +149,7 @@ describe('PrestigePanel', () => {
 
   it('does not emit prestige event when button is disabled', () => {
     const el = panel.getElement();
-    const btn = el.querySelector('button') as HTMLButtonElement;
+    const btn = el.querySelector('.btn-prestige') as HTMLButtonElement;
 
     let prestigeEvent: unknown = null;
     bus.subscribe('prestige_triggered', (p) => { prestigeEvent = p; });
