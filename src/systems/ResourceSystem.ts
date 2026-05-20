@@ -17,12 +17,12 @@ const UPGRADES: Record<string, UpgradeDef> = {
   click_power: { baseCost: 10, costMultiplier: 1.15 },
 };
 
-export const EGG_HATCH_TIME = 5; // ticks
+export const EGG_HATCH_TIME = 10; // ticks
 export const LARVA_MATURE_TIME = 10; // ticks
 const FOOD_PER_WORKER = 1;
 const FOOD_PER_GATHER = 2;
 const FOOD_CONSUMED_PER_WORKER = 0.5;
-const TEND_RATE_BONUS = 1 / EGG_HATCH_TIME; // per tend worker
+const TEND_MULTIPLIER = 0.25; // each tend worker gives +25% hatch rate
 
 /**
  * ResourceSystem handles all resource mutations: clicking, ticking, buying.
@@ -80,9 +80,9 @@ export class ResourceSystem {
     const eggPipe = { ...state.eggPipeline };
     if (eggPipe.count > 0) {
       const tendCount = state.workersAssigned.tend;
-      const baseRate = eggPipe.count / EGG_HATCH_TIME;
-      const tendRate = Math.min(tendCount, eggPipe.count) * TEND_RATE_BONUS;
-      const hatchRate = baseRate + tendRate;
+      const hatchRate = eggPipe.count > 0
+        ? (eggPipe.count / EGG_HATCH_TIME) * (1 + tendCount * TEND_MULTIPLIER)
+        : 0;
 
       eggPipe.progress += hatchRate;
       const hatched = Math.floor(eggPipe.progress);

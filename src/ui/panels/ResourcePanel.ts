@@ -4,7 +4,7 @@ import { EGG_HATCH_TIME, LARVA_MATURE_TIME } from '../../systems/ResourceSystem'
 import { NumberDisplay } from '../components/NumberDisplay';
 import { formatRate } from '../../utils/format';
 
-const TEND_RATE_BONUS = 1 / EGG_HATCH_TIME;
+const TEND_MULTIPLIER = 0.25;
 
 /**
  * Displays all resources with pipeline rate indicators (/s and /min).
@@ -48,7 +48,7 @@ export class ResourcePanel {
       const ep = s.eggPipeline;
 
       const eggRate = ep.count > 0
-        ? (ep.count / EGG_HATCH_TIME) + Math.min(s.workersAssigned.tend, ep.count) * TEND_RATE_BONUS
+        ? (ep.count / EGG_HATCH_TIME) * (1 + s.workersAssigned.tend * TEND_MULTIPLIER)
         : 0;
       this.eggRateEl.textContent =
         `→ ${formatRate(eggRate)}/s · ${formatRate(eggRate * 60)}/min`;

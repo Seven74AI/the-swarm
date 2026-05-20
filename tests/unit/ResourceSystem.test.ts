@@ -45,38 +45,46 @@ describe('ResourceSystem — pipeline-based', () => {
 
   describe('tick — egg pipeline', () => {
     it('hatches eggs at rate count/EGG_HATCH_TIME', () => {
-      // 5 eggs, 5 tick hatch time → 1 egg/tick
-      state.resources.eggs = 5;
-      state.eggPipeline = { count: 5, progress: 0 };
-
-      const result = system.tick(state);
-      expect(result.resources.eggs).toBe(4);
-      expect(result.resources.larvae).toBe(1);
-      expect(result.eggPipeline.count).toBe(4);
-    });
-
-    it('hatches multiple eggs when count is large', () => {
+      // 10 eggs, 10 tick hatch time → 1 egg/tick
       state.resources.eggs = 10;
       state.eggPipeline = { count: 10, progress: 0 };
 
       const result = system.tick(state);
-      // 10/5 = 2 eggs/tick
-      expect(result.resources.eggs).toBe(8);
-      expect(result.resources.larvae).toBe(2);
-      expect(result.eggPipeline.count).toBe(8);
+      expect(result.resources.eggs).toBe(9);
+      expect(result.resources.larvae).toBe(1);
+      expect(result.eggPipeline.count).toBe(9);
+    });
+
+    it('hatches multiple eggs when count is large', () => {
+      state.resources.eggs = 30;
+      state.eggPipeline = { count: 30, progress: 0 };
+
+      const result = system.tick(state);
+      // 30/10 = 3 eggs/tick
+      expect(result.resources.eggs).toBe(27);
+      expect(result.resources.larvae).toBe(3);
+      expect(result.eggPipeline.count).toBe(27);
     });
 
     it('accumulates fractional progress for next tick', () => {
-      // 3 eggs → rate = 3/5 = 0.6/tick
+      // 3 eggs → rate = 3/10 = 0.3/tick
       state.resources.eggs = 3;
       state.eggPipeline = { count: 3, progress: 0 };
 
-      // Tick 1: progress = 0.6, floor = 0, no hatch
+      // Tick 1: progress = 0.3, floor = 0, no hatch
       let r = system.tick(state);
       expect(r.resources.eggs).toBe(3);
+      expect(r.eggPipeline.progress).toBe(0.3);
+
+      // Tick 2: progress = 0.3 + 0.3 = 0.6, floor = 0
+      r = system.tick(r);
       expect(r.eggPipeline.progress).toBe(0.6);
 
-      // Tick 2: progress = 0.6 + 0.6 = 1.2, floor = 1
+      // Tick 3: progress = 0.6 + 0.3 = 0.9, floor = 0
+      r = system.tick(r);
+      expect(r.eggPipeline.progress).toBeCloseTo(0.9);
+
+      // Tick 4: progress = 0.9 + 0.3 = 1.2, floor = 1
       r = system.tick(r);
       expect(r.resources.eggs).toBe(2);
       expect(r.resources.larvae).toBe(1);
@@ -84,17 +92,16 @@ describe('ResourceSystem — pipeline-based', () => {
       expect(r.eggPipeline.count).toBe(2);
     });
 
-    it('tend workers boost hatch rate', () => {
-      state.resources.workers = 3;
-      state.resources.eggs = 5;
-      state.eggPipeline = { count: 5, progress: 0 };
-      state.workersAssigned = { gather: 0, tend: 3, dig: 0, guard: 0 };
+    it('tend workers boost hatch rate by +25% each', () => {
+      state.resources.workers = 4;
+      state.resources.eggs = 10;
+      state.eggPipeline = { count: 10, progress: 0 };
+      state.workersAssigned = { gather: 0, tend: 4, dig: 0, guard: 0 };
 
       const result = system.tick(state);
-      // Base rate: 5/5 = 1.0 + tend rate: min(3,5) * 0.2 = 0.6 → total 1.6
-      // floor(1.6) = 1, but progress carries over
-      expect(result.resources.larvae).toBeGreaterThanOrEqual(1);
-      expect(result.eggPipeline.count).toBeLessThan(5);
+      // Rate = 10/10 * (1 + 4*0.25) = 1 * 2 = 2 → 2 eggs hatch
+      expect(result.resources.larvae).toBe(2);
+      expect(result.eggPipeline.count).toBe(8);
     });
 
     it('empty pipeline does nothing', () => {
