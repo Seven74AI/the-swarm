@@ -49,8 +49,12 @@ export class SoldierSystem {
 
     for (const timer of timers) {
       const remaining = timer - 1;
-      if (remaining <= 0) {
+      if (remaining <= 0 && newSoldiers === 0) {
+        // One soldier finishes training per tick
         newSoldiers++;
+      } else if (remaining <= 0) {
+        // Would finish but already one did — defer to next tick
+        newTimers.push(1);
       } else {
         newTimers.push(remaining);
       }

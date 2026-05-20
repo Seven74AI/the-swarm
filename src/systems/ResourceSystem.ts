@@ -81,7 +81,7 @@ export class ResourceSystem {
     let workersChanged = false;
     let foodChanged = false;
 
-    // Decrement egg timers and hatch → collect new larva timers separately
+    // Decrement egg timers and hatch (max 1 per tick to avoid burst hatching)
     const newEggTimers: number[] = [];
     const hatchedLarvaTimers: number[] = [];
 
@@ -89,33 +89,43 @@ export class ResourceSystem {
     const sortedEggTimers = [...eggTimers].sort((a, b) => a - b);
     const tendCount = state.workersAssigned.tend;
 
+    let hatchedThisTick = false;
     for (let i = 0; i < sortedEggTimers.length; i++) {
       const timer = sortedEggTimers[i];
       // Tend workers give an extra -1 to the oldest eggs
       const extraDecrement = i < tendCount ? 1 : 0;
       const remaining = timer - 1 - extraDecrement;
-      if (remaining <= 0) {
-        // Egg hatches → larva
+      if (remaining <= 0 && !hatchedThisTick) {
+        // Egg hatches → larva (only one per tick)
         eggs--;
         larvae++;
         eggsChanged = true;
         larvaeChanged = true;
         hatchedLarvaTimers.push(LARVA_MATURE_TIME);
+        hatchedThisTick = true;
+      } else if (remaining <= 0) {
+        // Would hatch but already one did — defer to next tick
+        newEggTimers.push(1);
       } else {
         newEggTimers.push(remaining);
       }
     }
 
-    // Decrement larva timers and mature (only existing larvae, not newly hatched)
+    // Decrement larva timers and mature (max 1 per tick)
     const newLarvaTimers: number[] = [];
+    let maturedThisTick = false;
     for (const timer of larvaTimers) {
       const remaining = timer - 1;
-      if (remaining <= 0) {
-        // Larva matures → worker
+      if (remaining <= 0 && !maturedThisTick) {
+        // Larva matures → worker (only one per tick)
         larvae--;
         workers++;
         larvaeChanged = true;
         workersChanged = true;
+        maturedThisTick = true;
+      } else if (remaining <= 0) {
+        // Would mature but already one did — defer to next tick
+        newLarvaTimers.push(1);
       } else {
         newLarvaTimers.push(remaining);
       }

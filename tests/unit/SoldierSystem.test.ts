@@ -112,8 +112,9 @@ describe('SoldierSystem', () => {
       state.soldierTrainTimers = [1, 1, 1];
       state.combatSoldiers = 2;
       const result = system.tick(state);
-      expect(result.soldierTrainTimers).toEqual([]);
-      expect(result.combatSoldiers).toBe(5);
+      // Only 1 soldier finishes per tick — others defer to next tick
+      expect(result.soldierTrainTimers).toEqual([1, 1]);
+      expect(result.combatSoldiers).toBe(3);
     });
 
     it('emits soldiers_changed when soldiers are added via training', () => {
