@@ -36,7 +36,7 @@ describe('SaveManager', () => {
       state.resources.eggs = 5;
       state.eggPipeline = { count: 6, progress: 0.5 };
       state.larvaPipeline = { count: 10, progress: 3.2 };
-      state.workersAssigned = { gather: 3, tend: 1, dig: 0, guard: 0 };
+      state.workersAssigned = { gather: 3, tend: 1, dig: 0, guard: 0, researchers: 0 };
       state.upgrades = { click_power: 2 };
       state.unlockedPanels = ['resource_panel'];
 
@@ -51,6 +51,7 @@ describe('SaveManager', () => {
         tend: 1,
         dig: 0,
         guard: 0,
+        researchers: 0,
       });
       expect(loaded!.gameState.upgrades).toEqual({ click_power: 2 });
       expect(loaded!.gameState.unlockedPanels).toEqual(['resource_panel']);

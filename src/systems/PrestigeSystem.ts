@@ -108,6 +108,7 @@ export function prestige(state: GameState): GameState {
       tend: 0,
       dig: 0,
       guard: 0,
+      researchers: 0,
     },
     soldiers: {
       scouts: 0,

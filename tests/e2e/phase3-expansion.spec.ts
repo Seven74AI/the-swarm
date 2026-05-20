@@ -22,7 +22,7 @@ test.describe('Phase 3 — Expansion', () => {
           },
           eggPipeline: { count: 0, progress: 0 },
           larvaPipeline: { count: 0, progress: 0 },
-          workersAssigned: { gather: 12, tend: 4, dig: 3, guard: 0 },
+          workersAssigned: { gather: 12, tend: 4, dig: 3, guard: 0, researchers: 0 },
           soldiers: { scouts: 5, warriors: 3, totalKilled: 0 },
           buildings: {
             barracks: { level: 0, count: 0 },
