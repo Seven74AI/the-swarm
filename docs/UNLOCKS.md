@@ -142,3 +142,50 @@ Risk varies by destination. Higher risk = more casualties but better loot.
 ## Victory Condition
 
 Reach TRANSCENDENCE phase (collect 50 void crystals, 10 antimatter, 5 dark matter).
+
+---
+
+## Gameplay Loop Per Phase
+
+### Phase 0 — EGG_LAYING (0-5 min)
+**What the player does:** Clicks the egg button. That's it. Pure dopamine.
+**Feel:** "I am the queen. I lay eggs. Numbers go up."
+**Key metric:** Eggs per second (EPS) from clicking.
+**Transition gate:** 10 workers → player realizes automation is needed.
+
+### Phase 1 — COLONY (5-30 min)
+**What the player does:** Assigns workers to roles (Gather, Tend, Guard).
+Manages the first production chain: eggs → larvae → workers → food.
+**Feel:** "My colony is growing. I'm managing resources now, not just clicking."
+**Key metric:** Food/tick, worker count.
+**New panel:** Worker Assignment.
+**First prestige seed planted:** Player sees walls in building costs, wonders what's next.
+
+### Phase 2 — COMBAT (30 min - 2h)
+**What the player does:** Recruits soldiers, equips them, fights auto-battles.
+Balances military spending vs food production.
+**Feel:** "My colony is under threat. I need to defend AND grow."
+**Key metric:** Army strength, battle win rate.
+**New panels:** Soldier Panel, Battle Panel.
+
+### Phase 3 — EXPANSION (2h - 8h)
+**What the player does:** Explores the map, claims territory, builds structures.
+Launches expeditions for rare resources. Manages multiple production chains.
+**Feel:** "The world is vast. My colony is becoming an empire."
+**Key metric:** Territory tiles, expedition success rate, building levels.
+**New panels:** Map, Buildings, Expeditions.
+**Prestige becomes visible:** Player hits walls that prestige would break through.
+
+### Phase 4 — SPACE (8h - 50h)
+**What the player does:** Builds a spaceship, explores planets, collects cosmic resources.
+Manages the resource conversion DAG: voidCrystals → antimatter → darkMatter.
+**Feel:** "We've outgrown Earth. The stars await."
+**Key metric:** Space resources, spaceship level, exploration coverage.
+**New panels:** Spaceship, Exploration.
+
+### Phase 5 — TRANSCENDENCE (50h+, prestige loop)
+**What the player does:** Prestiges — resets everything but keeps Legacy Points.
+Each run is 2-10× faster than the previous. Researches automation, manages entropy.
+**Feel:** "I've seen the cycle. Each rebirth I grow stronger. The end is just the beginning."
+**Key metric:** Legacy Points, prestige count, run duration.
+**New mechanics:** Research tree, automation, decision popups, entropy.
