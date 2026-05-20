@@ -737,3 +737,126 @@ body.phase-space .progress-fill {
 }
 
 /* ── Exploration Panel ── */
+.exploration-panel .exploration-launch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.exploration-panel .exploration-input {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.25rem 0.5rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  width: 64px;
+}
+
+.exploration-panel .exploration-select {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.25rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.exploration-panel .scout-count {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-right: 0.4rem;
+}
+
+.exploration-panel .exploration-list-title {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin: 0.5rem 0 0.25rem 0;
+}
+
+.exploration-row {
+  background: rgba(26, 22, 20, 0.5);
+  padding: 0.3rem 0.5rem;
+  border-radius: 3px;
+  margin-bottom: 0.2rem;
+}
+
+.exploration-row .stat-label {
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.exploration-row .stat-value {
+  color: var(--accent-glow);
+  font-size: 0.8rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE TRANSITION OVERLAY
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Fixed fullscreen overlay that blocks interaction during transitions */
+#phase-transition-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-primary);
+  pointer-events: none;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+}
+
+/* Fade-in when active */
+#phase-transition-overlay.active {
+  animation: phase-transition-overlay 2s ease forwards;
+}
+
+@keyframes phase-transition-overlay {
+  0%   { opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Lore quote text inside the overlay */
+.phase-transition-quote {
+  color: var(--accent-glow);
+  font-style: italic;
+  text-align: center;
+  max-width: 360px;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  padding: 0 2rem;
+  animation: phase-quote-enter 2s ease forwards;
+}
+
+@keyframes phase-quote-enter {
+  0%   { opacity: 0; transform: translateY(12px); }
+  25%  { opacity: 0; transform: translateY(12px); }
+  45%  { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-8px); }
+}
+
+/* Dim panels during transition */
+.panel.transition-dimmed {
+  opacity: 0.4;
+  transition: opacity 0.5s ease;
+}
+
+/* Phase indicator pulse before transition */
+.phase-indicator.transitioning {
+  animation: phase-pulse 0.5s ease;
+}
+
+@keyframes phase-pulse {
+  0%   { box-shadow: 0 0 0 0 var(--accent-glow); }
+  50%  { box-shadow: 0 0 16px 4px var(--accent-glow); }
+  100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+}

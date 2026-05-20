@@ -35,6 +35,7 @@ export class UIRoot {
   private setState: (state: GameState) => void;
   private eventLog: EventLog;
   private panelElements: Map<string, HTMLElement> = new Map();
+  private transitionOverlay: HTMLElement | null = null;
 
   constructor(deps: {
     bus: EventBus;
@@ -174,6 +175,22 @@ export class UIRoot {
 
     container.appendChild(panels);
 
+    // ── Phase transition overlay ──
+    this.transitionOverlay = document.createElement('div');
+    this.transitionOverlay.id = 'phase-transition-overlay';
+    this.transitionOverlay.style.display = 'none';
+    document.body.appendChild(this.transitionOverlay);
+
+    // ── Transition events ──
+    this.bus.subscribe('transition_start', (payload: unknown) => {
+      const p = payload as { phase: string; quote: string };
+      this.startTransition(p.phase, p.quote);
+    });
+
+    this.bus.subscribe('transition_complete', () => {
+      this.endTransition();
+    });
+
     // Listen for phase changes to toggle space theme
     this.bus.subscribe('phase_changed', (payload: unknown) => {
       const phase = (payload as { phase: string }).phase;
@@ -206,6 +223,61 @@ export class UIRoot {
       el.style.display = '';
       el.classList.add('panel-unlocked');
       this.bus.emit('panel_revealed', { panelId });
+    }
+  }
+
+  /**
+   * Begin the phase transition visual sequence.
+   * Shows the overlay with the phase name and lore quote, pulses the indicator, dims panels.
+   */
+  private startTransition(phase: string, quote: string): void {
+    if (!this.transitionOverlay) return;
+
+    // Format phase name: "egg_laying" → "Egg Laying"
+    const phaseName = phase
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+
+    // Set overlay content: phase name + lore quote
+    this.transitionOverlay.innerHTML =
+      `<div class="phase-transition-phase-name">${phaseName}</div>` +
+      `<div class="phase-transition-quote">${quote}</div>`;
+    this.transitionOverlay.style.display = '';
+    this.transitionOverlay.classList.add('active');
+
+    // Pulse the phase indicator
+    const indicator = document.querySelector('.phase-indicator');
+    if (indicator) {
+      indicator.classList.add('transitioning');
+    }
+
+    // Dim all visible panel elements
+    const panels = document.querySelectorAll('.panel');
+    panels.forEach((panel) => panel.classList.add('transition-dimmed'));
+  }
+
+  /**
+   * End the phase transition — fade out overlay, undim panels, scroll to new content.
+   */
+  private endTransition(): void {
+    if (!this.transitionOverlay) return;
+
+    this.transitionOverlay.classList.remove('active');
+
+    // Undim panels
+    const panels = document.querySelectorAll('.panel.transition-dimmed');
+    panels.forEach((panel) => panel.classList.remove('transition-dimmed'));
+
+    // Remove transitioning class from phase indicator
+    const indicator = document.querySelector('.phase-indicator');
+    if (indicator) {
+      indicator.classList.remove('transitioning');
+    }
+
+    // Auto-scroll to first newly revealed panel
+    const firstUnlocked = document.querySelector('.panel-unlocked');
+    if (firstUnlocked) {
+      firstUnlocked.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }
 }

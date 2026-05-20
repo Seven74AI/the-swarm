@@ -205,10 +205,10 @@ export function bootstrap(): {
   // Reveal panels for current phase
   phaseContent.onPhaseEnter(currentPhase as Phase, ui);
 
-  // Listen for phase changes to reveal new panels
+  // Listen for phase changes to reveal new panels with transition animation
   bus.subscribe('phase_changed', (payload: unknown) => {
     const phase = (payload as { phase: string }).phase as Phase;
-    phaseContent.onPhaseEnter(phase, ui);
+    phaseContent.triggerTransition(phase, bus, ui);
   });
 
   // Start autosave
