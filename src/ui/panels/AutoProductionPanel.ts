@@ -129,7 +129,6 @@ export class AutoProductionPanel {
         if (cost.stone) costParts.push(`🪨${cost.stone}`);
         if (cost.voidCrystals) costParts.push(`💎${cost.voidCrystals}`);
         if (cost.antimatter) costParts.push(`⚛${cost.antimatter}`);
-        if (cost.researchers) costParts.push(`🔬${cost.researchers}`);
         const costSpan = document.createElement('span');
         costSpan.className = 'research-cost';
         costSpan.textContent = costParts.join(' ');

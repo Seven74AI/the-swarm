@@ -28,7 +28,6 @@ interface ResearchCost {
   nectar?: number;
   voidCrystals?: number;
   antimatter?: number;
-  researchers?: number;
 }
 
 /** Effect of completing a research. */
@@ -82,14 +81,14 @@ export const RESEARCHES: Record<ResearchType, ResearchDef> = {
   genetic_optimization: {
     id: 'genetic_optimization',
     name: 'Genetic Optimization',
-    cost: { voidCrystals: 5, researchers: 50 },
+    cost: { voidCrystals: 5, workers: 50 },
     effect: { multiplier: 1.5 },
     prerequisites: ['thermal_regulation'],
   },
   cloning_vats: {
     id: 'cloning_vats',
     name: 'Cloning Vats',
-    cost: { antimatter: 2, researchers: 100 },
+    cost: { antimatter: 2, workers: 100 },
     effect: { multiplier: 2, unlocksBuilding: 'hatchery' },
     prerequisites: ['genetic_optimization'],
   },
@@ -147,7 +146,6 @@ export function canResearch(research: ResearchType, state: GameState): boolean {
   if ((cost.stone ?? 0) > state.resources.stone) return false;
   if ((cost.voidCrystals ?? 0) > state.resources.voidCrystals) return false;
   if ((cost.antimatter ?? 0) > state.resources.antimatter) return false;
-  if ((cost.researchers ?? 0) > state.resources.workers) return false;
 
   return true;
 }
