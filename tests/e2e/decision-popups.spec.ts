@@ -7,11 +7,11 @@ import { test, expect } from '@playwright/test';
  * - Decision popup appears after 2-3 minutes of play time
  * - Popup shows title, description, and choice buttons
  * - Clicking a choice applies the consequence (hides popup)
- * - Popup auto-dismisses after 30 seconds
+ * - Popup is non-blocking — game continues running while popup is shown
  *
  * Uses page.addInitScript with JSON-stringified seed (same pattern as golden-path.spec.ts)
  * to inject save data before page load, avoiding beforeunload autosave overwrite.
- * SaveManager reads from localStorage key 'the_swarm_save' with version 7.
+ * SaveManager reads from localStorage key 'the_swarm_save' with version 8 (includes prestige).
  */
 
 function makeSeedStr(playTimeMs: number): string {
@@ -29,7 +29,7 @@ function makeSeedStr(playTimeMs: number): string {
   }
 
   return JSON.stringify({
-    version: 7,
+    version: 8,
     timestamp: Date.now(),
     playTimeMs,
     gameState: {
@@ -79,6 +79,7 @@ function makeSeedStr(playTimeMs: number): string {
       battlesWon: 0,
       battlesLost: 0,
       victoryAchieved: false,
+      prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 0 },
       spaceship: { level: 0, fuel: 0, maxFuel: 100 },
       spaceProbes: [],
       discoveries: [],
