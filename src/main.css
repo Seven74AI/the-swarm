@@ -1225,3 +1225,70 @@ body.phase-space .progress-fill {
 .prestige-panel .stat-row.projected .stat-value {
   color: rgba(255, 215, 0, 0.7);
 }
+
+/* ── Offline Summary Popup (GM-8) ─────────────────────────── */
+.offline-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: offline-overlay-in 0.3s ease-out;
+}
+
+@keyframes offline-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.offline-summary-popup {
+  background: var(--bg-panel, #2d2620);
+  border: 2px solid var(--accent-glow, #b8942e);
+  border-radius: 12px;
+  padding: 2rem 2.5rem;
+  text-align: center;
+  max-width: 440px;
+  box-shadow: 0 0 40px rgba(184, 148, 46, 0.3);
+  animation: offline-popup-in 0.4s ease-out;
+}
+
+@keyframes offline-popup-in {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.offline-summary-popup h2 {
+  color: var(--accent-glow, #b8942e);
+  font-size: 1.3rem;
+  margin: 0 0 1rem 0;
+}
+
+.offline-duration {
+  color: var(--text-primary, #d4c4a8);
+  font-size: 1rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.offline-efficiency {
+  color: var(--text-secondary, #9e8b6f);
+  font-size: 0.85rem;
+  margin: 0 0 1.5rem 0;
+}
+
+.offline-dismiss-btn {
+  background: linear-gradient(135deg, rgba(184, 148, 46, 0.3), rgba(139, 105, 20, 0.2));
+  border: 1px solid var(--accent-glow, #b8942e);
+  color: var(--accent-glow, #b8942e);
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.offline-dismiss-btn:hover {
+  background: linear-gradient(135deg, rgba(184, 148, 46, 0.5), rgba(139, 105, 20, 0.3));
+  box-shadow: 0 0 16px rgba(184, 148, 46, 0.4);
+}

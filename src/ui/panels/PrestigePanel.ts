@@ -7,6 +7,12 @@ import {
   getUnmetRequirements,
   calculateLegacyPoints,
   prestige as doPrestige,
+  canBuyTemporalResonance,
+  buyTemporalResonance,
+  TEMPORAL_RESONANCE_COST,
+  canBuyChronoSynchronization,
+  buyChronoSynchronization,
+  CHRONO_SYNCHRONIZATION_COST,
 } from '../../systems/PrestigeSystem';
 
 /**
@@ -111,6 +117,57 @@ export class PrestigePanel {
       bonusRow.appendChild(bonusValue);
       this.container.appendChild(bonusRow);
     }
+
+    // ── Offline Efficiency display ──
+    const effRow = document.createElement('div');
+    effRow.className = 'stat-row';
+    const effLabel = document.createElement('span');
+    effLabel.className = 'stat-label';
+    effLabel.textContent = '⏳ Offline Efficiency';
+    const effValue = document.createElement('span');
+    effValue.className = 'stat-value';
+    effValue.textContent = `${Math.round(state.offlineEfficiency * 100)}%`;
+    effRow.appendChild(effLabel);
+    effRow.appendChild(effValue);
+    this.container.appendChild(effRow);
+
+    // ── Temporal Resonance upgrade button (50% → 75%, cost: 10 LP) ──
+    const canBuyTR = canBuyTemporalResonance(state);
+    const trBtn = document.createElement('button');
+    trBtn.className = 'btn btn-upgrade';
+    trBtn.textContent = `🌀 Temporal Resonance (${Math.round(state.offlineEfficiency * 100)}% → 75%) — ${TEMPORAL_RESONANCE_COST} LP`;
+    trBtn.disabled = !canBuyTR;
+    if (canBuyTR) {
+      trBtn.addEventListener('click', () => {
+        const result = buyTemporalResonance(this.getState());
+        if (result) this.setState(result);
+      });
+    } else if (state.offlineEfficiency !== 0.5) {
+      trBtn.setAttribute('title', 'Already purchased');
+    } else {
+      trBtn.setAttribute('title', `Requires ${TEMPORAL_RESONANCE_COST} Legacy Points`);
+    }
+    this.container.appendChild(trBtn);
+
+    // ── Chrono-Synchronization upgrade button (75% → 100%, cost: 5 voidCrystals) ──
+    const canBuyCS = canBuyChronoSynchronization(state);
+    const csBtn = document.createElement('button');
+    csBtn.className = 'btn btn-upgrade';
+    csBtn.textContent = `🔮 Chrono-Synchronization (${Math.round(state.offlineEfficiency * 100)}% → 100%) — ${CHRONO_SYNCHRONIZATION_COST} ◈`;
+    csBtn.disabled = !canBuyCS;
+    if (canBuyCS) {
+      csBtn.addEventListener('click', () => {
+        const result = buyChronoSynchronization(this.getState());
+        if (result) this.setState(result);
+      });
+    } else if (state.offlineEfficiency === 1.0) {
+      csBtn.setAttribute('title', 'Max efficiency reached');
+    } else if (state.offlineEfficiency !== 0.75) {
+      csBtn.setAttribute('title', 'Requires Temporal Resonance first');
+    } else {
+      csBtn.setAttribute('title', `Requires ${CHRONO_SYNCHRONIZATION_COST} void crystals`);
+    }
+    this.container.appendChild(csBtn);
 
     // ── Projected points ──
     const projRow = document.createElement('div');
