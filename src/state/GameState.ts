@@ -158,6 +158,14 @@ export interface GameState {
     /** Lifetime total food produced (never reset). */
     totalFoodProduced: number;
   };
+  /** Automation system — research tree, buildings, auto-production (GM-3). */
+  autoProduction: {
+    enabled: boolean;
+    researches: Record<string, boolean>;
+    buildings: Record<string, number>;
+    /** Fractional progress toward next auto egg (rate * dt accumulator). */
+    progress: number;
+  };
 }
 
 /**
@@ -263,6 +271,16 @@ export function createInitialState(): GameState {
       count: 0,
       legacyPoints: 0,
       totalFoodProduced: 0,
+    },
+    autoProduction: {
+      enabled: false,
+      researches: {},
+      buildings: {
+        nursery: 0,
+        hatchery: 0,
+        queens_chamber: 0,
+      },
+      progress: 0,
     },
   };
 }

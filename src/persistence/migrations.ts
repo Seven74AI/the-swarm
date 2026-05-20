@@ -177,13 +177,29 @@ function migrateV6toV7(data: SaveData): SaveData {
   return { ...data, version: 7, gameState };
 }
 
-/** v7 → v8: adds prestige fields for Legacy Layer (Phase 5+) */
+/** v7 → v8: adds prestige fields (GM-1) + autoProduction field (GM-3 automation) */
 function migrateV7toV8(data: SaveData): SaveData {
   const gameState = data.gameState as GameState & {
     prestige?: { count: number; legacyPoints: number; totalFoodProduced: number };
+    autoProduction?: {
+      enabled: boolean;
+      researches: Record<string, boolean>;
+      buildings: Record<string, number>;
+      progress: number;
+    };
   };
 
   gameState.prestige = gameState.prestige ?? { count: 0, legacyPoints: 0, totalFoodProduced: 0 };
+  gameState.autoProduction = gameState.autoProduction ?? {
+    enabled: false,
+    researches: {},
+    buildings: {
+      nursery: 0,
+      hatchery: 0,
+      queens_chamber: 0,
+    },
+    progress: 0,
+  };
 
   return { ...data, version: 8, gameState };
 }

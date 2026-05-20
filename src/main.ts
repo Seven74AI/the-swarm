@@ -13,6 +13,7 @@ import {
   tickMissions,
   resolveMission,
 } from './systems/SpaceshipSystem';
+import { tickAutoProduction } from './engine/AutoProductionLoop';
 import { UIRoot } from './ui/UIRoot';
 import { SaveManager } from './persistence/SaveManager';
 import { PhaseStateMachine } from './phases/PhaseStateMachine';
@@ -128,6 +129,7 @@ export function bootstrap(): {
     };
 
     newState = soldierSystem.tick(newState);
+    newState = tickAutoProduction(newState, dtSec);
 
     // Expedition system: tick timers and resolve completed ones
     newState = tickExpeditions(newState);
@@ -335,6 +337,7 @@ function processTick(
   };
 
   newState = soldierSystem.tick(newState);
+  newState = tickAutoProduction(newState, dtSec);
 
   // Tick expedition timers
   newState = tickExpeditions(newState);
