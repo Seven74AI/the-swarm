@@ -41,6 +41,8 @@ export class UIRoot {
   private eventLog: EventLog;
   private panelElements: Map<string, HTMLElement> = new Map();
   private transitionOverlay: HTMLElement | null = null;
+  /** IntersectionObserver for scroll-based panel reveal */
+  private scrollObserver: IntersectionObserver | null = null;
 
   /** Container div (#panels) where all panels are appended. */
   private panelsContainer: HTMLElement | null = null;
@@ -240,14 +242,9 @@ export class UIRoot {
       this.endTransition();
     });
 
-    // Listen for phase changes to toggle space theme
-    this.bus.subscribe('phase_changed', (payload: unknown) => {
-      const phase = (payload as { phase: string }).phase;
-      if (phase === 'space') {
-        document.body.classList.add('phase-space');
-      } else {
-        document.body.classList.remove('phase-space');
-      }
+    // Listen for phase changes — body class toggling is now handled by PhaseContent.onPhaseEnter
+    this.bus.subscribe('phase_changed', () => {
+      // Body class is set by PhaseContent.onPhaseEnter via transition_start → onPhaseEnter
     });
 
     // Listen for worker changes to trigger narrative events
@@ -257,6 +254,32 @@ export class UIRoot {
         this.eventLog.notifyWorkerCount(p.workers);
       }
     });
+
+    // ── Scroll-based panel discovery (IntersectionObserver) ──
+    this.scrollObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const panel = entry.target as HTMLElement;
+            // Remove awaiting-reveal hidden state, add revealed class (single-pass)
+            panel.classList.remove('panel-awaiting-reveal');
+            panel.classList.add('panel-revealed');
+            // Unobserve — once revealed, stays revealed (no flicker)
+            this.scrollObserver?.unobserve(panel);
+          }
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    // Observe all existing panels in #panels
+    if (this.panelsContainer) {
+      const panels = this.panelsContainer.querySelectorAll('.panel');
+      panels.forEach((panel) => {
+        (panel as HTMLElement).classList.add('panel-awaiting-reveal');
+        this.scrollObserver?.observe(panel);
+      });
+    }
   }
 
   /**
@@ -300,6 +323,12 @@ export class UIRoot {
     const element = factory();
     panelsEl.appendChild(element);
     this.panelElements.set(panelId, element);
+
+    // Register with scroll observer for below-the-fold discovery
+    if (this.scrollObserver && element.classList.contains('panel')) {
+      element.classList.add('panel-awaiting-reveal');
+      this.scrollObserver.observe(element);
+    }
 
     return element;
   }

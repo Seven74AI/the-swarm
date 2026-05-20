@@ -1,5 +1,32 @@
 /* THE SWARM — Dark theme, ant-appropriate muted earth tones */
 
+/* Register custom properties for smooth animated transitions between phase themes */
+@property --bg-primary {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #1a1614;
+}
+@property --bg-secondary {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #241e1a;
+}
+@property --accent-glow {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #b8942e;
+}
+@property --border {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #3d3528;
+}
+@property --text-primary {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #d4c4a8;
+}
+
 :root {
   --bg-primary: #1a1614;
   --bg-secondary: #241e1a;
@@ -28,6 +55,7 @@ html, body {
   font-size: 16px;
   line-height: 1.5;
   overflow-x: hidden;
+  transition: --bg-primary 3s ease, --bg-secondary 3s ease, --accent-glow 3s ease, --border 3s ease, --text-primary 3s ease, background-color 3s ease, color 3s ease;
 }
 
 #app {
@@ -759,6 +787,57 @@ html, body {
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   PHASE THEME SHIFTING — Per-phase CSS variable overrides on body
+   Body class toggling (phase-egg/colony/combat/expansion/space/transcendence)
+   triggers smooth 3s transitions on registered @property values.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Phase: Egg Laying — warm amber/brown (default theme, matches :root) */
+body.phase-egg {
+  --bg-primary: #1a1614;
+  --bg-secondary: #241e1a;
+  --accent-glow: #b8942e;
+  --border: #3d3528;
+  --text-primary: #d4c4a8;
+}
+
+/* Phase: Colony — deeper browns, gold accents */
+body.phase-colony {
+  --bg-primary: #1e1812;
+  --bg-secondary: #2a2218;
+  --accent-glow: #d4a030;
+  --border: #4a3d28;
+  --text-primary: #ddc8a0;
+}
+
+/* Phase: Combat — reddish undertones */
+body.phase-combat {
+  --bg-primary: #1e1618;
+  --bg-secondary: #2a1e20;
+  --accent-glow: #c04040;
+  --border: #4a2828;
+  --text-primary: #d4b8b8;
+}
+
+/* Phase: Expansion — forest green undertones */
+body.phase-expansion {
+  --bg-primary: #161e16;
+  --bg-secondary: #1e2a1e;
+  --accent-glow: #40a040;
+  --border: #284a28;
+  --text-primary: #b8d4b8;
+}
+
+/* Phase: Transcendence — pure dark, white glow */
+body.phase-transcendence {
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #0f0f1a;
+  --accent-glow: #ffffff;
+  --border: #2a2a4a;
+  --text-primary: #e0e0ff;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    SPACE PHASE — NEON THEME
    ═══════════════════════════════════════════════════════════════ */
 
@@ -1042,4 +1121,30 @@ body.phase-space .progress-fill {
   0%   { box-shadow: 0 0 0 0 var(--accent-glow); }
   50%  { box-shadow: 0 0 16px 4px var(--accent-glow); }
   100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCROLL-BASED DISCOVERY — Panels revealed on scroll
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Panels awaiting scroll reveal: hidden below the fold */
+.panel-awaiting-reveal {
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+/* Panel revealed by scroll: triggers scrollReveal animation */
+.panel-revealed {
+  animation: scrollReveal 0.6s ease forwards;
+}
+
+@keyframes scrollReveal {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

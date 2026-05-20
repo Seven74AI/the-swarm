@@ -23,6 +23,17 @@ describe('UIRoot — phase transition overlay', () => {
     container = document.createElement('div');
     container.id = 'app';
     document.body.appendChild(container);
+
+    // Mock IntersectionObserver (needed by scroll discovery feature)
+    vi.stubGlobal(
+      'IntersectionObserver',
+      vi.fn(() => ({
+        observe: vi.fn(),
+        unobserve: vi.fn(),
+        disconnect: vi.fn(),
+        takeRecords: vi.fn(() => []),
+      })),
+    );
   });
 
   afterEach(() => {

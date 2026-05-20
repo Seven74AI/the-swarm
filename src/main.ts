@@ -240,6 +240,13 @@ export function bootstrap(): {
 
   // Reveal panels for current phase
   phaseContent.onPhaseEnter(currentPhase as Phase, ui);
+  // Ensure body class persists (some environments may clear it during boot)
+  requestAnimationFrame(() => {
+    const bodyClass = PhaseContent.getPhaseBodyClass(currentPhase as Phase);
+    if (bodyClass && !document.body.classList.contains(bodyClass)) {
+      document.body.classList.add(bodyClass);
+    }
+  });
 
   // Listen for phase changes to reveal new panels with transition animation
   bus.subscribe('phase_changed', (payload: unknown) => {
