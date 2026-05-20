@@ -22,8 +22,8 @@ function makeSaveData(overrides?: Record<string, unknown>) {
     gameState: {
       phase: 'colony',
       resources: {
-        eggs: 0, larvae: 0, workers: 20, food: 1000,
-        nestCapacity: 50, wood: 300, stone: 200, nectar: 100,
+        eggs: 0, larvae: 0, workers: 20, food: 5000,
+        nestCapacity: 50, wood: 5000, stone: 5000, nectar: 500,
       },
       eggPipeline: { count: 0, progress: 0 },
       larvaPipeline: { count: 0, progress: 0 },
@@ -255,14 +255,14 @@ test.describe('Buildings', () => {
     // Effect shows "Scouts cap: 2" (Lv.1 Barracks: scoutsCap=2, warriorsCap=0)
     await expect(page.locator('[data-building="barracks"] .building-info')).toContainText('Scouts cap: 2', { timeout: 3000 });
 
-    // Resources deducted — verify food decreased by at least 100
+    // Resources deducted — verify food decreased by at least 250 (Lv.1: 250 food)
     const foodAfter = await readGameState(page, 'resources.food') as number;
     expect(foodAfter).toBeLessThan(foodBefore);
-    expect(foodBefore - foodAfter).toBeGreaterThanOrEqual(100);
+    expect(foodBefore - foodAfter).toBeGreaterThanOrEqual(250);
 
-    // Wood decreased by at least 50
+    // Wood decreased by at least 125 (Lv.1: 125 wood)
     const woodAfter = await readGameState(page, 'resources.wood') as number;
-    expect(woodAfter).toBeLessThanOrEqual(250); // 300 - 50 = 250
+    expect(woodAfter).toBeLessThanOrEqual(5000 - 125); // 5000 - 125 = 4875
 
     // Activity log should show building event
     await expect(page.locator('#activity-log')).toContainText('upgraded to level 1', { timeout: 3000 });
@@ -287,10 +287,10 @@ test.describe('Buildings', () => {
     await expect(page.locator('[data-building="walls"]')).toContainText('Lv.1', { timeout: 3000 });
     await expect(page.locator('[data-building="walls"] .building-info')).toContainText('Defense: +5%', { timeout: 3000 });
 
-    // Stone deducted: Walls Lv.1 costs 200 stone
+    // Stone deducted: Walls Lv.1 costs 500 stone (200 * 2.5^1)
     const stoneAfter = await readGameState(page, 'resources.stone') as number;
     expect(stoneAfter).toBeLessThan(stoneBefore);
-    expect(stoneBefore - stoneAfter).toBeGreaterThanOrEqual(200);
+    expect(stoneBefore - stoneAfter).toBeGreaterThanOrEqual(500);
   });
 
   test('build Warehouse — verify capacity effect displayed + resources deducted', async ({ page }) => {
@@ -309,16 +309,16 @@ test.describe('Buildings', () => {
     await expect(page.locator('[data-building="warehouse"]')).toContainText('Lv.1', { timeout: 3000 });
     await expect(page.locator('[data-building="warehouse"] .building-info')).toContainText('Capacity: +25', { timeout: 3000 });
 
-    // Resources deducted: Warehouse Lv.1 = 150 wood + 100 stone
+    // Resources deducted: Warehouse Lv.1 = 375 wood + 250 stone (×2.5)
     const wood = await readGameState(page, 'resources.wood') as number;
-    expect(wood).toBeLessThanOrEqual(150); // 300 - 150 = 150
+    expect(wood).toBeLessThanOrEqual(4625); // 5000 - 375 = 4625
 
     const stone = await readGameState(page, 'resources.stone') as number;
-    expect(stone).toBeLessThanOrEqual(100); // 200 - 100 = 100
+    expect(stone).toBeLessThanOrEqual(4750); // 5000 - 250 = 4750
   });
 
   test('cannot build without resources — buttons disabled', async ({ page }) => {
-    // Need food≥500 for colony→expansion transition, but 0 wood/stone for no-build
+    // Need food≥500 for colony→expansion transition, but 0 food/wood/stone so no buildings
     const data = makeSaveData({
       resources: {
         eggs: 0, larvae: 0, workers: 20, food: 500,

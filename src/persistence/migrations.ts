@@ -177,6 +177,17 @@ function migrateV6toV7(data: SaveData): SaveData {
   return { ...data, version: 7, gameState };
 }
 
+/** v7 → v8: adds prestige fields for Legacy Layer (Phase 5+) */
+function migrateV7toV8(data: SaveData): SaveData {
+  const gameState = data.gameState as GameState & {
+    prestige?: { count: number; legacyPoints: number; totalFoodProduced: number };
+  };
+
+  gameState.prestige = gameState.prestige ?? { count: 0, legacyPoints: 0, totalFoodProduced: 0 };
+
+  return { ...data, version: 8, gameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -185,6 +196,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   4: migrateV4toV5,
   5: migrateV5toV6,
   6: migrateV6toV7,
+  7: migrateV7toV8,
 };
 
 /**

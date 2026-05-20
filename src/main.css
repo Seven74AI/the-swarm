@@ -1148,3 +1148,80 @@ body.phase-space .progress-fill {
     transform: translateY(0);
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   PRESTIGE — Legacy Layer (Phase 5+)
+   ═══════════════════════════════════════════════════════════════ */
+
+.prestige-panel {
+  border-color: #ffd700;
+}
+
+.prestige-panel .panel-title {
+  color: #ffd700;
+}
+
+/* Prestige button — base */
+.btn-prestige {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+  border: 2px solid #666;
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* Greyed-out disabled state */
+.btn-prestige:disabled {
+  border-color: #444;
+  background: rgba(40, 40, 40, 0.4);
+  color: #555;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Glowing ready state — gentle pulse animation */
+@keyframes prestige-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+    border-color: #ffd700;
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(255, 215, 0, 0.6), 0 0 40px rgba(255, 140, 0, 0.2);
+    border-color: #ff8c00;
+  }
+}
+
+.btn-prestige.prestige-ready {
+  border-color: #ffd700;
+  background: linear-gradient(135deg, rgba(40, 30, 0, 0.6), rgba(20, 10, 0, 0.4));
+  color: #ffd700;
+  animation: prestige-pulse 2.5s ease-in-out infinite;
+  cursor: pointer;
+}
+
+.btn-prestige.prestige-ready:hover {
+  background: linear-gradient(135deg, rgba(60, 40, 0, 0.7), rgba(30, 15, 0, 0.5));
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.7);
+}
+
+/* Projected points row */
+.prestige-panel .stat-row.projected {
+  border-top: 1px dashed rgba(255, 215, 0, 0.3);
+  padding-top: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.prestige-panel .stat-row.projected .stat-label {
+  color: rgba(255, 215, 0, 0.6);
+}
+
+.prestige-panel .stat-row.projected .stat-value {
+  color: rgba(255, 215, 0, 0.7);
+}

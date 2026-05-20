@@ -110,6 +110,23 @@ export function bootstrap(): {
     // Get territory bonuses for resource production
     const bonuses = territorySystem.getBonuses(workingState);
     let newState = resourceSystem.tick(workingState, bonuses, dtSec);
+
+    // Track gross food produced for prestige system
+    const workers = workingState.resources.workers;
+    const assigned = workingState.workersAssigned;
+    const gatherCount = assigned.gather;
+    const unassignedCount = workers - gatherCount - assigned.tend - assigned.dig - assigned.guard;
+    const baseFoodProduced = gatherCount * 2 + Math.max(0, unassignedCount) * 1;
+    const territoryFood = Math.floor(workers * (bonuses.food ?? 0));
+    const grossFoodProduced = (baseFoodProduced + territoryFood) * dtSec;
+    newState = {
+      ...newState,
+      prestige: {
+        ...newState.prestige,
+        totalFoodProduced: newState.prestige.totalFoodProduced + grossFoodProduced,
+      },
+    };
+
     newState = soldierSystem.tick(newState);
 
     // Expedition system: tick timers and resolve completed ones
@@ -300,6 +317,23 @@ function processTick(
 
   const bonuses = territorySystem.getBonuses(workingState);
   let newState = resourceSystem.tick(workingState, bonuses, dtSec);
+
+  // Track gross food produced for prestige system
+  const pWorkers = workingState.resources.workers;
+  const pAssigned = workingState.workersAssigned;
+  const pGatherCount = pAssigned.gather;
+  const pUnassignedCount = pWorkers - pGatherCount - pAssigned.tend - pAssigned.dig - pAssigned.guard;
+  const pBaseFoodProduced = pGatherCount * 2 + Math.max(0, pUnassignedCount) * 1;
+  const pTerritoryFood = Math.floor(pWorkers * (bonuses.food ?? 0));
+  const pGrossFoodProduced = (pBaseFoodProduced + pTerritoryFood) * dtSec;
+  newState = {
+    ...newState,
+    prestige: {
+      ...newState.prestige,
+      totalFoodProduced: newState.prestige.totalFoodProduced + pGrossFoodProduced,
+    },
+  };
+
   newState = soldierSystem.tick(newState);
 
   // Tick expedition timers
