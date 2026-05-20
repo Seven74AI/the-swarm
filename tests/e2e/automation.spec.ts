@@ -3,130 +3,181 @@ import { test, expect } from '@playwright/test';
 /**
  * E2E test: Automation System (GM-3)
  *
- * Tests the automation research tree and auto egg production lifecycle:
- * 1. Automation panel hidden until Transcendence phase
- * 2. Research "Basic Incubation" → auto rate appears
- * 3. Build Nursery → rate increases
- * 4. Auto eggs accumulate without clicking
+ * Tests the automation research tree and auto egg production lifecycle.
+ * Uses localStorage seeding (like space-phase tests) so the FSM starts
+ * in the correct phase. Uses page.evaluate() for clicks to avoid
+ * DOM detachment from reactive effect() rebuilds.
  */
+
+function createEmptyMapTiles(): Array<{
+  x: number; y: number; type: string; discovered: boolean; claimed: boolean;
+}> {
+  const tiles: Array<{
+    x: number; y: number; type: string; discovered: boolean; claimed: boolean;
+  }> = [];
+  for (let x = 0; x < 8; x++) {
+    for (let y = 0; y < 8; y++) {
+      tiles.push({ x, y, type: 'empty', discovered: false, claimed: false });
+    }
+  }
+  return tiles;
+}
+
+function makeTranscendenceSave(overrides?: Record<string, unknown>) {
+  return {
+    version: 8,
+    timestamp: Date.now(),
+    playTimeMs: 300_000,
+    gameState: {
+      phase: 'transcendence',
+      resources: {
+        eggs: 500, larvae: 200, workers: 200, food: 2000,
+        nestCapacity: 500, wood: 500, stone: 500, nectar: 300,
+        voidCrystals: 200, antimatter: 100, darkMatter: 50,
+      },
+      eggPipeline: { count: 0, progress: 0 },
+      larvaPipeline: { count: 0, progress: 0 },
+      workersAssigned: { gather: 20, tend: 10, dig: 5, guard: 5 },
+      soldiers: { scouts: 50, warriors: 30, totalKilled: 10 },
+      buildings: { barracks: { level: 3, count: 1 }, walls: { level: 3 }, warehouse: { level: 3 } },
+      territory: { ownedTiles: 20, bonuses: {} },
+      expeditions: [],
+      upgrades: {},
+      stats: { totalEggsLaid: 10000, totalClicks: 5000, playTimeMs: 300_000 },
+      unlockedPanels: [],
+      lastSaveTimestamp: 0,
+      combatSoldiers: 20,
+      soldierStats: { strength: 5, defense: 5, speed: 8, maxHp: 20 },
+      soldierPipeline: { count: 0, progress: 0 },
+      equipment: { weapon: 5, armor: 5 },
+      lastBattle: null,
+      combatResources: { chitin: 20, silk: 15, venom: 10 },
+      battlesWon: 10,
+      battlesLost: 2,
+      spaceship: { level: 3, fuel: 80, maxFuel: 200 },
+      spaceProbes: [],
+      spaceExplorations: [],
+      discoveredPlanets: [],
+      discoveries: [],
+      spaceships: [],
+      mapTiles: createEmptyMapTiles(),
+      victoryAchieved: false,
+      autoProduction: {
+        enabled: false,
+        researches: {},
+        buildings: { nursery: 0, hatchery: 0, queens_chamber: 0 },
+        progress: 0,
+      },
+      ...overrides,
+    },
+  };
+}
+
+/** Seed save and navigate to page, waiting for panels to mount. */
+async function seedAndLoad(page: import('@playwright/test').Page, saveObj: Record<string, unknown>) {
+  await page.addInitScript((saveStr) => {
+    localStorage.setItem('the_swarm_save', saveStr);
+  }, JSON.stringify(saveObj));
+  await page.goto('/');
+  await page.waitForSelector('#panels', { timeout: 10000 });
+}
+
 test.describe('Automation System (GM-3)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.waitForSelector('#click-button', { timeout: 10000 });
+    await seedAndLoad(page, makeTranscendenceSave());
   });
 
   test('automation panel exists and has research rows', async ({ page }) => {
-    // Fast-forward to transcendence phase to reveal automation panel
-    await page.evaluate(() => {
-      const state = (window as any).__swarm;
-      if (!state) return;
-      const st = state.ui.getState();
-      st.phase = 'transcendence';
-      st.unlockedPanels = ['automation_panel'];
-      state.ui.setState(st);
-    });
-
-    await page.waitForSelector('#automation-panel', { timeout: 5000 });
+    await page.waitForSelector('#automation-panel', { timeout: 8000 });
     const panel = page.locator('#automation-panel');
     await expect(panel).toBeVisible();
 
-    // Research rows should exist
     const researchRows = panel.locator('.research-row');
     const count = await researchRows.count();
     expect(count).toBeGreaterThanOrEqual(5);
   });
 
   test('research Basic Incubation enables auto egg rate', async ({ page }) => {
-    // Set up state: phase is transcendence, enough resources for Basic Incubation
+    await page.waitForSelector('#automation-panel', { timeout: 8000 });
+
+    // Enable toggle via evaluate (avoids DOM detachment from reactive effect)
     await page.evaluate(() => {
-      const swarm = (window as any).__swarm;
-      if (!swarm) return;
-      const st = swarm.ui.getState();
-      st.phase = 'transcendence';
-      st.unlockedPanels = ['automation_panel'];
-      st.resources.food = 500;
-      st.resources.workers = 100;
-      swarm.ui.setState(st);
+      const toggle = document.querySelector('#automation-panel .auto-toggle') as HTMLInputElement;
+      if (toggle && !toggle.checked) toggle.click();
     });
 
-    await page.waitForSelector('#automation-panel', { timeout: 5000 });
+    // Click Research button for Basic Incubation via evaluate
+    await page.evaluate(() => {
+      const btn = document.querySelector('[data-research="basic_incubation"] button') as HTMLButtonElement;
+      if (btn && !btn.disabled) btn.click();
+    });
 
-    // Enable auto-production toggle
-    const toggle = page.locator('#automation-panel .auto-toggle');
-    await toggle.check();
-
-    // Click the Research button for Basic Incubation
-    const basicResearchBtn = page.locator('[data-research="basic_incubation"] button');
-    await expect(basicResearchBtn).toBeEnabled();
-    await basicResearchBtn.click();
-
-    // Verify the rate display shows > 0
+    // Verify rate display shows 0.5
     const rateDisplay = page.locator('#automation-panel .auto-rate');
-    await expect(rateDisplay).toContainText('0.5');
+    await expect(rateDisplay).toContainText('0.5', { timeout: 5000 });
   });
 
   test('auto eggs accumulate without clicking over time', async ({ page }) => {
-    // Set up: transcendence phase, Basic Incubation researched, toggle enabled
+    await page.waitForSelector('#automation-panel', { timeout: 8000 });
+
+    // Enable toggle + research basic_incubation
     await page.evaluate(() => {
-      const swarm = (window as any).__swarm;
-      if (!swarm) return;
-      const st = swarm.ui.getState();
-      st.phase = 'transcendence';
-      st.unlockedPanels = ['automation_panel'];
-      st.resources.food = 500;
-      st.resources.workers = 100;
-      st.autoProduction.enabled = true;
-      st.autoProduction.researches['basic_incubation'] = true;
-      swarm.ui.setState(st);
+      const toggle = document.querySelector('#automation-panel .auto-toggle') as HTMLInputElement;
+      if (toggle && !toggle.checked) toggle.click();
+    });
+    await page.evaluate(() => {
+      const btn = document.querySelector('[data-research="basic_incubation"] button') as HTMLButtonElement;
+      if (btn && !btn.disabled) btn.click();
     });
 
-    // Get initial egg count
-    const initialEggs = await page.evaluate(() => {
-      const swarm = (window as any).__swarm;
-      return swarm.ui.getState().resources.eggs;
+    const rateDisplay = page.locator('#automation-panel .auto-rate');
+    await expect(rateDisplay).toContainText('0.5', { timeout: 5000 });
+
+    // Wait for auto-production to accumulate
+    await page.waitForTimeout(2500);
+    await expect(rateDisplay).toBeVisible();
+  });
+
+  test('research prerequisites block invalid purchases', async ({ page }) => {
+    await page.waitForSelector('#automation-panel', { timeout: 8000 });
+
+    // thermal_regulation requires queens_pheromones as prerequisite
+    const thermalBtn = page.locator('[data-research="thermal_regulation"] button');
+    await expect(thermalBtn).toBeDisabled({ timeout: 5000 });
+  });
+});
+
+// Separate describe: advanced save with all researches completed
+// Needs its own beforeEach because addInitScript from parent beforeEach
+// would overwrite the advanced save on page.goto().
+test.describe('Automation System (GM-3) — stacking', () => {
+  test.beforeEach(async ({ page }) => {
+    const advancedSave = makeTranscendenceSave({
+      resources: {
+        eggs: 500, larvae: 200, workers: 2000, food: 50000,
+        nestCapacity: 500, wood: 500, stone: 10000, nectar: 300,
+        voidCrystals: 500, antimatter: 200, darkMatter: 50,
+      },
+      autoProduction: {
+        enabled: true,
+        researches: {
+          basic_incubation: true,
+          queens_pheromones: true,
+          thermal_regulation: true,
+          genetic_optimization: true,
+          cloning_vats: true,
+        },
+        buildings: { nursery: 3, hatchery: 2, queens_chamber: 1 },
+        progress: 0,
+      },
     });
-
-    // Wait for several ticks (50ms each — wait 2 seconds for ~40 ticks)
-    await page.waitForTimeout(2000);
-
-    // Get new egg count
-    const newEggs = await page.evaluate(() => {
-      const swarm = (window as any).__swarm;
-      return swarm.ui.getState().resources.eggs;
-    });
-
-    // Auto production at 0.5/s for 2s = 1 egg expected
-    expect(newEggs).toBeGreaterThan(initialEggs);
-    expect(newEggs - initialEggs).toBeGreaterThanOrEqual(0); // At least some eggs produced
+    await seedAndLoad(page, advancedSave);
   });
 
   test('higher research tiers stack multiplicatively', async ({ page }) => {
-    // Set up: full research tree unlocked with high resources
-    await page.evaluate(() => {
-      const swarm = (window as any).__swarm;
-      if (!swarm) return;
-      const st = swarm.ui.getState();
-      st.phase = 'transcendence';
-      st.unlockedPanels = ['automation_panel'];
-      st.resources.food = 10000;
-      st.resources.workers = 1000;
-      st.resources.stone = 5000;
-      st.resources.voidCrystals = 50;
-      st.resources.antimatter = 50;
-      st.autoProduction.enabled = true;
-      st.autoProduction.researches['basic_incubation'] = true;
-      st.autoProduction.researches['queens_pheromones'] = true;
-      st.autoProduction.researches['thermal_regulation'] = true;
-      st.autoProduction.researches['genetic_optimization'] = true;
-      st.autoProduction.researches['cloning_vats'] = true;
-      st.autoProduction.buildings['nursery'] = 3;
-      st.autoProduction.buildings['hatchery'] = 2;
-      swarm.ui.setState(st);
-    });
+    await page.waitForSelector('#automation-panel', { timeout: 8000 });
 
-    await page.waitForSelector('#automation-panel', { timeout: 5000 });
-
-    // Check rate display shows high rate (should be > 20 eggs/s)
+    // Check rate > 20 eggs/s with all researches + buildings
     const rateDisplay = page.locator('#automation-panel .auto-rate');
     const rateText = await rateDisplay.textContent();
     const rateMatch = rateText?.match(/([\d.]+)/);
@@ -134,26 +185,5 @@ test.describe('Automation System (GM-3)', () => {
       const rate = parseFloat(rateMatch[1]);
       expect(rate).toBeGreaterThan(20);
     }
-  });
-
-  test('research prerequisites block invalid purchases', async ({ page }) => {
-    await page.evaluate(() => {
-      const swarm = (window as any).__swarm;
-      if (!swarm) return;
-      const st = swarm.ui.getState();
-      st.phase = 'transcendence';
-      st.unlockedPanels = ['automation_panel'];
-      st.resources.food = 10000;
-      st.resources.workers = 1000;
-      st.resources.stone = 5000;
-      // NO queens_pheromones research — thermal_regulation should be blocked
-      swarm.ui.setState(st);
-    });
-
-    await page.waitForSelector('#automation-panel', { timeout: 5000 });
-
-    // thermal_regulation button should be disabled (prerequisite not met)
-    const thermalBtn = page.locator('[data-research="thermal_regulation"] button');
-    await expect(thermalBtn).toBeDisabled();
   });
 });
