@@ -1,16 +1,22 @@
 import { test, expect } from '@playwright/test';
 
-test('click egg button increments counter', async ({ page }) => {
+test('click egg button increments counter and spawns particle', async ({ page }) => {
   await page.goto('/');
   // Verify initial egg count is 0
   const eggDisplay = page.locator('[data-stat="resources.eggs"]');
   await expect(eggDisplay).toHaveText('🥚 Eggs: 0');
+
+  // No particles before click
+  await expect(page.locator('.click-particle')).toHaveCount(0);
 
   // Click the egg button
   await page.locator('#click-egg').click();
 
   // Verify count changed
   await expect(eggDisplay).not.toHaveText('🥚 Eggs: 0');
+
+  // At least one floating particle spawned
+  await expect(page.locator('.click-particle')).toHaveCount(1);
 });
 
 test('phase indicator shows initial phase', async ({ page }) => {

@@ -52,6 +52,29 @@ export class ClickButton {
     this.setState(newState);
     this.bus.emit('click:egg', {});
     this.saveManager.save(newState, newState.stats.playTimeMs);
+    this.spawnClickParticle();
+  }
+
+  /** Spawn a floating "+1 🥚" particle near the click button */
+  private spawnClickParticle(): void {
+    const particle = document.createElement('span');
+    particle.className = 'click-particle';
+    particle.textContent = '+1 🥚';
+
+    // Random horizontal offset for variety
+    const xOffset = (Math.random() - 0.5) * 60;
+    particle.style.setProperty('--click-offset-x', `${xOffset}px`);
+
+    particle.addEventListener('animationend', () => {
+      particle.remove();
+    }, { once: true });
+
+    // Safety: force-remove after animation duration + buffer
+    setTimeout(() => {
+      if (particle.isConnected) particle.remove();
+    }, 2000);
+
+    this.container.appendChild(particle);
   }
 
   private updateCounter(clicks: number): void {

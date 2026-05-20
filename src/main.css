@@ -232,6 +232,36 @@ html, body {
   }
 }
 
+/* ── Click Particle ── */
+.click-particle {
+  position: absolute;
+  top: 50%;
+  left: calc(50% + var(--click-offset-x, 0px));
+  color: var(--accent-glow);
+  font-weight: bold;
+  font-size: 1rem;
+  pointer-events: none;
+  z-index: 10;
+  white-space: nowrap;
+  text-shadow: 0 0 6px var(--accent-glow);
+  animation: click-particle-float 900ms ease-out forwards;
+}
+
+@keyframes click-particle-float {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, calc(-50% - 10px)) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% - 60px)) scale(0.6);
+  }
+}
+
 /* ── Progress Bar ── */
 .progress-bar {
   width: 100%;

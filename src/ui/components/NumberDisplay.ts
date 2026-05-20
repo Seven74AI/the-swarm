@@ -7,6 +7,65 @@ const MAX_PARTICLES = 8;
 /** Hard cap on total particle elements to prevent memory leaks */
 const MAX_TOTAL_PARTICLES = 16;
 
+/** Default tween duration in milliseconds */
+const ANIMATION_DURATION = 300;
+
+/** Map from element to active animation ID for cancellation */
+const activeAnimations = new WeakMap<HTMLElement, number>();
+
+/**
+ * Interpolate an element's textContent from one numeric value to another
+ * over ~300ms using requestAnimationFrame.
+ * Cancels any previous animation on the same element.
+ *
+ * @param el           Element whose textContent will be animated.
+ * @param from         Starting numeric value.
+ * @param to           Target numeric value.
+ * @param formatFn     Optional formatter — defaults to rounding.
+ */
+export function animateValue(
+  el: HTMLElement,
+  from: number,
+  to: number,
+  formatFn: (n: number) => string = (n: number) => String(Math.round(n)),
+): void {
+  // Cancel any previous animation on this element
+  const existing = activeAnimations.get(el);
+  if (existing !== undefined) {
+    cancelAnimationFrame(existing);
+  }
+
+  if (from === to) {
+    el.textContent = formatFn(to);
+    return;
+  }
+
+  const startTime = Date.now();
+  const duration = ANIMATION_DURATION;
+
+  function step(): void {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // Ease-out quad for smooth deceleration
+    const eased = 1 - (1 - progress) * (1 - progress);
+    const current = from + (to - from) * eased;
+
+    el.textContent = formatFn(current);
+
+    if (progress < 1) {
+      const id = requestAnimationFrame(step);
+      activeAnimations.set(el, id);
+    } else {
+      // Ensure exact final value
+      el.textContent = formatFn(to);
+      activeAnimations.delete(el);
+    }
+  }
+
+  const id = requestAnimationFrame(step);
+  activeAnimations.set(el, id);
+}
+
 /**
  * Displays a single numeric value with a label.
  * Uses @preact/signals-core effect() for automatic, granular updates.
@@ -50,7 +109,13 @@ export class NumberDisplay {
   }
 
   private renderText(value: number): void {
-    this.textEl.textContent = `${this.label}: ${formatNumber(value)}`;
+    // Use tween animation for visual smoothness
+    animateValue(
+      this.textEl,
+      this.prevValue,
+      value,
+      (n: number) => `${this.label}: ${formatNumber(n)}`,
+    );
   }
 
   /** Clean up orphaned particle elements (safety net) */
