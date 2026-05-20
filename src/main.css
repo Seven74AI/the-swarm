@@ -311,6 +311,37 @@ html, body {
 }
 
 /* ── Worker Assignment Panel ── */
+.worker-assignment-panel .worker-hint {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+  font-style: italic;
+}
+
+.worker-role-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.worker-role-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.worker-role-label {
+  font-weight: bold;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.worker-role-desc {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
 .worker-assignment-panel .role-controls {
   display: flex;
   gap: 0.5rem;
@@ -331,6 +362,26 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.worker-summary {
+  margin-top: 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.worker-summary-value {
+  font-weight: bold;
+}
+
+.worker-summary-value.food-positive {
+  color: var(--success);
+}
+
+.worker-summary-value.food-negative {
+  color: var(--danger);
 }
 
 .panel-unlocked {
