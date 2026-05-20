@@ -95,7 +95,7 @@ function migrateV2toV3(data: SaveData): SaveData {
   };
 }
 
-/** v3 → v4: adds spaceship, spaceProbes, and discoveries for the SPACE phase UI */
+/** v5 → v6: adds spaceship, spaceProbes, and discoveries for the SPACE phase UI */
 function migrateV5toV6(data: SaveData): SaveData {
   const gameState = data.gameState as GameState & {
     spaceship?: { level: number; fuel: number; maxFuel: number };

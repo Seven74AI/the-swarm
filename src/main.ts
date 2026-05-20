@@ -30,6 +30,8 @@ import type { GameState } from './state/GameState';
  * - Each tick: ResourceSystem.tick → PhaseStateMachine.tick → write signal
  * - Autosave every 30 seconds
  * - PhaseContent manages which panels are active
+ * - Fixed 50ms timestep with rAF-based delta accumulator
+ * - Offline progress: accelerated catch-up on load (capped at 8 hours)
  */
 export function bootstrap(): {
   bus: EventBus;
@@ -53,16 +55,50 @@ export function bootstrap(): {
 
   // Try to load saved state
   const saved = saveManager.load();
+  let offlineMessage: string | null = null;
+
   if (saved) {
     gameState.value = saved.gameState;
+
+    // #20 Offline progress: compute elapsed wall-clock time and run catch-up
+    const saveTimestamp = saved.gameState.lastSaveTimestamp || saved.timestamp || 0;
+    const now = Date.now();
+    const offlineMs = now - saveTimestamp;
+
+    if (offlineMs > 1000 && saveTimestamp > 0) {
+      const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000; // 8 hours
+      const cappedMs = Math.min(offlineMs, OFFLINE_CAP_MS);
+
+      // Run accelerated catch-up: simulate ticks for the elapsed time
+      const dtSec = 50 / 1000; // 50ms per tick
+      const totalTicks = Math.floor(cappedMs / 50);
+      let catchUpState = gameState.value;
+
+      for (let i = 0; i < totalTicks; i++) {
+        catchUpState = processTick(catchUpState, resourceSystem, soldierSystem, mapSystem, territorySystem, bus, dtSec);
+      }
+
+      gameState.value = catchUpState;
+
+      const hoursOffline = Math.round((offlineMs / (1000 * 60 * 60)) * 10) / 10;
+      if (hoursOffline >= 0.1) {
+        offlineMessage = `Welcome back! ${hoursOffline} hour${hoursOffline === 1 ? '' : 's'} of progress simulated.`;
+      } else {
+        const minsOffline = Math.round(offlineMs / (1000 * 60));
+        offlineMessage = `Welcome back! ${minsOffline} minute${minsOffline === 1 ? '' : 's'} of progress simulated.`;
+      }
+
+      // Emit event so UI can show the message
+      bus.emit('offline_progress', { offlineMs: cappedMs, totalTicks, message: offlineMessage });
+    }
   }
 
   // Initialize PhaseStateMachine from current state
   const currentPhase = (gameState.value.phase as Phase) ?? Phase.EGG_LAYING;
   const fsm = new PhaseStateMachine(currentPhase, TRANSITIONS);
 
-  // Wire resource ticking into the game loop
-  ticker.onTick(() => {
+  // Wire resource ticking into the game loop (dtSec = 0.05 for 50ms ticks)
+  ticker.onTick((dtSec: number) => {
     const state = gameState.value;
 
     // Generate map if tiles are all empty (first tick)
@@ -73,7 +109,7 @@ export function bootstrap(): {
 
     // Get territory bonuses for resource production
     const bonuses = territorySystem.getBonuses(workingState);
-    let newState = resourceSystem.tick(workingState, bonuses);
+    let newState = resourceSystem.tick(workingState, bonuses, dtSec);
     newState = soldierSystem.tick(newState);
 
     // Expedition system: tick timers and resolve completed ones
@@ -162,12 +198,12 @@ export function bootstrap(): {
       }
     }
 
-    // Advance playTimeMs (1 tick = 1 second)
+    // Advance playTimeMs by dt in ms (dtSec * 1000)
     newState = {
       ...newState,
       stats: {
         ...newState.stats,
-        playTimeMs: newState.stats.playTimeMs + 1000,
+        playTimeMs: newState.stats.playTimeMs + (dtSec * 1000),
       },
     };
 
@@ -176,11 +212,11 @@ export function bootstrap(): {
 
     // Check phase transitions
     const updated = gameState.value;
-    const newPhase = fsm.tick(updated, bus);
-    if (newPhase !== updated.phase) {
+    const tickResult = fsm.tick(updated, bus);
+    if (tickResult.phase !== updated.phase) {
       gameState.value = {
-        ...updated,
-        phase: newPhase,
+        ...tickResult.state,
+        phase: tickResult.phase,
       };
     }
   });
@@ -211,6 +247,11 @@ export function bootstrap(): {
     phaseContent.triggerTransition(phase, bus, ui);
   });
 
+  // If we have an offline message, show it after UI is mounted
+  if (offlineMessage && ui) {
+    bus.emit('offline_progress', { offlineMs: 0, totalTicks: 0, message: offlineMessage });
+  }
+
   // Start autosave
   saveManager.startAutosave(() => ({
     state: gameState.value,
@@ -228,6 +269,66 @@ export function bootstrap(): {
   loop.start();
 
   return { bus, ticker, loop, resourceSystem, saveManager, fsm, ui };
+}
+
+/**
+ * Process a single tick for offline catch-up simulation.
+ * Extracted so it can be reused by the main tick loop and offline processing.
+ */
+function processTick(
+  state: GameState,
+  resourceSystem: ResourceSystem,
+  soldierSystem: SoldierSystem,
+  mapSystem: MapSystem,
+  territorySystem: TerritorySystem,
+  bus: EventBus,
+  dtSec: number,
+): GameState {
+  let workingState = state;
+
+  // Generate map if tiles are all empty
+  if (state.mapTiles.length > 0 && state.mapTiles.every((t) => t.type === 'empty' && !t.discovered)) {
+    workingState = mapSystem.generateMap(workingState);
+  }
+
+  const bonuses = territorySystem.getBonuses(workingState);
+  let newState = resourceSystem.tick(workingState, bonuses, dtSec);
+  newState = soldierSystem.tick(newState);
+
+  // Tick expedition timers
+  newState = tickExpeditions(newState);
+  for (const exp of newState.expeditions) {
+    if (exp.ticksRemaining <= 0) {
+      newState = resolveExpedition(newState, exp);
+    }
+  }
+
+  // Tick space exploration timers
+  newState = tickExplorations(newState);
+  for (const exp of newState.spaceExplorations) {
+    if (exp.ticksRemaining <= 0) {
+      newState = resolveExploration(newState, exp);
+    }
+  }
+
+  // Tick spaceship missions
+  newState = tickMissions(newState);
+  for (const ship of newState.spaceships) {
+    if (ship.status === 'returning') {
+      newState = resolveMission(ship.id, newState);
+    }
+  }
+
+  // Advance playTimeMs
+  newState = {
+    ...newState,
+    stats: {
+      ...newState.stats,
+      playTimeMs: newState.stats.playTimeMs + (dtSec * 1000),
+    },
+  };
+
+  return newState;
 }
 
 // Auto-bootstrap when loaded in browser.

@@ -3,20 +3,7 @@ import { gameState } from '../../state/gameSignal';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import { formatNumber } from '../../utils/format';
-
-interface Planet {
-  name: string;
-  icon: string;
-  type: string;
-  yields: string;
-}
-
-const PLANETS: Planet[] = [
-  { name: 'MARS', icon: '🪨', type: 'Rocky', yields: 'Antimatter' },
-  { name: 'SATURN', icon: '🪐', type: 'Gas', yields: 'Dark Matter' },
-  { name: 'EUROPA', icon: '🧊', type: 'Ice', yields: 'Void Crystals' },
-  { name: 'KEPLER-442B', icon: '🌍', type: 'Habitable', yields: 'Food + Crystals' },
-];
+import { PLANETS } from '../../data/planets';
 
 const MAX_PROBES = 3;
 
@@ -74,7 +61,7 @@ export class ExplorationPanel {
       card.className = 'expedition-card';
       card.innerHTML = `<div class="expedition-card-icon">${planet.icon}</div>
         <div class="expedition-card-name">${planet.name}</div>
-        <div class="expedition-card-type">${planet.type}</div>
+        <div class="expedition-card-type">${planet.type.charAt(0).toUpperCase() + planet.type.slice(1)}</div>
         <div class="expedition-card-loot">${planet.yields}</div>`;
 
       const btn = document.createElement('button');

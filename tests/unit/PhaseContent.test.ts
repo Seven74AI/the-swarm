@@ -19,14 +19,14 @@ describe('PhaseContent', () => {
       expect(panels).toContain('resource_panel');
     });
 
-    it('returns colony panels (includes worker_assignment and food)', () => {
+    it('returns colony panels (includes worker_assignment)', () => {
       const panels = phaseContent.getActivePanels(Phase.COLONY);
       expect(panels).toContain('click_button');
       expect(panels).toContain('event_log');
       expect(panels).toContain('phase_indicator');
       expect(panels).toContain('resource_panel');
       expect(panels).toContain('worker_assignment');
-      expect(panels).toContain('food_display');
+      // food_display was a phantom panel (never existed) — removed in #17
     });
 
     it('colon phase has more panels than egg_laying', () => {
@@ -42,10 +42,8 @@ describe('PhaseContent', () => {
       expect(panels).toContain('phase_indicator');
       expect(panels).toContain('resource_panel');
       expect(panels).toContain('worker_assignment');
-      expect(panels).toContain('food_display');
       expect(panels).toContain('soldier_panel');
       expect(panels).toContain('battle_panel');
-      expect(panels).toContain('combat_log');
       expect(panels).toContain('map_panel');
       expect(panels).toContain('building_panel');
       expect(panels).toContain('expedition_panel');
@@ -59,25 +57,19 @@ describe('PhaseContent', () => {
 
     it('space phase includes expansion panels plus space-specific ones', () => {
       const panels = phaseContent.getActivePanels(Phase.SPACE);
-      // Inherits all expansion panels
       expect(panels).toContain('click_button');
       expect(panels).toContain('event_log');
       expect(panels).toContain('phase_indicator');
       expect(panels).toContain('resource_panel');
       expect(panels).toContain('worker_assignment');
-      expect(panels).toContain('food_display');
       expect(panels).toContain('soldier_panel');
       expect(panels).toContain('battle_panel');
-      expect(panels).toContain('combat_log');
       expect(panels).toContain('map_panel');
       expect(panels).toContain('building_panel');
       expect(panels).toContain('expedition_panel');
-      // Space-specific panels
       expect(panels).toContain('spaceship_panel');
       expect(panels).toContain('exploration_panel');
-      expect(panels).toContain('cosmic_panel');
-      expect(panels).toContain('starmap_panel');
-      expect(panels).toContain('resource_converter_panel');
+      // cosmic_panel was a phantom panel (never existed) — removed in #17
     });
 
     it('space phase has more panels than expansion', () => {
@@ -86,36 +78,27 @@ describe('PhaseContent', () => {
       expect(spacePanels.length).toBeGreaterThan(expansionPanels.length);
     });
 
-    it('transcendence phase includes space panels plus transcendence_panel', () => {
+    it('transcendence phase includes same panels as space', () => {
       const panels = phaseContent.getActivePanels(Phase.TRANSCENDENCE);
-      // Inherits all space panels
       expect(panels).toContain('click_button');
       expect(panels).toContain('event_log');
       expect(panels).toContain('phase_indicator');
       expect(panels).toContain('resource_panel');
       expect(panels).toContain('worker_assignment');
-      expect(panels).toContain('food_display');
       expect(panels).toContain('soldier_panel');
       expect(panels).toContain('battle_panel');
-      expect(panels).toContain('combat_log');
       expect(panels).toContain('map_panel');
       expect(panels).toContain('building_panel');
       expect(panels).toContain('expedition_panel');
       expect(panels).toContain('spaceship_panel');
       expect(panels).toContain('exploration_panel');
-      expect(panels).toContain('cosmic_panel');
-      expect(panels).toContain('starmap_panel');
-      expect(panels).toContain('resource_converter_panel');
-      // Transcendence-specific panels
-      expect(panels).toContain('transcendence_panel');
-      expect(panels).toContain('tech_tree_panel');
-      expect(panels).toContain('automation_panel');
+      // transcendence_panel was a phantom panel (never existed) — removed in #17
     });
 
-    it('transcendence phase has more panels than space', () => {
+    it('transcendence phase has same panels as space', () => {
       const spacePanels = phaseContent.getActivePanels(Phase.SPACE);
       const transcendencePanels = phaseContent.getActivePanels(Phase.TRANSCENDENCE);
-      expect(transcendencePanels.length).toBeGreaterThan(spacePanels.length);
+      expect(transcendencePanels.length).toBe(spacePanels.length);
     });
   });
 
@@ -172,12 +155,12 @@ describe('PhaseContent', () => {
 
   describe('triggerTransition', () => {
     let bus: EventBus;
-    let uiRoot: { showPanel: ReturnType<typeof vi.fn>; createPanel: ReturnType<typeof vi.fn> };
+    let uiRoot: { showPanel: ReturnType<typeof vi.fn> };
 
     beforeEach(() => {
       vi.useFakeTimers();
       bus = new EventBus();
-      uiRoot = { showPanel: vi.fn(), createPanel: vi.fn() };
+      uiRoot = { showPanel: vi.fn() };
     });
 
     afterEach(() => {
@@ -203,12 +186,8 @@ describe('PhaseContent', () => {
 
       phaseContent.triggerTransition(Phase.COLONY, bus, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot);
 
-      // transition_complete should NOT fire immediately
       expect(events).toHaveLength(0);
-
-      // Advance past the 2000ms delay
       vi.advanceTimersByTime(2000);
-
       expect(events).toHaveLength(1);
       const payload = events[0] as { phase: string };
       expect(payload.phase).toBe(Phase.COLONY);
@@ -221,36 +200,9 @@ describe('PhaseContent', () => {
       phaseContent.triggerTransition(Phase.SPACE, bus, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot);
 
       vi.advanceTimersByTime(2000);
-
       expect(events).toHaveLength(1);
       const payload = events[0] as { phase: string };
       expect(payload.phase).toBe(Phase.SPACE);
-    });
-
-    it('calls createPanel for all active panels during phase enter', () => {
-      phaseContent.triggerTransition(Phase.SPACE, bus, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot);
-
-      // Advance past the 300ms reveal delay
-      vi.advanceTimersByTime(300);
-
-      // createPanel should be called for every SPACE-phase panel
-      expect(uiRoot.createPanel).toHaveBeenCalled();
-      const calledIds = uiRoot.createPanel.mock.calls.map((c: string[]) => c[0]);
-      // Verify key lazy-loaded panels are among the created ones
-      expect(calledIds).toContain('spaceship_panel');
-      expect(calledIds).toContain('starmap_panel');
-      expect(calledIds).toContain('resource_converter_panel');
-    });
-
-    it('createPanel is called before showPanel for each panel', () => {
-      phaseContent.triggerTransition(Phase.SPACE, bus, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot);
-
-      vi.advanceTimersByTime(300);
-
-      // verify createPanel was called at least as many times as showPanel
-      expect(uiRoot.createPanel.mock.calls.length).toBeGreaterThanOrEqual(
-        uiRoot.showPanel.mock.calls.length,
-      );
     });
   });
 });

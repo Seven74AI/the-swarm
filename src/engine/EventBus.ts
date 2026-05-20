@@ -34,6 +34,9 @@ export class EventBus<T extends Record<string, unknown> = SwarmEvents> {
           cb(payload);
         } catch (e) {
           // Error isolation: one failing callback must not prevent others
+          if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
+            console.error('EventBus: callback error for event', event, e);
+          }
         }
       }
     }

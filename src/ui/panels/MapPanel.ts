@@ -62,8 +62,8 @@ export class MapPanel {
       const rect = this.canvas.getBoundingClientRect();
       const scaleX = this.canvas.width / rect.width;
       const scaleY = this.canvas.height / rect.height;
-      const mx = (e.clientX - rect.left) * scaleX;
-      const my = (e.clientY - rect.top) * scaleY;
+      const mx = e.offsetX * scaleX;
+      const my = e.offsetY * scaleY;
 
       const tileSize = this.canvas.width / GRID;
       const tx = Math.floor(mx / tileSize);

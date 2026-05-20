@@ -4,8 +4,8 @@ import {
   tickExplorations,
   resolveExploration,
   MAX_ACTIVE_EXPLORATIONS,
-  PLANETS,
 } from '../../src/systems/ExplorationSystem';
+import { PLANETS } from '../../src/data/planets';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 
 describe('ExplorationSystem', () => {
@@ -13,7 +13,6 @@ describe('ExplorationSystem', () => {
 
   beforeEach(() => {
     state = createInitialState();
-    // Ensure spaceExplorations and discoveredPlanets are initialized
     state.spaceExplorations = [];
     state.discoveredPlanets = [];
   });
@@ -96,7 +95,6 @@ describe('ExplorationSystem', () => {
 
       const result = resolveExploration(state, exp);
       expect(result.spaceExplorations).toHaveLength(0);
-      // EUROPA is ice -> voidCrystals reward
       expect(result.resources.voidCrystals).toBeGreaterThan(0);
     });
 
@@ -108,7 +106,6 @@ describe('ExplorationSystem', () => {
       state.resources.darkMatter = 0;
 
       const result = resolveExploration(state, exp);
-      // MARS is rocky -> antimatter reward
       expect(result.resources.antimatter).toBeGreaterThan(0);
     });
 
@@ -120,7 +117,6 @@ describe('ExplorationSystem', () => {
       state.resources.darkMatter = 0;
 
       const result = resolveExploration(state, exp);
-      // SATURN is gas -> darkMatter reward
       expect(result.resources.darkMatter).toBeGreaterThan(0);
     });
 
@@ -131,7 +127,6 @@ describe('ExplorationSystem', () => {
       state.resources.food = 0;
 
       const result = resolveExploration(state, exp);
-      // HABITABLE -> food + voidCrystals
       expect(result.resources.food).toBeGreaterThan(0);
       expect(result.resources.voidCrystals).toBeGreaterThan(0);
     });
@@ -157,7 +152,6 @@ describe('ExplorationSystem', () => {
         if (hasLoot) successes++;
         else failures++;
       }
-      // At 0.9 risk, should have some failures
       expect(failures).toBeGreaterThan(0);
       expect(failures + successes).toBe(20);
     });
@@ -176,7 +170,6 @@ describe('ExplorationSystem', () => {
       state.resources.food = 0;
 
       const result = resolveExploration(state, exp);
-      // Should have some loot (partial success), but less than full
       expect(result.resources.antimatter).toBeGreaterThan(0);
       vi.restoreAllMocks();
     });
@@ -195,7 +188,6 @@ describe('ExplorationSystem', () => {
         const result = resolveExploration(testState, testState.spaceExplorations[0]);
         if (result.resources.voidCrystals > 0) anomalyCount++;
       }
-      // At 5% anomaly rate, expect at least 1 in 100 tries (very high probability)
       expect(anomalyCount).toBeGreaterThan(0);
     });
   });

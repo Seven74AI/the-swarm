@@ -63,7 +63,6 @@ describe('TerritorySystem', () => {
     it('cannot claim non-adjacent tile', () => {
       setupHomeTile();
       state.mapTiles[9] = { x: 1, y: 1, type: TileType.FOREST, discovered: true, claimed: false };
-      // (1,1) is adjacent to (0,0) ✓ ✓, but let's test (2,2)
       state.mapTiles[18] = { x: 2, y: 2, type: TileType.MEADOW, discovered: true, claimed: false };
       expect(territory.claimTile(2, 2, state)).toBe(false);
     });
@@ -80,16 +79,17 @@ describe('TerritorySystem', () => {
   describe('getBonuses', () => {
     it('returns zero bonuses when no tiles claimed', () => {
       const bonuses = territory.getBonuses(state);
-      expect(bonuses.food).toBe(0);
+      expect(bonuses.wood).toBe(0);
       expect(bonuses.stone).toBe(0);
       expect(bonuses.nectar).toBe(0);
     });
 
-    it('claimed tiles produce positive bonuses', () => {
+    it('claimed FOREST tiles produce wood bonus (#8 fix)', () => {
       state.mapTiles[0] = { x: 0, y: 0, type: TileType.FOREST, discovered: true, claimed: true };
       state.territory.ownedTiles = 1;
       const bonuses = territory.getBonuses(state);
-      expect(bonuses.food).toBeGreaterThan(0);
+      // FOREST now produces wood, not food
+      expect(bonuses.wood).toBeGreaterThan(0);
     });
 
     it('multiple tiles of same type accumulate', () => {
@@ -97,7 +97,6 @@ describe('TerritorySystem', () => {
       state.mapTiles[8] = { x: 0, y: 1, type: TileType.MOUNTAIN, discovered: true, claimed: true };
       state.territory.ownedTiles = 2;
       const bonuses = territory.getBonuses(state);
-      // Two mountains should give more stone than one
       expect(bonuses.stone).toBeGreaterThan(0);
     });
 
@@ -106,8 +105,8 @@ describe('TerritorySystem', () => {
       state.mapTiles[8] = { x: 0, y: 1, type: TileType.FOREST, discovered: true, claimed: false };
       state.territory.ownedTiles = 1;
       const bonuses = territory.getBonuses(state);
-      // Only the claimed tile should count
-      expect(bonuses.food).toBeGreaterThan(0);
+      // Only the claimed tile's bonus counts
+      expect(bonuses.wood).toBeGreaterThan(0);
     });
 
     it('different tile types produce different resources', () => {
@@ -123,7 +122,7 @@ describe('TerritorySystem', () => {
       state.mapTiles[0] = { x: 0, y: 0, type: TileType.EMPTY, discovered: true, claimed: true };
       state.territory.ownedTiles = 1;
       const bonuses = territory.getBonuses(state);
-      expect(bonuses.food).toBe(0);
+      expect(bonuses.wood).toBe(0);
       expect(bonuses.stone).toBe(0);
       expect(bonuses.nectar).toBe(0);
     });

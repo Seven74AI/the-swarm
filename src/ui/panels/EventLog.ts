@@ -27,6 +27,9 @@ export class EventLog {
   private expansionUnlockedFired = false;
   private spaceUnlockedFired = false;
 
+  /** Stored callback references for unsubscribe. */
+  private unsubscribeHandles: Array<() => void> = [];
+
   constructor(private bus: EventBus) {
     this.container = document.createElement('div');
     this.container.className = 'panel event-log';
@@ -44,34 +47,61 @@ export class EventLog {
     this.addEntry('You are an ant queen. Your purpose is clear.');
 
     // Listen for events (milestone-based, no spam)
-    bus.subscribe('click:egg', () => this.onClick());
-    bus.subscribe('workers_changed', () => this.onWorkersChanged());
-    bus.subscribe('soldiers_changed', (payload: unknown) => {
+    const onClickCb = () => this.onClick();
+    bus.subscribe('click:egg', onClickCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('click:egg', onClickCb));
+
+    const onWorkersCb = () => this.onWorkersChanged();
+    bus.subscribe('workers_changed', onWorkersCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('workers_changed', onWorkersCb));
+
+    const onSoldiersCb = (payload: unknown) => {
       const p = payload as { soldiers: number };
       if (p.soldiers > 0) this.onSoldiersChanged(p.soldiers);
-    });
-    bus.subscribe('weapon_upgraded', () => this.onWeaponUpgraded());
-    bus.subscribe('armor_upgraded', () => this.onArmorUpgraded());
-    bus.subscribe('enemy_scouted', (payload: unknown) => {
+    };
+    bus.subscribe('soldiers_changed', onSoldiersCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('soldiers_changed', onSoldiersCb));
+
+    const onWeaponCb = () => this.onWeaponUpgraded();
+    bus.subscribe('weapon_upgraded', onWeaponCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('weapon_upgraded', onWeaponCb));
+
+    const onArmorCb = () => this.onArmorUpgraded();
+    bus.subscribe('armor_upgraded', onArmorCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('armor_upgraded', onArmorCb));
+
+    const onScoutCb = (payload: unknown) => {
       const p = payload as { enemyType: string; enemyName: string };
       this.addEntry(`Scouts report a ${p.enemyName} in the territory.`);
-    });
-    bus.subscribe('battle_engage', (payload: unknown) => {
+    };
+    bus.subscribe('enemy_scouted', onScoutCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('enemy_scouted', onScoutCb));
+
+    const onEngageCb = (payload: unknown) => {
       const p = payload as { enemyType: string };
       this.addEntry(`The soldiers march to meet the ${p.enemyType}.`);
-    });
-    bus.subscribe('battle_completed', (payload: unknown) => {
+    };
+    bus.subscribe('battle_engage', onEngageCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('battle_engage', onEngageCb));
+
+    const onBattleDoneCb = (payload: unknown) => {
       const p = payload as { narrative: string };
       this.addEntry(p.narrative || 'The battle is over.');
-    });
-    bus.subscribe('expedition_launch', (payload: unknown) => {
+    };
+    bus.subscribe('battle_completed', onBattleDoneCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('battle_completed', onBattleDoneCb));
+
+    const onExpeditionLaunchCb = (payload: unknown) => {
       const p = payload as { scouts: number; warriors: number; destination: string };
       const party = [];
       if (p.scouts > 0) party.push(`${p.scouts} scout${p.scouts > 1 ? 's' : ''}`);
       if (p.warriors > 0) party.push(`${p.warriors} warrior${p.warriors > 1 ? 's' : ''}`);
       this.addEntry(`An expedition departs for ${p.destination} — ${party.join(' and ')} march into the unknown.`);
-    });
-    bus.subscribe('expedition_return', (payload: unknown) => {
+    };
+    bus.subscribe('expedition_launch', onExpeditionLaunchCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('expedition_launch', onExpeditionLaunchCb));
+
+    const onExpeditionReturnCb = (payload: unknown) => {
       const p = payload as Record<string, unknown>;
       const dest = p.destination as string;
       const result = p.result as string;
@@ -102,26 +132,48 @@ export class EventLog {
       } else {
         this.addEntry(`The expedition to ${dest} has been lost. No one returned. The colony mourns.`);
       }
-    });
-    bus.subscribe('building_complete', (payload: unknown) => {
+    };
+    bus.subscribe('expedition_return', onExpeditionReturnCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('expedition_return', onExpeditionReturnCb));
+
+    const onBuildingCb = (payload: unknown) => {
       const p = payload as { building: string; level: number };
       const label = p.building.charAt(0).toUpperCase() + p.building.slice(1);
       this.addEntry(`${label} upgraded to level ${p.level}. The colony grows stronger.`);
-    });
-    bus.subscribe('soldier_recruited', (payload: unknown) => {
+    };
+    bus.subscribe('building_complete', onBuildingCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('building_complete', onBuildingCb));
+
+    const onRecruitCb = (payload: unknown) => {
       const p = payload as { type: string; count: number };
       if (p.count > 0) {
         this.addEntry(`${p.count} soldier${p.count > 1 ? 's' : ''} completed training and joined the swarm.`);
       }
-    });
-    bus.subscribe('phase_changed', (payload: unknown) => {
+    };
+    bus.subscribe('soldier_recruited', onRecruitCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('soldier_recruited', onRecruitCb));
+
+    const onPhaseCb = (payload: unknown) => {
       const p = payload as { phase: string };
       this.onPhaseChanged(p.phase);
-    });
-    bus.subscribe('panel_revealed', (payload: unknown) => {
+    };
+    bus.subscribe('phase_changed', onPhaseCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('phase_changed', onPhaseCb));
+
+    const onPanelCb = (payload: unknown) => {
       const p = payload as { panelId: string };
       this.onPanelRevealed(p.panelId);
-    });
+    };
+    bus.subscribe('panel_revealed', onPanelCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('panel_revealed', onPanelCb));
+  }
+
+  /** Unsubscribe from all events. Call before discarding this EventLog. */
+  destroy(): void {
+    for (const unsub of this.unsubscribeHandles) {
+      unsub();
+    }
+    this.unsubscribeHandles = [];
   }
 
   private addEntry(message: string): void {

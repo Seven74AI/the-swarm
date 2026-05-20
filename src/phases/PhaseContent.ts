@@ -41,7 +41,6 @@ const PHASE_PANELS: Record<string, string[]> = {
     'phase_indicator',
     'resource_panel',
     'worker_assignment',
-    'food_display',
   ],
   [Phase.COMBAT]: [
     'click_button',
@@ -49,10 +48,8 @@ const PHASE_PANELS: Record<string, string[]> = {
     'phase_indicator',
     'resource_panel',
     'worker_assignment',
-    'food_display',
     'soldier_panel',
     'battle_panel',
-    'combat_log',
   ],
   [Phase.EXPANSION]: [
     'click_button',
@@ -60,10 +57,8 @@ const PHASE_PANELS: Record<string, string[]> = {
     'phase_indicator',
     'resource_panel',
     'worker_assignment',
-    'food_display',
     'soldier_panel',
     'battle_panel',
-    'combat_log',
     'map_panel',
     'building_panel',
     'expedition_panel',
@@ -74,18 +69,13 @@ const PHASE_PANELS: Record<string, string[]> = {
     'phase_indicator',
     'resource_panel',
     'worker_assignment',
-    'food_display',
     'soldier_panel',
     'battle_panel',
-    'combat_log',
     'map_panel',
     'building_panel',
     'expedition_panel',
     'spaceship_panel',
     'exploration_panel',
-    'cosmic_panel',
-    'starmap_panel',
-    'resource_converter_panel',
   ],
   [Phase.TRANSCENDENCE]: [
     'click_button',
@@ -93,21 +83,13 @@ const PHASE_PANELS: Record<string, string[]> = {
     'phase_indicator',
     'resource_panel',
     'worker_assignment',
-    'food_display',
     'soldier_panel',
     'battle_panel',
-    'combat_log',
     'map_panel',
     'building_panel',
     'expedition_panel',
     'spaceship_panel',
     'exploration_panel',
-    'cosmic_panel',
-    'starmap_panel',
-    'resource_converter_panel',
-    'transcendence_panel',
-    'tech_tree_panel',
-    'automation_panel',
   ],
 };
 
@@ -155,22 +137,11 @@ export class PhaseContent {
   }
 
   /**
-   * Called when entering a new phase. Creates lazy panels on demand and reveals
-   * all active panels. For Phase 1-3 panels that were mounted at boot, createPanel()
-   * is idempotent (returns the existing element). For Phase 4+ panels, createPanel()
-   * instantiates them lazily — making reveals feel like genuine new features.
+   * Called when entering a new phase. Reveals/unlocks new panels in the UI.
    */
   onPhaseEnter(phase: Phase, uiRoot: UIRoot): void {
     const panels = this.getActivePanels(phase);
     for (const panelId of panels) {
-      // createPanel() ensures the panel exists (lazy creation for Phase 4+).
-      // Gracefully skip panels not yet in the registry (e.g. food_display, cosmic_panel).
-      try {
-        uiRoot.createPanel(panelId);
-      } catch {
-        // Panel not yet implemented — skip creation, continue to reveal existing
-      }
-      // showPanel() reveals it (sets display, adds unlocked class, emits event)
       uiRoot.showPanel(panelId);
     }
   }

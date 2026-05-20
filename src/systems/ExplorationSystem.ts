@@ -1,19 +1,8 @@
 import type { GameState } from '../state/GameState';
 import { clamp } from '../utils/math';
+import { PLANETS, type PlanetDef } from '../data/planets';
 
 export const MAX_ACTIVE_EXPLORATIONS = 3;
-
-interface PlanetDef {
-  name: string;
-  type: 'rocky' | 'gas' | 'ice' | 'habitable';
-}
-
-export const PLANETS: PlanetDef[] = [
-  { name: 'MARS', type: 'rocky' },
-  { name: 'SATURN', type: 'gas' },
-  { name: 'EUROPA', type: 'ice' },
-  { name: 'KEPLER-442B', type: 'habitable' },
-];
 
 interface SpaceExploration {
   id: string;
@@ -22,10 +11,8 @@ interface SpaceExploration {
   risk: number;
 }
 
-let nextSpaceId = 1;
-
-function generateId(): string {
-  return `spc_${Date.now()}_${nextSpaceId++}`;
+function generateId(state: GameState): string {
+  return `spc_${Date.now()}_${state.nextIds.exploration}`;
 }
 
 function getPlanetType(destination: string): PlanetDef['type'] | null {
@@ -66,7 +53,7 @@ export function launchExploration(
   const distance = calculateDistance(destination);
 
   const exploration: SpaceExploration = {
-    id: generateId(),
+    id: generateId(state),
     destination,
     ticksRemaining: distance,
     risk,
@@ -78,6 +65,7 @@ export function launchExploration(
 
   return {
     ...state,
+    nextIds: { ...state.nextIds, exploration: state.nextIds.exploration + 1 },
     spaceExplorations: [...state.spaceExplorations, exploration],
     discoveredPlanets,
   };

@@ -11,6 +11,7 @@ export interface TerritoryBonuses {
   food: number;
   stone: number;
   nectar: number;
+  wood: number;
 }
 
 /**
@@ -85,6 +86,7 @@ export class TerritorySystem {
     let food = 0;
     let stone = 0;
     let nectar = 0;
+    let wood = 0;
 
     for (const tile of state.mapTiles) {
       if (!tile.claimed) continue;
@@ -93,7 +95,7 @@ export class TerritorySystem {
 
       switch (tile.type) {
         case TileType.FOREST:
-          food += bonus;
+          wood += bonus;
           break;
         case TileType.MOUNTAIN:
           stone += bonus;
@@ -104,6 +106,6 @@ export class TerritorySystem {
       }
     }
 
-    return { food, stone, nectar };
+    return { food, stone, nectar, wood };
   }
 }

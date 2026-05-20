@@ -91,24 +91,24 @@ describe('PhaseStateMachine — COLONY → COMBAT', () => {
   it('does NOT transition when workers < 15', () => {
     state.resources.workers = 14;
     state.workersAssigned.guard = 1;
-    const newPhase = fsm.tick(state, bus);
-    expect(newPhase).toBe(Phase.COLONY);
+    const result = fsm.tick(state, bus);
+    expect(result.phase).toBe(Phase.COLONY);
     expect(fsm.getCurrent()).toBe(Phase.COLONY);
   });
 
   it('does NOT transition when guard === 0', () => {
     state.resources.workers = 15;
     state.workersAssigned.guard = 0;
-    const newPhase = fsm.tick(state, bus);
-    expect(newPhase).toBe(Phase.COLONY);
+    const result = fsm.tick(state, bus);
+    expect(result.phase).toBe(Phase.COLONY);
     expect(fsm.getCurrent()).toBe(Phase.COLONY);
   });
 
   it('transitions to COMBAT when workers >= 15 AND guard >= 1', () => {
     state.resources.workers = 15;
     state.workersAssigned.guard = 1;
-    const newPhase = fsm.tick(state, bus);
-    expect(newPhase).toBe(Phase.COMBAT);
+    const result = fsm.tick(state, bus);
+    expect(result.phase).toBe(Phase.COMBAT);
     expect(fsm.getCurrent()).toBe(Phase.COMBAT);
   });
 
@@ -119,7 +119,7 @@ describe('PhaseStateMachine — COLONY → COMBAT', () => {
     expect(fsm.getCurrent()).toBe(Phase.COMBAT);
     // Second tick with same state should stay in COMBAT
     const result = fsm.tick(state, bus);
-    expect(result).toBe(Phase.COMBAT);
+    expect(result.phase).toBe(Phase.COMBAT);
   });
 
   it('onEnter fires on COMBAT transition', () => {
@@ -192,7 +192,10 @@ describe('PhaseContent — COMBAT panels', () => {
 
   it('includes combat_log in COMBAT phase', () => {
     const panels = phaseContent.getActivePanels(Phase.COMBAT);
-    expect(panels).toContain('combat_log');
+    // combat_log was a phantom panel (never existed) — removed in #17
+    // COMBAT phase includes soldier_panel and battle_panel instead
+    expect(panels).toContain('soldier_panel');
+    expect(panels).toContain('battle_panel');
   });
 
   it('COMBAT phase includes all COLONY panels (additive)', () => {

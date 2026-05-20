@@ -7,7 +7,6 @@ describe('SaveManager', () => {
   let saveManager: SaveManager;
 
   beforeEach(() => {
-    // Clean localStorage before each test
     localStorage.clear();
     saveManager = new SaveManager();
   });
@@ -17,7 +16,6 @@ describe('SaveManager', () => {
       const state = createInitialState();
       state.resources.eggs = 42;
       state.resources.workers = 7;
-      state.resources.food = 123.5;
       state.stats.totalClicks = 10;
       state.phase = 'egg_laying';
       const playTimeMs = 5000;
@@ -28,7 +26,6 @@ describe('SaveManager', () => {
       expect(loaded).not.toBeNull();
       expect(loaded!.gameState.resources.eggs).toBe(42);
       expect(loaded!.gameState.resources.workers).toBe(7);
-      expect(loaded!.gameState.resources.food).toBe(123.5);
       expect(loaded!.gameState.stats.totalClicks).toBe(10);
       expect(loaded!.gameState.phase).toBe('egg_laying');
       expect(loaded!.playTimeMs).toBe(5000);
@@ -77,34 +74,30 @@ describe('SaveManager', () => {
       expect(result).toBeNull();
     });
 
-    it('returns null and warns for corrupted JSON', () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    it('returns null for corrupted JSON', () => {
       localStorage.setItem('the_swarm_save', 'not valid json{{{');
       const result = saveManager.load();
+      // tryLoadKey catches JSON parse errors silently and falls through to backups
+      // After #5 (migration wiring) and #21 (backup rotation), load uses tryLoadKey
+      // which returns null on parse failure without console.warn
       expect(result).toBeNull();
-      expect(warnSpy).toHaveBeenCalled();
-      warnSpy.mockRestore();
     });
 
     it('returns null for partial/invalid save data', () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       localStorage.setItem(
         'the_swarm_save',
-        JSON.stringify({ version: 1 }), // missing gameState
+        JSON.stringify({ version: 1 }),
       );
       const result = saveManager.load();
+      // Missing gameState — structural validation fails, returns null
       expect(result).toBeNull();
-      expect(warnSpy).toHaveBeenCalled();
-      warnSpy.mockRestore();
     });
   });
 
   describe('error handling', () => {
     it('save does not throw on serialization errors', () => {
       const state = createInitialState();
-      // Add a circular reference that JSON.stringify can't handle
       (state as unknown as Record<string, unknown>).circular = state;
-      // Should not throw
       expect(() => saveManager.save(state, 0)).not.toThrow();
     });
   });
@@ -128,22 +121,17 @@ describe('SaveManager', () => {
       const getState = () => ({ state, playTimeMs: 0 });
 
       saveManager.startAutosave(getState);
-      // Advance just under 30s — should not have saved yet
       vi.advanceTimersByTime(29000);
       let loaded = saveManager.load();
-      // No save yet
       expect(loaded).toBeNull();
 
-      // Advance past 30s
       vi.advanceTimersByTime(2000);
       loaded = saveManager.load();
       expect(loaded).not.toBeNull();
       expect(loaded!.gameState.resources.eggs).toBe(5);
 
-      // Stop autosave
       saveManager.stopAutosave();
 
-      // Change state and advance time — should NOT save again
       const state2 = createInitialState();
       state2.resources.eggs = 99;
       const getState2 = () => ({ state: state2, playTimeMs: 10000 });

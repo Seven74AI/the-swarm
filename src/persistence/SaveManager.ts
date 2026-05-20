@@ -13,9 +13,12 @@ export interface SaveData {
  * - Saves every 30s + on manual action
  * - Graceful handling: corrupted save → warn + fresh start
  * - Version tag for future migrations
+ * - #21 Backup rotation: keeps 2 rotating backup slots for corruption recovery
  */
 export class SaveManager {
   private static SAVE_KEY = 'the_swarm_save';
+  private static BACKUP1_KEY = 'the_swarm_save_bak1';
+  private static BACKUP2_KEY = 'the_swarm_save_bak2';
   private static SAVE_VERSION = 7;
   private static AUTOSAVE_INTERVAL_MS = 30_000;
 
@@ -26,19 +29,53 @@ export class SaveManager {
       version: SaveManager.SAVE_VERSION,
       timestamp: Date.now(),
       playTimeMs,
-      gameState: state,
+      gameState: { ...state, lastSaveTimestamp: Date.now() },
     };
 
     try {
-      localStorage.setItem(SaveManager.SAVE_KEY, JSON.stringify(data));
+      const json = JSON.stringify(data);
+
+      // Rotate backups: bak2 ← bak1 ← current ← new
+      const bak1 = localStorage.getItem(SaveManager.BACKUP1_KEY);
+      if (bak1 !== null) {
+        localStorage.setItem(SaveManager.BACKUP2_KEY, bak1);
+      }
+      const current = localStorage.getItem(SaveManager.SAVE_KEY);
+      if (current !== null) {
+        localStorage.setItem(SaveManager.BACKUP1_KEY, current);
+      }
+
+      localStorage.setItem(SaveManager.SAVE_KEY, json);
     } catch (e) {
       console.warn('SaveManager: Failed to save.', e);
     }
   }
 
-  load(): { gameState: GameState; playTimeMs: number } | null {
+  load(): { gameState: GameState; playTimeMs: number; timestamp?: number } | null {
+    // Try primary save first
+    const result = this.tryLoadKey(SaveManager.SAVE_KEY);
+    if (result) return result;
+
+    // Try backup 1
+    const bak1 = this.tryLoadKey(SaveManager.BACKUP1_KEY);
+    if (bak1) {
+      console.warn('SaveManager: Primary save corrupted, loaded from backup 1.');
+      return bak1;
+    }
+
+    // Try backup 2
+    const bak2 = this.tryLoadKey(SaveManager.BACKUP2_KEY);
+    if (bak2) {
+      console.warn('SaveManager: Primary and backup 1 corrupted, loaded from backup 2.');
+      return bak2;
+    }
+
+    return null;
+  }
+
+  private tryLoadKey(key: string): { gameState: GameState; playTimeMs: number; timestamp?: number } | null {
     try {
-      const raw = localStorage.getItem(SaveManager.SAVE_KEY);
+      const raw = localStorage.getItem(key);
       if (!raw) return null;
 
       const data: SaveData = JSON.parse(raw);
@@ -50,16 +87,15 @@ export class SaveManager {
         !data.gameState ||
         typeof data.gameState !== 'object'
       ) {
-        console.warn('SaveManager: Invalid save data structure.');
         return null;
       }
 
       return {
         gameState: data.gameState,
         playTimeMs: data.playTimeMs ?? 0,
+        timestamp: data.timestamp,
       };
-    } catch (e) {
-      console.warn('SaveManager: Corrupted save, starting fresh.', e);
+    } catch {
       return null;
     }
   }
@@ -84,5 +120,7 @@ export class SaveManager {
 
   deleteSave(): void {
     localStorage.removeItem(SaveManager.SAVE_KEY);
+    localStorage.removeItem(SaveManager.BACKUP1_KEY);
+    localStorage.removeItem(SaveManager.BACKUP2_KEY);
   }
 }

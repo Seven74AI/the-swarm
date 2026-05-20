@@ -26,9 +26,8 @@ export interface Cost {
 
 const MAX_LEVEL = 5;
 
-let nextId = 1;
-function generateId(): string {
-  return `ship_${Date.now()}_${nextId++}`;
+function generateId(state: GameState): string {
+  return `ship_${Date.now()}_${state.nextIds.spaceship}`;
 }
 
 // ─── BASE COSTS ─────────────────────────────────────────
@@ -125,7 +124,7 @@ export function construct(type: SpaceshipType, state: GameState): GameState {
 
   const maxFuel = getFuelCapacity(type, 1);
   const ship: Spaceship = {
-    id: generateId(),
+    id: generateId(state),
     type,
     level: 1,
     fuel: 0,
@@ -137,6 +136,7 @@ export function construct(type: SpaceshipType, state: GameState): GameState {
 
   return {
     ...state,
+    nextIds: { ...state.nextIds, spaceship: state.nextIds.spaceship + 1 },
     resources: {
       ...state.resources,
       food: state.resources.food - cost.food,

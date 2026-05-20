@@ -143,6 +143,12 @@ export interface GameState {
   }>;
   /** Cosmic discoveries log (SPACE phase). */
   discoveries: string[];
+  /** Monotonic ID counters to avoid module-level collision. */
+  nextIds: {
+    expedition: number;
+    exploration: number;
+    spaceship: number;
+  };
 }
 
 /**
@@ -239,5 +245,10 @@ export function createInitialState(): GameState {
     },
     spaceProbes: [],
     discoveries: [],
+    nextIds: {
+      expedition: 1,
+      exploration: 1,
+      spaceship: 1,
+    },
   };
 }

@@ -8,11 +8,16 @@ const TEND_MULTIPLIER = 0.25;
 
 /**
  * Displays all resources with pipeline rate indicators (/s and /min).
+ *
+ * #22: Uses text node references (textContent on spans) with dirty-checking
+ * to avoid redundant DOM updates when formatted values haven't changed.
  */
 export class ResourcePanel {
   private container: HTMLDivElement;
   private eggRateEl: HTMLSpanElement;
   private larvaRateEl: HTMLSpanElement;
+  private lastEggRateText: string = '';
+  private lastLarvaRateText: string = '';
 
   constructor() {
     this.container = document.createElement('div');
@@ -42,7 +47,7 @@ export class ResourcePanel {
     // ── Food ──
     this.container.appendChild(new NumberDisplay('resources.food', '🍞 Food').getElement());
 
-    // Reactive rate indicators
+    // Reactive rate indicators with dirty-checking
     effect(() => {
       const s = gameState.value;
       const ep = s.eggPipeline;
@@ -50,13 +55,19 @@ export class ResourcePanel {
       const eggRate = ep.count > 0
         ? (ep.count / EGG_HATCH_TIME) * (1 + s.workersAssigned.tend * TEND_MULTIPLIER)
         : 0;
-      this.eggRateEl.textContent =
-        `→ ${formatRate(eggRate)}/s · ${formatRate(eggRate * 60)}/min`;
+      const eggText = `→ ${formatRate(eggRate)}/s · ${formatRate(eggRate * 60)}/min`;
+      if (eggText !== this.lastEggRateText) {
+        this.eggRateEl.textContent = eggText;
+        this.lastEggRateText = eggText;
+      }
 
       const lp = s.larvaPipeline;
       const larvaRate = lp.count > 0 ? lp.count / LARVA_MATURE_TIME : 0;
-      this.larvaRateEl.textContent =
-        `→ ${formatRate(larvaRate)}/s · ${formatRate(larvaRate * 60)}/min`;
+      const larvaText = `→ ${formatRate(larvaRate)}/s · ${formatRate(larvaRate * 60)}/min`;
+      if (larvaText !== this.lastLarvaRateText) {
+        this.larvaRateEl.textContent = larvaText;
+        this.lastLarvaRateText = larvaText;
+      }
     });
   }
 

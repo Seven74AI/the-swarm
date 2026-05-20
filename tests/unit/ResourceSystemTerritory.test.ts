@@ -21,7 +21,7 @@ describe('ResourceSystem territory bonuses', () => {
   describe('tick with territory bonuses', () => {
     it('stone bonus increases stone resources', () => {
       state.resources.workers = 5;
-      const bonuses: TerritoryBonuses = { food: 0, stone: 1, nectar: 0 };
+      const bonuses: TerritoryBonuses = { food: 0, stone: 1, nectar: 0, wood: 0 };
 
       let result = state;
       for (let i = 0; i < 3; i++) {
@@ -33,7 +33,7 @@ describe('ResourceSystem territory bonuses', () => {
 
     it('nectar bonus increases nectar resources', () => {
       state.resources.workers = 5;
-      const bonuses: TerritoryBonuses = { food: 0, stone: 0, nectar: 1 };
+      const bonuses: TerritoryBonuses = { food: 0, stone: 0, nectar: 1, wood: 0 };
 
       let result = state;
       for (let i = 0; i < 3; i++) {
@@ -48,7 +48,7 @@ describe('ResourceSystem territory bonuses', () => {
       state.resources.food = 100;
       const withoutBonus = system.tick(state);
 
-      const bonuses: TerritoryBonuses = { food: 1, stone: 0, nectar: 0 };
+      const bonuses: TerritoryBonuses = { food: 1, stone: 0, nectar: 0, wood: 0 };
       state.resources.food = 100;
       const withBonus = system.tick(state, bonuses);
 
@@ -57,7 +57,7 @@ describe('ResourceSystem territory bonuses', () => {
 
     it('multiple bonuses accumulate simultaneously', () => {
       state.resources.workers = 5;
-      const bonuses: TerritoryBonuses = { food: 1, stone: 1, nectar: 1 };
+      const bonuses: TerritoryBonuses = { food: 1, stone: 1, nectar: 1, wood: 0 };
 
       let result = state;
       for (let i = 0; i < 5; i++) {
@@ -72,7 +72,7 @@ describe('ResourceSystem territory bonuses', () => {
 
     it('zero bonuses produce no extra resources', () => {
       state.resources.workers = 5;
-      const bonuses: TerritoryBonuses = { food: 0, stone: 0, nectar: 0 };
+      const bonuses: TerritoryBonuses = { food: 0, stone: 0, nectar: 0, wood: 0 };
 
       let result = state;
       for (let i = 0; i < 3; i++) {
@@ -86,7 +86,7 @@ describe('ResourceSystem territory bonuses', () => {
 
     it('no workers = no bonus production', () => {
       state.resources.workers = 0;
-      const bonuses: TerritoryBonuses = { food: 1, stone: 1, nectar: 1 };
+      const bonuses: TerritoryBonuses = { food: 1, stone: 1, nectar: 1, wood: 0 };
       const result = system.tick(state, bonuses);
 
       // No workers means bonuses don't apply

@@ -1,4 +1,39 @@
 /**
+ * Format cache: avoids repeated formatting of the same number value.
+ * Map<number, string> for O(1) lookup on repeated values.
+ * #22: Added format cache for performance.
+ */
+const formatCache = new Map<number, string>();
+const FORMAT_CACHE_MAX_SIZE = 1000;
+
+function cachedFormat(n: number, formatter: (n: number) => string): string {
+  // Use Math.floor for integer cache keys
+  const key = Number.isInteger(n) ? n : Math.floor(n);
+  const cached = formatCache.get(key);
+  if (cached !== undefined) return cached;
+
+  const result = formatter(n);
+  formatCache.set(key, result);
+
+  // Evict oldest entries if cache grows too large
+  if (formatCache.size > FORMAT_CACHE_MAX_SIZE) {
+    const keys = formatCache.keys();
+    for (let i = 0; i < 100; i++) {
+      const k = keys.next();
+      if (k.done) break;
+      formatCache.delete(k.value);
+    }
+  }
+
+  return result;
+}
+
+/** Clear the format cache (useful for testing) */
+export function clearFormatCache(): void {
+  formatCache.clear();
+}
+
+/**
  * Format a small rate/decimal for display.
  * <1: 1 decimal (0.2, 0.8)
  * <10: 1 decimal (3.5)
@@ -11,44 +46,46 @@ export function formatRate(n: number): string {
 }
 
 /**
- * Format a number for display with abbreviations.
- * <10000: raw with comma separators
- * 10K-999K: "X.XXK"
- * 1M-999M: "X.XXM"
- * 1B-999B: "X.XXB"
- * 1T+: scientific notation
+ * Format a number for display with abbreviations (#24).
+ * - < 1000: exact integer
+ * - 1000-999,999: with commas (e.g., 1,234)
+ * - 1M+: abbreviated (e.g., 1.23M, 456.7M, 1.2B)
+ *
+ * Uses a format cache to avoid redundant work on repeated values.
  */
 export function formatNumber(n: number): string {
   const sign = n < 0 ? '-' : '';
   const abs = Math.round(Math.abs(n));
 
-  if (abs < 10000) {
-    return sign + abs.toLocaleString('en-US');
+  if (abs < 1000) {
+    return sign + String(abs);
   }
   if (abs < 1_000_000) {
-    const val = (abs / 1000).toFixed(2);
-    if (parseFloat(val) >= 1000) {
-      return sign + (abs / 1_000_000).toFixed(2) + 'M';
-    }
-    return sign + val + 'K';
+    return sign + abs.toLocaleString('en-US');
   }
-  if (abs < 1_000_000_000) {
-    const val = (abs / 1_000_000).toFixed(2);
-    if (parseFloat(val) >= 1000) {
-      return sign + (abs / 1_000_000_000).toFixed(2) + 'B';
+
+  // Cache the formatted positive value, then prepend sign
+  // (avoids cache poisoning: -1000 and 1000 have same abs=1000)
+  const formatted = cachedFormat(abs, (val) => {
+    if (val < 1_000_000_000) {
+      const v = val / 1_000_000;
+      if (v >= 100) return Math.round(v) + 'M';
+      if (Number.isInteger(v)) return v.toFixed(2) + 'M';
+      if (Number.isInteger(v * 10)) return v.toFixed(1) + 'M';
+      return v.toFixed(2) + 'M';
     }
-    return sign + val + 'M';
-  }
-  if (abs < 1_000_000_000_000) {
-    const val = (abs / 1_000_000_000).toFixed(2);
-    if (parseFloat(val) >= 1000) {
-      const exp = 12;
-      return sign + (abs / Math.pow(10, exp)).toFixed(2) + 'e' + exp;
+    if (val < 1_000_000_000_000) {
+      const v = val / 1_000_000_000;
+      if (v >= 100) return Math.round(v) + 'B';
+      if (Number.isInteger(v)) return v.toFixed(2) + 'B';
+      if (Number.isInteger(v * 10)) return v.toFixed(1) + 'B';
+      return v.toFixed(2) + 'B';
     }
-    return sign + val + 'B';
-  }
-  const exp = Math.floor(Math.log10(abs));
-  return sign + (abs / Math.pow(10, exp)).toFixed(2) + 'e' + exp;
+    const exp = Math.floor(Math.log10(val));
+    const mantissa = val / Math.pow(10, exp);
+    return mantissa.toFixed(2) + 'e' + exp;
+  });
+  return sign + formatted;
 }
 
 /**

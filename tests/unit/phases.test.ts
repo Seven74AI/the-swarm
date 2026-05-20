@@ -321,11 +321,12 @@ describe('Transition SPACE → TRANSCENDENCE', () => {
     expect(narrativeMessage).toContain('transcend');
   });
 
-  it('onEnter sets victoryAchieved to true on state', () => {
+  it('onEnter returns state with victoryAchieved set to true', () => {
     const state = createInitialState();
     const bus = new EventBus();
     expect(state.victoryAchieved).toBe(false);
-    SPACE_TO_TRANSCENDENCE.onEnter!(state, bus);
-    expect(state.victoryAchieved).toBe(true);
+    const result = SPACE_TO_TRANSCENDENCE.onEnter!(state, bus);
+    expect(result.victoryAchieved).toBe(true);
+    expect(state.victoryAchieved).toBe(false); // original not mutated
   });
 });

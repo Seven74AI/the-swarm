@@ -17,7 +17,7 @@ const UPGRADES: Record<string, UpgradeDef> = {
   click_power: { baseCost: 10, costMultiplier: 1.15 },
 };
 
-export const EGG_HATCH_TIME = 10; // ticks
+export const EGG_HATCH_TIME = 10; // ticks (at 1s per tick equivalent)
 export const LARVA_MATURE_TIME = 10; // ticks
 const FOOD_PER_WORKER = 1;
 const FOOD_PER_GATHER = 2;
@@ -26,6 +26,10 @@ const TEND_MULTIPLIER = 0.25; // each tend worker gives +25% hatch rate
 /**
  * ResourceSystem handles all resource mutations: clicking, ticking, buying.
  * Uses rate-based pipelines instead of per-item timer arrays.
+ *
+ * #25 Two-phase tick: Phase 1 computes all rates from current state (read-only),
+ * Phase 2 applies all deltas (write-only), Phase 3 clamps all resources >= 0.
+ * This prevents ordering bugs where production/consumption order matters.
  */
 export class ResourceSystem {
   constructor(private bus: EventBus) {}
@@ -58,13 +62,59 @@ export class ResourceSystem {
   }
 
   /**
-   * Process a single game tick (1 second).
+   * Process a single game tick with fixed 50ms timestep.
+   * dtSec is the delta in seconds (0.05 for 50ms tick).
+   *
    * Rate-based pipelines replace per-item timer iteration → O(1).
+   * Two-phase: compute all rates first, then apply all deltas.
    */
-  tick(state: GameState, territoryBonuses?: TerritoryBonuses): GameState {
+  tick(state: GameState, territoryBonuses?: TerritoryBonuses, dtSec: number = 1): GameState {
+    // ─── Phase 1: Compute all rates from current state (read-only) ───
+
+    // Egg pipeline rate
+    const eggPipe = state.eggPipeline;
+    const tendCount = state.workersAssigned.tend;
+    const hatchRate = eggPipe.count > 0
+      ? (eggPipe.count / EGG_HATCH_TIME) * (1 + tendCount * TEND_MULTIPLIER)
+      : 0;
+
+    // Larva pipeline rate
+    const larvaPipe = state.larvaPipeline;
+    const matureRate = larvaPipe.count > 0
+      ? larvaPipe.count / LARVA_MATURE_TIME
+      : 0;
+
+    // Food rates
+    const workers = state.resources.workers;
+    const assigned = state.workersAssigned;
+    const gatherCount = assigned.gather;
+    const unassignedCount = workers - gatherCount - assigned.tend - assigned.dig - assigned.guard;
+    const foodProduced = gatherCount * FOOD_PER_GATHER + Math.max(0, unassignedCount) * FOOD_PER_WORKER;
+    const foodConsumed = Math.floor(workers / 2);
+
+    // Territory bonus rates
+    let territoryFoodRate = 0;
+    let territoryStoneRate = 0;
+    let territoryNectarRate = 0;
+    if (workers > 0 && territoryBonuses) {
+      if (territoryBonuses.food > 0) territoryFoodRate = Math.floor(workers * territoryBonuses.food);
+      if (territoryBonuses.stone > 0) territoryStoneRate = Math.floor(workers * territoryBonuses.stone);
+      if (territoryBonuses.nectar > 0) territoryNectarRate = Math.floor(workers * territoryBonuses.nectar);
+    }
+
+    // ─── Phase 2: Apply all deltas (write-only) ───
+
+    // Scale by dtSec (e.g., 0.05 for 50ms)
+    const hatchDelta = hatchRate * dtSec;
+    const matureDelta = matureRate * dtSec;
+    const foodDelta = (foodProduced - foodConsumed) * dtSec;
+    const territoryFoodDelta = territoryFoodRate * dtSec;
+    const territoryStoneDelta = territoryStoneRate * dtSec;
+    const territoryNectarDelta = territoryNectarRate * dtSec;
+
     let eggs = state.resources.eggs;
     let larvae = state.resources.larvae;
-    let workers = state.resources.workers;
+    let newWorkers = workers;
     let food = state.resources.food;
     let wood = state.resources.wood;
     let stone = state.resources.stone;
@@ -74,80 +124,68 @@ export class ResourceSystem {
     let larvaeChanged = false;
     let workersChanged = false;
     let foodChanged = false;
-
-    // ── Egg pipeline: eggs → larvae ──
-    const eggPipe = { ...state.eggPipeline };
-    const larvaPipe = { ...state.larvaPipeline };
-    if (eggPipe.count > 0) {
-      const tendCount = state.workersAssigned.tend;
-      const hatchRate = eggPipe.count > 0
-        ? (eggPipe.count / EGG_HATCH_TIME) * (1 + tendCount * TEND_MULTIPLIER)
-        : 0;
-
-      eggPipe.progress += hatchRate;
-      const hatched = Math.floor(eggPipe.progress);
-      eggPipe.progress -= hatched;
-
-      if (hatched > 0) {
-        const actual = Math.min(hatched, eggs);
-        eggs -= actual;
-        larvae += actual;
-        eggPipe.count = Math.max(0, eggPipe.count - actual);
-        larvaPipe.count += actual; // hatched eggs → larva pipeline
-        eggsChanged = true;
-        larvaeChanged = true;
-      }
-    }
-
-    // ── Larva pipeline: larvae → workers ──
-    if (larvaPipe.count > 0) {
-      const matureRate = larvaPipe.count / LARVA_MATURE_TIME;
-      larvaPipe.progress += matureRate;
-      const matured = Math.floor(larvaPipe.progress);
-      larvaPipe.progress -= matured;
-
-      if (matured > 0) {
-        const actual = Math.min(matured, larvae);
-        larvae -= actual;
-        workers += actual;
-        larvaPipe.count = Math.max(0, larvaPipe.count - actual);
-        larvaeChanged = true;
-        workersChanged = true;
-      }
-    }
-
-    // ── Food production ──
-    if (workers > 0) {
-      const assigned = state.workersAssigned;
-      const gatherCount = assigned.gather;
-      const unassignedCount = workers - gatherCount - assigned.tend - assigned.dig - assigned.guard;
-      const produced =
-        gatherCount * FOOD_PER_GATHER +
-        Math.max(0, unassignedCount) * FOOD_PER_WORKER;
-      const consumed = Math.floor(workers / 2); // 1 food per 2 workers
-      food = Math.max(0, food + produced - consumed);
-      foodChanged = true;
-    }
-
-    // ── Territory bonuses ──
     let woodChanged = false;
     let stoneChanged = false;
     let nectarChanged = false;
 
-    if (workers > 0 && territoryBonuses) {
-      if (territoryBonuses.food > 0) {
-        food += Math.floor(workers * territoryBonuses.food);
-        foodChanged = true;
-      }
-      if (territoryBonuses.stone > 0) {
-        stone += Math.floor(workers * territoryBonuses.stone);
-        stoneChanged = true;
-      }
-      if (territoryBonuses.nectar > 0) {
-        nectar += Math.floor(workers * territoryBonuses.nectar);
-        nectarChanged = true;
-      }
+    // Egg pipeline progress
+    let newEggCount = eggPipe.count;
+    let newEggProgress = eggPipe.progress + hatchDelta;
+    const hatched = Math.floor(newEggProgress);
+    newEggProgress -= hatched;
+
+    if (hatched > 0) {
+      const actual = Math.min(hatched, eggs);
+      eggs -= actual;
+      larvae += actual;
+      newEggCount = Math.max(0, newEggCount - actual);
+      eggsChanged = true;
+      larvaeChanged = true;
     }
+
+    // Larva pipeline progress
+    let newLarvaCount = larvaPipe.count + (hatched > 0 ? hatched : 0);
+    let newLarvaProgress = larvaPipe.progress + matureDelta;
+    const matured = Math.floor(newLarvaProgress);
+    newLarvaProgress -= matured;
+
+    if (matured > 0) {
+      const actual = Math.min(matured, larvae);
+      larvae -= actual;
+      newWorkers += actual;
+      newLarvaCount = Math.max(0, newLarvaCount - actual);
+      larvaeChanged = true;
+      workersChanged = true;
+    }
+
+    // Food
+    if (workers > 0) {
+      food += foodDelta;
+      foodChanged = true;
+    }
+
+    // Territory bonuses
+    if (territoryFoodDelta > 0) {
+      food += territoryFoodDelta;
+      foodChanged = true;
+    }
+    if (territoryStoneDelta > 0) {
+      stone += territoryStoneDelta;
+      stoneChanged = true;
+    }
+    if (territoryNectarDelta > 0) {
+      nectar += territoryNectarDelta;
+      nectarChanged = true;
+    }
+
+    // ─── Phase 3: Clamp all resources >= 0 ───
+    eggs = Math.max(0, eggs);
+    larvae = Math.max(0, larvae);
+    newWorkers = Math.max(0, newWorkers);
+    food = Math.max(0, food);
+    wood = Math.max(0, wood);
+    stone = Math.max(0, stone);
+    nectar = Math.max(0, nectar);
 
     const result: GameState = {
       ...state,
@@ -155,14 +193,14 @@ export class ResourceSystem {
         ...state.resources,
         eggs,
         larvae,
-        workers,
+        workers: newWorkers,
         food,
         wood,
         stone,
         nectar,
       },
-      eggPipeline: eggPipe,
-      larvaPipeline: larvaPipe,
+      eggPipeline: { count: newEggCount, progress: newEggProgress },
+      larvaPipeline: { count: newLarvaCount, progress: newLarvaProgress },
     };
 
     if (eggsChanged) this.bus.emit('eggs_changed', { eggs: result.resources.eggs });

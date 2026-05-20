@@ -3,10 +3,8 @@ import { clamp } from '../utils/math';
 
 export const MAX_ACTIVE_EXPEDITIONS = 3;
 
-let nextId = 1;
-
-function generateId(): string {
-  return `exp_${Date.now()}_${nextId++}`;
+function generateId(state: GameState): string {
+  return `exp_${Date.now()}_${state.nextIds.expedition}`;
 }
 
 interface Expedition {
@@ -62,7 +60,7 @@ export function launchExpedition(
   const distance = calculateDistance(destination);
 
   const expedition: Expedition = {
-    id: generateId(),
+    id: generateId(state),
     scouts,
     warriors,
     destination,
@@ -72,6 +70,7 @@ export function launchExpedition(
 
   return {
     ...state,
+    nextIds: { ...state.nextIds, expedition: state.nextIds.expedition + 1 },
     soldiers: {
       ...state.soldiers,
       scouts: state.soldiers.scouts - scouts,

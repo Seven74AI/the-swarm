@@ -21,19 +21,20 @@ export class PhaseStateMachine {
 
   /**
    * Evaluate transitions from the current phase.
-   * Returns the (possibly new) current phase.
+   * Returns the (possibly new) current phase and the (possibly modified) state.
    */
-  tick(state: GameState, eventBus: EventBus): Phase {
+  tick(state: GameState, eventBus: EventBus): { phase: Phase; state: GameState } {
+    let resultState = state;
     for (const t of this.transitions) {
       if (t.from === this.current && t.guard(state)) {
         this.current = t.to;
         if (t.onEnter) {
-          t.onEnter(state, eventBus);
+          resultState = t.onEnter(state, eventBus);
         }
         break; // Only one transition per tick
       }
     }
-    return this.current;
+    return { phase: this.current, state: resultState };
   }
 
   getCurrent(): Phase {

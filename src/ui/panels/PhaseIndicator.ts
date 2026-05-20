@@ -27,6 +27,11 @@ const PHASE_DISPLAY: Record<string, { emoji: string; title: string; className: s
     title: 'The Space Age',
     className: 'phase-space',
   },
+  [Phase.TRANSCENDENCE]: {
+    emoji: '✨',
+    title: 'Transcendence',
+    className: 'phase-transcendence',
+  },
 };
 
 /**

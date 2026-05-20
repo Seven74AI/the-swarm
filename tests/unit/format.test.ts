@@ -15,16 +15,16 @@ describe('formatNumber', () => {
     expect(formatNumber(9999)).toBe('9,999');
   });
 
-  it('uses K suffix for 10K to 999K', () => {
-    expect(formatNumber(10000)).toBe('10.00K');
-    expect(formatNumber(12345)).toBe('12.35K');
-    expect(formatNumber(999999)).toBe('1.00M'); // rounds up to 1M
+  it('uses commas for 1K to 999K', () => {
+    expect(formatNumber(10000)).toBe('10,000');
+    expect(formatNumber(12345)).toBe('12,345');
+    expect(formatNumber(999999)).toBe('999,999');
   });
 
   it('uses M suffix for 1M to 999M', () => {
     expect(formatNumber(1000000)).toBe('1.00M');
     expect(formatNumber(1234567)).toBe('1.23M');
-    expect(formatNumber(999499999)).toBe('999.50M'); // just under 1B
+    expect(formatNumber(999499999)).toBe('999M');
   });
 
   it('uses B suffix for 1B to 999B', () => {
@@ -39,7 +39,7 @@ describe('formatNumber', () => {
 
   it('handles negative numbers', () => {
     expect(formatNumber(-1000)).toBe('-1,000');
-    expect(formatNumber(-50000)).toBe('-50.00K');
+    expect(formatNumber(-50000)).toBe('-50,000');
   });
 
   it('handles fractional inputs', () => {
