@@ -2,16 +2,17 @@ import { effect } from '@preact/signals-core';
 import { gameState } from '../../state/gameSignal';
 import { EGG_HATCH_TIME, LARVA_MATURE_TIME } from '../../systems/ResourceSystem';
 import { NumberDisplay } from '../components/NumberDisplay';
-import { ProgressBar } from '../components/ProgressBar';
+import { formatRate } from '../../utils/format';
+
+const TEND_RATE_BONUS = 1 / EGG_HATCH_TIME;
 
 /**
- * Displays all resources: Eggs, Larvae, Workers, Food.
- * Uses @preact/signals-core effect() for automatic updates.
+ * Displays all resources with pipeline rate indicators (/s and /min).
  */
 export class ResourcePanel {
   private container: HTMLDivElement;
-  private eggProgress: ProgressBar;
-  private larvaProgress: ProgressBar;
+  private eggRateEl: HTMLSpanElement;
+  private larvaRateEl: HTMLSpanElement;
 
   constructor() {
     this.container = document.createElement('div');
@@ -22,40 +23,47 @@ export class ResourcePanel {
     title.textContent = 'Colony Resources';
     this.container.appendChild(title);
 
-    const eggs = new NumberDisplay('resources.eggs', '🥚 Eggs');
-    const larvae = new NumberDisplay('resources.larvae', '🐛 Larvae');
-    const workers = new NumberDisplay('resources.workers', '🐜 Workers');
-    const food = new NumberDisplay('resources.food', '🍞 Food');
-
-    this.container.appendChild(eggs.getElement());
+    // ── Eggs ──
+    this.container.appendChild(new NumberDisplay('resources.eggs', '🥚 Eggs').getElement());
+    this.eggRateEl = this.makeRateEl();
+    this.container.appendChild(this.eggRateEl);
     this.container.appendChild(document.createElement('br'));
-    this.container.appendChild(larvae.getElement());
-    this.container.appendChild(document.createElement('br'));
-    this.container.appendChild(workers.getElement());
-    this.container.appendChild(document.createElement('br'));
-    this.container.appendChild(food.getElement());
 
-    // Egg maturation progress bar
-    this.eggProgress = new ProgressBar('Egg hatching');
+    // ── Larvae ──
+    this.container.appendChild(new NumberDisplay('resources.larvae', '🐛 Larvae').getElement());
+    this.larvaRateEl = this.makeRateEl();
+    this.container.appendChild(this.larvaRateEl);
     this.container.appendChild(document.createElement('br'));
-    this.container.appendChild(this.eggProgress.getElement());
 
-    // Larva maturation progress bar
-    this.larvaProgress = new ProgressBar('Larva maturing');
-    this.container.appendChild(this.larvaProgress.getElement());
+    // ── Workers ──
+    this.container.appendChild(new NumberDisplay('resources.workers', '🐜 Workers').getElement());
+    this.container.appendChild(document.createElement('br'));
 
-    // Reactive: progress bars from pipeline
+    // ── Food ──
+    this.container.appendChild(new NumberDisplay('resources.food', '🍞 Food').getElement());
+
+    // Reactive rate indicators
     effect(() => {
-      const p = gameState.value.eggPipeline;
-      const progress = p.count > 0 ? p.progress / (p.count / EGG_HATCH_TIME + p.progress) : 0;
-      this.eggProgress.update(Math.min(1, progress) * EGG_HATCH_TIME, EGG_HATCH_TIME);
-    });
+      const s = gameState.value;
+      const ep = s.eggPipeline;
 
-    effect(() => {
-      const p = gameState.value.larvaPipeline;
-      const progress = p.count > 0 ? p.progress / (p.count / LARVA_MATURE_TIME + p.progress) : 0;
-      this.larvaProgress.update(Math.min(1, progress) * LARVA_MATURE_TIME, LARVA_MATURE_TIME);
+      const eggRate = ep.count > 0
+        ? (ep.count / EGG_HATCH_TIME) + Math.min(s.workersAssigned.tend, ep.count) * TEND_RATE_BONUS
+        : 0;
+      this.eggRateEl.textContent =
+        `→ ${formatRate(eggRate)}/s · ${formatRate(eggRate * 60)}/min`;
+
+      const lp = s.larvaPipeline;
+      const larvaRate = lp.count > 0 ? lp.count / LARVA_MATURE_TIME : 0;
+      this.larvaRateEl.textContent =
+        `→ ${formatRate(larvaRate)}/s · ${formatRate(larvaRate * 60)}/min`;
     });
+  }
+
+  private makeRateEl(): HTMLSpanElement {
+    const el = document.createElement('span');
+    el.className = 'rate-indicator';
+    return el;
   }
 
   getElement(): HTMLDivElement {

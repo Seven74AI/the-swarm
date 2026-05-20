@@ -171,6 +171,14 @@ html, body {
   z-index: 1;
 }
 
+/* Rate indicator shown below resource counts */
+.rate-indicator {
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  margin-left: 0.3rem;
+  vertical-align: middle;
+}
+
 /* ── Number Particles ── */
 .number-particle {
   position: absolute;

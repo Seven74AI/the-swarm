@@ -13,7 +13,7 @@ import {
   getSoldierMaxHp,
 } from '../../systems/SoldierSystem';
 import { upgradeCost } from '../../utils/math';
-import { formatNumber } from '../../utils/format';
+import { formatNumber, formatRate } from '../../utils/format';
 
 /**
  * Soldier Command panel.
@@ -212,7 +212,9 @@ export class SoldierPanel {
 
     this.workersDisplay.textContent = formatNumber(availableWorkers);
     this.soldiersDisplay.textContent = formatNumber(state.combatSoldiers);
-    this.trainingDisplay.textContent = trainCount > 0 ? ` [${formatNumber(trainCount)} in training]` : '';
+    this.trainingDisplay.textContent = trainCount > 0
+      ? ` [${formatNumber(trainCount)} training · ${formatRate(trainCount / SOLDIER_TRAIN_TIME)}/s]`
+      : '';
 
     // Recruit button
     this.recruitBtn.disabled = availableWorkers < 1 || food < SOLDIER_COST_FOOD;

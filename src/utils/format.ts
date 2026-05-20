@@ -1,4 +1,16 @@
 /**
+ * Format a small rate/decimal for display.
+ * <1: 1 decimal (0.2, 0.8)
+ * <10: 1 decimal (3.5)
+ * >=10: integer (42)
+ */
+export function formatRate(n: number): string {
+  if (n < 1) return n.toFixed(1);
+  if (n < 10) return n.toFixed(1);
+  return Math.round(n).toLocaleString('en-US');
+}
+
+/**
  * Format a number for display with abbreviations.
  * <10000: raw with comma separators
  * 10K-999K: "X.XXK"
@@ -15,7 +27,6 @@ export function formatNumber(n: number): string {
   }
   if (abs < 1_000_000) {
     const val = (abs / 1000).toFixed(2);
-    // If rounding pushes us to 1000.00K+, bump to M tier
     if (parseFloat(val) >= 1000) {
       return sign + (abs / 1_000_000).toFixed(2) + 'M';
     }
@@ -31,13 +42,11 @@ export function formatNumber(n: number): string {
   if (abs < 1_000_000_000_000) {
     const val = (abs / 1_000_000_000).toFixed(2);
     if (parseFloat(val) >= 1000) {
-      // Scientific notation for 1T+
       const exp = 12;
       return sign + (abs / Math.pow(10, exp)).toFixed(2) + 'e' + exp;
     }
     return sign + val + 'B';
   }
-  // Scientific notation for 1T+
   const exp = Math.floor(Math.log10(abs));
   return sign + (abs / Math.pow(10, exp)).toFixed(2) + 'e' + exp;
 }
