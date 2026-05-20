@@ -21,7 +21,7 @@ import { SpaceshipPanel } from './panels/SpaceshipPanel';
 import { StarmapPanel } from './panels/StarmapPanel';
 import { ResourceConverterPanel } from './panels/ResourceConverterPanel';
 import { TechTreePanel } from './panels/TechTreePanel';
-import { AutomationPanel } from './panels/AutomationPanel';
+import { AutoProductionPanel } from './panels/AutoProductionPanel';
 import { PrestigePanel } from './panels/PrestigePanel';
 
 /**
@@ -120,7 +120,9 @@ export class UIRoot {
 
     // Phase 5 panels (lazy — created on demand)
     this.panelRegistry.set('tech_tree_panel', () => new TechTreePanel().getElement());
-    this.panelRegistry.set('automation_panel', () => new AutomationPanel().getElement());
+    this.panelRegistry.set('automation_panel', () => new AutoProductionPanel(
+      this.bus, this.getState, this.setState,
+    ).getElement());
     this.panelRegistry.set('prestige_panel', () => new PrestigePanel(
       this.bus, this.getState, this.setState,
     ).getElement());
