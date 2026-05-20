@@ -156,6 +156,27 @@ function migrateV4toV5(data: SaveData): SaveData {
   };
 }
 
+/** v6 → v7: replaces per-item timer arrays with rate-based pipelines */
+function migrateV6toV7(data: SaveData): SaveData {
+  const gameState = data.gameState as GameState & {
+    eggHatchTimers?: number[];
+    larvaMatureTimers?: number[];
+    soldierTrainTimers?: number[];
+    eggPipeline?: { count: number; progress: number };
+    larvaPipeline?: { count: number; progress: number };
+    soldierPipeline?: { count: number; progress: number };
+  };
+
+  gameState.eggPipeline = gameState.eggPipeline ?? { count: 0, progress: 0 };
+  gameState.larvaPipeline = gameState.larvaPipeline ?? { count: 0, progress: 0 };
+  gameState.soldierPipeline = gameState.soldierPipeline ?? { count: 0, progress: 0 };
+  delete gameState.eggHatchTimers;
+  delete gameState.larvaMatureTimers;
+  delete gameState.soldierTrainTimers;
+
+  return { ...data, version: 7, gameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -163,6 +184,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   3: migrateV3toV4,
   4: migrateV4toV5,
   5: migrateV5toV6,
+  6: migrateV6toV7,
 };
 
 /**

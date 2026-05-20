@@ -14,6 +14,17 @@ export interface Tile {
   claimed: boolean;
 }
 
+/**
+ * Pipeline for rate-based spawning (eggs→larvae, larvae→workers, training→soldiers).
+ * Replaces per-item timer arrays with a continuous-flow model.
+ */
+export interface Pipeline {
+  /** Total items in this pipeline waiting to complete */
+  count: number;
+  /** Fractional progress (accumulated rate). floor(progress) = items completed this frame. */
+  progress: number;
+}
+
 export interface GameState {
   phase: string;
   resources: {
@@ -29,10 +40,12 @@ export interface GameState {
     antimatter: number;
     darkMatter: number;
   };
-  /** Countdown timers for each egg (ticks until hatch). */
-  eggHatchTimers: number[];
-  /** Countdown timers for each larva (ticks until mature). */
-  larvaMatureTimers: number[];
+  /** Rate-based egg hatching pipeline (replaces eggHatchTimers[]) */
+  eggPipeline: Pipeline;
+  /** Rate-based larva maturation pipeline (replaces larvaMatureTimers[]) */
+  larvaPipeline: Pipeline;
+  /** Rate-based soldier training pipeline (replaces soldierTrainTimers[]) */
+  soldierPipeline: Pipeline;
   workersAssigned: {
     gather: number;
     tend: number;
@@ -113,8 +126,6 @@ export interface GameState {
   };
   battlesWon: number;
   battlesLost: number;
-  /** Countdown timers for soldier training (ticks until trained). */
-  soldierTrainTimers: number[];
   /** Whether the colony has achieved transcendence victory. */
   victoryAchieved: boolean;
   /** Spaceship state (SPACE phase). */
@@ -164,8 +175,8 @@ export function createInitialState(): GameState {
       antimatter: 0,
       darkMatter: 0,
     },
-    eggHatchTimers: [],
-    larvaMatureTimers: [],
+    eggPipeline: { count: 0, progress: 0 },
+    larvaPipeline: { count: 0, progress: 0 },
     workersAssigned: {
       gather: 0,
       tend: 0,
@@ -219,7 +230,7 @@ export function createInitialState(): GameState {
     },
     battlesWon: 0,
     battlesLost: 0,
-    soldierTrainTimers: [],
+    soldierPipeline: { count: 0, progress: 0 },
     victoryAchieved: false,
     spaceship: {
       level: 0,

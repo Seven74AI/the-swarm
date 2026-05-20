@@ -185,7 +185,7 @@ export class SoldierPanel {
       // Read all relevant paths (tracked automatically by Signals)
       const s = gameState.value;
       void s.combatSoldiers;
-      void s.soldierTrainTimers;
+      void s.soldierPipeline;
       void s.resources.workers;
       void s.resources.food;
       void s.equipment;
@@ -205,7 +205,7 @@ export class SoldierPanel {
       state.workersAssigned.dig +
       state.workersAssigned.guard;
     const availableWorkers = Math.max(0, state.resources.workers - assigned);
-    const trainCount = state.soldierTrainTimers.length;
+    const trainCount = state.soldierPipeline.count;
     const weapon = state.equipment.weapon;
     const armor = state.equipment.armor;
     const food = state.resources.food;

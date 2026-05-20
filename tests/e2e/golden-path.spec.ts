@@ -24,8 +24,8 @@ const SEED = {
       stone: 400,
       nectar: 200,
     },
-    eggHatchTimers: [],
-    larvaMatureTimers: [],
+    eggPipeline: { count: 0, progress: 0 },
+    larvaPipeline: { count: 0, progress: 0 },
     workersAssigned: { gather: 12, tend: 4, dig: 4, guard: 0 },
     soldiers: { scouts: 10, warriors: 5, totalKilled: 2 },
     buildings: {
@@ -56,7 +56,7 @@ const SEED = {
     combatResources: { chitin: 5, silk: 3, venom: 1 },
     battlesWon: 3,
     battlesLost: 1,
-    soldierTrainTimers: [],
+    soldierPipeline: { count: 0, progress: 0 },
   },
 };
 

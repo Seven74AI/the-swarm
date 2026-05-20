@@ -20,8 +20,8 @@ test.describe('Phase 3 — Expansion', () => {
             eggs: 0, larvae: 0, workers: 20, food: 500,
             nestCapacity: 50, wood: 200, stone: 200, nectar: 50,
           },
-          eggHatchTimers: [],
-          larvaMatureTimers: [],
+          eggPipeline: { count: 0, progress: 0 },
+          larvaPipeline: { count: 0, progress: 0 },
           workersAssigned: { gather: 12, tend: 4, dig: 3, guard: 0 },
           soldiers: { scouts: 5, warriors: 3, totalKilled: 0 },
           buildings: {
@@ -40,7 +40,7 @@ test.describe('Phase 3 — Expansion', () => {
           combatResources: { chitin: 0, silk: 0, venom: 0 },
           battlesWon: 0,
           battlesLost: 0,
-          soldierTrainTimers: [],
+          soldierPipeline: { count: 0, progress: 0 },
         },
       };
       localStorage.setItem('the_swarm_save', JSON.stringify(data));

@@ -44,17 +44,17 @@ export class ResourcePanel {
     this.larvaProgress = new ProgressBar('Larva maturing');
     this.container.appendChild(this.larvaProgress.getElement());
 
-    // Reactive: update progress bars when timers change
+    // Reactive: progress bars from pipeline
     effect(() => {
-      const timers = gameState.value.eggHatchTimers;
-      const min = timers.length > 0 ? Math.min(...timers) : EGG_HATCH_TIME;
-      this.eggProgress.update(EGG_HATCH_TIME - min, EGG_HATCH_TIME);
+      const p = gameState.value.eggPipeline;
+      const progress = p.count > 0 ? p.progress / (p.count / EGG_HATCH_TIME + p.progress) : 0;
+      this.eggProgress.update(Math.min(1, progress) * EGG_HATCH_TIME, EGG_HATCH_TIME);
     });
 
     effect(() => {
-      const timers = gameState.value.larvaMatureTimers;
-      const min = timers.length > 0 ? Math.min(...timers) : LARVA_MATURE_TIME;
-      this.larvaProgress.update(LARVA_MATURE_TIME - min, LARVA_MATURE_TIME);
+      const p = gameState.value.larvaPipeline;
+      const progress = p.count > 0 ? p.progress / (p.count / LARVA_MATURE_TIME + p.progress) : 0;
+      this.larvaProgress.update(Math.min(1, progress) * LARVA_MATURE_TIME, LARVA_MATURE_TIME);
     });
   }
 

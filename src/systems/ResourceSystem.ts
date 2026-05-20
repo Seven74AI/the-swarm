@@ -19,26 +19,23 @@ const UPGRADES: Record<string, UpgradeDef> = {
 
 export const EGG_HATCH_TIME = 5; // ticks
 export const LARVA_MATURE_TIME = 10; // ticks
-const FOOD_PER_WORKER = 1; // food produced per unassigned worker per tick
-const FOOD_PER_GATHER = 2; // food produced per gather worker per tick
-const FOOD_CONSUMED_PER_WORKER = 0.5; // food consumed per worker per tick
+const FOOD_PER_WORKER = 1;
+const FOOD_PER_GATHER = 2;
+const FOOD_CONSUMED_PER_WORKER = 0.5;
+const TEND_RATE_BONUS = 1 / EGG_HATCH_TIME; // per tend worker
 
 /**
  * ResourceSystem handles all resource mutations: clicking, ticking, buying.
- * Pure logic — no DOM access. Emits events on the provided EventBus.
+ * Uses rate-based pipelines instead of per-item timer arrays.
  */
 export class ResourceSystem {
   constructor(private bus: EventBus) {}
 
   /**
-   * Lay an egg. Adds 1 egg (or more with click_power upgrade) and a 5-tick hatch timer.
+   * Lay eggs. Adds eggs and pushes them into the hatching pipeline.
    */
   clickEgg(state: GameState): GameState {
     const eggsPerClick = 1 + (state.upgrades.click_power ?? 0);
-    const newTimers = [...state.eggHatchTimers];
-    for (let i = 0; i < eggsPerClick; i++) {
-      newTimers.push(EGG_HATCH_TIME);
-    }
 
     const result: GameState = {
       ...state,
@@ -46,7 +43,10 @@ export class ResourceSystem {
         ...state.resources,
         eggs: state.resources.eggs + eggsPerClick,
       },
-      eggHatchTimers: newTimers,
+      eggPipeline: {
+        count: state.eggPipeline.count + eggsPerClick,
+        progress: state.eggPipeline.progress,
+      },
       stats: {
         ...state.stats,
         totalEggsLaid: state.stats.totalEggsLaid + eggsPerClick,
@@ -60,10 +60,7 @@ export class ResourceSystem {
 
   /**
    * Process a single game tick (1 second).
-   * - Decrement egg timers, hatch any at 0 → larvae
-   * - Decrement larva timers, mature any at 0 → workers
-   * - Workers produce and consume food
-   * - Apply territory bonuses (optional)
+   * Rate-based pipelines replace per-item timer iteration → O(1).
    */
   tick(state: GameState, territoryBonuses?: TerritoryBonuses): GameState {
     let eggs = state.resources.eggs;
@@ -73,69 +70,53 @@ export class ResourceSystem {
     let wood = state.resources.wood;
     let stone = state.resources.stone;
     let nectar = state.resources.nectar;
-    const eggTimers = [...state.eggHatchTimers];
-    const larvaTimers = [...state.larvaMatureTimers];
 
     let eggsChanged = false;
     let larvaeChanged = false;
     let workersChanged = false;
     let foodChanged = false;
 
-    // Decrement egg timers and hatch (max 1 per tick to avoid burst hatching)
-    const newEggTimers: number[] = [];
-    const hatchedLarvaTimers: number[] = [];
+    // ── Egg pipeline: eggs → larvae ──
+    const eggPipe = { ...state.eggPipeline };
+    if (eggPipe.count > 0) {
+      const tendCount = state.workersAssigned.tend;
+      const baseRate = eggPipe.count / EGG_HATCH_TIME;
+      const tendRate = Math.min(tendCount, eggPipe.count) * TEND_RATE_BONUS;
+      const hatchRate = baseRate + tendRate;
 
-    // Sort egg timers so tend workers affect the oldest (lowest) timers first
-    const sortedEggTimers = [...eggTimers].sort((a, b) => a - b);
-    const tendCount = state.workersAssigned.tend;
+      eggPipe.progress += hatchRate;
+      const hatched = Math.floor(eggPipe.progress);
+      eggPipe.progress -= hatched;
 
-    let hatchedThisTick = false;
-    for (let i = 0; i < sortedEggTimers.length; i++) {
-      const timer = sortedEggTimers[i];
-      // Tend workers give an extra -1 to the oldest eggs
-      const extraDecrement = i < tendCount ? 1 : 0;
-      const remaining = timer - 1 - extraDecrement;
-      if (remaining <= 0 && !hatchedThisTick) {
-        // Egg hatches → larva (only one per tick)
-        eggs--;
-        larvae++;
+      if (hatched > 0) {
+        const actual = Math.min(hatched, eggs);
+        eggs -= actual;
+        larvae += actual;
+        eggPipe.count = Math.max(0, eggPipe.count - actual);
         eggsChanged = true;
         larvaeChanged = true;
-        hatchedLarvaTimers.push(LARVA_MATURE_TIME);
-        hatchedThisTick = true;
-      } else if (remaining <= 0) {
-        // Would hatch but already one did — defer to next tick
-        newEggTimers.push(1);
-      } else {
-        newEggTimers.push(remaining);
       }
     }
 
-    // Decrement larva timers and mature (max 1 per tick)
-    const newLarvaTimers: number[] = [];
-    let maturedThisTick = false;
-    for (const timer of larvaTimers) {
-      const remaining = timer - 1;
-      if (remaining <= 0 && !maturedThisTick) {
-        // Larva matures → worker (only one per tick)
-        larvae--;
-        workers++;
+    // ── Larva pipeline: larvae → workers ──
+    const larvaPipe = { ...state.larvaPipeline };
+    if (larvaPipe.count > 0) {
+      const matureRate = larvaPipe.count / LARVA_MATURE_TIME;
+      larvaPipe.progress += matureRate;
+      const matured = Math.floor(larvaPipe.progress);
+      larvaPipe.progress -= matured;
+
+      if (matured > 0) {
+        const actual = Math.min(matured, larvae);
+        larvae -= actual;
+        workers += actual;
+        larvaPipe.count = Math.max(0, larvaPipe.count - actual);
         larvaeChanged = true;
         workersChanged = true;
-        maturedThisTick = true;
-      } else if (remaining <= 0) {
-        // Would mature but already one did — defer to next tick
-        newLarvaTimers.push(1);
-      } else {
-        newLarvaTimers.push(remaining);
       }
     }
-    // Add newly hatched larva timers AFTER decrementing existing ones
-    for (const t of hatchedLarvaTimers) {
-      newLarvaTimers.push(t);
-    }
 
-    // Workers produce food
+    // ── Food production ──
     if (workers > 0) {
       const assigned = state.workersAssigned;
       const gatherCount = assigned.gather;
@@ -148,15 +129,14 @@ export class ResourceSystem {
       foodChanged = true;
     }
 
-    // Apply territory bonuses
+    // ── Territory bonuses ──
     let woodChanged = false;
     let stoneChanged = false;
     let nectarChanged = false;
 
     if (workers > 0 && territoryBonuses) {
       if (territoryBonuses.food > 0) {
-        const bonusFood = workers * territoryBonuses.food;
-        food += bonusFood;
+        food += workers * territoryBonuses.food;
         foodChanged = true;
       }
       if (territoryBonuses.stone > 0) {
@@ -181,68 +161,39 @@ export class ResourceSystem {
         stone,
         nectar,
       },
-      eggHatchTimers: newEggTimers,
-      larvaMatureTimers: newLarvaTimers,
+      eggPipeline: eggPipe,
+      larvaPipeline: larvaPipe,
     };
 
-    if (eggsChanged) {
-      this.bus.emit('eggs_changed', { eggs: result.resources.eggs });
-    }
-    if (larvaeChanged) {
-      this.bus.emit('larvae_changed', { larvae: result.resources.larvae });
-    }
-    if (foodChanged) {
-      this.bus.emit('food_changed', { food: result.resources.food });
-    }
-    if (woodChanged) {
-      this.bus.emit('wood_changed', { wood: result.resources.wood });
-    }
-    if (stoneChanged) {
-      this.bus.emit('stone_changed', { stone: result.resources.stone });
-    }
-    if (nectarChanged) {
-      this.bus.emit('nectar_changed', { nectar: result.resources.nectar });
-    }
-    if (workersChanged) {
-      this.bus.emit('workers_changed', { workers: result.resources.workers });
-    }
+    if (eggsChanged) this.bus.emit('eggs_changed', { eggs: result.resources.eggs });
+    if (larvaeChanged) this.bus.emit('larvae_changed', { larvae: result.resources.larvae });
+    if (foodChanged) this.bus.emit('food_changed', { food: result.resources.food });
+    if (woodChanged) this.bus.emit('wood_changed', { wood: result.resources.wood });
+    if (stoneChanged) this.bus.emit('stone_changed', { stone: result.resources.stone });
+    if (nectarChanged) this.bus.emit('nectar_changed', { nectar: result.resources.nectar });
+    if (workersChanged) this.bus.emit('workers_changed', { workers: result.resources.workers });
 
     return result;
   }
 
-  /**
-   * Purchase an upgrade. Deducts resources and increments upgrade level.
-   * Returns unchanged state if insufficient resources.
-   */
   buyUpgrade(state: GameState, upgradeId: string): GameState {
     const def = UPGRADES[upgradeId];
     if (!def) return state;
 
     const currentLevel = state.upgrades[upgradeId] ?? 0;
     const cost = upgradeCost(def.baseCost, def.costMultiplier, currentLevel);
-
     if (state.resources.food < cost) return state;
 
     const result: GameState = {
       ...state,
-      resources: {
-        ...state.resources,
-        food: state.resources.food - cost,
-      },
-      upgrades: {
-        ...state.upgrades,
-        [upgradeId]: currentLevel + 1,
-      },
+      resources: { ...state.resources, food: state.resources.food - cost },
+      upgrades: { ...state.upgrades, [upgradeId]: currentLevel + 1 },
     };
 
     this.bus.emit('upgrade_purchased', { upgradeId, level: currentLevel + 1 });
     return result;
   }
 
-  /**
-   * Assign one unassigned worker to a role.
-   * Returns unchanged state if no unassigned workers available.
-   */
   assignWorker(state: GameState, role: 'gather' | 'tend' | 'dig' | 'guard'): GameState {
     const assigned = state.workersAssigned;
     const totalAssigned = assigned.gather + assigned.tend + assigned.dig + assigned.guard;
@@ -250,39 +201,26 @@ export class ResourceSystem {
 
     const result: GameState = {
       ...state,
-      workersAssigned: {
-        ...assigned,
-        [role]: assigned[role] + 1,
-      },
+      workersAssigned: { ...assigned, [role]: assigned[role] + 1 },
     };
 
     this.bus.emit('workers_assigned', { role, assigned: result.workersAssigned });
     return result;
   }
 
-  /**
-   * Unassign one worker from a role.
-   * Won't go below 0 for that role.
-   */
   unassignWorker(state: GameState, role: 'gather' | 'tend' | 'dig' | 'guard'): GameState {
     const assigned = state.workersAssigned;
     if (assigned[role] <= 0) return state;
 
     const result: GameState = {
       ...state,
-      workersAssigned: {
-        ...assigned,
-        [role]: assigned[role] - 1,
-      },
+      workersAssigned: { ...assigned, [role]: assigned[role] - 1 },
     };
 
     this.bus.emit('workers_assigned', { role, assigned: result.workersAssigned });
     return result;
   }
 
-  /**
-   * Get the effective nest capacity including warehouse building bonuses.
-   */
   getEffectiveNestCapacity(state: GameState): number {
     const base = state.resources.nestCapacity;
     const effects = getEffects('warehouse', state.buildings.warehouse.level);

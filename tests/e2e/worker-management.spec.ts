@@ -13,8 +13,8 @@ import { test, expect } from '@playwright/test';
 const BASE_GAME_STATE = {
   phase: 'egg_laying',
   resources: { eggs: 0, larvae: 0, workers: 0, food: 0, nestCapacity: 25 },
-  eggHatchTimers: [] as number[],
-  larvaMatureTimers: [] as number[],
+  eggPipeline: { count: 0, progress: 0 },
+  larvaPipeline: { count: 0, progress: 0 },
   workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0 },
   upgrades: {} as Record<string, number>,
   stats: { totalEggsLaid: 0, totalClicks: 0, playTimeMs: 0 },
@@ -69,8 +69,8 @@ test.describe('Worker Management', () => {
         gameState: {
           phase: 'egg_laying',
           resources: { eggs: 0, larvae: 0, workers: 10, food: 0, nestCapacity: 25 },
-          eggHatchTimers: [],
-          larvaMatureTimers: [],
+          eggPipeline: { count: 0, progress: 0 },
+          larvaPipeline: { count: 0, progress: 0 },
           workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0 },
           upgrades: {},
           stats: { totalEggsLaid: 0, totalClicks: 0, playTimeMs: 0 },
@@ -127,7 +127,7 @@ test.describe('Worker Management', () => {
     await seedAndGoto(page, {
       phase: 'colony',
       resources: { eggs: 3, larvae: 0, workers: 5, food: 50, nestCapacity: 25 },
-      eggHatchTimers: [1, 1, 1],
+      eggPipeline: { count: 0, progress: 0 },
       workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0 },
     });
 

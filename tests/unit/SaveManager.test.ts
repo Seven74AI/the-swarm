@@ -37,8 +37,8 @@ describe('SaveManager', () => {
     it('preserves complex nested state', () => {
       const state = createInitialState();
       state.resources.eggs = 5;
-      state.eggHatchTimers = [3, 2, 1];
-      state.larvaMatureTimers = [7, 3];
+      state.eggPipeline = { count: 6, progress: 0.5 };
+      state.larvaPipeline = { count: 10, progress: 3.2 };
       state.workersAssigned = { gather: 3, tend: 1, dig: 0, guard: 0 };
       state.upgrades = { click_power: 2 };
       state.unlockedPanels = ['resource_panel'];
@@ -47,8 +47,8 @@ describe('SaveManager', () => {
       const loaded = saveManager.load();
 
       expect(loaded).not.toBeNull();
-      expect(loaded!.gameState.eggHatchTimers).toEqual([3, 2, 1]);
-      expect(loaded!.gameState.larvaMatureTimers).toEqual([7, 3]);
+      expect(loaded!.gameState.eggPipeline).toEqual({ count: 6, progress: 0.5 });
+      expect(loaded!.gameState.larvaPipeline).toEqual({ count: 10, progress: 3.2 });
       expect(loaded!.gameState.workersAssigned).toEqual({
         gather: 3,
         tend: 1,
@@ -66,7 +66,7 @@ describe('SaveManager', () => {
       const raw = localStorage.getItem('the_swarm_save');
       expect(raw).not.toBeNull();
       const parsed = JSON.parse(raw!);
-      expect(parsed.version).toBe(6);
+      expect(parsed.version).toBe(7);
       expect(parsed.timestamp).toBeGreaterThanOrEqual(before);
     });
   });
