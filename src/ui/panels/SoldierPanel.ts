@@ -87,11 +87,8 @@ export class SoldierPanel {
     this.recruitBtn.textContent = `Recruit Soldier (${SOLDIER_COST_FOOD} food, ${SOLDIER_TRAIN_TIME}s)`;
     this.recruitBtn.addEventListener('click', () => {
       const state = this.getState();
-      const oldCombat = state.combatSoldiers;
       const updated = this.soldierSystem.recruitSoldier(state);
       if (updated !== state) {
-        const newSoldiers = updated.combatSoldiers - oldCombat;
-        this.bus.emit('soldier_recruited', { type: 'soldier', count: newSoldiers });
         this.setState(updated);
       }
     });

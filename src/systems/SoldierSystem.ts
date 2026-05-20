@@ -65,6 +65,7 @@ export class SoldierSystem {
 
     if (newSoldiers > 0) {
       this.bus.emit('soldiers_changed', { soldiers: result.combatSoldiers });
+      this.bus.emit('soldier_recruited', { type: 'soldier', count: newSoldiers });
     }
 
     return result;
