@@ -1292,3 +1292,91 @@ body.phase-space .progress-fill {
   background: linear-gradient(135deg, rgba(184, 148, 46, 0.5), rgba(139, 105, 20, 0.3));
   box-shadow: 0 0 16px rgba(184, 148, 46, 0.4);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   DECISION POPUPS (GM-2) — Bottom-right non-blocking popup
+   ═══════════════════════════════════════════════════════════════ */
+
+#decision-popup {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 2px solid var(--accent-glow, #e94560);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5), 0 0 12px rgba(233, 69, 96, 0.3);
+  animation: popup-slide-in 0.3s ease-out;
+  font-family: 'Courier New', monospace;
+  color: #eee;
+}
+
+#decision-popup .decision-popup-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#decision-popup .decision-popup-title {
+  font-size: 1.1em;
+  font-weight: bold;
+  color: #e94560;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+#decision-popup .decision-popup-desc {
+  font-size: 0.85em;
+  color: #aaa;
+  line-height: 1.4;
+}
+
+#decision-popup .decision-popup-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#decision-popup .decision-choice-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #ddd;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.9em;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+#decision-popup .decision-choice-btn:hover {
+  background: rgba(233, 69, 96, 0.15);
+  border-color: #e94560;
+  transform: scale(1.02);
+}
+
+#decision-popup .decision-choice-btn:active {
+  transform: scale(0.98);
+}
+
+#decision-popup .decision-choice-label {
+  font-weight: bold;
+  color: #fff;
+}
+
+#decision-popup .decision-choice-desc {
+  font-size: 0.75em;
+  color: #888;
+}
+
+@keyframes popup-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

@@ -25,6 +25,8 @@ import { TechTreePanel } from './panels/TechTreePanel';
 import { AutoProductionPanel } from './panels/AutoProductionPanel';
 import { PrestigePanel } from './panels/PrestigePanel';
 import { ResearchPanel } from './panels/ResearchPanel';
+import type { DecisionEvent } from '../systems/DecisionSystem';
+import { DecisionPopup } from './components/DecisionPopup';
 
 /**
  * Root UI controller. Mounts all panels into #app.
@@ -46,6 +48,9 @@ export class UIRoot {
   private transitionOverlay: HTMLElement | null = null;
   /** IntersectionObserver for scroll-based panel reveal */
   private scrollObserver: IntersectionObserver | null = null;
+
+  /** Decision popup (bottom-right, non-blocking) */
+  private decisionPopup: DecisionPopup;
 
   /** Container div (#panels) where all panels are appended. */
   private panelsContainer: HTMLElement | null = null;
@@ -74,6 +79,7 @@ export class UIRoot {
     this.getState = deps.getState;
     this.setState = deps.setState;
     this.eventLog = new EventLog(this.bus);
+    this.decisionPopup = new DecisionPopup(this.bus);
 
     // ── Populate panel registry with factory functions ──
     // Phase 1 panels (mounted at boot for backward compat)
@@ -238,6 +244,12 @@ export class UIRoot {
     // ── Phase 4+ panels are NOT mounted at boot ──
     // They are created lazily via createPanel() when their phase is entered.
     // This makes panel reveals feel like genuine new features.
+
+    // ── Decision popup (bottom-right fixed, non-blocking) ──
+    container.appendChild(this.decisionPopup.getElement());
+    this.bus.subscribe('decision_event', (payload: unknown) => {
+      this.decisionPopup.show(payload as DecisionEvent);
+    });
 
     container.appendChild(panels);
 
