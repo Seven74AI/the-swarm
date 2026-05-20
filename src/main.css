@@ -163,6 +163,65 @@ html, body {
   display: block;
   color: var(--text-primary);
   padding: 0.15rem 0;
+  overflow: visible; /* allow particles to extend beyond bounds */
+}
+
+.number-display-text {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Number Particles ── */
+.number-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+}
+
+.number-particle-up {
+  background: var(--success);
+  box-shadow: 0 0 4px var(--success);
+  animation: particle-rise 800ms ease-out forwards;
+}
+
+.number-particle-down {
+  background: var(--danger);
+  box-shadow: 0 0 4px var(--danger);
+  animation: particle-fall 800ms ease-out forwards;
+}
+
+@keyframes particle-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.5);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.3);
+  }
+}
+
+@keyframes particle-fall {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.5);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(5px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(25px) scale(0.3);
+  }
 }
 
 /* ── Progress Bar ── */
