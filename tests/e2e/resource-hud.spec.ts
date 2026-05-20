@@ -6,6 +6,12 @@ import { test, expect } from '@playwright/test';
 
 /** Helper: build a minimal game state with a specific phase */
 function makeGameState(phase: string) {
+  const tiles = [];
+  for (let x = 0; x < 8; x++) {
+    for (let y = 0; y < 8; y++) {
+      tiles.push({ x, y, type: 'empty', discovered: false, claimed: false });
+    }
+  }
   return {
     phase,
     resources: {
@@ -20,7 +26,7 @@ function makeGameState(phase: string) {
     soldiers: { scouts: 10, warriors: 5, totalKilled: 0 },
     buildings: { barracks: { level: 1, count: 1 }, walls: { level: 1 }, warehouse: { level: 1 } },
     territory: { ownedTiles: 0, bonuses: {} },
-    mapTiles: [] as Array<Record<string, unknown>>,
+    mapTiles: tiles,
     expeditions: [] as Array<Record<string, unknown>>,
     spaceExplorations: [] as Array<Record<string, unknown>>,
     discoveredPlanets: [] as string[],
