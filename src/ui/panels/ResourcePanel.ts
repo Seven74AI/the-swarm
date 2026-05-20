@@ -1,19 +1,19 @@
-import type { Store } from '../../state/Store';
+import { effect } from '@preact/signals-core';
+import { gameState } from '../../state/gameSignal';
+import { EGG_HATCH_TIME, LARVA_MATURE_TIME } from '../../systems/ResourceSystem';
 import { NumberDisplay } from '../components/NumberDisplay';
 import { ProgressBar } from '../components/ProgressBar';
-import { EGG_HATCH_TIME, LARVA_MATURE_TIME } from '../../systems/ResourceSystem';
 
 /**
  * Displays all resources: Eggs, Larvae, Workers, Food.
- * Also shows egg/larva maturation progress bars.
- * Subscribes to Store for automatic updates.
+ * Uses @preact/signals-core effect() for automatic updates.
  */
 export class ResourcePanel {
   private container: HTMLDivElement;
   private eggProgress: ProgressBar;
   private larvaProgress: ProgressBar;
 
-  constructor(private store: Store) {
+  constructor() {
     this.container = document.createElement('div');
     this.container.className = 'panel resource-panel';
 
@@ -22,10 +22,10 @@ export class ResourcePanel {
     title.textContent = 'Colony Resources';
     this.container.appendChild(title);
 
-    const eggs = new NumberDisplay(store, 'resources.eggs', '🥚 Eggs');
-    const larvae = new NumberDisplay(store, 'resources.larvae', '🐛 Larvae');
-    const workers = new NumberDisplay(store, 'resources.workers', '🐜 Workers');
-    const food = new NumberDisplay(store, 'resources.food', '🍞 Food');
+    const eggs = new NumberDisplay('resources.eggs', '🥚 Eggs');
+    const larvae = new NumberDisplay('resources.larvae', '🐛 Larvae');
+    const workers = new NumberDisplay('resources.workers', '🐜 Workers');
+    const food = new NumberDisplay('resources.food', '🍞 Food');
 
     this.container.appendChild(eggs.getElement());
     this.container.appendChild(document.createElement('br'));
@@ -44,16 +44,16 @@ export class ResourcePanel {
     this.larvaProgress = new ProgressBar('Larva maturing');
     this.container.appendChild(this.larvaProgress.getElement());
 
-    // Subscribe to timers for progress updates
-    store.subscribe('eggHatchTimers', (timers) => {
-      const arr = timers as number[];
-      const min = arr.length > 0 ? Math.min(...arr) : EGG_HATCH_TIME;
+    // Reactive: update progress bars when timers change
+    effect(() => {
+      const timers = gameState.value.eggHatchTimers;
+      const min = timers.length > 0 ? Math.min(...timers) : EGG_HATCH_TIME;
       this.eggProgress.update(EGG_HATCH_TIME - min, EGG_HATCH_TIME);
     });
 
-    store.subscribe('larvaMatureTimers', (timers) => {
-      const arr = timers as number[];
-      const min = arr.length > 0 ? Math.min(...arr) : LARVA_MATURE_TIME;
+    effect(() => {
+      const timers = gameState.value.larvaMatureTimers;
+      const min = timers.length > 0 ? Math.min(...timers) : LARVA_MATURE_TIME;
       this.larvaProgress.update(LARVA_MATURE_TIME - min, LARVA_MATURE_TIME);
     });
   }

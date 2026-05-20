@@ -1,4 +1,5 @@
-import type { Store } from '../../state/Store';
+import { effect } from '@preact/signals-core';
+import { gameState } from '../../state/gameSignal';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import type { SoldierSystem } from '../../systems/SoldierSystem';
@@ -36,7 +37,6 @@ export class SoldierPanel {
   private hpDisplay: HTMLSpanElement;
 
   constructor(
-    private store: Store,
     private bus: EventBus,
     private soldierSystem: SoldierSystem,
     private getState: () => GameState,
@@ -180,12 +180,18 @@ export class SoldierPanel {
     this.speedDisplay = statDisplays['speed'];
     this.hpDisplay = statDisplays['hp'];
 
-    // Subscribe to state changes for real-time updates
-    store.subscribe('combatSoldiers', () => this.refresh());
-    store.subscribe('soldierTrainTimers', () => this.refresh());
-    store.subscribe('resources.workers', () => this.refresh());
-    store.subscribe('resources.food', () => this.refresh());
-    store.subscribe('equipment', () => this.refresh());
+    // Reactive: auto-refresh when any soldier-related state changes
+    effect(() => {
+      // Read all relevant paths (tracked automatically by Signals)
+      const s = gameState.value;
+      void s.combatSoldiers;
+      void s.soldierTrainTimers;
+      void s.resources.workers;
+      void s.resources.food;
+      void s.equipment;
+      void s.workersAssigned;
+      this.refresh();
+    });
 
     // Initial render
     this.refresh();

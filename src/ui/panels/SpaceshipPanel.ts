@@ -1,26 +1,22 @@
-import type { Store } from '../../state/Store';
+import { effect } from '@preact/signals-core';
+import { gameState } from '../../state/gameSignal';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 
 /** Spaceship build costs per level. */
 const SHIP_COSTS: Array<{ voidCrystals: number; antimatter: number; darkMatter: number }> = [
-  { voidCrystals: 50, antimatter: 25, darkMatter: 5 },   // Lv.0 → 1
-  { voidCrystals: 100, antimatter: 50, darkMatter: 10 },  // Lv.1 → 2
-  { voidCrystals: 200, antimatter: 100, darkMatter: 20 }, // Lv.2 → 3
+  { voidCrystals: 50, antimatter: 25, darkMatter: 5 },
+  { voidCrystals: 100, antimatter: 50, darkMatter: 10 },
+  { voidCrystals: 200, antimatter: 100, darkMatter: 20 },
 ];
 
 const MAX_SHIP_LEVEL = 5;
 
-/**
- * SpaceshipPanel — build and upgrade your spaceship for interstellar travel.
- * Unlocked in SPACE phase.
- */
 export class SpaceshipPanel {
   private container: HTMLDivElement;
   private renderScheduled = false;
 
   constructor(
-    private store: Store,
     private bus: EventBus,
     private getState: () => GameState,
     private setState: (state: GameState) => void,
@@ -31,8 +27,11 @@ export class SpaceshipPanel {
 
     this.render();
 
-    store.subscribe('spaceship', () => this.scheduleRender());
-    store.subscribe('resources', () => this.scheduleRender());
+    effect(() => {
+      void gameState.value.spaceship;
+      void gameState.value.resources;
+      this.scheduleRender();
+    });
   }
 
   /** Public refresh for tests. */

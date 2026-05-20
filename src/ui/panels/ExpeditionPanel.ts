@@ -1,4 +1,5 @@
-import type { Store } from '../../state/Store';
+import { effect } from '@preact/signals-core';
+import { gameState } from '../../state/gameSignal';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import { launchExpedition } from '../../systems/ExpeditionSystem';
@@ -11,7 +12,6 @@ export class ExpeditionPanel {
   private container: HTMLDivElement;
 
   constructor(
-    private store: Store,
     private bus: EventBus,
     private getState: () => GameState,
     private setState: (state: GameState) => void,
@@ -22,8 +22,11 @@ export class ExpeditionPanel {
 
     this.render();
 
-    store.subscribe('expeditions', () => this.render());
-    store.subscribe('soldiers', () => this.render());
+    effect(() => {
+      void gameState.value.expeditions;
+      void gameState.value.soldiers;
+      this.render();
+    });
   }
 
   /** Public refresh for tests */

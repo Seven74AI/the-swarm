@@ -1,4 +1,5 @@
-import type { Store } from '../../state/Store';
+import { effect } from '@preact/signals-core';
+import { gameState } from '../../state/gameSignal';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 
@@ -21,7 +22,6 @@ export class ExplorationPanel {
   private renderScheduled = false;
 
   constructor(
-    private store: Store,
     private bus: EventBus,
     private getState: () => GameState,
     private setState: (state: GameState) => void,
@@ -32,9 +32,12 @@ export class ExplorationPanel {
 
     this.render();
 
-    store.subscribe('spaceProbes', () => this.scheduleRender());
-    store.subscribe('spaceship', () => this.scheduleRender());
-    store.subscribe('soldiers', () => this.scheduleRender());
+    effect(() => {
+      void gameState.value.spaceProbes;
+      void gameState.value.spaceship;
+      void gameState.value.soldiers;
+      this.scheduleRender();
+    });
   }
 
   /** Public refresh for tests. */

@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EventBus } from '../../src/engine/EventBus';
-import { StateManager } from '../../src/state/StateManager';
-import { Store } from '../../src/state/Store';
+import { gameState } from '../../src/state/gameSignal';
 import { SoldierSystem } from '../../src/systems/SoldierSystem';
 import { BattleSystem } from '../../src/systems/BattleSystem';
 import { createInitialState, type GameState } from '../../src/state/GameState';
@@ -9,8 +8,6 @@ import { BattlePanel } from '../../src/ui/panels/BattlePanel';
 
 describe('BattlePanel', () => {
   let bus: EventBus;
-  let manager: StateManager;
-  let store: Store;
   let soldierSystem: SoldierSystem;
   let battleSystem: BattleSystem;
   let state: GameState;
@@ -20,18 +17,16 @@ describe('BattlePanel', () => {
 
   beforeEach(() => {
     bus = new EventBus();
-    manager = new StateManager(bus);
     state = createInitialState();
-    manager.update(state);
-    store = new Store(manager);
+    gameState.value = state;
     soldierSystem = new SoldierSystem(bus);
     battleSystem = new BattleSystem(bus);
-    getState = () => manager.getState();
-    setState = (s: GameState) => manager.update(s);
+    getState = () => gameState.value;
+    setState = (s: GameState) => { gameState.value = s; };
   });
 
   function createPanel(): BattlePanel {
-    return new BattlePanel(store, bus, soldierSystem, battleSystem, getState, setState);
+    return new BattlePanel(bus, soldierSystem, battleSystem, getState, setState);
   }
 
   describe('rendering', () => {
@@ -45,7 +40,7 @@ describe('BattlePanel', () => {
       state.combatSoldiers = 12;
       state.equipment.weapon = 2;
       state.equipment.armor = 1;
-      manager.update(state);
+      gameState.value = state;
       panel = createPanel();
       const el = panel.getElement();
       expect(el.textContent).toContain('12');
@@ -56,7 +51,7 @@ describe('BattlePanel', () => {
     it('shows battles won and lost', () => {
       state.battlesWon = 5;
       state.battlesLost = 2;
-      manager.update(state);
+      gameState.value = state;
       panel = createPanel();
       const el = panel.getElement();
       expect(el.textContent).toContain('5');
@@ -65,7 +60,7 @@ describe('BattlePanel', () => {
 
     it('shows combat resources when > 0', () => {
       state.combatResources = { chitin: 3, silk: 2, venom: 1 };
-      manager.update(state);
+      gameState.value = state;
       panel = createPanel();
       const el = panel.getElement();
       expect(el.textContent).toContain('Chitin: 3');
@@ -75,7 +70,7 @@ describe('BattlePanel', () => {
 
     it('does not show combat resources when all 0', () => {
       state.combatResources = { chitin: 0, silk: 0, venom: 0 };
-      manager.update(state);
+      gameState.value = state;
       panel = createPanel();
       const el = panel.getElement();
       expect(el.textContent).not.toContain('Chitin');
@@ -89,7 +84,7 @@ describe('BattlePanel', () => {
       state.combatSoldiers = 10;
       state.equipment.weapon = 0;
       state.equipment.armor = 0;
-      manager.update(state);
+      gameState.value = state;
       panel = createPanel();
       const el = panel.getElement();
       const scoutBtn = el.querySelector('#scout-enemy') as HTMLButtonElement;
@@ -110,7 +105,7 @@ describe('BattlePanel', () => {
 
     it('scout button is disabled when no soldiers', () => {
       state.combatSoldiers = 0;
-      manager.update(state);
+      gameState.value = state;
       panel = createPanel();
       const el = panel.getElement();
       const scoutBtn = el.querySelector('#scout-enemy') as HTMLButtonElement;
@@ -121,7 +116,7 @@ describe('BattlePanel', () => {
   describe('engage button', () => {
     it('engage button is disabled before scouting', () => {
       state.combatSoldiers = 10;
-      manager.update(state);
+      gameState.value = state;
       panel = createPanel();
       const el = panel.getElement();
       const engageBtn = el.querySelector('#engage-battle') as HTMLButtonElement;
@@ -130,7 +125,7 @@ describe('BattlePanel', () => {
 
     it('engage button is enabled after scouting with soldiers', () => {
       state.combatSoldiers = 10;
-      manager.update(state);
+      gameState.value = state;
       panel = createPanel();
       const el = panel.getElement();
 
@@ -147,7 +142,7 @@ describe('BattlePanel', () => {
       state.combatSoldiers = 100;
       state.equipment.weapon = 5;
       state.equipment.armor = 5;
-      manager.update(state);
+      gameState.value = state;
       panel = createPanel();
       const el = panel.getElement();
 
@@ -170,7 +165,7 @@ describe('BattlePanel', () => {
       state.combatSoldiers = 100;
       state.equipment.weapon = 5;
       state.equipment.armor = 5;
-      manager.update(state);
+      gameState.value = state;
       panel = createPanel();
       const el = panel.getElement();
 
@@ -185,7 +180,7 @@ describe('BattlePanel', () => {
       state.combatSoldiers = 100;
       state.equipment.weapon = 5;
       state.equipment.armor = 5;
-      manager.update(state);
+      gameState.value = state;
       panel = createPanel();
       const el = panel.getElement();
 
@@ -214,7 +209,7 @@ describe('BattlePanel', () => {
       state.combatSoldiers = 100;
       state.equipment.weapon = 5;
       state.equipment.armor = 5;
-      manager.update(state);
+      gameState.value = state;
       panel = createPanel();
       const el = panel.getElement();
       (el.querySelector('#scout-enemy') as HTMLButtonElement).click();

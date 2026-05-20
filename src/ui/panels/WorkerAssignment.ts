@@ -1,4 +1,5 @@
-import type { Store } from '../../state/Store';
+import { effect } from '@preact/signals-core';
+import { gameState } from '../../state/gameSignal';
 import type { EventBus } from '../../engine/EventBus';
 import type { ResourceSystem } from '../../systems/ResourceSystem';
 import type { GameState } from '../../state/GameState';
@@ -22,16 +23,11 @@ const FOOD_PER_GATHER = 2;
 const FOOD_PER_UNASSIGNED = 1;
 const FOOD_CONSUMED_PER_WORKER = 0.5;
 
-/**
- * Worker assignment panel with +/- buttons for each role
- * and a live food/tick summary.
- */
 export class WorkerAssignment {
   private container: HTMLDivElement;
   private summaryEl: HTMLSpanElement;
 
   constructor(
-    private store: Store,
     private bus: EventBus,
     private resourceSystem: ResourceSystem,
     private getState: () => GameState,
@@ -47,19 +43,16 @@ export class WorkerAssignment {
     title.textContent = 'Assign Workers';
     this.container.appendChild(title);
 
-    // Hint line
     const hint = document.createElement('div');
     hint.className = 'worker-hint';
     hint.textContent = 'Each worker costs −0.5 food/tick';
     this.container.appendChild(hint);
 
-    // Role rows
     const roles: Role[] = ['gather', 'tend', 'dig', 'guard'];
     for (const role of roles) {
       this.container.appendChild(this.createRoleRow(role));
     }
 
-    // Food summary
     const summary = document.createElement('div');
     summary.className = 'worker-summary';
     const label = document.createElement('span');
@@ -70,7 +63,7 @@ export class WorkerAssignment {
     summary.appendChild(this.summaryEl);
     this.container.appendChild(summary);
 
-    // Reveal on colony phase
+    // Phase reveal (event-driven — stays on bus)
     bus.subscribe('phase_changed', (payload: unknown) => {
       const phase = (payload as { phase: string }).phase;
       if (phase === 'colony') {
@@ -78,9 +71,12 @@ export class WorkerAssignment {
       }
     });
 
-    // Refresh on any state change that affects workers
-    store.subscribe('workersAssigned', () => this.refresh());
-    store.subscribe('workers', () => this.refresh());
+    // Reactive: refresh counts and food summary when state changes
+    effect(() => {
+      const s = gameState.value;
+      this.refreshCounts(s);
+      this.refreshSummary(s);
+    });
   }
 
   private createRoleRow(role: Role): HTMLDivElement {
@@ -88,7 +84,6 @@ export class WorkerAssignment {
     const row = document.createElement('div');
     row.className = 'stat-row worker-role-row';
 
-    // Left side: icon + label + description
     const info = document.createElement('div');
     info.className = 'worker-role-info';
 
@@ -104,7 +99,6 @@ export class WorkerAssignment {
 
     row.appendChild(info);
 
-    // Right side: − / count / +
     const controls = document.createElement('span');
     controls.className = 'role-controls';
 
@@ -139,10 +133,7 @@ export class WorkerAssignment {
     return row;
   }
 
-  private refresh(): void {
-    const state = this.getState();
-
-    // Update role counts
+  private refreshCounts(state: GameState): void {
     const rows = this.container.querySelectorAll('[data-role]');
     rows.forEach((row) => {
       const role = row.getAttribute('data-role') as Role;
@@ -151,8 +142,9 @@ export class WorkerAssignment {
         countSpan.textContent = String(state.workersAssigned[role] ?? 0);
       }
     });
+  }
 
-    // Update food summary
+  private refreshSummary(state: GameState): void {
     const w = state.resources.workers;
     const a = state.workersAssigned;
     const assigned = a.gather + a.tend + a.dig + a.guard;

@@ -1,4 +1,3 @@
-import type { Store } from '../state/Store';
 import type { EventBus } from '../engine/EventBus';
 import type { ResourceSystem } from '../systems/ResourceSystem';
 import type { SoldierSystem } from '../systems/SoldierSystem';
@@ -22,11 +21,10 @@ import { SpaceshipPanel } from './panels/SpaceshipPanel';
 
 /**
  * Root UI controller. Mounts all panels into #app.
- * Layout: #top-bar (summary), #activity-log, #panels (content).
+ * State flows through @preact/signals-core — no Store dependency.
  */
 export class UIRoot {
   private bus: EventBus;
-  private store: Store;
   private resourceSystem: ResourceSystem;
   private soldierSystem: SoldierSystem;
   private battleSystem: BattleSystem;
@@ -40,7 +38,6 @@ export class UIRoot {
 
   constructor(deps: {
     bus: EventBus;
-    store: Store;
     resourceSystem: ResourceSystem;
     soldierSystem: SoldierSystem;
     battleSystem: BattleSystem;
@@ -51,7 +48,6 @@ export class UIRoot {
     setState: (state: GameState) => void;
   }) {
     this.bus = deps.bus;
-    this.store = deps.store;
     this.resourceSystem = deps.resourceSystem;
     this.soldierSystem = deps.soldierSystem;
     this.battleSystem = deps.battleSystem;
@@ -82,7 +78,6 @@ export class UIRoot {
 
     // Click button (always visible)
     const clickBtn = new ClickButton(
-      this.store,
       this.bus,
       this.resourceSystem,
       this.saveManager,
@@ -101,13 +96,12 @@ export class UIRoot {
     // Panels section
     const panels = document.createElement('div');
     panels.id = 'panels';
-    const resourcePanel = new ResourcePanel(this.store);
+    const resourcePanel = new ResourcePanel();
     panels.appendChild(resourcePanel.getElement());
     this.panelElements.set('resource_panel', resourcePanel.getElement());
 
     // Worker assignment panel (hidden initially, revealed in colony phase)
     const workerAssignment = new WorkerAssignment(
-      this.store,
       this.bus,
       this.resourceSystem,
       this.getState,
@@ -118,7 +112,6 @@ export class UIRoot {
 
     // Soldier panel (hidden initially, revealed in combat phase)
     const soldierPanel = new SoldierPanel(
-      this.store,
       this.bus,
       this.soldierSystem,
       this.getState,
@@ -129,7 +122,6 @@ export class UIRoot {
 
     // Battle panel (hidden initially, revealed in combat phase)
     const battlePanel = new BattlePanel(
-      this.store,
       this.bus,
       this.soldierSystem,
       this.battleSystem,
@@ -140,13 +132,12 @@ export class UIRoot {
     this.panelElements.set('battle_panel', battlePanel.getElement());
 
     // Building panel (hidden initially, revealed in expansion phase)
-    const buildingPanel = new BuildingPanel(this.store, this.bus, this.getState, this.setState);
+    const buildingPanel = new BuildingPanel(this.bus, this.getState, this.setState);
     panels.appendChild(buildingPanel.getElement());
     this.panelElements.set('building_panel', buildingPanel.getElement());
 
     // Expedition panel (hidden initially, revealed in expansion phase)
     const expeditionPanel = new ExpeditionPanel(
-      this.store,
       this.bus,
       this.getState,
       this.setState,
@@ -156,7 +147,6 @@ export class UIRoot {
 
     // Space exploration panel (hidden initially, revealed in space phase)
     const explorationPanel = new ExplorationPanel(
-      this.store,
       this.bus,
       this.getState,
       this.setState,
@@ -175,7 +165,6 @@ export class UIRoot {
 
     // Spaceship panel (hidden initially, revealed in space phase)
     const spaceshipPanel = new SpaceshipPanel(
-      this.store,
       this.bus,
       this.getState,
       this.setState,
@@ -196,8 +185,14 @@ export class UIRoot {
     });
 
     // Listen for worker changes to trigger narrative events
-    this.store.subscribe('resources.workers', (value) => {
-      this.eventLog.notifyWorkerCount(value as number);
+    // (read from signal via effect in EventLog? No — this is event-driven)
+    // We keep using bus events for narrative. The worker count check is done
+    // via event since main.ts emits workers_changed on tick.
+    this.bus.subscribe('workers_changed', (payload: unknown) => {
+      const p = payload as { workers: number };
+      if (p.workers !== undefined) {
+        this.eventLog.notifyWorkerCount(p.workers);
+      }
     });
   }
 

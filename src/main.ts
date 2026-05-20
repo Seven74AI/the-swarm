@@ -1,8 +1,7 @@
 import { EventBus } from './engine/EventBus';
 import { Ticker } from './engine/Ticker';
 import { GameLoop } from './engine/GameLoop';
-import { StateManager } from './state/StateManager';
-import { Store } from './state/Store';
+import { gameState } from './state/gameSignal';
 import { ResourceSystem } from './systems/ResourceSystem';
 import { SoldierSystem } from './systems/SoldierSystem';
 import { BattleSystem } from './systems/BattleSystem';
@@ -26,17 +25,16 @@ import type { GameState } from './state/GameState';
  * THE SWARM — Bootstrap
  *
  * Full game loop with persistence, phase state machine, and autosave.
+ * Uses @preact/signals-core for reactive state (replaces StateManager + Store).
  * - Load saved state on startup (or start fresh)
- * - Each tick: ResourceSystem.tick → PhaseStateMachine.tick → StateManager.update
+ * - Each tick: ResourceSystem.tick → PhaseStateMachine.tick → write signal
  * - Autosave every 30 seconds
  * - PhaseContent manages which panels are active
  */
 export function bootstrap(): {
   bus: EventBus;
   ticker: Ticker;
-  manager: StateManager;
   loop: GameLoop;
-  store: Store;
   resourceSystem: ResourceSystem;
   saveManager: SaveManager;
   fsm: PhaseStateMachine;
@@ -44,8 +42,6 @@ export function bootstrap(): {
 } {
   const bus = new EventBus();
   const ticker = new Ticker();
-  const manager = new StateManager(bus);
-  const store = new Store(manager);
   const resourceSystem = new ResourceSystem(bus);
   const soldierSystem = new SoldierSystem(bus);
   const battleSystem = new BattleSystem(bus);
@@ -58,16 +54,16 @@ export function bootstrap(): {
   // Try to load saved state
   const saved = saveManager.load();
   if (saved) {
-    manager.update(saved.gameState as Partial<GameState>);
+    gameState.value = saved.gameState;
   }
 
   // Initialize PhaseStateMachine from current state
-  const currentPhase = (manager.getState().phase as Phase) ?? Phase.EGG_LAYING;
+  const currentPhase = (gameState.value.phase as Phase) ?? Phase.EGG_LAYING;
   const fsm = new PhaseStateMachine(currentPhase, TRANSITIONS);
 
   // Wire resource ticking into the game loop
   ticker.onTick(() => {
-    const state = manager.getState();
+    const state = gameState.value;
 
     // Generate map if tiles are all empty (first tick)
     let workingState = state;
@@ -175,13 +171,17 @@ export function bootstrap(): {
       },
     };
 
-    manager.update(newState);
+    // Write to signal — triggers all UI effects
+    gameState.value = newState;
 
     // Check phase transitions
-    const updated = manager.getState();
+    const updated = gameState.value;
     const newPhase = fsm.tick(updated, bus);
     if (newPhase !== updated.phase) {
-      manager.update({ phase: newPhase } as Partial<GameState>);
+      gameState.value = {
+        ...updated,
+        phase: newPhase,
+      };
     }
   });
 
@@ -189,15 +189,14 @@ export function bootstrap(): {
   const app = document.getElementById('app');
   const ui = new UIRoot({
     bus,
-    store,
     resourceSystem,
     soldierSystem,
     battleSystem,
     saveManager,
     mapSystem,
     territorySystem,
-    getState: () => manager.getState(),
-    setState: (state: GameState) => manager.update(state),
+    getState: () => gameState.value,
+    setState: (state: GameState) => { gameState.value = state; },
   });
   if (app) {
     ui.mount(app);
@@ -214,21 +213,21 @@ export function bootstrap(): {
 
   // Start autosave
   saveManager.startAutosave(() => ({
-    state: manager.getState(),
-    playTimeMs: manager.getState().stats.playTimeMs,
+    state: gameState.value,
+    playTimeMs: gameState.value.stats.playTimeMs,
   }));
 
   // Save on beforeunload
   if (typeof window !== 'undefined') {
     window.addEventListener('beforeunload', () => {
-      const state = manager.getState();
+      const state = gameState.value;
       saveManager.save(state, state.stats.playTimeMs);
     });
   }
 
   loop.start();
 
-  return { bus, ticker, manager, loop, store, resourceSystem, saveManager, fsm, ui };
+  return { bus, ticker, loop, resourceSystem, saveManager, fsm, ui };
 }
 
 // Auto-bootstrap when loaded in browser.

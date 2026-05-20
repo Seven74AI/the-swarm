@@ -1,4 +1,5 @@
-import type { Store } from '../../state/Store';
+import { effect } from '@preact/signals-core';
+import { gameState } from '../../state/gameSignal';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import { canBuild, build, getBuildCost, getEffects } from '../../systems/BuildingSystem';
@@ -50,7 +51,6 @@ export class BuildingPanel {
   private container: HTMLDivElement;
 
   constructor(
-    private store: Store,
     private bus: EventBus,
     private getState: () => GameState,
     private setState: (state: GameState) => void,
@@ -68,7 +68,11 @@ export class BuildingPanel {
       this.container.appendChild(this.createBuildingRow(def));
     }
 
-    store.subscribe('buildings', () => this.refresh());
+    // Reactive: auto-refresh when buildings change
+    effect(() => {
+      void gameState.value.buildings;
+      this.refresh();
+    });
   }
 
   private createBuildingRow(def: BuildingDef): HTMLDivElement {

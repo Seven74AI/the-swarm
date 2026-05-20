@@ -1,24 +1,18 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { gameState } from '../../src/state/gameSignal';
 import { ExpeditionPanel } from '../../src/ui/panels/ExpeditionPanel';
-import { Store } from '../../src/state/Store';
-import { StateManager } from '../../src/state/StateManager';
 import { EventBus } from '../../src/engine/EventBus';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 
 describe('ExpeditionPanel', () => {
   let bus: EventBus;
-  let manager: StateManager;
-  let store: Store;
   let panel: ExpeditionPanel;
   let currentState: GameState;
 
   beforeEach(() => {
     bus = new EventBus();
-    manager = new StateManager(bus);
-    store = new Store(manager);
     currentState = createInitialState();
     panel = new ExpeditionPanel(
-      store,
       bus,
       () => currentState,
       (s: GameState) => { currentState = s; },

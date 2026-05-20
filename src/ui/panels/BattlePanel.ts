@@ -1,4 +1,5 @@
-import type { Store } from '../../state/Store';
+import { effect } from '@preact/signals-core';
+import { gameState } from '../../state/gameSignal';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import type { SoldierSystem, getSoldierStrength, getSoldierDefense, getSoldierSpeed, getSoldierMaxHp } from '../../systems/SoldierSystem';
@@ -41,7 +42,6 @@ export class BattlePanel {
   private battleResult: BattleResult | null = null;
 
   constructor(
-    private store: Store,
     private bus: EventBus,
     private soldierSystem: SoldierSystem,
     private battleSystem: BattleSystem,
@@ -194,13 +194,17 @@ export class BattlePanel {
 
     this.container.appendChild(this.resultArea);
 
-    // Subscribe to state changes
-    store.subscribe('combatSoldiers', () => this.refresh());
-    store.subscribe('equipment', () => this.refresh());
-    store.subscribe('battlesWon', () => this.refresh());
-    store.subscribe('battlesLost', () => this.refresh());
-    store.subscribe('combatResources', () => this.refresh());
-    store.subscribe('soldierStats', () => this.refresh());
+    // Reactive: auto-refresh when battle state changes
+    effect(() => {
+      const s = gameState.value;
+      void s.combatSoldiers;
+      void s.equipment;
+      void s.battlesWon;
+      void s.battlesLost;
+      void s.combatResources;
+      void s.soldierStats;
+      this.refresh();
+    });
 
     // Initial render
     this.refresh();
