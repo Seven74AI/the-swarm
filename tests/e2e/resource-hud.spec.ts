@@ -22,7 +22,7 @@ function makeGameState(phase: string) {
     eggPipeline: { count: 0, progress: 0 },
     larvaPipeline: { count: 0, progress: 0 },
     soldierPipeline: { count: 0, progress: 0 },
-    workersAssigned: { gather: 10, tend: 5, dig: 2, guard: 3 },
+    workersAssigned: { gather: 10, tend: 5, dig: 2, guard: 3, researchers: 0 },
     soldiers: { scouts: 10, warriors: 5, totalKilled: 0 },
     buildings: { barracks: { level: 1, count: 1 }, walls: { level: 1 }, warehouse: { level: 1 } },
     territory: { ownedTiles: 0, bonuses: {} },

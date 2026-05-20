@@ -15,7 +15,7 @@ const BASE_GAME_STATE = {
   resources: { eggs: 0, larvae: 0, workers: 0, food: 0, nestCapacity: 25 },
   eggPipeline: { count: 0, progress: 0 },
   larvaPipeline: { count: 0, progress: 0 },
-  workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0 },
+  workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 },
   upgrades: {} as Record<string, number>,
   stats: { totalEggsLaid: 0, totalClicks: 0, playTimeMs: 0 },
   unlockedPanels: [] as string[],
@@ -71,7 +71,7 @@ test.describe('Worker Management', () => {
           resources: { eggs: 0, larvae: 0, workers: 10, food: 0, nestCapacity: 25 },
           eggPipeline: { count: 0, progress: 0 },
           larvaPipeline: { count: 0, progress: 0 },
-          workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0 },
+          workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 },
           upgrades: {},
           stats: { totalEggsLaid: 0, totalClicks: 0, playTimeMs: 0 },
           unlockedPanels: [],
@@ -128,7 +128,7 @@ test.describe('Worker Management', () => {
       phase: 'colony',
       resources: { eggs: 3, larvae: 0, workers: 5, food: 50, nestCapacity: 25 },
       eggPipeline: { count: 0, progress: 0 },
-      workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0 },
+      workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 },
     });
 
     await expect(page.locator('#worker-assignment')).toBeVisible({ timeout: 5000 });
@@ -161,7 +161,7 @@ test.describe('Worker Management', () => {
     await seedAndGoto(page, {
       phase: 'colony',
       resources: { eggs: 0, larvae: 0, workers: 10, food: 50, nestCapacity: 25 },
-      workersAssigned: { gather: 3, tend: 0, dig: 0, guard: 0 },
+      workersAssigned: { gather: 3, tend: 0, dig: 0, guard: 0, researchers: 0 },
     });
 
     await expect(page.locator('#worker-assignment')).toBeVisible({ timeout: 5000 });
@@ -185,7 +185,7 @@ test.describe('Worker Management', () => {
     await seedAndGoto(page, {
       phase: 'colony',
       resources: { eggs: 0, larvae: 0, workers: 10, food: 100, nestCapacity: 25 },
-      workersAssigned: { gather: 3, tend: 0, dig: 0, guard: 0 },
+      workersAssigned: { gather: 3, tend: 0, dig: 0, guard: 0, researchers: 0 },
     });
 
     await expect(page.locator('#worker-assignment')).toBeVisible({ timeout: 5000 });
@@ -219,7 +219,7 @@ test.describe('Worker Management', () => {
     await seedAndGoto(page, {
       phase: 'colony',
       resources: { eggs: 0, larvae: 0, workers: 3, food: 50, nestCapacity: 25 },
-      workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0 },
+      workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 },
     });
 
     await expect(page.locator('#worker-assignment')).toBeVisible({ timeout: 5000 });

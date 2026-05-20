@@ -177,7 +177,7 @@ function migrateV6toV7(data: SaveData): SaveData {
   return { ...data, version: 7, gameState };
 }
 
-/** v7 → v8: adds prestige fields (GM-1) + autoProduction field (GM-3 automation) */
+/** v7 → v8: adds prestige (GM-1) + autoProduction (GM-3) + research system (GM-6) */
 function migrateV7toV8(data: SaveData): SaveData {
   const gameState = data.gameState as GameState & {
     prestige?: { count: number; legacyPoints: number; totalFoodProduced: number };
@@ -187,9 +187,22 @@ function migrateV7toV8(data: SaveData): SaveData {
       buildings: Record<string, number>;
       progress: number;
     };
+    workersAssigned?: {
+      gather: number;
+      tend: number;
+      dig: number;
+      guard: number;
+      researchers?: number;
+    };
+    research?: {
+      projects: Record<string, { state: string; progress: number }>;
+    };
   };
 
+  // GM-1: Prestige fields
   gameState.prestige = gameState.prestige ?? { count: 0, legacyPoints: 0, totalFoodProduced: 0 };
+
+  // GM-3: Automation fields
   gameState.autoProduction = gameState.autoProduction ?? {
     enabled: false,
     researches: {},
@@ -199,6 +212,23 @@ function migrateV7toV8(data: SaveData): SaveData {
       queens_chamber: 0,
     },
     progress: 0,
+  };
+
+  // GM-6: Researchers worker role
+  if (gameState.workersAssigned) {
+    gameState.workersAssigned = {
+      ...gameState.workersAssigned,
+      researchers: gameState.workersAssigned.researchers ?? 0,
+    };
+  }
+
+  // GM-6: Research system state
+  gameState.research = gameState.research ?? {
+    projects: {
+      voidCrystalSynthesis: { state: 'available', progress: 0 },
+      antimatterContainment: { state: 'locked', progress: 0 },
+      darkMatterDetection: { state: 'locked', progress: 0 },
+    },
   };
 
   return { ...data, version: 8, gameState };
