@@ -7,6 +7,7 @@ import { SoldierSystem } from './systems/SoldierSystem';
 import { BattleSystem } from './systems/BattleSystem';
 import { MapSystem } from './systems/MapSystem';
 import { TerritorySystem } from './systems/TerritorySystem';
+import { DecisionSystem } from './systems/DecisionSystem';
 import { tickExpeditions, resolveExpedition } from './systems/ExpeditionSystem';
 import { tickExplorations, resolveExploration } from './systems/ExplorationSystem';
 import { tickResearch } from './systems/ResearchSystem';
@@ -47,12 +48,14 @@ export function bootstrap(): {
   saveManager: SaveManager;
   fsm: PhaseStateMachine;
   ui: UIRoot;
+  decisionSystem: DecisionSystem;
 } {
   const bus = new EventBus();
   const ticker = new Ticker();
   const resourceSystem = new ResourceSystem(bus);
   const soldierSystem = new SoldierSystem(bus);
   const battleSystem = new BattleSystem(bus);
+  const decisionSystem = new DecisionSystem(bus);
   const saveManager = new SaveManager();
   const loop = new GameLoop(ticker);
   const phaseContent = new PhaseContent();
@@ -248,6 +251,12 @@ export function bootstrap(): {
     // Write to signal — triggers all UI effects
     gameState.value = newState;
 
+    // Decision popup spawn check
+    const decisionEvent = decisionSystem.popEvent(newState, newState.stats.playTimeMs);
+    if (decisionEvent) {
+      bus.emit('decision_event', decisionEvent);
+    }
+
     // Check phase transitions
     const updated = gameState.value;
     const tickResult = fsm.tick(updated, bus);
@@ -261,6 +270,15 @@ export function bootstrap(): {
 
   // Mount UI
   const app = document.getElementById('app');
+
+  // Wire decision chosen → apply consequence to game state
+  bus.subscribe('decision_chosen', (payload: unknown) => {
+    const p = payload as { type: string; choice: string };
+    const current = gameState.value;
+    const newState = decisionSystem.applyChoice(current, p.type, p.choice);
+    gameState.value = newState;
+  });
+
   const ui = new UIRoot({
     bus,
     resourceSystem,
@@ -317,7 +335,7 @@ export function bootstrap(): {
 
   loop.start();
 
-  return { bus, ticker, loop, resourceSystem, saveManager, fsm, ui };
+  return { bus, ticker, loop, resourceSystem, saveManager, fsm, ui, decisionSystem };
 }
 
 /**
