@@ -114,7 +114,7 @@ test.describe('Expeditions', () => {
     // Click "Send" on MEADOW destination card
     const meadowCard = page.locator('.expedition-card').filter({ hasText: 'MEADOW' });
     await expect(meadowCard).toBeVisible({ timeout: 3000 });
-    await meadowCard.locator('button').filter({ hasText: 'Send' }).click({ force: true });
+    await meadowCard.locator('button').filter({ hasText: 'Send' }).evaluate(el => (el as HTMLElement).click());
     await page.clock.runFor(100); // Let signals flush DOM
 
     // Active expedition row should appear with countdown
@@ -147,7 +147,7 @@ test.describe('Expeditions', () => {
 
     // Click "Send" on FOREST card — auto-sends 1 scout + 1 warrior
     const forestCard = page.locator('.expedition-card').filter({ hasText: 'FOREST' });
-    await forestCard.locator('button').filter({ hasText: 'Send' }).click({ force: true });
+    await forestCard.locator('button').filter({ hasText: 'Send' }).evaluate(el => (el as HTMLElement).click());
     await page.clock.runFor(100); // Let signals flush DOM
 
     // Verify risk is shown on the expedition row
@@ -164,7 +164,7 @@ test.describe('Expeditions', () => {
 
     // Launch another expedition — risk still shown
     const meadowCard = page.locator('.expedition-card').filter({ hasText: 'MEADOW' });
-    await meadowCard.locator('button').filter({ hasText: 'Send' }).click({ force: true });
+    await meadowCard.locator('button').filter({ hasText: 'Send' }).evaluate(el => (el as HTMLElement).click());
     await page.clock.runFor(100); // Let signals flush DOM
 
     const row2 = page.locator('.expedition-row').first();
@@ -181,7 +181,7 @@ test.describe('Expeditions', () => {
     const cards = page.locator('.expedition-card');
     const cardCount = await cards.count();
     for (let i = 0; i < cardCount && i < 3; i++) {
-      await cards.nth(i).locator('button').filter({ hasText: 'Send' }).click({ force: true });
+      await cards.nth(i).locator('button').filter({ hasText: 'Send' }).evaluate(el => (el as HTMLElement).click());
       await page.clock.runFor(100); // Let UI settle
     }
 
