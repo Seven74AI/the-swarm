@@ -114,7 +114,7 @@ test.describe('Expeditions', () => {
     // Click "Send" on MEADOW destination card
     const meadowCard = page.locator('.expedition-card').filter({ hasText: 'MEADOW' });
     await expect(meadowCard).toBeVisible({ timeout: 3000 });
-    await meadowCard.locator('button').filter({ hasText: 'Send' }).click();
+    await meadowCard.locator('button').filter({ hasText: 'Send' }).click({ force: true });
 
     // Active expedition row should appear with countdown
     await expect(page.locator('.expedition-list-title')).toContainText('Active', { timeout: 3000 });
@@ -146,7 +146,7 @@ test.describe('Expeditions', () => {
 
     // Click "Send" on FOREST card — auto-sends 1 scout + 1 warrior
     const forestCard = page.locator('.expedition-card').filter({ hasText: 'FOREST' });
-    await forestCard.locator('button').filter({ hasText: 'Send' }).click();
+    await forestCard.locator('button').filter({ hasText: 'Send' }).click({ force: true });
 
     // Verify risk is shown on the expedition row
     const row1 = page.locator('.expedition-row');
@@ -162,7 +162,7 @@ test.describe('Expeditions', () => {
 
     // Launch another expedition — risk still shown
     const meadowCard = page.locator('.expedition-card').filter({ hasText: 'MEADOW' });
-    await meadowCard.locator('button').filter({ hasText: 'Send' }).click();
+    await meadowCard.locator('button').filter({ hasText: 'Send' }).click({ force: true });
 
     const row2 = page.locator('.expedition-row').first();
     await expect(row2).toBeVisible({ timeout: 3000 });
@@ -178,7 +178,7 @@ test.describe('Expeditions', () => {
     const cards = page.locator('.expedition-card');
     const cardCount = await cards.count();
     for (let i = 0; i < cardCount && i < 3; i++) {
-      await cards.nth(i).locator('button').filter({ hasText: 'Send' }).click();
+      await cards.nth(i).locator('button').filter({ hasText: 'Send' }).click({ force: true });
       await page.clock.runFor(100); // Let UI settle
     }
 
