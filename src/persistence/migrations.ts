@@ -234,6 +234,17 @@ function migrateV7toV8(data: SaveData): SaveData {
   return { ...data, version: 8, gameState };
 }
 
+/** v8 → v9: adds resource conversion state (GM-4) */
+function migrateV8toV9(data: SaveData): SaveData {
+  const gameState = data.gameState as GameState & {
+    conversions?: { particleLab: number };
+  };
+
+  gameState.conversions = gameState.conversions ?? { particleLab: 0 };
+
+  return { ...data, version: 9, gameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -243,6 +254,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   5: migrateV5toV6,
   6: migrateV6toV7,
   7: migrateV7toV8,
+  8: migrateV8toV9,
 };
 
 /**

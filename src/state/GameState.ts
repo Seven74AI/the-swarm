@@ -175,6 +175,8 @@ export interface GameState {
   offlineEfficiency: number;
   /** Research system state (GM-6). */
   research: ResearchState;
+  /** Resource conversion system state (GM-4). */
+  conversions: ConversionState;
 }
 
 export type ResearchProjectId = 'voidCrystalSynthesis' | 'antimatterContainment' | 'darkMatterDetection';
@@ -186,6 +188,11 @@ export interface ResearchState {
     state: ResearchProjectStatus;
     progress: number;
   }>;
+}
+
+export interface ConversionState {
+  /** Level of particle lab used for antimatter production (0 = not built) */
+  particleLab: number;
 }
 
 /**
@@ -310,6 +317,9 @@ export function createInitialState(): GameState {
         antimatterContainment: { state: 'locked', progress: 0 },
         darkMatterDetection: { state: 'locked', progress: 0 },
       },
+    },
+    conversions: {
+      particleLab: 0,
     },
   };
 }

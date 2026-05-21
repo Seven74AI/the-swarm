@@ -10,6 +10,7 @@ import { TerritorySystem } from './systems/TerritorySystem';
 import { tickExpeditions, resolveExpedition } from './systems/ExpeditionSystem';
 import { tickExplorations, resolveExploration } from './systems/ExplorationSystem';
 import { tickResearch } from './systems/ResearchSystem';
+import { tickConversions } from './systems/ResourceConversionSystem';
 import {
   tickMissions,
   resolveMission,
@@ -228,6 +229,9 @@ export function bootstrap(): {
     // Research system: tick research progress
     newState = tickResearch(newState);
 
+    // Resource conversions: tick DAG (GM-4)
+    newState = tickConversions(newState, dtSec);
+
     // Advance playTimeMs by dt in ms (dtSec * 1000)
     newState = {
       ...newState,
@@ -380,6 +384,9 @@ function processTick(
 
   // Tick research progress
   newState = tickResearch(newState);
+
+  // Resource conversions
+  newState = tickConversions(newState, dtSec);
 
   // Advance playTimeMs
   newState = {

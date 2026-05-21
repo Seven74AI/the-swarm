@@ -1,6 +1,6 @@
 /**
  * ResourcePanel — Scannable Multi-Resource HUD tests
- * Tests: critical bar, collapsible sections, phase gating, progress bars, collapse/expand
+ * Tests: critical bar, collapsible sections, phase gating, progress bars, collapse/expand, conversion UI
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { gameState } from '../../src/state/gameSignal';
@@ -266,6 +266,81 @@ describe('ResourcePanel — Scannable HUD', () => {
     it('panel retains the "panel resource-panel" CSS classes', () => {
       expect(el.classList.contains('panel')).toBe(true);
       expect(el.classList.contains('resource-panel')).toBe(true);
+    });
+  });
+
+  // ─── Conversion UI (GM-4) ─────────────────────────────────────
+
+  describe('conversion UI', () => {
+    it('conversion section absent when phase < SPACE', () => {
+      expect(el.querySelector('.conversions-body')).toBeNull();
+    });
+
+    it('conversion section visible in space body when phase is SPACE', () => {
+      const state = createInitialState();
+      state.phase = Phase.SPACE;
+      state.research.projects.voidCrystalSynthesis = { state: 'completed', progress: 120 };
+      state.research.projects.antimatterContainment = { state: 'completed', progress: 300 };
+      state.research.projects.darkMatterDetection = { state: 'completed', progress: 500 };
+      state.conversions.particleLab = 1;
+      state.spaceExplorations = [{ id: 'spc_1', destination: 'MARS', ticksRemaining: 50, risk: 0.3 }];
+      state.workersAssigned.researchers = 10;
+      state.resources.voidCrystals = 10;
+      state.resources.antimatter = 5;
+      state.resources.darkMatter = 2;
+      gameState.value = { ...state };
+
+      const panel2 = new ResourcePanel();
+      const el2 = panel2.getElement();
+      const convBody = el2.querySelector('.conversions-body');
+      expect(convBody).not.toBeNull();
+    });
+
+    it('shows all three conversion chain names', () => {
+      const state = createInitialState();
+      state.phase = Phase.SPACE;
+      state.research.projects.voidCrystalSynthesis = { state: 'completed', progress: 120 };
+      state.research.projects.antimatterContainment = { state: 'completed', progress: 300 };
+      state.research.projects.darkMatterDetection = { state: 'completed', progress: 500 };
+      state.conversions.particleLab = 1;
+      state.spaceExplorations = [{ id: 'spc_1', destination: 'MARS', ticksRemaining: 50, risk: 0.3 }];
+      state.workersAssigned.researchers = 10;
+      state.resources.voidCrystals = 10;
+      state.resources.antimatter = 5;
+      state.resources.darkMatter = 2;
+      gameState.value = { ...state };
+
+      const panel2 = new ResourcePanel();
+      const el2 = panel2.getElement();
+      const convBody = el2.querySelector('.conversions-body');
+      const text = convBody?.textContent || '';
+
+      expect(text).toContain('Void Crystal');
+      expect(text).toContain('Antimatter');
+      expect(text).toContain('Dark Matter');
+    });
+
+    it('shows rate and cap indicators for active conversions', () => {
+      const state = createInitialState();
+      state.phase = Phase.SPACE;
+      state.research.projects.voidCrystalSynthesis = { state: 'completed', progress: 120 };
+      state.research.projects.antimatterContainment = { state: 'completed', progress: 300 };
+      state.research.projects.darkMatterDetection = { state: 'completed', progress: 500 };
+      state.conversions.particleLab = 1;
+      state.spaceExplorations = [{ id: 'spc_1', destination: 'MARS', ticksRemaining: 50, risk: 0.3 }];
+      state.workersAssigned.researchers = 10;
+      state.resources.voidCrystals = 10;
+      state.resources.antimatter = 5;
+      state.resources.darkMatter = 2;
+      gameState.value = { ...state };
+
+      const panel2 = new ResourcePanel();
+      const el2 = panel2.getElement();
+      const convBody = el2.querySelector('.conversions-body');
+      const text = convBody?.textContent || '';
+
+      expect(text).toContain('/tick');
+      expect(text).toContain('cap');
     });
   });
 });
