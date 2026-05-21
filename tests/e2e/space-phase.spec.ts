@@ -194,7 +194,7 @@ test.describe('Space Phase — Neon Theme & Panels', () => {
   test('spaceship build button disabled without resources', async ({ page }) => {
     await seedAndWaitForSpace(page, {
       resources: {
-        eggs: 5, larvae: 3, workers: 30, food: 0,
+        eggs: 5, larvae: 3, workers: 30, food: 2100,
         nestCapacity: 100, wood: 0, stone: 0, nectar: 0,
         voidCrystals: 0, antimatter: 0, darkMatter: 0,
       },
@@ -264,7 +264,7 @@ test.describe('Space Phase — Neon Theme & Panels', () => {
     expect(scoutsAfter).toBe(scoutsBefore - 1);
 
     // Probe row should appear
-    const probeRows = page.locator('#exploration-panel .exploration-row');
+    const probeRows = page.locator('#exploration-panel .expedition-row');
     await expect(probeRows).toHaveCount(1, { timeout: 3000 });
     await expect(probeRows.first()).toContainText('⏳');
   });

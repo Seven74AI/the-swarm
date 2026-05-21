@@ -6,6 +6,7 @@ import type { SaveManager } from '../persistence/SaveManager';
 import type { GameState } from '../state/GameState';
 import type { MapSystem } from '../systems/MapSystem';
 import type { TerritorySystem } from '../systems/TerritorySystem';
+import { Phase } from '../phases/phases';
 import { ClickButton } from './components/ClickButton';
 import { ResourcePanel } from './panels/ResourcePanel';
 import { EventLog } from './panels/EventLog';
@@ -77,7 +78,7 @@ export class UIRoot {
     // ── Populate panel registry with factory functions ──
     // Phase 1 panels (mounted at boot for backward compat)
     this.panelRegistry.set('resource_panel', () => new ResourcePanel().getElement());
-    this.panelRegistry.set('phase_indicator', () => new PhaseIndicator(this.bus).getElement());
+    this.panelRegistry.set('phase_indicator', () => new PhaseIndicator(this.bus, this.getState().phase as Phase).getElement());
     this.panelRegistry.set('click_button', () => new ClickButton(
       this.bus, this.resourceSystem, this.saveManager, this.getState, this.setState,
     ).getElement());
@@ -149,7 +150,7 @@ export class UIRoot {
     container.appendChild(topBar);
 
     // Phase indicator (always visible) — boot panel (Phase 1)
-    const phaseIndicator = new PhaseIndicator(this.bus);
+    const phaseIndicator = new PhaseIndicator(this.bus, this.getState().phase as Phase);
     container.appendChild(phaseIndicator.getElement());
     this.panelElements.set('phase_indicator', phaseIndicator.getElement());
 

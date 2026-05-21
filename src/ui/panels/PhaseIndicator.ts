@@ -42,7 +42,7 @@ export class PhaseIndicator {
   private container: HTMLDivElement;
   private textEl: HTMLSpanElement;
 
-  constructor(private bus: EventBus) {
+  constructor(private bus: EventBus, initialPhase?: Phase) {
     this.container = document.createElement('div');
     this.container.id = 'phase-indicator';
     this.container.className = 'phase-indicator';
@@ -51,8 +51,8 @@ export class PhaseIndicator {
     this.textEl.className = 'phase-text';
     this.container.appendChild(this.textEl);
 
-    // Initial display
-    this.setPhase(Phase.EGG_LAYING);
+    // Initial display — use provided phase or default to EGG_LAYING
+    this.setPhase(initialPhase ?? Phase.EGG_LAYING);
 
     // Listen for phase changes
     bus.subscribe('phase_changed', (payload: unknown) => {
