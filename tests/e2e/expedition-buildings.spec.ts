@@ -115,7 +115,7 @@ test.describe('Expeditions', () => {
     const meadowCard = page.locator('.expedition-card').filter({ hasText: 'MEADOW' });
     await expect(meadowCard).toBeVisible({ timeout: 3000 });
     await meadowCard.locator('button').filter({ hasText: 'Send' }).evaluate(el => (el as HTMLElement).click());
-    await page.clock.runFor(100); // Let signals flush DOM
+    await page.clock.runFor(100); // Let signals settle
 
     // Active expedition row should appear with countdown
     await expect(page.locator('.expedition-list-title')).toContainText('Active', { timeout: 3000 });
@@ -128,8 +128,17 @@ test.describe('Expeditions', () => {
     // Auto-sends min(1, scouts)=1 scout
     await expect(page.locator('#expedition-panel .panel-sub')).toContainText('Scouts: 4', { timeout: 3000 });
 
-    // Advance clock by 100 seconds (covers max expedition distance of 90)
-    await page.clock.runFor(100000);
+    // Advance clock in small chunks until expedition returns (max 100 seconds)
+    // Avoids crashing the page by processing many ticks at once
+    for (let chunk = 0; chunk < 20; chunk++) {
+      await page.clock.runFor(5000); // 5 seconds per chunk
+      try {
+        const hasReturn = await page.locator('.log-entry').first().textContent();
+        if (hasReturn?.includes('returns')) break;
+      } catch {
+        // Page may be temporarily unstable; continue
+      }
+    }
 
     // Expedition should have returned — check activity log for return event
     const logEntry = page.locator('.log-entry').first();
@@ -148,7 +157,7 @@ test.describe('Expeditions', () => {
     // Click "Send" on FOREST card — auto-sends 1 scout + 1 warrior
     const forestCard = page.locator('.expedition-card').filter({ hasText: 'FOREST' });
     await forestCard.locator('button').filter({ hasText: 'Send' }).evaluate(el => (el as HTMLElement).click());
-    await page.clock.runFor(100); // Let signals flush DOM
+    await page.clock.runFor(100); // Let signals settle
 
     // Verify risk is shown on the expedition row
     const row1 = page.locator('.expedition-row');
@@ -158,14 +167,22 @@ test.describe('Expeditions', () => {
     // Verify risk includes a percentage number
     expect(risk1).toMatch(/Risk:\s*\d+%/);
 
-    // Complete this expedition
-    await page.clock.runFor(100000);
+    // Complete this expedition — advance clock in chunks to avoid crash
+    for (let chunk = 0; chunk < 20; chunk++) {
+      await page.clock.runFor(5000); // 5 seconds per chunk
+      try {
+        const hasReturn = await page.locator('.log-entry').first().textContent();
+        if (hasReturn?.includes('returns')) break;
+      } catch {
+        // Page may be temporarily unstable; continue
+      }
+    }
     await expect(page.locator('.log-entry').first()).toContainText('returns', { timeout: 5000 });
 
     // Launch another expedition — risk still shown
-    const meadowCard = page.locator('.expedition-card').filter({ hasText: 'MEADOW' });
-    await meadowCard.locator('button').filter({ hasText: 'Send' }).evaluate(el => (el as HTMLElement).click());
-    await page.clock.runFor(100); // Let signals flush DOM
+    const meadowCard2 = page.locator('.expedition-card').filter({ hasText: 'MEADOW' });
+    await meadowCard2.locator('button').filter({ hasText: 'Send' }).evaluate(el => (el as HTMLElement).click());
+    await page.clock.runFor(100); // Let signals settle
 
     const row2 = page.locator('.expedition-row').first();
     await expect(row2).toBeVisible({ timeout: 3000 });
