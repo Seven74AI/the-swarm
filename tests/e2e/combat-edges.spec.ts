@@ -244,7 +244,7 @@ test.describe('Combat Edge Cases', () => {
     await recruitBtn.click();
 
     // Verify training status appears
-    await expect(page.locator('#soldier-panel .stat-sub')).not.toBeEmpty({ timeout: 2000 });
+    await expect(page.locator('#soldier-panel .stat-row .stat-sub').first()).not.toBeEmpty({ timeout: 2000 });
 
     // While training, scout and engage
     await page.locator('#scout-enemy').click();
@@ -256,7 +256,7 @@ test.describe('Combat Edge Cases', () => {
     await expect(page.locator('#battle-result')).toContainText(/Victory|Defeat/);
 
     // Training status should still be visible (training continues during battle)
-    await expect(page.locator('#soldier-panel .stat-sub')).not.toBeEmpty();
+    await expect(page.locator('#soldier-panel .stat-row .stat-sub').first()).not.toBeEmpty();
   });
 
   test('strong equipment favors victory', async ({ page }) => {

@@ -86,7 +86,7 @@ test.describe('Combat', () => {
     await expect(recruitBtn).toBeVisible({ timeout: 5000 });
     await recruitBtn.click();
 
-    await expect(page.locator('#soldier-panel .stat-sub')).not.toBeEmpty({ timeout: 2000 });
+    await expect(page.locator('#soldier-panel .stat-row .stat-sub').first()).not.toBeEmpty({ timeout: 2000 });
   });
 
   test('scout reveals enemy and enables engage', async ({ page }) => {
