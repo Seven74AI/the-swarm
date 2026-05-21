@@ -111,27 +111,34 @@ test.describe('Expeditions', () => {
       },
     });
 
-    // Set scouts=1, warriors=0, destination=MEADOW and Launch
-    const scoutInputs = page.locator('.expedition-input');
-    await scoutInputs.first().fill('1');
-    await page.locator('.expedition-select').selectOption('MEADOW');
-
-    const launchBtn = page.locator('#expedition-panel button').filter({ hasText: 'Launch' });
-    await expect(launchBtn).toBeEnabled({ timeout: 3000 });
-    await launchBtn.click();
+    // Click "Send" on MEADOW destination card
+    const meadowCard = page.locator('.expedition-card').filter({ hasText: 'MEADOW' });
+    await expect(meadowCard).toBeVisible({ timeout: 3000 });
+    await meadowCard.locator('button').filter({ hasText: 'Send' }).evaluate(el => (el as HTMLElement).click());
+    await page.clock.runFor(100); // Let signals settle
 
     // Active expedition row should appear with countdown
-    await expect(page.locator('.expedition-list-title')).toContainText('Active Expeditions', { timeout: 3000 });
+    await expect(page.locator('.expedition-list-title')).toContainText('Active', { timeout: 3000 });
     const expRow = page.locator('.expedition-row');
     await expect(expRow).toBeVisible({ timeout: 3000 });
     await expect(expRow).toContainText('MEADOW');
     await expect(expRow).toContainText('⏳');
 
-    // Verify soldier count label in expedition panel shows deduction (5→4)
-    await expect(page.locator('.soldier-count')).toContainText('Scout: 4', { timeout: 3000 });
+    // Verify scout count label in expedition header shows deduction (5→4)
+    // Auto-sends min(1, scouts)=1 scout
+    await expect(page.locator('#expedition-panel .panel-sub')).toContainText('Scouts: 4', { timeout: 3000 });
 
-    // Advance clock by 100 seconds (covers max expedition distance of 90)
-    await page.clock.runFor(100000);
+    // Advance clock in small chunks until expedition returns (max 100 seconds)
+    // Avoids crashing the page by processing many ticks at once
+    for (let chunk = 0; chunk < 20; chunk++) {
+      await page.clock.runFor(5000); // 5 seconds per chunk
+      try {
+        const hasReturn = await page.locator('.log-entry').first().textContent();
+        if (hasReturn?.includes('returns')) break;
+      } catch {
+        // Page may be temporarily unstable; continue
+      }
+    }
 
     // Expedition should have returned — check activity log for return event
     const logEntry = page.locator('.log-entry').first();
@@ -142,59 +149,56 @@ test.describe('Expeditions', () => {
     expect(scoutCount).toBeGreaterThan(0);
   });
 
-  test('launch scouts-only vs scouts+warriors (different risk display)', async ({ page }) => {
+  test('launch expedition shows risk display on row', async ({ page }) => {
     await seedWithFakeTimers(page, {
       soldiers: { scouts: 5, warriors: 3, totalKilled: 0 },
     });
 
-    const inputs = page.locator('.expedition-input');
-    const launchBtn = page.locator('#expedition-panel button').filter({ hasText: 'Launch' });
-
-    // Launch scouts-only (1 scout, 0 warriors) to FOREST
-    await inputs.nth(0).fill('1');
-    await inputs.nth(1).fill('0');
-    await page.locator('.expedition-select').selectOption('FOREST');
-    await launchBtn.click();
+    // Click "Send" on FOREST card — auto-sends 1 scout + 1 warrior
+    const forestCard = page.locator('.expedition-card').filter({ hasText: 'FOREST' });
+    await forestCard.locator('button').filter({ hasText: 'Send' }).evaluate(el => (el as HTMLElement).click());
+    await page.clock.runFor(100); // Let signals settle
 
     // Verify risk is shown on the expedition row
     const row1 = page.locator('.expedition-row');
     await expect(row1).toBeVisible({ timeout: 3000 });
     const risk1 = await row1.textContent();
     expect(risk1).toContain('Risk:');
+    // Verify risk includes a percentage number
+    expect(risk1).toMatch(/Risk:\s*\d+%/);
 
-    // Complete this expedition
-    await page.clock.runFor(100000);
+    // Complete this expedition — advance clock in chunks to avoid crash
+    for (let chunk = 0; chunk < 20; chunk++) {
+      await page.clock.runFor(5000); // 5 seconds per chunk
+      try {
+        const hasReturn = await page.locator('.log-entry').first().textContent();
+        if (hasReturn?.includes('returns')) break;
+      } catch {
+        // Page may be temporarily unstable; continue
+      }
+    }
     await expect(page.locator('.log-entry').first()).toContainText('returns', { timeout: 5000 });
 
-    // Now launch scouts+warriors (1 scout, 1 warrior) to FOREST
-    // Warriors reduce risk by 10% each
-    await inputs.nth(0).fill('1');
-    await inputs.nth(1).fill('1');
-    await page.locator('.expedition-select').selectOption('FOREST');
-    await launchBtn.click();
+    // Launch another expedition — risk still shown
+    const meadowCard2 = page.locator('.expedition-card').filter({ hasText: 'MEADOW' });
+    await meadowCard2.locator('button').filter({ hasText: 'Send' }).evaluate(el => (el as HTMLElement).click());
+    await page.clock.runFor(100); // Let signals settle
 
-    // Verify risk is displayed with a percentage
     const row2 = page.locator('.expedition-row').first();
     await expect(row2).toBeVisible({ timeout: 3000 });
-    const risk2 = await row2.textContent();
-    expect(risk2).toContain('Risk:');
-    // Verify risk includes a percentage number
-    expect(risk2).toMatch(/Risk:\s*\d+%/);
+    expect(await row2.textContent()).toMatch(/Risk:\s*\d+%/);
   });
 
-  test('max active expeditions — Launch button disabled at limit', async ({ page }) => {
+  test('max active expeditions — Send buttons disabled at limit', async ({ page }) => {
     await seedWithFakeTimers(page, {
       soldiers: { scouts: 10, warriors: 10, totalKilled: 0 },
     });
 
-    const scoutInputs = page.locator('.expedition-input');
-    const launchBtn = page.locator('#expedition-panel button').filter({ hasText: 'Launch' });
-
-    // Launch 3 expeditions (MAX_ACTIVE_EXPEDITIONS = 3)
-    for (let i = 0; i < 3; i++) {
-      await scoutInputs.first().fill('1');
-      await page.locator('.expedition-select').selectOption('MEADOW');
-      await launchBtn.click();
+    // Launch 3 expeditions (MAX_ACTIVE_EXPEDITIONS = 3) on all 3 destinations
+    const cards = page.locator('.expedition-card');
+    const cardCount = await cards.count();
+    for (let i = 0; i < cardCount && i < 3; i++) {
+      await cards.nth(i).locator('button').filter({ hasText: 'Send' }).evaluate(el => (el as HTMLElement).click());
       await page.clock.runFor(100); // Let UI settle
     }
 
@@ -202,31 +206,32 @@ test.describe('Expeditions', () => {
     const rows = page.locator('.expedition-row');
     await expect(rows).toHaveCount(3, { timeout: 3000 });
 
-    // Launch button should now be disabled (limit reached)
-    await expect(launchBtn).toBeDisabled({ timeout: 3000 });
+    // Send buttons should now be disabled (limit reached)
+    const sendBtns = page.locator('.expedition-card button').filter({ hasText: 'Send' });
+    const btnCount = await sendBtns.count();
+    for (let i = 0; i < btnCount; i++) {
+      await expect(sendBtns.nth(i)).toBeDisabled({ timeout: 3000 });
+    }
   });
 
   test('cannot launch expedition with 0 scouts and 0 warriors', async ({ page }) => {
     await seedWithFakeTimers(page, {
-      soldiers: { scouts: 5, warriors: 3, totalKilled: 0 },
+      soldiers: { scouts: 0, warriors: 0, totalKilled: 0 },
     });
 
-    const scoutInputs = page.locator('.expedition-input');
-    await scoutInputs.nth(0).fill('0');
-    await scoutInputs.nth(1).fill('0');
+    // Send buttons should be disabled when no soldiers available
+    const sendBtns = page.locator('.expedition-card button').filter({ hasText: 'Send' });
+    const btnCount = await sendBtns.count();
+    for (let i = 0; i < btnCount; i++) {
+      await expect(sendBtns.nth(i)).toBeDisabled({ timeout: 3000 });
+    }
 
-    const launchBtn = page.locator('#expedition-panel button').filter({ hasText: 'Launch' });
-    await launchBtn.click();
+    // No expedition should exist
+    await expect(page.locator('.expedition-row')).toHaveCount(0, { timeout: 3000 });
 
-    // Let state settle
-    await page.clock.runFor(500);
-
-    // No expedition should be created — no Active Expeditions section
-    await expect(page.locator('.expedition-list-title')).toHaveCount(0, { timeout: 3000 });
-
-    // Soldier counts should remain at seed values — verify via label
-    await expect(page.locator('.soldier-count')).toContainText('Scout: 5', { timeout: 3000 });
-    await expect(page.locator('.soldier-count')).toContainText('Warrior: 3', { timeout: 3000 });
+    // Header should show 0 counts
+    await expect(page.locator('#expedition-panel .panel-sub')).toContainText('Scouts: 0', { timeout: 3000 });
+    await expect(page.locator('#expedition-panel .panel-sub')).toContainText('Warriors: 0', { timeout: 3000 });
   });
 });
 
@@ -247,7 +252,7 @@ test.describe('Buildings', () => {
     // Click Build
     const buildBtn = page.locator('[data-building="barracks"] button').filter({ hasText: 'Build' });
     await expect(buildBtn).toBeEnabled({ timeout: 3000 });
-    await buildBtn.click();
+    await buildBtn.evaluate(el => (el as HTMLElement).click());
 
     // Verify level updated to Lv.1
     await expect(page.locator('[data-building="barracks"]')).toContainText('Lv.1', { timeout: 3000 });

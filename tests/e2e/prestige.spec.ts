@@ -96,7 +96,7 @@ test.describe('Prestige System — Legacy Layer', () => {
     // Since we can't easily trigger a phase transition, we'll navigate and check.
 
     // The panel might be hidden. Let's check if the button exists.
-    const prestigeBtn = page.locator('#prestige-panel button');
+    const prestigeBtn = page.locator('#prestige-panel .btn-prestige');
     const btnCount = await prestigeBtn.count();
 
     if (btnCount === 0) {
@@ -150,7 +150,7 @@ test.describe('Prestige System — Legacy Layer', () => {
     await page.waitForSelector('#panels', { timeout: 10000 });
 
     // Check if panel exists
-    const btn = page.locator('#prestige-panel button');
+    const btn = page.locator('#prestige-panel .btn-prestige');
     const count = await btn.count();
 
     if (count === 0) {

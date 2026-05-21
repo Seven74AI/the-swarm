@@ -47,7 +47,7 @@ export class TerritorySystem {
 
     const index = y * GRID + x;
     const tile = state.mapTiles[index];
-
+    if (!tile) return false;
     if (!tile.discovered) return false;
     if (tile.claimed) return false;
 

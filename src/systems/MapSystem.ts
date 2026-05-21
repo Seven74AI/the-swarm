@@ -79,7 +79,7 @@ export class MapSystem {
     }
 
     const index = y * MapSystem.GRID_SIZE + x;
-    if (state.mapTiles[index].discovered) {
+    if (!state.mapTiles[index] || state.mapTiles[index].discovered) {
       return false;
     }
 

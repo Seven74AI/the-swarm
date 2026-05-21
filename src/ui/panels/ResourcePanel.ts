@@ -89,13 +89,13 @@ export class ResourcePanel {
     this.criticalBar = document.createElement('div');
     this.criticalBar.className = 'critical-bar';
 
-    const eggPair = this.makeCriticalItem('🥚');
+    const eggPair = this.makeCriticalItem('🥚', 'resources.eggs');
     this.eggItemEl = eggPair.item;
     this.eggValEl = eggPair.value;
-    const larvaPair = this.makeCriticalItem('🐛');
+    const larvaPair = this.makeCriticalItem('🐛', 'resources.larvae');
     this.larvaItemEl = larvaPair.item;
     this.larvaValEl = larvaPair.value;
-    const foodPair = this.makeCriticalItem('🍞');
+    const foodPair = this.makeCriticalItem('🍞', 'resources.food');
     this.foodItemEl = foodPair.item;
     this.foodValEl = foodPair.value;
     const soldierPair = this.makeCriticalItem('⚔️');
@@ -172,9 +172,10 @@ export class ResourcePanel {
    * Creates a critical item: icon + value span.
    * Returns both the outer container (for appending) and the inner value span (for updating).
    */
-  private makeCriticalItem(icon: string): { item: HTMLSpanElement; value: HTMLSpanElement } {
+  private makeCriticalItem(icon: string, dataStat?: string): { item: HTMLSpanElement; value: HTMLSpanElement } {
     const span = document.createElement('span');
     span.className = 'critical-item';
+    if (dataStat) span.setAttribute('data-stat', dataStat);
     span.appendChild(document.createTextNode(icon + '\u00A0'));
     const val = document.createElement('span');
     val.className = 'critical-value';
@@ -254,6 +255,7 @@ export class ResourcePanel {
     // Workers
     const workerRow = document.createElement('div');
     workerRow.className = 'hud-resource-row';
+    workerRow.setAttribute('data-stat', 'resources.workers');
     workerRow.innerHTML = '<span class="hud-resource-icon">🐜</span>' +
       '<span class="hud-resource-label">Workers</span>';
     const workerVal = document.createElement('span');

@@ -19,12 +19,12 @@ test('click egg button spawns visible floating particle', async ({ page }) => {
 test('resource increment triggers smooth tween animation', async ({ page }) => {
   await page.goto('/');
 
-  // Verify the egg display exists
+  // Verify the egg display exists (critical-bar format)
   const eggDisplay = page.locator('[data-stat="resources.eggs"]');
   await expect(eggDisplay).toBeVisible();
 
-  // The display should contain a number-display-text child
-  const textEl = eggDisplay.locator('.number-display-text');
+  // The display should contain a critical-value child with the number
+  const textEl = eggDisplay.locator('.critical-value');
   await expect(textEl).toBeVisible();
 
   // Click to increment eggs
@@ -33,8 +33,6 @@ test('resource increment triggers smooth tween animation', async ({ page }) => {
   // Wait for tween (300ms + buffer)
   await page.waitForTimeout(500);
 
-  // The text element should show the correct label format
-  await expect(textEl).toContainText('🥚 Eggs');
   // The value should NOT be 0 anymore
-  await expect(textEl).not.toHaveText('🥚 Eggs: 0');
+  await expect(textEl).not.toHaveText('0');
 });
