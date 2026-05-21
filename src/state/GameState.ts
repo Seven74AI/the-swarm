@@ -177,6 +177,10 @@ export interface GameState {
   research: ResearchState;
   /** Resource conversion system state (GM-4). */
   conversions: ConversionState;
+  /** Entropy system (GM-10). Accumulates from darkMatter production, 0–100. */
+  entropy: number;
+  /** Entropy Dampener building — reduces entropy rate 20% per level. */
+  entropyDampener: { level: number };
 }
 
 export type ResearchProjectId = 'voidCrystalSynthesis' | 'antimatterContainment' | 'darkMatterDetection';
@@ -321,5 +325,7 @@ export function createInitialState(): GameState {
     conversions: {
       particleLab: 0,
     },
+    entropy: 0,
+    entropyDampener: { level: 0 },
   };
 }

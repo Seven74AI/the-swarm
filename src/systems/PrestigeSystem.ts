@@ -1,4 +1,5 @@
 import { createEmptyMap, type GameState } from '../state/GameState';
+import { resetEntropy, calculateEntropyPrestigeBonus } from './EntropySystem';
 
 /**
  * Map phase names to their numeric position.
@@ -83,9 +84,14 @@ export function prestige(state: GameState): GameState {
     state.prestige.totalFoodProduced,
     phaseScore,
   );
+  const entropyBonus = calculateEntropyPrestigeBonus(state);
+  const totalNewLegacyPoints = newLegacyPoints + entropyBonus;
+
+  // Reset entropy after calculating bonus
+  const afterEntropyReset = resetEntropy(state);
 
   return {
-    ...state,
+    ...afterEntropyReset,
     phase: 'egg_laying',
     resources: {
       eggs: 0,
@@ -144,7 +150,7 @@ export function prestige(state: GameState): GameState {
     },
     prestige: {
       count: state.prestige.count + 1,
-      legacyPoints: state.prestige.legacyPoints + newLegacyPoints,
+      legacyPoints: state.prestige.legacyPoints + totalNewLegacyPoints,
       totalFoodProduced: state.prestige.totalFoodProduced,
     },
   };

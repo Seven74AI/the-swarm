@@ -245,6 +245,19 @@ function migrateV8toV9(data: SaveData): SaveData {
   return { ...data, version: 9, gameState };
 }
 
+/** v9 → v10: adds entropy system state (GM-10) */
+function migrateV9toV10(data: SaveData): SaveData {
+  const gameState = data.gameState as GameState & {
+    entropy?: number;
+    entropyDampener?: { level: number };
+  };
+
+  gameState.entropy = gameState.entropy ?? 0;
+  gameState.entropyDampener = gameState.entropyDampener ?? { level: 0 };
+
+  return { ...data, version: 10, gameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -255,6 +268,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   6: migrateV6toV7,
   7: migrateV7toV8,
   8: migrateV8toV9,
+  9: migrateV9toV10,
 };
 
 /**
