@@ -51,6 +51,7 @@ export interface GameState {
     tend: number;
     dig: number;
     guard: number;
+    researchers: number;
   };
   soldiers: {
     scouts: number;
@@ -172,6 +173,19 @@ export interface GameState {
    * Upgradable via Phase 5+ prestige upgrades.
    */
   offlineEfficiency: number;
+  /** Research system state (GM-6). */
+  research: ResearchState;
+}
+
+export type ResearchProjectId = 'voidCrystalSynthesis' | 'antimatterContainment' | 'darkMatterDetection';
+
+export type ResearchProjectStatus = 'locked' | 'available' | 'in_progress' | 'completed';
+
+export interface ResearchState {
+  projects: Record<ResearchProjectId, {
+    state: ResearchProjectStatus;
+    progress: number;
+  }>;
 }
 
 /**
@@ -211,6 +225,7 @@ export function createInitialState(): GameState {
       tend: 0,
       dig: 0,
       guard: 0,
+      researchers: 0,
     },
     soldiers: {
       scouts: 0,
@@ -289,5 +304,12 @@ export function createInitialState(): GameState {
       progress: 0,
     },
     offlineEfficiency: 0.5,
+    research: {
+      projects: {
+        voidCrystalSynthesis: { state: 'available', progress: 0 },
+        antimatterContainment: { state: 'locked', progress: 0 },
+        darkMatterDetection: { state: 'locked', progress: 0 },
+      },
+    },
   };
 }

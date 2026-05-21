@@ -26,7 +26,7 @@ const SEED = {
     },
     eggPipeline: { count: 0, progress: 0 },
     larvaPipeline: { count: 0, progress: 0 },
-    workersAssigned: { gather: 12, tend: 4, dig: 4, guard: 0 },
+    workersAssigned: { gather: 12, tend: 4, dig: 4, guard: 0, researchers: 0 },
     soldiers: { scouts: 10, warriors: 5, totalKilled: 2 },
     buildings: {
       barracks: { level: 2, count: 1 },

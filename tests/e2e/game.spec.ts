@@ -37,7 +37,7 @@ test('phase transitions from egg_laying to colony', async ({ page }) => {
         resources: { eggs: 0, larvae: 0, workers: 10, food: 0, nestCapacity: 25 },
         eggPipeline: { count: 0, progress: 0 },
         larvaPipeline: { count: 0, progress: 0 },
-        workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0 },
+        workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 },
         upgrades: {},
         stats: { totalEggsLaid: 0, totalClicks: 0, playTimeMs: 0 },
         unlockedPanels: [],

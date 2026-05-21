@@ -8,7 +8,7 @@ function makeSaveData(overrides?: Record<string, unknown>) {
     gameState: {
       phase: 'combat',
       resources: { eggs: 0, larvae: 0, workers: 20, food: 1000, nestCapacity: 100, wood: 0, stone: 0, nectar: 0 },
-      workersAssigned: { gather: 4, tend: 4, dig: 4, guard: 4 },
+      workersAssigned: { gather: 4, tend: 4, dig: 4, guard: 4, researchers: 0 },
       upgrades: {},
       stats: { totalEggsLaid: 50, totalClicks: 100, playTimeMs: 0 },
       unlockedPanels: ['resource_panel', 'soldier_panel', 'battle_panel'],
@@ -54,7 +54,7 @@ test.describe('Combat', () => {
           resources: { eggs: 0, larvae: 0, workers: 15, food: 1000, nestCapacity: 25, wood: 0, stone: 0, nectar: 0 },
           eggPipeline: { count: 0, progress: 0 },
           larvaPipeline: { count: 0, progress: 0 },
-          workersAssigned: { gather: 10, tend: 2, dig: 2, guard: 1 },
+          workersAssigned: { gather: 10, tend: 2, dig: 2, guard: 1, researchers: 0 },
           upgrades: {},
           stats: { totalEggsLaid: 50, totalClicks: 100, playTimeMs: 0 },
           unlockedPanels: [],

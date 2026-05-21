@@ -76,10 +76,10 @@ describe('ResourceSystem', () => {
       state.resources.workers = 10;
       state.resources.eggs = 100;
       state.eggPipeline = { count: 100, progress: 0 };
-      state.workersAssigned = { gather: 0, tend: 0, dig: 0, guard: 0 };
+      state.workersAssigned = { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 };
       const withoutTend = system.tick(state);
 
-      state.workersAssigned = { gather: 0, tend: 10, dig: 0, guard: 0 };
+      state.workersAssigned = { gather: 0, tend: 10, dig: 0, guard: 0, researchers: 0 };
       state.eggPipeline = { count: 100, progress: 0 };
       state.resources.eggs = 100;
       const withTend = system.tick(state);
@@ -133,7 +133,7 @@ describe('ResourceSystem', () => {
       // High worker count where consumption > unassigned production
       state.resources.workers = 100;
       state.resources.food = 1000;
-      state.workersAssigned = { gather: 0, tend: 0, dig: 0, guard: 0 };
+      state.workersAssigned = { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 };
       const result = system.tick(state);
       // 100 workers unassigned: +100 produced, floor(100/2)=50 consumed → net +50
       // Food should increase with unassigned
@@ -150,10 +150,10 @@ describe('ResourceSystem', () => {
     it('gather workers produce more food than unassigned', () => {
       state.resources.workers = 10;
       state.resources.food = 100;
-      state.workersAssigned = { gather: 0, tend: 0, dig: 0, guard: 0 };
+      state.workersAssigned = { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 };
       const unassigned = system.tick(state);
 
-      state.workersAssigned = { gather: 10, tend: 0, dig: 0, guard: 0 };
+      state.workersAssigned = { gather: 10, tend: 0, dig: 0, guard: 0, researchers: 0 };
       state.resources.food = 100;
       const gathered = system.tick(state);
 

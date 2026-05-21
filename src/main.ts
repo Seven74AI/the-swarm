@@ -9,6 +9,7 @@ import { MapSystem } from './systems/MapSystem';
 import { TerritorySystem } from './systems/TerritorySystem';
 import { tickExpeditions, resolveExpedition } from './systems/ExpeditionSystem';
 import { tickExplorations, resolveExploration } from './systems/ExplorationSystem';
+import { tickResearch } from './systems/ResearchSystem';
 import {
   tickMissions,
   resolveMission,
@@ -224,6 +225,9 @@ export function bootstrap(): {
       }
     }
 
+    // Research system: tick research progress
+    newState = tickResearch(newState);
+
     // Advance playTimeMs by dt in ms (dtSec * 1000)
     newState = {
       ...newState,
@@ -373,6 +377,9 @@ function processTick(
       newState = resolveMission(ship.id, newState);
     }
   }
+
+  // Tick research progress
+  newState = tickResearch(newState);
 
   // Advance playTimeMs
   newState = {
