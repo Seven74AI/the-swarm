@@ -37,7 +37,7 @@ function makeTranscendenceSave(overrides?: Record<string, unknown>) {
       },
       eggPipeline: { count: 0, progress: 0 },
       larvaPipeline: { count: 0, progress: 0 },
-      workersAssigned: { gather: 20, tend: 10, dig: 5, guard: 5 },
+      workersAssigned: { gather: 20, tend: 10, dig: 5, guard: 5, researchers: 0 },
       soldiers: { scouts: 50, warriors: 30, totalKilled: 10 },
       buildings: { barracks: { level: 3, count: 1 }, walls: { level: 3 }, warehouse: { level: 3 } },
       territory: { ownedTiles: 20, bonuses: {} },
