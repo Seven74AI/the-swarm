@@ -252,7 +252,7 @@ test.describe('Buildings', () => {
     // Click Build
     const buildBtn = page.locator('[data-building="barracks"] button').filter({ hasText: 'Build' });
     await expect(buildBtn).toBeEnabled({ timeout: 3000 });
-    await buildBtn.click();
+    await buildBtn.evaluate(el => (el as HTMLElement).click());
 
     // Verify level updated to Lv.1
     await expect(page.locator('[data-building="barracks"]')).toContainText('Lv.1', { timeout: 3000 });
