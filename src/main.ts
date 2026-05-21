@@ -10,6 +10,8 @@ import { TerritorySystem } from './systems/TerritorySystem';
 import { tickExpeditions, resolveExpedition } from './systems/ExpeditionSystem';
 import { tickExplorations, resolveExploration } from './systems/ExplorationSystem';
 import { tickResearch } from './systems/ResearchSystem';
+import { tickConversions } from './systems/ResourceConversionSystem';
+import { tickEntropy } from './systems/EntropySystem';
 import {
   tickMissions,
   resolveMission,
@@ -228,6 +230,12 @@ export function bootstrap(): {
     // Research system: tick research progress
     newState = tickResearch(newState);
 
+    // Resource conversions: tick DAG (GM-4)
+    newState = tickConversions(newState, dtSec);
+
+    // Entropy: accumulate from darkMatter production (GM-10)
+    newState = tickEntropy(newState, dtSec);
+
     // Advance playTimeMs by dt in ms (dtSec * 1000)
     newState = {
       ...newState,
@@ -381,6 +389,12 @@ function processTick(
   // Tick research progress
   newState = tickResearch(newState);
 
+  // Resource conversions
+  newState = tickConversions(newState, dtSec);
+
+  // Entropy accumulation (GM-10)
+  newState = tickEntropy(newState, dtSec);
+
   // Advance playTimeMs
   newState = {
     ...newState,
@@ -395,5 +409,11 @@ function processTick(
 
 // Auto-bootstrap when loaded in browser.
 if (typeof window !== 'undefined') {
-  (window as unknown as Record<string, unknown>).__swarm = bootstrap();
+  const swarm = bootstrap();
+  // Expose debug accessor for E2E tests (matches swarm.manager.getState() in existing tests)
+  (swarm as Record<string, unknown>).manager = {
+    getState: () => gameState.value,
+    setState: (s: GameState) => { gameState.value = s; },
+  };
+  (window as unknown as Record<string, unknown>).__swarm = swarm;
 }

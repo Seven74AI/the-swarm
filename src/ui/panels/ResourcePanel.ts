@@ -2,6 +2,8 @@ import { effect } from '@preact/signals-core';
 import { gameState } from '../../state/gameSignal';
 import { Phase, PHASE_ORDER } from '../../phases/phases';
 import { EGG_HATCH_TIME, LARVA_MATURE_TIME } from '../../systems/ResourceSystem';
+import { getConversionDefs, getConversionRate } from '../../systems/ResourceConversionSystem';
+import type { ConversionId } from '../../systems/ResourceConversionSystem';
 import { formatNumber, formatRate } from '../../utils/format';
 import { ProgressBar } from '../components/ProgressBar';
 
@@ -311,6 +313,9 @@ export class ResourcePanel {
       });
     }
 
+    // Append conversion chains section
+    body.appendChild(this.buildConversionsBody());
+
     return body;
   }
 
@@ -327,6 +332,60 @@ export class ResourcePanel {
     val.textContent = '0';
     row.appendChild(val);
     body.appendChild(row);
+
+    return body;
+  }
+
+  /**
+   * Build the resource conversion chains UI subsection.
+   * Shows each chain's name, rate (per tick), and rate cap.
+   */
+  private buildConversionsBody(): HTMLDivElement {
+    const body = document.createElement('div');
+    body.className = 'conversions-body';
+
+    const header = document.createElement('div');
+    header.className = 'conversions-header';
+    header.textContent = 'Conversions';
+    body.appendChild(header);
+
+    const defs = getConversionDefs();
+    const icons: Record<ConversionId, string> = {
+      voidCrystalSynthesis: '💎',
+      antimatterContainment: '⚛️',
+      darkMatterDetection: '🌑',
+    };
+
+    for (const def of defs) {
+      const row = document.createElement('div');
+      row.className = 'hud-resource-row conversion-row';
+      row.innerHTML = `<span class="hud-resource-icon">${icons[def.id] || '🔄'}</span>` +
+        `<span class="hud-resource-label">${def.name}</span>`;
+
+      const info = document.createElement('span');
+      info.className = 'conversion-info';
+      row.appendChild(info);
+      body.appendChild(row);
+
+      // Reactive: update rate and cap display
+      effect(() => {
+        const s = gameState.value;
+        const rate = getConversionRate(s, def.id);
+        const cap = def.getRateCap(s);
+
+        if (rate > 0) {
+          info.textContent = `${rate}/tick (cap: ${cap})`;
+          row.classList.remove('conversion-inactive');
+        } else if (cap > 0) {
+          // Has capacity but missing inputs
+          info.textContent = `0/tick (cap: ${cap})`;
+          row.classList.add('conversion-inactive');
+        } else {
+          info.textContent = 'locked';
+          row.classList.add('conversion-inactive');
+        }
+      });
+    }
 
     return body;
   }
