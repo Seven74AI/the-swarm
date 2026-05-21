@@ -1,5 +1,7 @@
 import type { GameState } from '../state/GameState';
+import { createInitialState } from '../state/GameState';
 import { calculateOfflineTicks } from '../systems/OfflineProgression';
+import { migrateSave } from './migrations';
 
 export interface SaveData {
   version: number;
@@ -22,6 +24,26 @@ export interface OfflineLoadInfo {
 
 /** Minimum absence before offline catch-up kicks in (1 second) */
 const OFFLINE_MIN_MS = 1000;
+
+/**
+ * Deep-merge `loaded` into `defaults`. Scalar values from `loaded` take priority;
+ * missing keys from `loaded` fall back to `defaults`. Objects are merged
+ * recursively. Arrays from `loaded` replace defaults entirely.
+ */
+function deepMerge(defaults: Record<string, unknown>, loaded: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...defaults };
+  for (const key of Object.keys(loaded)) {
+    const dv = defaults[key];
+    const lv = loaded[key];
+    if (lv !== undefined && dv !== null && typeof dv === 'object' && !Array.isArray(dv) &&
+        lv !== null && typeof lv === 'object' && !Array.isArray(lv)) {
+      result[key] = deepMerge(dv as Record<string, unknown>, lv as Record<string, unknown>);
+    } else {
+      result[key] = lv;
+    }
+  }
+  return result;
+}
 
 /**
  * SaveManager handles localStorage-based save/load with autosave.
@@ -94,8 +116,8 @@ export class SaveManager {
 
   /**
    * Apply defaults for fields that may be missing from older save versions.
-   * This allows backward compat without breaking existing saves.
-   * Also computes offline progression data from wall-clock time.
+   * Deep-merges the loaded game state with createInitialState() so any
+   * missing fields get sensible defaults. Also computes offline progression.
    */
   private applyDefaults(result: { gameState: GameState; playTimeMs: number; timestamp?: number }): {
     gameState: GameState;
@@ -103,22 +125,17 @@ export class SaveManager {
     timestamp?: number;
     offline: OfflineLoadInfo | null;
   } {
-    const gs = result.gameState;
-    let updatedGs = gs;
-
-    if (!gs.prestige) {
-      updatedGs = {
-        ...updatedGs,
-        prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 0 },
-      };
-    }
+    // Deep-merge loaded state over defaults — loaded values win, missing fields get defaults
+    const defaultState = createInitialState();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mergedState = deepMerge(defaultState as any, result.gameState as any);
 
     // Compute offline progression
-    const offline = this.computeOfflineData(result, updatedGs);
+    const offline = this.computeOfflineData(result, mergedState as unknown as GameState);
 
     return {
       ...result,
-      gameState: updatedGs,
+      gameState: mergedState as unknown as GameState,
       offline,
     };
   }
@@ -172,10 +189,13 @@ export class SaveManager {
         return null;
       }
 
+      // Run save migrations from loaded version to current version
+      const migrated = migrateSave(data, data.version, SaveManager.SAVE_VERSION);
+
       return {
-        gameState: data.gameState,
-        playTimeMs: data.playTimeMs ?? 0,
-        timestamp: data.timestamp,
+        gameState: migrated.gameState,
+        playTimeMs: migrated.playTimeMs ?? 0,
+        timestamp: migrated.timestamp,
       };
     } catch {
       return null;

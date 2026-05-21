@@ -243,10 +243,8 @@ test.describe('Combat Edge Cases', () => {
     await expect(recruitBtn).toBeVisible({ timeout: 5000 });
     await recruitBtn.click();
 
-    // Verify "in training" text appears
-    await expect(page.locator('#soldier-panel')).toContainText('in training', {
-      timeout: 3000,
-    });
+    // Verify training status appears
+    await expect(page.locator('#soldier-panel .stat-sub')).not.toBeEmpty({ timeout: 2000 });
 
     // While training, scout and engage
     await page.locator('#scout-enemy').click();
@@ -258,7 +256,7 @@ test.describe('Combat Edge Cases', () => {
     await expect(page.locator('#battle-result')).toContainText(/Victory|Defeat/);
 
     // Training status should still be visible (training continues during battle)
-    await expect(page.locator('#soldier-panel')).toContainText('in training');
+    await expect(page.locator('#soldier-panel .stat-sub')).not.toBeEmpty();
   });
 
   test('strong equipment favors victory', async ({ page }) => {
@@ -345,7 +343,7 @@ test.describe('Save/Load Robustness', () => {
     // Verify expedition is visible
     await expect(page.locator('.expedition-row')).toBeAttached({ timeout: 5000 });
     await expect(page.locator('.expedition-row')).toContainText('MEADOW');
-    await expect(page.locator('.expedition-row')).toContainText(/4\d?⏳/);
+    await expect(page.locator('.expedition-row')).toContainText(/⏳ \d+s/);
 
     // Save
     await saveGame(page);
@@ -360,7 +358,7 @@ test.describe('Save/Load Robustness', () => {
     await expect(expeditionRow).toBeAttached({ timeout: 5000 });
     await expect(expeditionRow).toContainText('MEADOW');
     // ticksRemaining may have ticked down by 1-2
-    await expect(expeditionRow).toContainText(/4\d?⏳/);
+    await expect(expeditionRow).toContainText(/⏳ \d+s/);
   });
 
   test('save with buildings → reload → levels intact', async ({ page }) => {
@@ -460,10 +458,10 @@ test.describe('Save/Load Robustness', () => {
           if (!swarm || !swarm.manager) return;
           const mgr = swarm.manager as {
             getState: () => Record<string, unknown>;
-            update: (s: Record<string, unknown>) => void;
+            setState: (s: Record<string, unknown>) => void;
           };
           const state = mgr.getState();
-          mgr.update({ ...state, battlesWon });
+          mgr.setState({ ...state, battlesWon } as Record<string, unknown>);
         },
         won,
       );

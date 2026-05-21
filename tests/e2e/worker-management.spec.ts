@@ -123,11 +123,11 @@ test.describe('Worker Management', () => {
   });
 
   test('assign worker to Tend accelerates egg hatching', async ({ page }) => {
-    // Seed colony with 3 eggs (1 tick each from hatching) and 5 workers
+    // Seed colony with 3 eggs in pipeline and 5 workers
     await seedAndGoto(page, {
       phase: 'colony',
       resources: { eggs: 3, larvae: 0, workers: 5, food: 50, nestCapacity: 25 },
-      eggPipeline: { count: 0, progress: 0 },
+      eggPipeline: { count: 3, progress: 0 },
       workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 },
     });
 

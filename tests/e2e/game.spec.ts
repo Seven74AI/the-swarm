@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test('click egg button increments counter and spawns particle', async ({ page }) => {
   await page.goto('/');
-  // Verify initial egg count is 0
-  const eggDisplay = page.locator('[data-stat="resources.eggs"]');
-  await expect(eggDisplay).toHaveText('🥚 Eggs: 0');
+  // Verify initial egg count is 0 (critical-bar format: "🥚 0")
+  const eggDisplay = page.locator('[data-stat="resources.eggs"] .critical-value');
+  await expect(eggDisplay).toHaveText('0');
 
   // No particles before click
   await expect(page.locator('.click-particle')).toHaveCount(0);
@@ -13,7 +13,7 @@ test('click egg button increments counter and spawns particle', async ({ page })
   await page.locator('#click-egg').click();
 
   // Verify count changed
-  await expect(eggDisplay).not.toHaveText('🥚 Eggs: 0');
+  await expect(eggDisplay).not.toHaveText('0');
 
   // At least one floating particle spawned
   await expect(page.locator('.click-particle')).toHaveCount(1);
@@ -48,7 +48,7 @@ test('phase transitions from egg_laying to colony', async ({ page }) => {
   });
 
   await page.goto('/');
-  // Wait for a tick to fire (1 second interval)
+  // Wait for a tick to fire (50ms interval, transition within 1s)
   await page.waitForTimeout(2000);
   const indicator = page.locator('#phase-indicator');
   await expect(indicator).toContainText('The Colony');
@@ -72,6 +72,6 @@ test('save persists across reload', async ({ page }) => {
   });
 
   await page.reload();
-  const eggDisplay = page.locator('[data-stat="resources.eggs"]');
-  await expect(eggDisplay).not.toHaveText('🥚 Eggs: 0');
+  const eggDisplay = page.locator('[data-stat="resources.eggs"] .critical-value');
+  await expect(eggDisplay).not.toHaveText('0');
 });
