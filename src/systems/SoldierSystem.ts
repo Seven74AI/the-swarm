@@ -1,6 +1,7 @@
 import type { EventBus } from '../engine/EventBus';
 import type { GameState } from '../state/GameState';
 import { upgradeCost } from '../utils/math';
+import { getPrestigeBonuses } from './PrestigeBonusSystem';
 
 export const SOLDIER_COST_FOOD = 5;
 export const SOLDIER_TRAIN_TIME = 15;
@@ -45,7 +46,8 @@ export class SoldierSystem {
     const pipe = { ...state.soldierPipeline };
     if (pipe.count === 0) return state;
 
-    const trainRate = pipe.count / SOLDIER_TRAIN_TIME;
+    const prestigeBonuses = getPrestigeBonuses(state);
+    const trainRate = (pipe.count / SOLDIER_TRAIN_TIME) * prestigeBonuses.soldierTraining;
     pipe.progress += trainRate;
     const completed = Math.floor(pipe.progress);
     pipe.progress -= completed;

@@ -508,4 +508,78 @@ describe('PrestigeSystem', () => {
       expect(CHRONO_SYNCHRONIZATION_COST).toBe(5);
     });
   });
+
+  describe('prestige unlock bonuses (Slice 4)', () => {
+    function makeRichState(): GameState {
+      const s = createInitialState();
+      s.phase = 'space';
+      s.buildings.barracks.level = 5;
+      s.buildings.walls.level = 5;
+      s.buildings.warehouse.level = 5;
+      s.prestige = { count: 1, legacyPoints: 5, totalFoodProduced: 200_000 };
+      return s;
+    }
+
+    it('starting resources: prestige with royal cache yields 50 eggs in pipeline + 25 food', () => {
+      const s = makeRichState();
+      s.prestigeTree.purchased = ['starting_resources'];
+      const result = prestige(s);
+      expect(result.eggPipeline.count).toBe(50);
+      expect(result.eggPipeline.progress).toBe(0);
+      expect(result.resources.food).toBe(25);
+      expect(result.resources.eggs).toBe(0); // other resources still reset
+    });
+
+    it('starting resources: without purchase, starts with 0 eggs and 0 food (baseline)', () => {
+      const s = makeRichState();
+      const result = prestige(s);
+      expect(result.eggPipeline.count).toBe(0);
+      expect(result.resources.food).toBe(0);
+    });
+
+    it('phase skip: prestige with ancestral memory starts at Phase 2 (colony)', () => {
+      const s = makeRichState();
+      s.prestigeTree.purchased = ['phase_skip'];
+      const result = prestige(s);
+      expect(result.phase).toBe('colony');
+    });
+
+    it('phase skip: without purchase, starts at Phase 1 (egg_laying)', () => {
+      const s = makeRichState();
+      const result = prestige(s);
+      expect(result.phase).toBe('egg_laying');
+    });
+
+    it('both unlocks combined: starting resources + phase skip', () => {
+      const s = makeRichState();
+      s.prestigeTree.purchased = ['starting_resources', 'phase_skip'];
+      const result = prestige(s);
+      expect(result.phase).toBe('colony');
+      expect(result.eggPipeline.count).toBe(50);
+      expect(result.resources.food).toBe(25);
+    });
+
+    it('prestigeTree.purchased survives Full Wipe unchanged', () => {
+      const s = makeRichState();
+      s.prestigeTree.purchased = ['egg_laying_bonus', 'phase_skip'];
+      const result = prestige(s);
+      expect(result.prestigeTree.purchased).toEqual(['egg_laying_bonus', 'phase_skip']);
+    });
+
+    it('unlock bonuses are only active after purchase, not before', () => {
+      const s = makeRichState();
+      // No purchases
+      const before = prestige(s);
+      expect(before.phase).toBe('egg_laying');
+      expect(before.eggPipeline.count).toBe(0);
+      expect(before.resources.food).toBe(0);
+
+      // Purchase both unlocks
+      s.prestigeTree.purchased = ['starting_resources', 'phase_skip'];
+      const after = prestige(s);
+      expect(after.phase).toBe('colony');
+      expect(after.eggPipeline.count).toBe(50);
+      expect(after.resources.food).toBe(25);
+    });
+  });
 });

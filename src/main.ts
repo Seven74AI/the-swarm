@@ -18,6 +18,7 @@ import {
   resolveMission,
 } from './systems/SpaceshipSystem';
 import { tickAutoProduction } from './engine/AutoProductionLoop';
+import { getPrestigeBonuses } from './systems/PrestigeBonusSystem';
 import { UIRoot } from './ui/UIRoot';
 import { SaveManager } from './persistence/SaveManager';
 import type { OfflineLoadInfo } from './persistence/SaveManager';
@@ -143,6 +144,18 @@ export function bootstrap(): {
 
     newState = soldierSystem.tick(newState);
     newState = tickAutoProduction(newState, dtSec);
+
+    // Auto-egg-layer from prestige tree (1 egg/sec into eggPipeline)
+    const prestigeBonuses = getPrestigeBonuses(newState);
+    if (prestigeBonuses.autoEggLayer) {
+      newState = {
+        ...newState,
+        eggPipeline: {
+          ...newState.eggPipeline,
+          count: newState.eggPipeline.count + dtSec,
+        },
+      };
+    }
 
     // Expedition system: tick timers and resolve completed ones
     newState = tickExpeditions(newState);
@@ -379,6 +392,18 @@ function processTick(
 
   newState = soldierSystem.tick(newState);
   newState = tickAutoProduction(newState, dtSec);
+
+  // Auto-egg-layer from prestige tree (1 egg/sec into eggPipeline)
+  const pBonuses = getPrestigeBonuses(newState);
+  if (pBonuses.autoEggLayer) {
+    newState = {
+      ...newState,
+      eggPipeline: {
+        ...newState.eggPipeline,
+        count: newState.eggPipeline.count + dtSec,
+      },
+    };
+  }
 
   // Tick expedition timers
   newState = tickExpeditions(newState);

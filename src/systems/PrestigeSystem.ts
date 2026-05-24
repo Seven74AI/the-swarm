@@ -1,5 +1,6 @@
 import { createEmptyMap, type GameState } from '../state/GameState';
 import { resetEntropy, calculateEntropyPrestigeBonus } from './EntropySystem';
+import { getPrestigeBonuses } from './PrestigeBonusSystem';
 import { PRESTIGE_UPGRADES, type PrestigeUpgradeId } from '../data/prestigeTree';
 
 /**
@@ -91,14 +92,19 @@ export function prestige(state: GameState): GameState {
   // Reset entropy after calculating bonus
   const afterEntropyReset = resetEntropy(state);
 
+  // Unlock bonuses from prestige tree
+  const bonuses = getPrestigeBonuses(state);
+
+  const basePhase = bonuses.phaseSkip ? 'colony' : 'egg_laying';
+
   return {
     ...afterEntropyReset,
-    phase: 'egg_laying',
+    phase: basePhase,
     resources: {
       eggs: 0,
       larvae: 0,
       workers: 0,
-      food: 0,
+      food: bonuses.startingResources ? 25 : 0,
       nestCapacity: 25,
       wood: 0,
       stone: 0,
@@ -107,7 +113,10 @@ export function prestige(state: GameState): GameState {
       antimatter: state.resources.antimatter,
       darkMatter: state.resources.darkMatter,
     },
-    eggPipeline: { count: 0, progress: 0 },
+    eggPipeline: {
+      count: bonuses.startingResources ? 50 : 0,
+      progress: 0,
+    },
     larvaPipeline: { count: 0, progress: 0 },
     soldierPipeline: { count: 0, progress: 0 },
     workersAssigned: {
