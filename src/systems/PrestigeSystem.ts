@@ -1,5 +1,6 @@
 import { createEmptyMap, type GameState } from '../state/GameState';
 import { resetEntropy, calculateEntropyPrestigeBonus } from './EntropySystem';
+import { PRESTIGE_UPGRADES, type PrestigeUpgradeId } from '../data/prestigeTree';
 
 /**
  * Map phase names to their numeric position.
@@ -153,6 +154,7 @@ export function prestige(state: GameState): GameState {
       legacyPoints: state.prestige.legacyPoints + totalNewLegacyPoints,
       totalFoodProduced: state.prestige.totalFoodProduced,
     },
+    prestigeTree: state.prestigeTree,
   };
 }
 
@@ -225,4 +227,73 @@ export function buyChronoSynchronization(state: GameState): GameState | null {
  */
 export function getProductionBonus(legacyPoints: number): number {
   return 1.0 + legacyPoints * 0.02;
+}
+
+/**
+ * Check if a prestige tree upgrade can be purchased.
+ *
+ * Requirements:
+ *   - Not already purchased
+ *   - Player has enough Legacy Points
+ *   - Phase requirement met (for unlock-type upgrades)
+ */
+export function canPurchasePrestigeUpgrade(
+  state: GameState,
+  upgradeId: PrestigeUpgradeId,
+): boolean {
+  // Already purchased?
+  if (state.prestigeTree.purchased.includes(upgradeId)) return false;
+
+  const upgrade = PRESTIGE_UPGRADES.find((u) => u.id === upgradeId);
+  if (!upgrade) return false;
+
+  // Cost check
+  if (state.prestige.legacyPoints < upgrade.cost) return false;
+
+  // Phase requirement check (unlock-type only)
+  if (upgrade.phaseRequired && state.phase !== upgrade.phaseRequired) {
+    // Allow purchase during transcendence and egg_laying (post-prestige reset)
+    if (state.phase !== 'transcendence' && state.phase !== 'egg_laying') {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Purchase a prestige tree upgrade.
+ *
+ * Returns a new GameState with the upgrade marked as purchased and Legacy Points
+ * deducted. Returns null if requirements are not met.
+ */
+export function purchasePrestigeUpgrade(
+  state: GameState,
+  upgradeId: PrestigeUpgradeId,
+): GameState | null {
+  if (!canPurchasePrestigeUpgrade(state, upgradeId)) return null;
+
+  const upgrade = PRESTIGE_UPGRADES.find((u) => u.id === upgradeId);
+  if (!upgrade) return null;
+
+  return {
+    ...state,
+    prestige: {
+      ...state.prestige,
+      legacyPoints: state.prestige.legacyPoints - upgrade.cost,
+    },
+    prestigeTree: {
+      purchased: [...state.prestigeTree.purchased, upgradeId],
+    },
+  };
+}
+
+/**
+ * Check if a specific prestige tree upgrade is already purchased.
+ */
+export function isPrestigeUpgradePurchased(
+  state: GameState,
+  upgradeId: PrestigeUpgradeId,
+): boolean {
+  return state.prestigeTree.purchased.includes(upgradeId);
 }

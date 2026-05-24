@@ -181,6 +181,11 @@ export interface GameState {
   entropy: number;
   /** Entropy Dampener building — reduces entropy rate 20% per level. */
   entropyDampener: { level: number };
+  /** Prestige Tree permanent upgrade purchases. Survives Full Wipe. */
+  prestigeTree: {
+    /** IDs of purchased prestige upgrades (never reset). */
+    purchased: string[];
+  };
 }
 
 export type ResearchProjectId = 'voidCrystalSynthesis' | 'antimatterContainment' | 'darkMatterDetection';
@@ -327,5 +332,8 @@ export function createInitialState(): GameState {
     },
     entropy: 0,
     entropyDampener: { level: 0 },
+    prestigeTree: {
+      purchased: [],
+    },
   };
 }

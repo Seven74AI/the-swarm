@@ -1226,6 +1226,169 @@ body.phase-space .progress-fill {
   color: rgba(255, 215, 0, 0.7);
 }
 
+/* ── Prestige Tree button (inside PrestigePanel) ─────────── */
+.btn-tree {
+  display: block;
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-tree:hover {
+  background: rgba(34, 197, 94, 0.2);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PRESTIGE TREE — Permanent Upgrade Card Grid
+   ═══════════════════════════════════════════════════════════════ */
+
+.prestige-tree-panel {
+  border-color: #22c55e;
+}
+
+.prestige-tree-panel .panel-title {
+  color: #22c55e;
+}
+
+.prestige-tree-points {
+  margin-bottom: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  background: rgba(34, 197, 94, 0.08);
+  border-radius: 4px;
+}
+
+.prestige-tree-points .stat-value {
+  color: #22c55e;
+  font-size: 1.1rem;
+}
+
+/* Card grid — reuses the expedition grid pattern */
+.prestige-tree-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.prestige-tree-card {
+  background: rgba(26, 22, 20, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  align-items: center;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Available — emphasizes the green border */
+.prestige-card-available {
+  border-color: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.2);
+}
+
+.prestige-card-available:hover {
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.35);
+}
+
+/* Unaffordable — greyed out */
+.prestige-card-unaffordable {
+  border-color: #444;
+  opacity: 0.55;
+}
+
+/* Purchased — green border with different bg tint */
+.prestige-card-purchased {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.06);
+}
+
+.prestige-tree-card-icon {
+  font-size: 1.5rem;
+}
+
+.prestige-tree-card-name {
+  font-weight: bold;
+  font-size: 0.78rem;
+  color: var(--text-primary);
+}
+
+.prestige-tree-card-type {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+}
+
+.prestige-tree-card-desc {
+  font-size: 0.65rem;
+  color: var(--accent-glow);
+  margin-bottom: 0.2rem;
+}
+
+.prestige-tree-card-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.prestige-tree-card-cost {
+  font-size: 0.8rem;
+  color: #22c55e;
+  font-weight: bold;
+}
+
+.prestige-tree-purchased-badge {
+  font-size: 0.8rem;
+  color: #22c55e;
+  font-weight: bold;
+}
+
+.btn-tree-purchase {
+  width: 100%;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #22c55e;
+  border-radius: 3px;
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+
+.btn-tree-purchase:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.3);
+}
+
+.btn-tree-purchase:disabled {
+  border-color: #555;
+  background: rgba(40, 40, 40, 0.3);
+  color: #555;
+  cursor: not-allowed;
+}
+
+/* Completion message when all upgrades bought */
+.prestige-tree-complete {
+  color: #22c55e;
+  font-size: 0.85rem;
+  font-style: italic;
+  text-align: center;
+  padding: 0.75rem 0;
+  border-top: 1px solid rgba(34, 197, 94, 0.2);
+  margin-top: 0.5rem;
+}
+
 /* ── Offline Summary Popup (GM-8) ─────────────────────────── */
 .offline-overlay {
   position: fixed;

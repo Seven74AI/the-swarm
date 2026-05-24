@@ -24,6 +24,7 @@ import { ResourceConverterPanel } from './panels/ResourceConverterPanel';
 import { TechTreePanel } from './panels/TechTreePanel';
 import { AutoProductionPanel } from './panels/AutoProductionPanel';
 import { PrestigePanel } from './panels/PrestigePanel';
+import { PrestigeTreePanel } from './panels/PrestigeTreePanel';
 import { ResearchPanel } from './panels/ResearchPanel';
 import type { DecisionEvent } from '../systems/DecisionSystem';
 import { DecisionPopup } from './components/DecisionPopup';
@@ -134,6 +135,9 @@ export class UIRoot {
       this.bus, this.getState, this.setState,
     ).getElement());
     this.panelRegistry.set('prestige_panel', () => new PrestigePanel(
+      this.bus, this.getState, this.setState,
+    ).getElement());
+    this.panelRegistry.set('prestige_tree_panel', () => new PrestigeTreePanel(
       this.bus, this.getState, this.setState,
     ).getElement());
 
@@ -280,6 +284,12 @@ export class UIRoot {
       if (p.workers !== undefined) {
         this.eventLog.notifyWorkerCount(p.workers);
       }
+    });
+
+    // Listen for Prestige Tree open request from PrestigePanel button
+    this.bus.subscribe('open_prestige_tree', () => {
+      this.createPanel('prestige_tree_panel');
+      this.showPanel('prestige_tree_panel');
     });
 
     // ── Scroll-based panel discovery (IntersectionObserver) ──
