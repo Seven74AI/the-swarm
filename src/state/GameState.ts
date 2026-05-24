@@ -181,6 +181,14 @@ export interface GameState {
   entropy: number;
   /** Entropy Dampener building — reduces entropy rate 20% per level. */
   entropyDampener: { level: number };
+  /** Prestige system — number of times the player has prestiged (new system). */
+  prestigeCount: number;
+  /** Prestige system — accumulated Prestige Points earned. */
+  prestigePoints: number;
+  /** Prestige system — IDs of purchased prestige upgrades. */
+  purchasedUpgrades: string[];
+  /** Prestige system — total lifetime resources produced (never reset). O(1) tracking. */
+  totalLifetimeResources: number;
 }
 
 export type ResearchProjectId = 'voidCrystalSynthesis' | 'antimatterContainment' | 'darkMatterDetection';
@@ -327,5 +335,9 @@ export function createInitialState(): GameState {
     },
     entropy: 0,
     entropyDampener: { level: 0 },
+    prestigeCount: 0,
+    prestigePoints: 0,
+    purchasedUpgrades: [],
+    totalLifetimeResources: 0,
   };
 }

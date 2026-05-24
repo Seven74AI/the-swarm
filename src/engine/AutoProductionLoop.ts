@@ -47,5 +47,6 @@ export function tickAutoProduction(
       ...state.autoProduction,
       progress: remaining,
     },
+    totalLifetimeResources: state.totalLifetimeResources + eggsProduced,
   };
 }

@@ -56,6 +56,7 @@ export class ResourceSystem {
         totalEggsLaid: state.stats.totalEggsLaid + eggsPerClick,
         totalClicks: state.stats.totalClicks + 1,
       },
+      totalLifetimeResources: state.totalLifetimeResources + eggsPerClick,
     };
 
     this.bus.emit('eggs_changed', { eggs: result.resources.eggs });
@@ -211,6 +212,11 @@ export class ResourceSystem {
       },
       eggPipeline: { count: newEggCount, progress: newEggProgress },
       larvaPipeline: { count: newLarvaCount, progress: newLarvaProgress },
+      totalLifetimeResources: state.totalLifetimeResources
+        + Math.max(0, Math.floor(foodDelta))
+        + Math.max(0, Math.floor(territoryFoodDelta))
+        + Math.max(0, Math.floor(territoryStoneDelta))
+        + Math.max(0, Math.floor(territoryNectarDelta)),
     };
 
     if (eggsChanged) this.bus.emit('eggs_changed', { eggs: result.resources.eggs });

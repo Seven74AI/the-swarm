@@ -58,7 +58,7 @@ export class SaveManager {
   private static SAVE_KEY = 'the_swarm_save';
   private static BACKUP1_KEY = 'the_swarm_save_bak1';
   private static BACKUP2_KEY = 'the_swarm_save_bak2';
-  private static SAVE_VERSION = 10;
+  private static SAVE_VERSION = 11;
   private static AUTOSAVE_INTERVAL_MS = 30_000;
 
   private autosaveTimer: ReturnType<typeof setInterval> | null = null;
