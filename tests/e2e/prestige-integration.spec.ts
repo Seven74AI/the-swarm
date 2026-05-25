@@ -273,12 +273,18 @@ test.describe('Prestige Integration — Slice 5', () => {
     // ── Phase 2 (colony): worker-assignment panel visible ──
     await expect(page.locator('#worker-assignment')).toBeAttached({ timeout: 10000 });
 
-    // Seed eggs via clicking (50 pipeline eggs need resources.eggs to hatch)
-    await clickTimes(page, 10);
-    await page.waitForTimeout(8000);
+    // Verify clicks work and production runs (eggs hatch fast with 50-pipeline from Royal Cache)
+    await clickTimes(page, 3);
+    await page.waitForTimeout(500);
+    const clicksText = await page.locator('#click-egg').evaluate((el) => {
+      return (el.parentElement as HTMLElement)?.textContent || '';
+    });
+    expect(clicksText).toMatch(/Clicks:\s*[1-9]/);
 
-    const eggText = await page.locator('[data-stat="resources.eggs"] .critical-value').textContent();
-    expect(parseInt(eggText || '0', 10)).toBeGreaterThan(0);
+    // Let pipeline produce workers + food
+    await page.waitForTimeout(3000);
+    const foodText = await page.locator('[data-stat="resources.food"] .critical-value').textContent();
+    expect(parseInt(foodText || '0', 10)).toBeGreaterThan(25);
   });
 
   /** ─── Test 5: Double prestige — compound bonuses ─── */
