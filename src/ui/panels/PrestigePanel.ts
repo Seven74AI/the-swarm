@@ -103,6 +103,15 @@ export class PrestigePanel {
     countRow.appendChild(countValue);
     this.container.appendChild(countRow);
 
+    // ── Prestige Tree button ──
+    const treeBtn = document.createElement('button');
+    treeBtn.className = 'btn btn-tree';
+    treeBtn.textContent = '🌳 Prestige Tree';
+    treeBtn.addEventListener('click', () => {
+      this.bus.emit('open_prestige_tree', {});
+    });
+    this.container.appendChild(treeBtn);
+
     // ── Production bonus ──
     if (legacyPoints > 0) {
       const bonusRow = document.createElement('div');

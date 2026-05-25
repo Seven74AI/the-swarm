@@ -4,6 +4,7 @@ import type { TerritoryBonuses } from './TerritorySystem';
 import { upgradeCost } from '../utils/math';
 import { getEffects } from './BuildingSystem';
 import { productionMultiplier, workerEfficiency } from '../engine/ProgressionCurve';
+import { getPrestigeBonuses } from './PrestigeBonusSystem';
 
 /**
  * Upgrade definitions.
@@ -72,17 +73,20 @@ export class ResourceSystem {
   tick(state: GameState, territoryBonuses?: TerritoryBonuses, dtSec: number = 1): GameState {
     // ─── Phase 1: Compute all rates from current state (read-only) ───
 
+    // Prestige tree production bonuses
+    const prestigeBonuses = getPrestigeBonuses(state);
+
     // Egg pipeline rate
     const eggPipe = state.eggPipeline;
     const tendCount = state.workersAssigned.tend;
     const hatchRate = eggPipe.count > 0
-      ? (eggPipe.count / EGG_HATCH_TIME) * (1 + tendCount * TEND_MULTIPLIER)
+      ? (eggPipe.count / EGG_HATCH_TIME) * (1 + tendCount * TEND_MULTIPLIER) * prestigeBonuses.eggLaying
       : 0;
 
     // Larva pipeline rate
     const larvaPipe = state.larvaPipeline;
     const matureRate = larvaPipe.count > 0
-      ? larvaPipe.count / LARVA_MATURE_TIME
+      ? (larvaPipe.count / LARVA_MATURE_TIME) * prestigeBonuses.hatching
       : 0;
 
     // Food rates
@@ -98,7 +102,7 @@ export class ResourceSystem {
 
     const foodProduced = Math.floor(
       (gatherCount * FOOD_PER_GATHER + Math.max(0, unassignedCount) * FOOD_PER_WORKER)
-      * prodMult * workerEff,
+      * prodMult * workerEff * prestigeBonuses.food * prestigeBonuses.workerEfficiency,
     );
     const foodConsumed = Math.floor(workers / 2);
 
