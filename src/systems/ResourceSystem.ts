@@ -7,6 +7,69 @@ import { productionMultiplier, workerEfficiency } from '../engine/ProgressionCur
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
 
 /**
+ * Per-second deterministic resource rates computed from game state.
+ * These are the "closed-form" inputs for offline progression.
+ */
+export interface ResourceRates {
+  /** Gross food produced per second (before consumption). */
+  foodProducedPerSec: number;
+  /** Food consumed per second (workers / 2). */
+  foodConsumedPerSec: number;
+  /** Wood produced per second from territory bonuses. */
+  woodPerSec: number;
+  /** Stone produced per second from territory bonuses. */
+  stonePerSec: number;
+  /** Nectar produced per second from territory bonuses. */
+  nectarPerSec: number;
+}
+
+/**
+ * Compute deterministic resource production rates from the current game state.
+ * Pure function — no side-effects, no mutation.
+ *
+ * These rates are used both for per-tick simulation and for closed-form
+ * offline resource computation (rate × time).
+ */
+export function computeResourceRates(
+  state: GameState,
+  territoryBonuses?: TerritoryBonuses,
+): ResourceRates {
+  const prestigeBonuses = getPrestigeBonuses(state);
+  const workers = state.resources.workers;
+  const assigned = state.workersAssigned;
+  const gatherCount = assigned.gather;
+  const unassignedCount = workers - gatherCount - assigned.tend - assigned.dig - assigned.guard;
+
+  const prodMult = productionMultiplier(state.phase, state.prestige.legacyPoints);
+  const workerEff = workerEfficiency(workers);
+
+  const foodProducedPerSec = (
+    (gatherCount * 2 + Math.max(0, unassignedCount) * 1)
+    * prodMult * workerEff * prestigeBonuses.food * prestigeBonuses.workerEfficiency
+  );
+  const foodConsumedPerSec = workers / 2;
+
+  let territoryFoodRate = 0;
+  let territoryStoneRate = 0;
+  let territoryWoodRate = 0;
+  let territoryNectarRate = 0;
+  if (workers > 0 && territoryBonuses) {
+    if (territoryBonuses.food > 0) territoryFoodRate = workers * territoryBonuses.food * prodMult * workerEff;
+    if (territoryBonuses.stone > 0) territoryStoneRate = workers * territoryBonuses.stone * prodMult;
+    if (territoryBonuses.wood > 0) territoryWoodRate = workers * territoryBonuses.wood * prodMult;
+    if (territoryBonuses.nectar > 0) territoryNectarRate = workers * territoryBonuses.nectar * prodMult;
+  }
+
+  return {
+    foodProducedPerSec: foodProducedPerSec + territoryFoodRate,
+    foodConsumedPerSec,
+    woodPerSec: territoryWoodRate,
+    stonePerSec: territoryStoneRate,
+    nectarPerSec: territoryNectarRate,
+  };
+}
+
+/**
  * Upgrade definitions.
  * Each upgrade has an id, base food cost, and cost multiplier.
  */
@@ -70,8 +133,10 @@ export class ResourceSystem {
    * Rate-based pipelines replace per-item timer iteration → O(1).
    * Two-phase: compute all rates first, then apply all deltas.
    */
-  tick(state: GameState, territoryBonuses?: TerritoryBonuses, dtSec: number = 1): GameState {
+  tick(state: GameState, territoryBonuses?: TerritoryBonuses, dtSec: number = 1, skipDeterministicResources: boolean = false): GameState {
     // ─── Phase 1: Compute all rates from current state (read-only) ───
+
+    const rates = computeResourceRates(state, territoryBonuses);
 
     // Prestige tree production bonuses
     const prestigeBonuses = getPrestigeBonuses(state);
@@ -89,46 +154,15 @@ export class ResourceSystem {
       ? (larvaPipe.count / LARVA_MATURE_TIME) * prestigeBonuses.hatching
       : 0;
 
-    // Food rates
-    const workers = state.resources.workers;
-    const assigned = state.workersAssigned;
-    const gatherCount = assigned.gather;
-    const unassignedCount = workers - gatherCount - assigned.tend - assigned.dig - assigned.guard;
-
-    // Progression curve: production multiplier from phase + legacy points
-    const prodMult = productionMultiplier(state.phase, state.prestige.legacyPoints);
-    // Worker efficiency soft cap (diminishing returns above 500 workers)
-    const workerEff = workerEfficiency(workers);
-
-    const foodProduced = Math.floor(
-      (gatherCount * FOOD_PER_GATHER + Math.max(0, unassignedCount) * FOOD_PER_WORKER)
-      * prodMult * workerEff * prestigeBonuses.food * prestigeBonuses.workerEfficiency,
-    );
-    const foodConsumed = Math.floor(workers / 2);
-
-    // Territory bonus rates
-    let territoryFoodRate = 0;
-    let territoryStoneRate = 0;
-    let territoryNectarRate = 0;
-    if (workers > 0 && territoryBonuses) {
-      if (territoryBonuses.food > 0) territoryFoodRate = Math.floor(workers * territoryBonuses.food * prodMult * workerEff);
-      if (territoryBonuses.stone > 0) territoryStoneRate = Math.floor(workers * territoryBonuses.stone * prodMult);
-      if (territoryBonuses.nectar > 0) territoryNectarRate = Math.floor(workers * territoryBonuses.nectar * prodMult);
-    }
-
     // ─── Phase 2: Apply all deltas (write-only) ───
 
     // Scale by dtSec (e.g., 0.05 for 50ms)
     const hatchDelta = hatchRate * dtSec;
     const matureDelta = matureRate * dtSec;
-    const foodDelta = (foodProduced - foodConsumed) * dtSec;
-    const territoryFoodDelta = territoryFoodRate * dtSec;
-    const territoryStoneDelta = territoryStoneRate * dtSec;
-    const territoryNectarDelta = territoryNectarRate * dtSec;
 
     let eggs = state.resources.eggs;
     let larvae = state.resources.larvae;
-    let newWorkers = workers;
+    let newWorkers = state.resources.workers;
     let food = state.resources.food;
     let wood = state.resources.wood;
     let stone = state.resources.stone;
@@ -172,24 +206,26 @@ export class ResourceSystem {
       workersChanged = true;
     }
 
-    // Food
-    if (workers > 0) {
-      food += foodDelta;
-      foodChanged = true;
-    }
-
-    // Territory bonuses
-    if (territoryFoodDelta > 0) {
-      food += territoryFoodDelta;
-      foodChanged = true;
-    }
-    if (territoryStoneDelta > 0) {
-      stone += territoryStoneDelta;
-      stoneChanged = true;
-    }
-    if (territoryNectarDelta > 0) {
-      nectar += territoryNectarDelta;
-      nectarChanged = true;
+    // Deterministic resource production (skipped during closed-form offline catch-up)
+    if (!skipDeterministicResources) {
+      const workers = state.resources.workers;
+      if (workers > 0) {
+        const netFood = (rates.foodProducedPerSec - rates.foodConsumedPerSec) * dtSec;
+        food += netFood;
+        if (netFood !== 0) foodChanged = true;
+      }
+      if (rates.woodPerSec > 0) {
+        wood += rates.woodPerSec * dtSec;
+        woodChanged = true;
+      }
+      if (rates.stonePerSec > 0) {
+        stone += rates.stonePerSec * dtSec;
+        stoneChanged = true;
+      }
+      if (rates.nectarPerSec > 0) {
+        nectar += rates.nectarPerSec * dtSec;
+        nectarChanged = true;
+      }
     }
 
     // ─── Phase 3: Clamp all resources >= 0 ───
