@@ -126,9 +126,17 @@ export class UIRoot {
     this.panelRegistry.set('expedition_panel', () => new ExpeditionPanel(
       this.bus, this.getState, this.setState,
     ).getElement());
-    this.panelRegistry.set('map_panel', () => new MapPanel(
-      this.mapSystem, this.getState, this.setState,
-    ).getElement());
+    this.panelRegistry.set('map_panel', () => {
+      const mapPanel = new MapPanel(this.mapSystem, this.getState, this.setState);
+      mapPanel.onTileClick = (x: number, y: number) => {
+        const state = this.getState();
+        if (this.territorySystem.claimTile(x, y, state)) {
+          // Force signal update with a new reference (claimTile mutates in-place)
+          this.setState({ ...state });
+        }
+      };
+      return mapPanel.getElement();
+    });
 
     // Phase 4 panels (lazy — created on demand)
     this.panelRegistry.set('spaceship_panel', () => new SpaceshipPanel(
