@@ -60,10 +60,29 @@ export class SaveManager {
   private static BACKUP2_KEY = 'the_swarm_save_bak2';
   private static SAVE_VERSION = 11;
   private static AUTOSAVE_INTERVAL_MS = 30_000;
+  /** Minimum interval between action-triggered saves (5 seconds). */
+  private static ACTION_SAVE_INTERVAL_MS = 5_000;
 
   private autosaveTimer: ReturnType<typeof setInterval> | null = null;
+  /** Timestamp of the last save triggered by a user action (not autosave/beforeunload). */
+  private lastActionSaveTimestamp = 0;
 
-  save(state: GameState, playTimeMs: number): void {
+  /**
+   * Save the game state to localStorage with backup rotation.
+   *
+   * @param force - If true, bypasses the action-save rate limit.
+   *                Autosave and beforeunload use force=true.
+   *                User actions (clicks, battles, etc.) use force=false.
+   * @returns true if saved, false if skipped due to rate limit.
+   */
+  save(state: GameState, playTimeMs: number, force = false): boolean {
+    if (!force) {
+      const now = Date.now();
+      if (now - this.lastActionSaveTimestamp < SaveManager.ACTION_SAVE_INTERVAL_MS) {
+        return false;
+      }
+      this.lastActionSaveTimestamp = now;
+    }
     const data: SaveData = {
       version: SaveManager.SAVE_VERSION,
       timestamp: Date.now(),
@@ -85,8 +104,10 @@ export class SaveManager {
       }
 
       localStorage.setItem(SaveManager.SAVE_KEY, json);
+      return true;
     } catch (e) {
       console.warn('SaveManager: Failed to save.', e);
+      return false;
     }
   }
 
@@ -209,7 +230,7 @@ export class SaveManager {
     this.stopAutosave();
     this.autosaveTimer = setInterval(() => {
       const { state, playTimeMs } = getState();
-      this.save(state, playTimeMs);
+      this.save(state, playTimeMs, true);
     }, SaveManager.AUTOSAVE_INTERVAL_MS);
   }
 

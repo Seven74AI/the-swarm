@@ -139,7 +139,11 @@ export class WorkerAssignment {
       const role = row.getAttribute('data-role') as Role;
       const countSpan = row.querySelector('.role-count');
       if (countSpan) {
-        countSpan.textContent = String(state.workersAssigned[role] ?? 0);
+        const newValue = String(state.workersAssigned[role] ?? 0);
+        // Dirty-check: only update DOM if value changed
+        if (countSpan.textContent !== newValue) {
+          countSpan.textContent = newValue;
+        }
       }
     });
   }
@@ -153,8 +157,16 @@ export class WorkerAssignment {
     const consumed = Math.floor(w / 2) * FOOD_CONSUMED_PER_2_WORKERS;
     const net = produced - consumed;
 
-    this.summaryEl.textContent = net >= 0 ? `+${net}/tick` : `${net}/tick`;
-    this.summaryEl.className = net >= 0 ? 'worker-summary-value food-positive' : 'worker-summary-value food-negative';
+    const newText = net >= 0 ? `+${net}/tick` : `${net}/tick`;
+    const newClass = net >= 0 ? 'worker-summary-value food-positive' : 'worker-summary-value food-negative';
+
+    // Dirty-check: only update DOM if value or class changed
+    if (this.summaryEl.textContent !== newText) {
+      this.summaryEl.textContent = newText;
+    }
+    if (this.summaryEl.className !== newClass) {
+      this.summaryEl.className = newClass;
+    }
   }
 
   getElement(): HTMLDivElement {
