@@ -26,7 +26,7 @@ describe('PhaseContent', () => {
       expect(panels).toContain('phase_indicator');
       expect(panels).toContain('resource_panel');
       expect(panels).toContain('worker_assignment');
-      // food_display was a phantom panel (never existed) — removed in #17
+      // food_display panel now implemented — verifies it's included in colony panels
     });
 
     it('colon phase has more panels than egg_laying', () => {
