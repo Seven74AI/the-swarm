@@ -187,7 +187,7 @@ describe('ExplorationSystem', () => {
     });
 
     it('space anomaly can trigger bonus resources (statistical)', () => {
-      const exp = { id: 'e1', destination: 'MARS', ticksRemaining: 1, risk: 0.01 };
+      const exp = { id: 'e1', destination: 'MARS', ticksRemaining: 1, risk: 0.05 };
       state.resources.voidCrystals = 0;
 
       let anomalyCount = 0;
