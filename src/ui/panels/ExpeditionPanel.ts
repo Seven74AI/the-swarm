@@ -79,6 +79,9 @@ export class ExpeditionPanel {
       btn.className = 'btn btn-sm';
       btn.textContent = 'Send';
       btn.disabled = !canLaunch;
+      if (btn.disabled) {
+        btn.setAttribute('data-tooltip', this.sendTooltip(state));
+      }
       btn.addEventListener('click', () => {
         const s = this.getState();
         const scouts = Math.min(1, s.soldiers.scouts);
@@ -143,6 +146,17 @@ export class ExpeditionPanel {
     row.appendChild(status);
 
     return row;
+  }
+
+  private sendTooltip(state: GameState): string {
+    const hasSoldiers = state.soldiers.scouts > 0 || state.soldiers.warriors > 0;
+    const hasSlot = state.expeditions.length < MAX_ACTIVE_EXPEDITIONS;
+    if (!hasSoldiers && !hasSlot) {
+      return 'Requires scouts or warriors + available expedition slot';
+    }
+    if (!hasSoldiers) return 'Requires scouts or warriors';
+    if (!hasSlot) return `All ${MAX_ACTIVE_EXPEDITIONS} expeditions active`;
+    return 'Cannot launch';
   }
 
   getElement(): HTMLDivElement { return this.container; }
