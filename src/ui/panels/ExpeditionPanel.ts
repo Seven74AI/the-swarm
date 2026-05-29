@@ -108,14 +108,27 @@ export class ExpeditionPanel {
     const party = [];
     if (exp.scouts > 0) party.push(`${exp.scouts}S`);
     if (exp.warriors > 0) party.push(`${exp.warriors}W`);
-    info.innerHTML = `<strong>${exp.destination}</strong> <span class="text-muted">${party.join(' ')}</span>`;
+    const destStrong = document.createElement('strong');
+    destStrong.textContent = exp.destination;
+    info.appendChild(destStrong);
+    info.appendChild(document.createTextNode(' '));
+    const partySpan = document.createElement('span');
+    partySpan.className = 'text-muted';
+    partySpan.textContent = party.join(' ');
+    info.appendChild(partySpan);
     row.appendChild(info);
 
     const status = document.createElement('div');
     status.className = 'expedition-row-status';
     const riskPct = Math.round(exp.risk * 100);
-    status.innerHTML = `<span>⏳ ${exp.ticksRemaining}s</span>
-      <span class="risk-${riskPct > 50 ? 'high' : 'low'}">Risk: ${riskPct}%</span>`;
+    const timeSpan = document.createElement('span');
+    timeSpan.textContent = `⏳ ${exp.ticksRemaining}s`;
+    status.appendChild(timeSpan);
+    status.appendChild(document.createTextNode(' '));
+    const riskSpan = document.createElement('span');
+    riskSpan.className = `risk-${riskPct > 50 ? 'high' : 'low'}`;
+    riskSpan.textContent = `Risk: ${riskPct}%`;
+    status.appendChild(riskSpan);
     row.appendChild(status);
 
     return row;
