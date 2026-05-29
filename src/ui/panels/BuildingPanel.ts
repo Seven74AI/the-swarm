@@ -49,6 +49,7 @@ const BUILDINGS: BuildingDef[] = [
  */
 export class BuildingPanel {
   private container: HTMLDivElement;
+  private lastHash: string = '';
 
   constructor(
     private bus: EventBus,
@@ -128,6 +129,16 @@ export class BuildingPanel {
   }
 
   private refresh(): void {
+    // Compute hash of building state to skip re-render when unchanged
+    const state = this.getState();
+    const hash = BUILDINGS.map(d => {
+      const b = state.buildings[d.type];
+      return `${d.type}:${b.level}:${canBuild(d.type, state)}`;
+    }).join('|');
+
+    if (hash === this.lastHash) return;
+    this.lastHash = hash;
+
     this.container.innerHTML = '';
     const title = document.createElement('div');
     title.className = 'panel-title';

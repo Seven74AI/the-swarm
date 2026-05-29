@@ -15,6 +15,45 @@ import {
 import { upgradeCost } from '../../utils/math';
 import { formatNumber, formatRate } from '../../utils/format';
 
+/** Track previous display values to avoid redundant DOM writes. */
+interface SoldierDisplayState {
+  workers: string;
+  soldiers: string;
+  training: string;
+  recruitDisabled: boolean;
+  weaponLevel: string;
+  weaponCost: string;
+  weaponDisabled: boolean;
+  weaponBtnText: string;
+  armorLevel: string;
+  armorCost: string;
+  armorDisabled: boolean;
+  armorBtnText: string;
+  strength: string;
+  defense: string;
+  speed: string;
+  hp: string;
+}
+
+const EMPTY_SOLDIER_DISPLAY: SoldierDisplayState = {
+  workers: '',
+  soldiers: '',
+  training: '',
+  recruitDisabled: false,
+  weaponLevel: '',
+  weaponCost: '',
+  weaponDisabled: false,
+  weaponBtnText: '',
+  armorLevel: '',
+  armorCost: '',
+  armorDisabled: false,
+  armorBtnText: '',
+  strength: '',
+  defense: '',
+  speed: '',
+  hp: '',
+};
+
 /**
  * Soldier Command panel.
  * Visibility controlled by PhaseContent — shown when COMBAT phase is active.
@@ -35,6 +74,7 @@ export class SoldierPanel {
   private defenseDisplay: HTMLSpanElement;
   private speedDisplay: HTMLSpanElement;
   private hpDisplay: HTMLSpanElement;
+  private lastDisplay: SoldierDisplayState = { ...EMPTY_SOLDIER_DISPLAY };
 
   constructor(
     private bus: EventBus,
@@ -206,43 +246,118 @@ export class SoldierPanel {
     const weapon = state.equipment.weapon;
     const armor = state.equipment.armor;
     const food = state.resources.food;
+    const prev = this.lastDisplay;
 
-    this.workersDisplay.textContent = formatNumber(availableWorkers);
-    this.soldiersDisplay.textContent = formatNumber(state.combatSoldiers);
-    this.trainingDisplay.textContent = trainCount > 0
-      ? ` [${formatNumber(trainCount)} training · ${formatRate(trainCount / SOLDIER_TRAIN_TIME)}/s]`
-      : '';
-
-    // Recruit button
-    this.recruitBtn.disabled = availableWorkers < 1 || food < SOLDIER_COST_FOOD;
-
-    // Weapon
-    this.weaponLevelDisplay.textContent = `Weapons Lv.${weapon}`;
-    const weaponCost = weapon >= MAX_EQUIPMENT_LEVEL ? 0 : upgradeCost(10, 1.20, weapon);
-    this.weaponCostDisplay.textContent = weapon >= MAX_EQUIPMENT_LEVEL ? '' : ` ${formatNumber(weaponCost)} food`;
-    this.weaponBtn.disabled = food < weaponCost || weapon >= MAX_EQUIPMENT_LEVEL;
-    if (weapon >= MAX_EQUIPMENT_LEVEL) {
-      this.weaponBtn.textContent = 'Max';
-    } else {
-      this.weaponBtn.textContent = 'Upgrade';
+    // Workers — dirty-check formatted string
+    const workersText = formatNumber(availableWorkers);
+    if (workersText !== prev.workers) {
+      this.workersDisplay.textContent = workersText;
+      prev.workers = workersText;
     }
 
-    // Armor
-    this.armorLevelDisplay.textContent = `Armor Lv.${armor}`;
+    // Soldiers — dirty-check formatted string
+    const soldiersText = formatNumber(state.combatSoldiers);
+    if (soldiersText !== prev.soldiers) {
+      this.soldiersDisplay.textContent = soldiersText;
+      prev.soldiers = soldiersText;
+    }
+
+    // Training — dirty-check display text
+    const trainingText = trainCount > 0
+      ? ` [${formatNumber(trainCount)} training · ${formatRate(trainCount / SOLDIER_TRAIN_TIME)}/s]`
+      : '';
+    if (trainingText !== prev.training) {
+      this.trainingDisplay.textContent = trainingText;
+      prev.training = trainingText;
+    }
+
+    // Recruit button
+    const recruitDisabled = availableWorkers < 1 || food < SOLDIER_COST_FOOD;
+    if (recruitDisabled !== prev.recruitDisabled) {
+      this.recruitBtn.disabled = recruitDisabled;
+      prev.recruitDisabled = recruitDisabled;
+    }
+
+    // Weapon level
+    const weaponLevelText = `Weapons Lv.${weapon}`;
+    if (weaponLevelText !== prev.weaponLevel) {
+      this.weaponLevelDisplay.textContent = weaponLevelText;
+      prev.weaponLevel = weaponLevelText;
+    }
+
+    // Weapon cost
+    const weaponCost = weapon >= MAX_EQUIPMENT_LEVEL ? 0 : upgradeCost(10, 1.20, weapon);
+    const weaponCostText = weapon >= MAX_EQUIPMENT_LEVEL ? '' : ` ${formatNumber(weaponCost)} food`;
+    if (weaponCostText !== prev.weaponCost) {
+      this.weaponCostDisplay.textContent = weaponCostText;
+      prev.weaponCost = weaponCostText;
+    }
+
+    // Weapon button state
+    const weaponDisabled = food < weaponCost || weapon >= MAX_EQUIPMENT_LEVEL;
+    if (weaponDisabled !== prev.weaponDisabled) {
+      this.weaponBtn.disabled = weaponDisabled;
+      prev.weaponDisabled = weaponDisabled;
+    }
+
+    const weaponBtnText = weapon >= MAX_EQUIPMENT_LEVEL ? 'Max' : 'Upgrade';
+    if (weaponBtnText !== prev.weaponBtnText) {
+      this.weaponBtn.textContent = weaponBtnText;
+      prev.weaponBtnText = weaponBtnText;
+    }
+
+    // Armor level
+    const armorLevelText = `Armor Lv.${armor}`;
+    if (armorLevelText !== prev.armorLevel) {
+      this.armorLevelDisplay.textContent = armorLevelText;
+      prev.armorLevel = armorLevelText;
+    }
+
+    // Armor cost
     const armorCost = armor >= MAX_EQUIPMENT_LEVEL ? 0 : upgradeCost(10, 1.20, armor);
-    this.armorCostDisplay.textContent = armor >= MAX_EQUIPMENT_LEVEL ? '' : ` ${formatNumber(armorCost)} food`;
-    this.armorBtn.disabled = food < armorCost || armor >= MAX_EQUIPMENT_LEVEL;
-    if (armor >= MAX_EQUIPMENT_LEVEL) {
-      this.armorBtn.textContent = 'Max';
-    } else {
-      this.armorBtn.textContent = 'Upgrade';
+    const armorCostText = armor >= MAX_EQUIPMENT_LEVEL ? '' : ` ${formatNumber(armorCost)} food`;
+    if (armorCostText !== prev.armorCost) {
+      this.armorCostDisplay.textContent = armorCostText;
+      prev.armorCost = armorCostText;
+    }
+
+    // Armor button state
+    const armorDisabled = food < armorCost || armor >= MAX_EQUIPMENT_LEVEL;
+    if (armorDisabled !== prev.armorDisabled) {
+      this.armorBtn.disabled = armorDisabled;
+      prev.armorDisabled = armorDisabled;
+    }
+
+    const armorBtnText = armor >= MAX_EQUIPMENT_LEVEL ? 'Max' : 'Upgrade';
+    if (armorBtnText !== prev.armorBtnText) {
+      this.armorBtn.textContent = armorBtnText;
+      prev.armorBtnText = armorBtnText;
     }
 
     // Stats
-    this.strengthDisplay.textContent = formatNumber(getSoldierStrength(state));
-    this.defenseDisplay.textContent = formatNumber(getSoldierDefense(state));
-    this.speedDisplay.textContent = formatNumber(getSoldierSpeed(state));
-    this.hpDisplay.textContent = formatNumber(getSoldierMaxHp(state));
+    const strengthText = formatNumber(getSoldierStrength(state));
+    if (strengthText !== prev.strength) {
+      this.strengthDisplay.textContent = strengthText;
+      prev.strength = strengthText;
+    }
+
+    const defenseText = formatNumber(getSoldierDefense(state));
+    if (defenseText !== prev.defense) {
+      this.defenseDisplay.textContent = defenseText;
+      prev.defense = defenseText;
+    }
+
+    const speedText = formatNumber(getSoldierSpeed(state));
+    if (speedText !== prev.speed) {
+      this.speedDisplay.textContent = speedText;
+      prev.speed = speedText;
+    }
+
+    const hpText = formatNumber(getSoldierMaxHp(state));
+    if (hpText !== prev.hp) {
+      this.hpDisplay.textContent = hpText;
+      prev.hp = hpText;
+    }
   }
 
   getElement(): HTMLDivElement {
