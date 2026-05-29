@@ -38,8 +38,8 @@ export class ResearchPanel {
     // Phase reveal on phase change
     bus.subscribe('phase_changed', (payload: unknown) => {
       const phase = (payload as { phase: string }).phase;
-      // Research available in expansion / space phases
-      if (phase === 'expansion' || phase === 'space' || phase === 'transcendence') {
+      // Research available in space / transcendence phases
+      if (phase === 'space' || phase === 'transcendence') {
         this.container.style.display = '';
       }
     });
