@@ -52,9 +52,6 @@ export class UIRoot {
   private eventLog: EventLog;
   private panelElements: Map<string, HTMLElement> = new Map();
   private transitionOverlay: HTMLElement | null = null;
-  /** IntersectionObserver for scroll-based panel reveal */
-  private scrollObserver: IntersectionObserver | null = null;
-
   /** Decision popup (bottom-right, non-blocking) */
   private decisionPopup: DecisionPopup;
 
@@ -209,71 +206,12 @@ export class UIRoot {
     panels.id = 'panels';
     this.panelsContainer = panels;
 
-    // ── Phase 1–3 panels: mount at boot (backward compat) ──
+    // ── Phase 1 panel: mounted at boot (always visible) ──
     const resourcePanel = new ResourcePanel();
     panels.appendChild(resourcePanel.getElement());
     this.panelElements.set('resource_panel', resourcePanel.getElement());
 
-    // Worker assignment panel (Phase 2), hidden until colony phase
-    const workerAssignment = new WorkerAssignment(
-      this.bus,
-      this.resourceSystem,
-      this.getState,
-      this.setState,
-    );
-    panels.appendChild(workerAssignment.getElement());
-    this.panelElements.set('worker_assignment', workerAssignment.getElement());
-
-    // Soldier panel (Phase 3), hidden until combat phase
-    const soldierPanel = new SoldierPanel(
-      this.bus,
-      this.soldierSystem,
-      this.getState,
-      this.setState,
-    );
-    panels.appendChild(soldierPanel.getElement());
-    this.panelElements.set('soldier_panel', soldierPanel.getElement());
-
-    // Battle panel (Phase 3), hidden until combat phase
-    const battlePanel = new BattlePanel(
-      this.bus,
-      this.soldierSystem,
-      this.battleSystem,
-      this.getState,
-      this.setState,
-    );
-    panels.appendChild(battlePanel.getElement());
-    this.panelElements.set('battle_panel', battlePanel.getElement());
-
-    // Combat log panel (Phase 3), hidden until combat phase
-    const combatLogPanel = new CombatLogPanel();
-    panels.appendChild(combatLogPanel.getElement());
-    this.panelElements.set('combat_log', combatLogPanel.getElement());
-
-    // Building panel (Phase 3), hidden until expansion phase
-    const buildingPanel = new BuildingPanel(this.bus, this.getState, this.setState);
-    panels.appendChild(buildingPanel.getElement());
-    this.panelElements.set('building_panel', buildingPanel.getElement());
-
-    // Expedition panel (Phase 3), hidden until expansion phase
-    const expeditionPanel = new ExpeditionPanel(
-      this.bus,
-      this.getState,
-      this.setState,
-    );
-    panels.appendChild(expeditionPanel.getElement());
-    this.panelElements.set('expedition_panel', expeditionPanel.getElement());
-
-    // Map panel (Phase 3), hidden until expansion phase
-    const mapPanel = new MapPanel(
-      this.mapSystem,
-      this.getState,
-      this.setState,
-    );
-    panels.appendChild(mapPanel.getElement());
-    this.panelElements.set('map_panel', mapPanel.getElement());
-
-    // ── Phase 4+ panels are NOT mounted at boot ──
+    // ── Phase 2+ panels are NOT mounted at boot ──
     // They are created lazily via createPanel() when their phase is entered.
     // This makes panel reveals feel like genuine new features.
 
@@ -320,31 +258,9 @@ export class UIRoot {
       this.showPanel('prestige_tree_panel');
     });
 
-    // ── Scroll-based panel discovery (IntersectionObserver) ──
-    this.scrollObserver = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            const panel = entry.target as HTMLElement;
-            // Remove awaiting-reveal hidden state, add revealed class (single-pass)
-            panel.classList.remove('panel-awaiting-reveal');
-            panel.classList.add('panel-revealed');
-            // Unobserve — once revealed, stays revealed (no flicker)
-            this.scrollObserver?.unobserve(panel);
-          }
-        }
-      },
-      { threshold: 0.1 },
-    );
-
-    // Observe all existing panels in #panels
-    if (this.panelsContainer) {
-      const panels = this.panelsContainer.querySelectorAll('.panel');
-      panels.forEach((panel) => {
-        (panel as HTMLElement).classList.add('panel-awaiting-reveal');
-        this.scrollObserver?.observe(panel);
-      });
-    }
+    // ── Phase 4+ panels are NOT mounted at boot ──
+    // They are created lazily via createPanel() when their phase is entered.
+    // This makes panel reveals feel like genuine new features.
   }
 
   /**
@@ -389,12 +305,6 @@ export class UIRoot {
     panelsEl.appendChild(element);
     this.panelElements.set(panelId, element);
 
-    // Register with scroll observer for below-the-fold discovery
-    if (this.scrollObserver && element.classList.contains('panel')) {
-      element.classList.add('panel-awaiting-reveal');
-      this.scrollObserver.observe(element);
-    }
-
     return element;
   }
 
@@ -405,8 +315,11 @@ export class UIRoot {
   showPanel(panelId: string): void {
     const el = this.panelElements.get(panelId);
     if (el) {
+      // Remove legacy scroll-awaiting class if present
+      el.classList.remove('panel-awaiting-reveal');
       el.style.display = '';
-      el.classList.add('panel-unlocked');
+      // Phase-based reveal: mark as unlocked and trigger animation
+      el.classList.add('panel-unlocked', 'panel-revealed');
       this.bus.emit('panel_revealed', { panelId });
     }
   }
