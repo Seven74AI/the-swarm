@@ -199,7 +199,11 @@ export class PhaseContent {
     }
 
     const panels = this.getActivePanels(phase);
-    for (const panelId of panels) {
+    // Stagger panel reveals — each panel gets an incremental animation-delay
+    // so they cascade in one-by-one (150ms per panel) during the 3.5s cinematic.
+    const STAGGER_MS = 150;
+    for (let i = 0; i < panels.length; i++) {
+      const panelId = panels[i];
       // createPanel() ensures the panel exists (lazy creation for Phase 4+).
       // Gracefully skip panels not yet in the registry (e.g. cosmic_panel).
       try {
@@ -208,7 +212,8 @@ export class PhaseContent {
         // Panel not yet implemented — skip creation, continue to reveal existing
       }
       // showPanel() reveals it (sets display, adds unlocked class, emits event)
-      uiRoot.showPanel(panelId);
+      // Pass staggered delay so panels cascade rather than appearing at once
+      uiRoot.showPanel(panelId, i * STAGGER_MS);
     }
   }
 }
