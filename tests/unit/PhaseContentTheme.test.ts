@@ -1,7 +1,7 @@
 /**
  * PhaseContent theme/body-class tests — UX-10 Phase Theme Shifting.
  * Tests that onPhaseEnter sets the correct body class for each phase,
- * and that the scroll reveal + transition integration works.
+ * and that the phase transition integration works.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PhaseContent } from '../../src/phases/PhaseContent';

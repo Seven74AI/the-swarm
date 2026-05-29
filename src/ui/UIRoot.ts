@@ -52,9 +52,6 @@ export class UIRoot {
   private eventLog: EventLog;
   private panelElements: Map<string, HTMLElement> = new Map();
   private transitionOverlay: HTMLElement | null = null;
-  /** IntersectionObserver for scroll-based panel reveal */
-  private scrollObserver: IntersectionObserver | null = null;
-
   /** Decision popup (bottom-right, non-blocking) */
   private decisionPopup: DecisionPopup;
 
@@ -262,31 +259,9 @@ export class UIRoot {
       this.showPanel('prestige_tree_panel');
     });
 
-    // ── Scroll-based panel discovery (IntersectionObserver) ──
-    this.scrollObserver = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            const panel = entry.target as HTMLElement;
-            // Remove awaiting-reveal hidden state, add revealed class (single-pass)
-            panel.classList.remove('panel-awaiting-reveal');
-            panel.classList.add('panel-revealed');
-            // Unobserve — once revealed, stays revealed (no flicker)
-            this.scrollObserver?.unobserve(panel);
-          }
-        }
-      },
-      { threshold: 0.1 },
-    );
-
-    // Observe all existing panels in #panels
-    if (this.panelsContainer) {
-      const panels = this.panelsContainer.querySelectorAll('.panel');
-      panels.forEach((panel) => {
-        (panel as HTMLElement).classList.add('panel-awaiting-reveal');
-        this.scrollObserver?.observe(panel);
-      });
-    }
+    // ── Phase 4+ panels are NOT mounted at boot ──
+    // They are created lazily via createPanel() when their phase is entered.
+    // This makes panel reveals feel like genuine new features.
   }
 
   /**
@@ -331,12 +306,6 @@ export class UIRoot {
     panelsEl.appendChild(element);
     this.panelElements.set(panelId, element);
 
-    // Register with scroll observer for below-the-fold discovery
-    if (this.scrollObserver && element.classList.contains('panel')) {
-      element.classList.add('panel-awaiting-reveal');
-      this.scrollObserver.observe(element);
-    }
-
     return element;
   }
 
@@ -347,8 +316,11 @@ export class UIRoot {
   showPanel(panelId: string): void {
     const el = this.panelElements.get(panelId);
     if (el) {
+      // Remove legacy scroll-awaiting class if present
+      el.classList.remove('panel-awaiting-reveal');
       el.style.display = '';
-      el.classList.add('panel-unlocked');
+      // Phase-based reveal: mark as unlocked and trigger animation
+      el.classList.add('panel-unlocked', 'panel-revealed');
       this.bus.emit('panel_revealed', { panelId });
     }
   }
