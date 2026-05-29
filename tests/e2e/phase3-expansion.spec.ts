@@ -11,7 +11,7 @@ test.describe('Phase 3 — Expansion', () => {
     // Note: 19 assigned (gather:12 + tend:4 + dig:3), 1 available worker
     await page.addInitScript(() => {
       const data = {
-        version: 2,
+        version: 11,
         timestamp: Date.now(),
         playTimeMs: 0,
         gameState: {
@@ -41,6 +41,35 @@ test.describe('Phase 3 — Expansion', () => {
           battlesWon: 0,
           battlesLost: 0,
           soldierPipeline: { count: 0, progress: 0 },
+          territory: { ownedTiles: 0, bonuses: {} },
+          expeditions: [],
+          spaceExplorations: [],
+          discoveredPlanets: [],
+          spaceships: [],
+          spaceship: { level: 0, fuel: 0, maxFuel: 100 },
+          spaceProbes: [],
+          discoveries: [],
+          victoryAchieved: false,
+          nextIds: { expedition: 1, exploration: 1, spaceship: 1 },
+          prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 0 },
+          autoProduction: {
+            enabled: false,
+            researches: {},
+            buildings: { nursery: 0, hatchery: 0, queens_chamber: 0 },
+            progress: 0,
+          },
+          research: {
+            projects: {
+              voidCrystalSynthesis: { state: 'available', progress: 0 },
+              antimatterContainment: { state: 'locked', progress: 0 },
+              darkMatterDetection: { state: 'locked', progress: 0 },
+            },
+          },
+          conversions: { particleLab: 0 },
+          offlineEfficiency: 0.5,
+          entropy: 0,
+          entropyDampener: { level: 0 },
+          prestigeTree: { purchased: [] },
         },
       };
       localStorage.setItem('the_swarm_save', JSON.stringify(data));

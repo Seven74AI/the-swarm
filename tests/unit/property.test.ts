@@ -1,3 +1,4 @@
+// @ts-nocheck — fast-check type inference weak with noImplicitAny
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { EventBus } from '../../src/engine/EventBus';
