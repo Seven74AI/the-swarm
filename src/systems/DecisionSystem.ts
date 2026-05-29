@@ -19,6 +19,9 @@ interface DecisionConsequence {
   apply: (state: GameState) => GameState;
 }
 
+const DECISION_MIN_INTERVAL_MS = 120_000;
+const DECISION_MAX_INTERVAL_MS = 180_000;
+
 const EVENT_POOL: DecisionEvent[] = [
   {
     type: 'beetle',
@@ -180,7 +183,7 @@ export class DecisionSystem {
   }
 
   private randomInterval(): number {
-    // 120,000 ms (2 min) to 180,000 ms (3 min)
-    return 120_000 + Math.floor(Math.random() * 60_000);
+    // DECISION_MIN_INTERVAL_MS (2 min) to DECISION_MAX_INTERVAL_MS (3 min)
+    return DECISION_MIN_INTERVAL_MS + Math.floor(Math.random() * (DECISION_MAX_INTERVAL_MS - DECISION_MIN_INTERVAL_MS));
   }
 }
