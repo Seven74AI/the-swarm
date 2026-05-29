@@ -202,7 +202,7 @@ export class PhaseContent {
     const panels = this.getActivePanels(phase);
     for (const panelId of panels) {
       // createPanel() ensures the panel exists (lazy creation for Phase 4+).
-      // Gracefully skip panels not yet in the registry (e.g. food_display, cosmic_panel).
+      // Gracefully skip panels not yet in the registry (e.g. cosmic_panel).
       try {
         uiRoot.createPanel(panelId);
       } catch {

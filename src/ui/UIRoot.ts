@@ -26,6 +26,7 @@ import { AutoProductionPanel } from './panels/AutoProductionPanel';
 import { PrestigePanel } from './panels/PrestigePanel';
 import { PrestigeTreePanel } from './panels/PrestigeTreePanel';
 import { ResearchPanel } from './panels/ResearchPanel';
+import { FoodDisplay } from './panels/FoodDisplay';
 import type { DecisionEvent } from '../systems/DecisionSystem';
 import { DecisionPopup } from './components/DecisionPopup';
 
@@ -99,6 +100,7 @@ export class UIRoot {
     this.panelRegistry.set('worker_assignment', () => new WorkerAssignment(
       this.bus, this.resourceSystem, this.getState, this.setState,
     ).getElement());
+    this.panelRegistry.set('food_display', () => new FoodDisplay().getElement());
 
     // Phase 3 panels
     this.panelRegistry.set('soldier_panel', () => new SoldierPanel(
