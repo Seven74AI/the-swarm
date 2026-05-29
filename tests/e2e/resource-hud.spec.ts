@@ -70,6 +70,7 @@ test.describe('ResourcePanel — Multi-Resource HUD', () => {
   });
 
   test('collapse/expand toggle hides and shows colony body', async ({ page }) => {
+    await page.addInitScript(() => { localStorage.setItem('the_swarm_onboarding', 'done'); });
     await page.goto('/');
     const colonySection = page.locator('.hud-section.colony-section');
     const toggle = colonySection.locator('.section-toggle');
@@ -90,6 +91,7 @@ test.describe('ResourcePanel — Multi-Resource HUD', () => {
   });
 
   test('collapse state persists across page reload', async ({ page }) => {
+    await page.addInitScript(() => { localStorage.setItem('the_swarm_onboarding', 'done'); });
     await page.goto('/');
     const colonySection = page.locator('.hud-section.colony-section');
     const toggle = colonySection.locator('.section-toggle');
