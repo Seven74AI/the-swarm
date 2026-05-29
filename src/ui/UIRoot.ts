@@ -124,7 +124,9 @@ export class UIRoot {
     this.panelRegistry.set('exploration_panel', () => new ExplorationPanel(
       this.bus, this.getState, this.setState,
     ).getElement());
-    this.panelRegistry.set('starmap_panel', () => new StarmapPanel().getElement());
+    this.panelRegistry.set('starmap_panel', () => new StarmapPanel(
+      this.bus, this.getState, this.setState,
+    ).getElement());
     this.panelRegistry.set('resource_converter_panel', () => new ResourceConverterPanel().getElement());
 
     // Phase 5 panels (lazy — created on demand)
