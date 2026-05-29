@@ -1,12 +1,16 @@
-import { describe, it, expect } from 'vitest';
-import { formatNumber, formatTime } from '../../src/utils/format';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { formatNumber, formatTime, clearFormatCache } from '../../src/utils/format';
 
 describe('formatNumber', () => {
+  beforeEach(() => {
+    clearFormatCache();
+  });
+
   it('returns "0" for zero', () => {
     expect(formatNumber(0)).toBe('0');
   });
 
-  it('returns raw numbers under 10000', () => {
+  it('returns raw numbers under 1000', () => {
     expect(formatNumber(0)).toBe('0');
     expect(formatNumber(1)).toBe('1');
     expect(formatNumber(999)).toBe('999');
@@ -45,6 +49,26 @@ describe('formatNumber', () => {
   it('handles fractional inputs', () => {
     expect(formatNumber(1.5)).toBe('2');
     expect(formatNumber(1234.56)).toBe('1,235');
+  });
+
+  it('caches formatted results for same values', () => {
+    // First call: computes via toLocaleString / suffix logic
+    const a1 = formatNumber(5000);
+    const b1 = formatNumber(2000000);
+    // Second call: should return same result from cache
+    const a2 = formatNumber(5000);
+    const b2 = formatNumber(2000000);
+    expect(a1).toBe(a2);
+    expect(b1).toBe(b2);
+    expect(a1).toBe('5,000');
+    expect(b1).toBe('2.00M');
+  });
+
+  it('clearFormatCache resets the cache', () => {
+    formatNumber(5000);
+    clearFormatCache();
+    // After clearing, still produces correct output
+    expect(formatNumber(5000)).toBe('5,000');
   });
 });
 

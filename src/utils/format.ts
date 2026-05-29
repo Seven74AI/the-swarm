@@ -1,6 +1,7 @@
 /**
  * Format cache: avoids repeated formatting of the same number value.
  * Map<number, string> for O(1) lookup on repeated values.
+ * All values >= 1000 are cached (thousands commas, M/B suffixes, scientific).
  * #22: Added format cache for performance.
  */
 const formatCache = new Map<number, string>();
@@ -60,13 +61,13 @@ export function formatNumber(n: number): string {
   if (abs < 1000) {
     return sign + String(abs);
   }
-  if (abs < 1_000_000) {
-    return sign + abs.toLocaleString('en-US');
-  }
 
-  // Cache the formatted positive value, then prepend sign
-  // (avoids cache poisoning: -1000 and 1000 have same abs=1000)
+  // Cache all formatted positive values, then prepend sign.
+  // (avoids cache poisoning: -1000 and 1000 share the same abs=1000 cache key)
   const formatted = cachedFormat(abs, (val) => {
+    if (val < 1_000_000) {
+      return val.toLocaleString('en-US');
+    }
     if (val < 1_000_000_000) {
       const v = val / 1_000_000;
       if (v >= 100) return Math.round(v) + 'M';

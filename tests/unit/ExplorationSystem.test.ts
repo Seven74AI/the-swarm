@@ -87,6 +87,7 @@ describe('ExplorationSystem', () => {
 
   describe('resolveExploration', () => {
     it('on success, adds voidCrystals from ice planets', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.5); // 0.5 > risk(0.01) → full success
       const exp = { id: 'e1', destination: 'EUROPA', ticksRemaining: 1, risk: 0.01 };
       state.spaceExplorations = [exp];
       state.resources.voidCrystals = 0;
@@ -97,9 +98,11 @@ describe('ExplorationSystem', () => {
       const result = resolveExploration(state, exp);
       expect(result.spaceExplorations).toHaveLength(0);
       expect(result.resources.voidCrystals).toBeGreaterThan(0);
+      vi.restoreAllMocks();
     });
 
     it('on success, adds antimatter from rocky planets', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.5);
       const exp = { id: 'e1', destination: 'MARS', ticksRemaining: 1, risk: 0.01 };
       state.spaceExplorations = [exp];
       state.resources.voidCrystals = 0;
@@ -109,9 +112,11 @@ describe('ExplorationSystem', () => {
       vi.spyOn(Math, 'random').mockReturnValue(0.5);
       const result = resolveExploration(state, exp);
       expect(result.resources.antimatter).toBeGreaterThan(0);
+      vi.restoreAllMocks();
     });
 
     it('on success, adds darkMatter from gas planets', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.5);
       const exp = { id: 'e1', destination: 'SATURN', ticksRemaining: 1, risk: 0.01 };
       state.spaceExplorations = [exp];
       state.resources.voidCrystals = 0;
@@ -121,9 +126,11 @@ describe('ExplorationSystem', () => {
       vi.spyOn(Math, 'random').mockReturnValue(0.5);
       const result = resolveExploration(state, exp);
       expect(result.resources.darkMatter).toBeGreaterThan(0);
+      vi.restoreAllMocks();
     });
 
     it('on success, adds food and voidCrystals from habitable planets', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.5);
       const exp = { id: 'e1', destination: 'KEPLER-442B', ticksRemaining: 1, risk: 0.01 };
       state.spaceExplorations = [exp];
       state.resources.voidCrystals = 0;
@@ -133,6 +140,7 @@ describe('ExplorationSystem', () => {
       const result = resolveExploration(state, exp);
       expect(result.resources.food).toBeGreaterThan(0);
       expect(result.resources.voidCrystals).toBeGreaterThan(0);
+      vi.restoreAllMocks();
     });
 
     it('high risk exploration can fail with no rewards', () => {
