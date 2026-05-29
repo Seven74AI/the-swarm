@@ -8,7 +8,17 @@ import { formatNumber } from '../../utils/format';
 import type { AudioSystem } from '../AudioSystem';
 
 /** Number of burst particles spawned per click (in addition to the text particle). */
-const BURST_COUNT = 5;
+const BURST_COUNT = 8;
+
+/** Color palette for burst particles — cycled randomly for visual variety. */
+const BURST_COLORS = [
+  'var(--accent-glow)',
+  'var(--accent)',
+  'var(--success)',
+  '#ffd700',
+  '#ff6b9d',
+  '#7bed9f',
+];
 
 /**
  * The core "Lay Egg" button.
@@ -101,15 +111,24 @@ export class ClickButton {
 
       // Random angle and distance
       const angle = (Math.PI * 2 * i) / BURST_COUNT + (Math.random() - 0.5) * 0.5;
-      const distance = 30 + Math.random() * 40;
+      const distance = 30 + Math.random() * 50;
       const dx = Math.cos(angle) * distance;
       const dy = Math.sin(angle) * distance;
+
+      // Random color from palette
+      const color = BURST_COLORS[Math.floor(Math.random() * BURST_COLORS.length)];
+      // Random size (3-7px)
+      const size = 3 + Math.random() * 4;
 
       dot.style.cssText = [
         `position: fixed`,
         `left: ${cx + dx}px`,
         `top: ${cy + dy}px`,
-        `animation-delay: ${Math.random() * 0.05}s`,
+        `animation-delay: ${Math.random() * 0.08}s`,
+        `background: ${color}`,
+        `box-shadow: 0 0 ${4 + Math.random() * 4}px ${color}`,
+        `width: ${size}px`,
+        `height: ${size}px`,
       ].join('; ');
 
       dot.addEventListener('animationend', () => {
