@@ -2,7 +2,7 @@
  * UIRoot phase transition tests — overlay lifecycle and panel dimming.
  * Tests the DOM changes triggered by transition_start / transition_complete events.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { EventBus } from '../../src/engine/EventBus';
 import { UIRoot } from '../../src/ui/UIRoot';
 import { ResourceSystem } from '../../src/systems/ResourceSystem';
@@ -23,17 +23,6 @@ describe('UIRoot — phase transition overlay', () => {
     container = document.createElement('div');
     container.id = 'app';
     document.body.appendChild(container);
-
-    // Mock IntersectionObserver (needed by scroll discovery feature)
-    vi.stubGlobal(
-      'IntersectionObserver',
-      vi.fn(() => ({
-        observe: vi.fn(),
-        unobserve: vi.fn(),
-        disconnect: vi.fn(),
-        takeRecords: vi.fn(() => []),
-      })),
-    );
   });
 
   afterEach(() => {

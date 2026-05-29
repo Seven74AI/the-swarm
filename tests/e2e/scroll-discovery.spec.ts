@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * E2E: Scroll-Based Discovery (UX-2) + Phase Theme Shifting (UX-10).
+ * E2E: Phase-Based Panel Reveal + Phase Theme Shifting (UX-10).
  *
- * Part A: Scroll discovery — verifies panels below the fold are initially hidden
- * and get .panel-revealed when scrolled into view (single-pass).
- * Uses real timers — IntersectionObserver callbacks need real rendering cycles.
+ * Part A: Phase-based reveal — verifies panels appear when their phase
+ * is unlocked (not on scroll). Phase 2+ panels are lazy-loaded and
+ * revealed via showPanel() during phase transitions.
  *
  * Part B: Phase theme shifting — verifies body class toggling per phase
  * and CSS variable transitions. Uses clock.install() where needed
@@ -67,77 +67,85 @@ function makeSaveData(overrides?: Record<string, unknown>) {
   };
 }
 
-test.describe('Scroll Discovery + Phase Theme (UX-2 + UX-10)', () => {
+test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
   // ═══════════════════════════════════════════════════════════════
-  // Part A: Scroll-Based Discovery (real timers — no clock.install)
+  // Part A: Phase-Based Panel Reveal
   // ═══════════════════════════════════════════════════════════════
 
-  test.describe('Scroll-Based Discovery', () => {
+  test.describe('Phase-Based Panel Reveal', () => {
     test.beforeEach(async ({ page }) => {
       const data = makeSaveData();
       await page.addInitScript((saveStr) => {
         localStorage.setItem('the_swarm_save', saveStr);
       }, JSON.stringify(data));
-      // NO clock.install() — IntersectionObserver needs real rendering
       await page.goto('/');
       await page.waitForSelector('#panels', { timeout: 10000 });
-      // Wait for IntersectionObserver callbacks and requestAnimationFrame fallback
-      await page.waitForTimeout(500);
     });
 
-    test('panels above the fold get .panel-revealed on load', async ({ page }) => {
+    test('Phase 1 panels (resource_panel) are visible on load', async ({ page }) => {
       const resourcePanel = page.locator('.resource-panel');
       await expect(resourcePanel).toBeVisible();
+    });
 
+    test('Phase 2 panels are NOT in the DOM at start (lazy-loaded)', async ({ page }) => {
+      // worker_assignment should NOT exist in the DOM until colony phase
+      const wa = page.locator('#worker-assignment');
+      await expect(wa).toHaveCount(0);
+    });
+
+    test('soldier_panel is NOT in the DOM at start', async ({ page }) => {
+      const sp = page.locator('#soldier-panel');
+      await expect(sp).toHaveCount(0);
+    });
+
+    test('Phase 1 panels have .panel-revealed class on load', async ({ page }) => {
+      // resource_panel is shown by onPhaseEnter during boot
+      const resourcePanel = page.locator('.resource-panel');
       const hasRevealed = await resourcePanel.evaluate((el) =>
         el.classList.contains('panel-revealed'),
       );
       expect(hasRevealed).toBe(true);
     });
 
-    test('panels below the fold have .panel-awaiting-reveal initially', async ({ page }) => {
-      // At least one panel should be awaiting reveal (page is taller than viewport)
-      const awaitingCount = await page.evaluate(() => {
-        return document.querySelectorAll('.panel-awaiting-reveal').length;
+    test('Phase 2 panel appears after colony phase transition (no scroll needed)', async ({ page }) => {
+      // Start with workers=10 to trigger immediate EGG→COLONY transition
+      const data = makeSaveData({
+        resources: { eggs: 5, larvae: 0, workers: 10, food: 200, nestCapacity: 50, wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0 },
       });
-      expect(awaitingCount).toBeGreaterThanOrEqual(0);
+      await page.addInitScript((saveStr) => {
+        localStorage.setItem('the_swarm_save', saveStr);
+      }, JSON.stringify(data));
+      await page.clock.install();
+      await page.goto('/');
+      await page.waitForSelector('#panels', { timeout: 10000 });
+
+      // Fast-forward past the first tick + transition
+      await page.clock.runFor(4000);
+      await expect(page.locator('#phase-transition-overlay.active')).not.toBeVisible({ timeout: 5000 });
+
+      // worker_assignment should now exist and be visible (phase-based reveal)
+      const wa = page.locator('#worker-assignment');
+      await expect(wa).toBeAttached();
     });
 
-    test('scroll to bottom reveals hidden panels', async ({ page }) => {
-      // Verify activity log exists
-      const activityLog = page.locator('#activity-log');
-      await expect(activityLog).toBeAttached();
-
-      // Scroll to the bottom
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-      // Wait for IntersectionObserver to fire
-      await page.waitForTimeout(500);
-
-      const revealedPanels = await page.evaluate(() => {
-        return document.querySelectorAll('.panel-revealed').length;
+    test('panel-revealed class is applied to lazily loaded panels', async ({ page }) => {
+      const data = makeSaveData({
+        resources: { eggs: 5, larvae: 0, workers: 10, food: 200, nestCapacity: 50, wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0 },
       });
-      expect(revealedPanels).toBeGreaterThan(0);
-    });
+      await page.addInitScript((saveStr) => {
+        localStorage.setItem('the_swarm_save', saveStr);
+      }, JSON.stringify(data));
+      // Use real timers — phase transition runs via setTimeout naturally
+      await page.goto('/');
+      await page.waitForSelector('#panels', { timeout: 10000 });
 
-    test('panel stays revealed after scrolling away (single-pass)', async ({ page }) => {
-      // Scroll to bottom to reveal panels
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-      await page.waitForTimeout(500);
+      // Wait for real game tick + phase transition (setTimeout 300ms + 2000ms)
+      await page.waitForTimeout(3500);
 
-      const revealedBefore = await page.evaluate(() =>
-        document.querySelectorAll('.panel-revealed').length,
-      );
-      expect(revealedBefore).toBeGreaterThan(0);
-
-      // Scroll back to top
-      await page.evaluate(() => window.scrollTo(0, 0));
-      await page.waitForTimeout(500);
-
-      // Panels should still have .panel-revealed (single-pass)
-      const revealedAfter = await page.evaluate(() =>
-        document.querySelectorAll('.panel-revealed').length,
-      );
-      expect(revealedAfter).toBe(revealedBefore);
+      // worker_assignment should now exist with panel-revealed class
+      const wa = page.locator('#worker-assignment');
+      await expect(wa).toBeAttached({ timeout: 5000 });
+      await expect(wa).toHaveClass(/panel-revealed/);
     });
   });
 
