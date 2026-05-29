@@ -19,6 +19,7 @@ const DESTINATIONS: Destination[] = [
 
 export class ExpeditionPanel {
   private container: HTMLDivElement;
+  private lastHash: string = '';
 
   constructor(
     private bus: EventBus,
@@ -41,10 +42,20 @@ export class ExpeditionPanel {
   refresh(): void { this.render(); }
 
   private render(): void {
-    this.container.innerHTML = '';
     const state = this.getState();
     const canLaunch = state.expeditions.length < MAX_ACTIVE_EXPEDITIONS
       && (state.soldiers.scouts > 0 || state.soldiers.warriors > 0);
+
+    // Compute hash of expedition state to skip re-render when unchanged
+    const expHash = state.expeditions.map(e =>
+      `${e.id}:${e.scouts}:${e.warriors}:${e.destination}:${e.ticksRemaining}:${e.risk}`
+    ).join(',');
+    const hash = `scouts:${state.soldiers.scouts}|warriors:${state.soldiers.warriors}|canLaunch:${canLaunch}|exps:${expHash}`;
+
+    if (hash === this.lastHash) return;
+    this.lastHash = hash;
+
+    this.container.innerHTML = '';
 
     // Title + available counts
     const header = document.createElement('div');
@@ -68,6 +79,9 @@ export class ExpeditionPanel {
       btn.className = 'btn btn-sm';
       btn.textContent = 'Send';
       btn.disabled = !canLaunch;
+      if (btn.disabled) {
+        btn.setAttribute('data-tooltip', this.sendTooltip(state));
+      }
       btn.addEventListener('click', () => {
         const s = this.getState();
         const scouts = Math.min(1, s.soldiers.scouts);
@@ -132,6 +146,17 @@ export class ExpeditionPanel {
     row.appendChild(status);
 
     return row;
+  }
+
+  private sendTooltip(state: GameState): string {
+    const hasSoldiers = state.soldiers.scouts > 0 || state.soldiers.warriors > 0;
+    const hasSlot = state.expeditions.length < MAX_ACTIVE_EXPEDITIONS;
+    if (!hasSoldiers && !hasSlot) {
+      return 'Requires scouts or warriors + available expedition slot';
+    }
+    if (!hasSoldiers) return 'Requires scouts or warriors';
+    if (!hasSlot) return `All ${MAX_ACTIVE_EXPEDITIONS} expeditions active`;
+    return 'Cannot launch';
   }
 
   getElement(): HTMLDivElement { return this.container; }

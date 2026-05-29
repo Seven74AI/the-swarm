@@ -180,8 +180,8 @@ export class PhaseContent {
   /**
    * Called when entering a new phase. Creates lazy panels on demand, reveals
    * all active panels, and sets the body class for phase theme shifting.
-   * For Phase 1-3 panels that were mounted at boot, createPanel()
-   * is idempotent (returns the existing element). For Phase 4+ panels, createPanel()
+   * For Phase 1 panels that were mounted at boot, createPanel()
+   * is idempotent (returns the existing element). For Phase 2+ panels, createPanel()
    * instantiates them lazily — making reveals feel like genuine new features.
    */
   onPhaseEnter(phase: Phase, uiRoot: UIRoot): void {

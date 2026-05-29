@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 test('click egg button spawns visible floating particle', async ({ page }) => {
+  // Suppress onboarding overlay — it intercepts clicks in E2E tests
+  await page.addInitScript(() => { localStorage.setItem('the_swarm_onboarding', 'done'); });
   await page.goto('/');
 
   // Click the egg button
@@ -17,6 +19,8 @@ test('click egg button spawns visible floating particle', async ({ page }) => {
 });
 
 test('click egg button spawns burst particles', async ({ page }) => {
+  // Suppress onboarding overlay — it intercepts clicks in E2E tests
+  await page.addInitScript(() => { localStorage.setItem('the_swarm_onboarding', 'done'); });
   await page.goto('/');
 
   // No burst particles before click
@@ -35,6 +39,8 @@ test('click egg button spawns burst particles', async ({ page }) => {
 });
 
 test('resource increment triggers smooth tween animation', async ({ page }) => {
+  // Suppress onboarding overlay — it intercepts clicks in E2E tests
+  await page.addInitScript(() => { localStorage.setItem('the_swarm_onboarding', 'done'); });
   await page.goto('/');
 
   // Verify the egg display exists (critical-bar format)

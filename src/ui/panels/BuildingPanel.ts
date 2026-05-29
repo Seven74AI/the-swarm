@@ -49,6 +49,7 @@ const BUILDINGS: BuildingDef[] = [
  */
 export class BuildingPanel {
   private container: HTMLDivElement;
+  private lastHash: string = '';
 
   constructor(
     private bus: EventBus,
@@ -101,6 +102,9 @@ export class BuildingPanel {
     btn.className = 'btn btn-sm';
     btn.textContent = 'Build';
     btn.disabled = !canBuild(def.type, state);
+    if (btn.disabled) {
+      btn.setAttribute('data-tooltip', this.buildCostTooltip(def.type, state));
+    }
     btn.addEventListener('click', () => {
       const s = this.getState();
       const oldLevel = s.buildings[def.type].level;
@@ -127,7 +131,29 @@ export class BuildingPanel {
     return parts.join(' ');
   }
 
+  private buildCostTooltip(building: BuildingType, state: GameState): string {
+    const nextLevel = state.buildings[building].level + 1;
+    const cost = getBuildCost(building, nextLevel);
+    const missing: string[] = [];
+    if (cost.food > 0 && state.resources.food < cost.food) missing.push(`🍞${cost.food - state.resources.food} food`);
+    if (cost.wood > 0 && state.resources.wood < cost.wood) missing.push(`🪵${cost.wood - state.resources.wood} wood`);
+    if (cost.stone > 0 && state.resources.stone < cost.stone) missing.push(`🪨${cost.stone - state.resources.stone} stone`);
+    if (cost.nectar > 0 && state.resources.nectar < cost.nectar) missing.push(`🍯${cost.nectar - state.resources.nectar} nectar`);
+    if (missing.length > 0) return `Need: ${missing.join(', ')}`;
+    return 'Cannot build';
+  }
+
   private refresh(): void {
+    // Compute hash of building state to skip re-render when unchanged
+    const state = this.getState();
+    const hash = BUILDINGS.map(d => {
+      const b = state.buildings[d.type];
+      return `${d.type}:${b.level}:${canBuild(d.type, state)}`;
+    }).join('|');
+
+    if (hash === this.lastHash) return;
+    this.lastHash = hash;
+
     this.container.innerHTML = '';
     const title = document.createElement('div');
     title.className = 'panel-title';

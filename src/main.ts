@@ -30,6 +30,7 @@ import { Phase, PHASE_ORDER } from './phases/phases';
 import { PhaseContent } from './phases/PhaseContent';
 import { TRANSITIONS } from './phases/transitions';
 import type { GameState } from './state/GameState';
+import { OnboardingManager } from './ui/OnboardingManager';
 
 /**
  * THE SWARM — Bootstrap
@@ -178,7 +179,7 @@ export function bootstrap(): {
       },
     };
 
-    newState = soldierSystem.tick(newState);
+    newState = soldierSystem.tick(newState, dtSec);
     newState = tickAutoProduction(newState, dtSec);
 
     // Auto-egg-layer from prestige tree (1 egg/sec)
@@ -352,6 +353,12 @@ export function bootstrap(): {
     ui.mount(app);
   }
 
+  // Start onboarding tutorial for new players (persisted via localStorage)
+  setTimeout(() => {
+    const onboarding = new OnboardingManager();
+    onboarding.start();
+  }, 500);
+
   // Reveal panels for current phase
   phaseContent.onPhaseEnter(currentPhase as Phase, ui);
   // Ensure body class persists (some environments may clear it during boot)
@@ -382,6 +389,9 @@ export function bootstrap(): {
     audio.play('discovery');
   });
   bus.subscribe('exploration_return', () => {
+    audio.play('discovery');
+  });
+  bus.subscribe('spaceship_return', () => {
     audio.play('discovery');
   });
 
@@ -469,7 +479,7 @@ export function processTick(
     };
   }
 
-  newState = soldierSystem.tick(newState);
+  newState = soldierSystem.tick(newState, dtSec);
   newState = tickAutoProduction(newState, dtSec);
 
   // Auto-egg-layer from prestige tree (1 egg/sec)

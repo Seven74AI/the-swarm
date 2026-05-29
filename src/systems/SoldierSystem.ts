@@ -41,14 +41,15 @@ export class SoldierSystem {
 
   /**
    * Process a single tick: rate-based soldier training.
+   * @param dtSec Delta time in seconds (from Ticker, typically 0.05 for 50ms ticks).
    */
-  tick(state: GameState): GameState {
+  tick(state: GameState, dtSec: number): GameState {
     const pipe = { ...state.soldierPipeline };
     if (pipe.count === 0) return state;
 
     const prestigeBonuses = getPrestigeBonuses(state);
     const trainRate = (pipe.count / SOLDIER_TRAIN_TIME) * prestigeBonuses.soldierTraining;
-    pipe.progress += trainRate;
+    pipe.progress += trainRate * dtSec;
     const completed = Math.floor(pipe.progress);
     pipe.progress -= completed;
 

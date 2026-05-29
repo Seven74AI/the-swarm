@@ -15,7 +15,7 @@ interface RoleDef {
 const ROLE_DISPLAY: Record<Role, RoleDef> = {
   gather: { label: 'Gather', icon: '🌾', desc: '+2 food/tick' },
   tend:   { label: 'Tend',   icon: '🥚', desc: '+25% hatch rate each' },
-  dig:    { label: 'Dig',    icon: '⛏️', desc: 'expand nest capacity (WIP)' },
+  dig:    { label: 'Dig',    icon: '⛏️', desc: '+1 nest capacity/tick' },
   guard:  { label: 'Guard',  icon: '🛡️', desc: 'defense + unlocks combat phase' },
 };
 

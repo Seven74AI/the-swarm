@@ -25,7 +25,7 @@ function createEmptyMapTiles(): Array<{
 
 function makeTranscendenceSave(overrides?: Record<string, unknown>) {
   return {
-    version: 8,
+    version: 11,
     timestamp: Date.now(),
     playTimeMs: 300_000,
     gameState: {
@@ -68,6 +68,12 @@ function makeTranscendenceSave(overrides?: Record<string, unknown>) {
         buildings: { nursery: 0, hatchery: 0, queens_chamber: 0 },
         progress: 0,
       },
+      offlineEfficiency: 0.5,
+      conversions: { particleLab: 0 },
+      entropy: 0,
+      entropyDampener: { level: 0 },
+      prestigeTree: { purchased: [] },
+      nextIds: { expedition: 1, exploration: 1, spaceship: 1 },
       ...overrides,
     },
   };

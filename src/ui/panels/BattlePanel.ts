@@ -247,7 +247,23 @@ export class BattlePanel {
 
     // Button states
     this.scoutBtn.disabled = state.combatSoldiers <= 0;
+    if (this.scoutBtn.disabled) {
+      this.scoutBtn.setAttribute('data-tooltip', 'Requires combat soldiers');
+    } else {
+      this.scoutBtn.removeAttribute('data-tooltip');
+    }
     this.engageBtn.disabled = !this.scoutedEnemy || state.combatSoldiers <= 0;
+    if (this.engageBtn.disabled) {
+      if (!this.scoutedEnemy && state.combatSoldiers <= 0) {
+        this.engageBtn.setAttribute('data-tooltip', 'Scout an enemy first (requires combat soldiers)');
+      } else if (!this.scoutedEnemy) {
+        this.engageBtn.setAttribute('data-tooltip', 'Scout an enemy first');
+      } else {
+        this.engageBtn.setAttribute('data-tooltip', 'Requires combat soldiers');
+      }
+    } else {
+      this.engageBtn.removeAttribute('data-tooltip');
+    }
   }
 
   private onScout(): void {

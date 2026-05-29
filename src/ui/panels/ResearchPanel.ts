@@ -22,6 +22,7 @@ import {
 export class ResearchPanel {
   private container: HTMLDivElement;
   private researcherCountEl: HTMLSpanElement | null = null;
+  private lastHash: string = '';
 
   constructor(
     private bus: EventBus,
@@ -63,8 +64,23 @@ export class ResearchPanel {
   }
 
   private render(): void {
-    this.container.innerHTML = '';
     const state = this.getState();
+
+    // Compute hash of research state to skip re-render when unchanged
+    const projects = getProjects();
+    const hashParts: string[] = [];
+    hashParts.push(`researchers:${getAssignedResearchers(state)}`);
+    for (const p of projects) {
+      const status = getProjectStatus(state, p.id);
+      const progress = status === 'in_progress' ? state.research.projects[p.id]?.progress ?? 0 : 0;
+      hashParts.push(`${p.id}:${status}:${progress}`);
+    }
+
+    const hash = hashParts.join('|');
+    if (hash === this.lastHash) return;
+    this.lastHash = hash;
+
+    this.container.innerHTML = '';
 
     // ── Title ──
     const title = document.createElement('div');
@@ -107,7 +123,6 @@ export class ResearchPanel {
     this.container.appendChild(researcherSection);
 
     // ── Project list ──
-    const projects = getProjects();
     for (const project of projects) {
       this.container.appendChild(this.renderProject(project, state));
     }

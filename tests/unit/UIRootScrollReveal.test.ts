@@ -1,9 +1,12 @@
 /**
- * UIRoot scroll-based discovery tests — UX-2 Scroll-Based Discovery.
- * Tests that panels below the viewport are hidden until scrolled into view,
- * that they get `.panel-revealed` on scroll, and that the reveal is single-pass.
+ * UIRoot — Phase-Based Panel Reveal (replaces UX-2 Scroll-Based Discovery).
+ *
+ * Phase 2+ panels are lazy-loaded (not mounted at boot).
+ * showPanel() reveals panels when their phase unlocks,
+ * adding .panel-revealed for the animation. Scroll-based
+ * discovery (IntersectionObserver + .panel-awaiting-reveal) has been removed.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { EventBus } from '../../src/engine/EventBus';
 import { UIRoot } from '../../src/ui/UIRoot';
 import { ResourceSystem } from '../../src/systems/ResourceSystem';
@@ -15,33 +18,16 @@ import { TerritorySystem } from '../../src/systems/TerritorySystem';
 import { createInitialState } from '../../src/state/GameState';
 import type { GameState } from '../../src/state/GameState';
 
-describe('UIRoot — Scroll Discovery', () => {
+describe('UIRoot — Phase-Based Panel Reveal', () => {
   let bus: EventBus;
   let container: HTMLElement;
   let ui: UIRoot;
-  /** Mock IntersectionObserver callback so we can fire intersection events */
-  let observerCallback: ((entries: IntersectionObserverEntry[]) => void) | null = null;
 
   beforeEach(() => {
     bus = new EventBus();
     container = document.createElement('div');
     container.id = 'app';
-    container.style.minHeight = '200vh'; // force vertical scroll
     document.body.appendChild(container);
-
-    // Mock IntersectionObserver: store the callback
-    vi.stubGlobal(
-      'IntersectionObserver',
-      vi.fn((cb: (entries: IntersectionObserverEntry[]) => void) => {
-        observerCallback = cb;
-        return {
-          observe: vi.fn(),
-          unobserve: vi.fn(),
-          disconnect: vi.fn(),
-          takeRecords: vi.fn(() => []),
-        };
-      }),
-    );
 
     const resourceSystem = new ResourceSystem(bus);
     const soldierSystem = new SoldierSystem(bus);
@@ -66,126 +52,116 @@ describe('UIRoot — Scroll Discovery', () => {
 
   afterEach(() => {
     document.body.innerHTML = '';
-    vi.unstubAllGlobals();
-    observerCallback = null;
   });
 
-  describe('scroll-based panel reveal', () => {
-    it('panels mounted by UIRoot get scroll observation', () => {
+  describe('lazy panel creation', () => {
+    it('Phase 1 panels (resource_panel) are mounted at boot', () => {
       ui.mount(container);
 
-      // IntersectionObserver should have been created
-      expect(vi.mocked(IntersectionObserver)).toHaveBeenCalled();
+      // resource_panel should exist in the DOM after mount
+      const panel = document.querySelector('.resource-panel');
+      expect(panel).not.toBeNull();
+    });
 
-      // Panels in #panels should be observed
+    it('Phase 2+ panels are NOT mounted at boot', () => {
+      ui.mount(container);
+
+      // worker_assignment should NOT be in the DOM (lazy-loaded)
+      const wa = document.querySelector('.worker-assignment');
+      expect(wa).toBeNull();
+
+      // soldier_panel should NOT be in the DOM
+      const sp = document.querySelector('.soldier-panel');
+      expect(sp).toBeNull();
+    });
+
+    it('createPanel lazily creates Phase 2 panels and appends to #panels', () => {
+      ui.mount(container);
+
+      const el = ui.createPanel('worker_assignment');
+      expect(el).not.toBeNull();
+
+      // Should be inside #panels
       const panelsEl = document.getElementById('panels');
       expect(panelsEl).not.toBeNull();
-      // At least one panel element should exist
-      const panelElements = panelsEl!.querySelectorAll('.panel');
-      expect(panelElements.length).toBeGreaterThan(0);
+      expect(panelsEl!.contains(el)).toBe(true);
     });
 
-    it('panels below viewport do NOT have .panel-revealed initially', () => {
+    it('createPanel is idempotent — returns same element on second call', () => {
       ui.mount(container);
 
-      const panelElements = document.querySelectorAll('.panel');
-      for (const panel of panelElements) {
-        expect(panel.classList.contains('panel-revealed')).toBe(false);
-      }
+      const first = ui.createPanel('worker_assignment');
+      const second = ui.createPanel('worker_assignment');
+
+      expect(first).toBe(second);
     });
 
-    it('panels intersecting viewport get .panel-revealed class', () => {
+    it('createPanel throws for unknown panel IDs', () => {
       ui.mount(container);
 
-      // IntersectionObserver callback should now be captured
-      expect(observerCallback).not.toBeNull();
-      if (!observerCallback) return;
+      expect(() => ui.createPanel('nonexistent_panel')).toThrow();
+    });
+  });
 
-      // Simulate a panel intersecting the viewport
-      const panelEl = document.querySelector('.panel');
-      expect(panelEl).not.toBeNull();
-      if (!panelEl) return;
+  describe('phase-based panel reveal', () => {
+    it('showPanel sets display to empty and adds panel-revealed class', () => {
+      ui.mount(container);
+      const el = ui.createPanel('worker_assignment');
 
-      // Fire intersection for this panel
-      observerCallback([
-        {
-          target: panelEl,
-          isIntersecting: true,
-          boundingClientRect: panelEl.getBoundingClientRect(),
-          intersectionRect: panelEl.getBoundingClientRect(),
-          intersectionRatio: 1,
-          rootBounds: null,
-          time: Date.now(),
-        } as unknown as IntersectionObserverEntry,
-      ]);
+      // Panel should start hidden (set by constructor)
+      expect(el.style.display).toBe('none');
 
-      expect(panelEl.classList.contains('panel-revealed')).toBe(true);
+      ui.showPanel('worker_assignment');
+
+      // Should now be visible
+      expect(el.style.display).toBe('');
+      // Should have the reveal class
+      expect(el.classList.contains('panel-revealed')).toBe(true);
+      // Should have the unlocked marker
+      expect(el.classList.contains('panel-unlocked')).toBe(true);
     });
 
-    it('panels NOT intersecting viewport do NOT get .panel-revealed class', () => {
+    it('showPanel removes legacy panel-awaiting-reveal if present', () => {
       ui.mount(container);
+      const el = ui.createPanel('worker_assignment');
+      el.classList.add('panel-awaiting-reveal'); // simulate legacy state
 
-      expect(observerCallback).not.toBeNull();
-      if (!observerCallback) return;
+      ui.showPanel('worker_assignment');
 
-      const panelEl = document.querySelector('.panel');
-      expect(panelEl).not.toBeNull();
-      if (!panelEl) return;
-
-      observerCallback([
-        {
-          target: panelEl,
-          isIntersecting: false,
-          boundingClientRect: panelEl.getBoundingClientRect(),
-          intersectionRect: {} as DOMRectReadOnly,
-          intersectionRatio: 0,
-          rootBounds: null,
-          time: Date.now(),
-        } as unknown as IntersectionObserverEntry,
-      ]);
-
-      expect(panelEl.classList.contains('panel-revealed')).toBe(false);
+      expect(el.classList.contains('panel-awaiting-reveal')).toBe(false);
     });
 
-    it('single-pass: once revealed, .panel-revealed class stays even if panel scrolls out', () => {
+    it('showPanel emits panel_revealed event', () => {
+      ui.mount(container);
+      ui.createPanel('worker_assignment');
+
+      const events: unknown[] = [];
+      bus.subscribe('panel_revealed', (payload) => events.push(payload));
+
+      ui.showPanel('worker_assignment');
+
+      expect(events.length).toBeGreaterThanOrEqual(1);
+      const evt = events[events.length - 1] as { panelId: string };
+      expect(evt.panelId).toBe('worker_assignment');
+    });
+
+    it('showPanel is a no-op for panels not yet created', () => {
       ui.mount(container);
 
-      expect(observerCallback).not.toBeNull();
-      if (!observerCallback) return;
+      // Should not throw
+      expect(() => ui.showPanel('worker_assignment')).not.toThrow();
+    });
+  });
 
-      const panelEl = document.querySelector('.panel');
-      expect(panelEl).not.toBeNull();
-      if (!panelEl) return;
+  describe('no IntersectionObserver usage', () => {
+    it('IntersectionObserver is never created during mount', () => {
+      // We should be able to mount without IntersectionObserver being available
+      // (In jsdom it's undefined by default; the old code would crash without a mock)
+      ui.mount(container);
 
-      // First: reveal the panel (isIntersecting=true)
-      observerCallback([
-        {
-          target: panelEl,
-          isIntersecting: true,
-          boundingClientRect: panelEl.getBoundingClientRect(),
-          intersectionRect: panelEl.getBoundingClientRect(),
-          intersectionRatio: 1,
-          rootBounds: null,
-          time: Date.now(),
-        } as unknown as IntersectionObserverEntry,
-      ]);
-      expect(panelEl.classList.contains('panel-revealed')).toBe(true);
-
-      // Then: simulate scrolling away (isIntersecting=false)
-      observerCallback([
-        {
-          target: panelEl,
-          isIntersecting: false,
-          boundingClientRect: panelEl.getBoundingClientRect(),
-          intersectionRect: {} as DOMRectReadOnly,
-          intersectionRatio: 0,
-          rootBounds: null,
-          time: Date.now(),
-        } as unknown as IntersectionObserverEntry,
-      ]);
-
-      // Class should STILL be present (single-pass)
-      expect(panelEl.classList.contains('panel-revealed')).toBe(true);
+      // Verify mount succeeded without errors
+      const panelsEl = document.getElementById('panels');
+      expect(panelsEl).not.toBeNull();
     });
   });
 });

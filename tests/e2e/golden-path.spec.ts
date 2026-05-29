@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
  */
 
 const SEED = {
-  version: 2,
+  version: 11,
   timestamp: Date.now(),
   playTimeMs: 0,
   gameState: {
@@ -57,6 +57,33 @@ const SEED = {
     battlesWon: 3,
     battlesLost: 1,
     soldierPipeline: { count: 0, progress: 0 },
+    spaceExplorations: [],
+    discoveredPlanets: [],
+    spaceships: [],
+    spaceship: { level: 0, fuel: 0, maxFuel: 100 },
+    spaceProbes: [],
+    discoveries: [],
+    victoryAchieved: false,
+    nextIds: { expedition: 1, exploration: 1, spaceship: 1 },
+    prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 0 },
+    autoProduction: {
+      enabled: false,
+      researches: {},
+      buildings: { nursery: 0, hatchery: 0, queens_chamber: 0 },
+      progress: 0,
+    },
+    research: {
+      projects: {
+        voidCrystalSynthesis: { state: 'available' as const, progress: 0 },
+        antimatterContainment: { state: 'locked' as const, progress: 0 },
+        darkMatterDetection: { state: 'locked' as const, progress: 0 },
+      },
+    },
+    conversions: { particleLab: 0 },
+    offlineEfficiency: 0.5,
+    entropy: 0,
+    entropyDampener: { level: 0 },
+    prestigeTree: { purchased: [] },
   },
 };
 
