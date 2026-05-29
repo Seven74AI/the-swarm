@@ -1,0 +1,206 @@
+{
+  "version": 9,
+  "timestamp": 1740000000000,
+  "playTimeMs": 43200000,
+  "gameState": {
+    "phase": "space",
+    "resources": {
+      "eggs": 20000,
+      "larvae": 10000,
+      "workers": 2500,
+      "food": 100000,
+      "nestCapacity": 1000,
+      "wood": 10000,
+      "stone": 8000,
+      "nectar": 5000,
+      "voidCrystals": 2000,
+      "antimatter": 1000,
+      "darkMatter": 500
+    },
+    "eggPipeline": {
+      "count": 5000,
+      "progress": 25.0
+    },
+    "larvaPipeline": {
+      "count": 4000,
+      "progress": 18.5
+    },
+    "soldierPipeline": {
+      "count": 1000,
+      "progress": 30.0
+    },
+    "workersAssigned": {
+      "gather": 500,
+      "tend": 400,
+      "dig": 300,
+      "guard": 200,
+      "researchers": 150
+    },
+    "soldiers": {
+      "scouts": 500,
+      "warriors": 400,
+      "totalKilled": 2000
+    },
+    "buildings": {
+      "barracks": {
+        "level": 40,
+        "count": 8
+      },
+      "walls": {
+        "level": 25
+      },
+      "warehouse": {
+        "level": 30
+      }
+    },
+    "territory": {
+      "ownedTiles": 64,
+      "bonuses": {
+        "food": 3.0,
+        "stone": 2.5,
+        "nectar": 2.0
+      }
+    },
+    "mapTiles": [],
+    "expeditions": [],
+    "spaceExplorations": [
+      {
+        "id": "expl_v9_1",
+        "destination": "Supermassive Black Hole",
+        "ticksRemaining": 75,
+        "risk": 0.9
+      }
+    ],
+    "discoveredPlanets": [
+      "Mars",
+      "Alpha Centauri B",
+      "Proxima B",
+      "Kepler-442b",
+      "TRAPPIST-1e",
+      "Gliese 667 Cc",
+      "Wolf 1061c",
+      "Luyten b"
+    ],
+    "spaceships": [
+      {
+        "id": "ship_v9_1",
+        "type": "capital_ship",
+        "level": 10,
+        "fuel": 1000,
+        "maxFuel": 2000,
+        "status": "exploring",
+        "missionTicksRemaining": 60,
+        "destinationName": "Andromeda Galaxy"
+      }
+    ],
+    "upgrades": {
+      "click_power": 50
+    },
+    "stats": {
+      "totalEggsLaid": 500000,
+      "totalClicks": 50000,
+      "playTimeMs": 43200000
+    },
+    "unlockedPanels": [
+      "resource_panel",
+      "worker_panel",
+      "building_panel",
+      "soldier_panel",
+      "expedition_panel",
+      "spaceship_panel",
+      "exploration_panel",
+      "prestige_panel",
+      "research_panel"
+    ],
+    "lastSaveTimestamp": 1740000000000,
+    "combatSoldiers": 500,
+    "soldierStats": {
+      "strength": 20.0,
+      "defense": 15.0,
+      "speed": 60,
+      "maxHp": 500
+    },
+    "equipment": {
+      "weapon": 20,
+      "armor": 15
+    },
+    "lastBattle": {
+      "enemyType": "interstellar_hive",
+      "result": "victory",
+      "soldiersLost": 30,
+      "foodGained": 2000,
+      "timestamp": 1739000000000
+    },
+    "combatResources": {
+      "chitin": 300,
+      "silk": 200,
+      "venom": 150
+    },
+    "battlesWon": 250,
+    "battlesLost": 15,
+    "victoryAchieved": false,
+    "spaceship": {
+      "level": 25,
+      "fuel": 800,
+      "maxFuel": 2000
+    },
+    "spaceProbes": [
+      {
+        "id": "probe_v9_1",
+        "destination": "Intergalactic Void",
+        "ticksRemaining": 200,
+        "scouts": 10
+      }
+    ],
+    "discoveries": [
+      "Ancient signal from deep space",
+      "Dyson sphere fragment detected",
+      "Wormhole coordinates mapped",
+      "Dark matter signature identified",
+      "Quantum entanglement communication achieved"
+    ],
+    "nextIds": {
+      "expedition": 1,
+      "exploration": 1,
+      "spaceship": 1
+    },
+    "prestige": {
+      "count": 5,
+      "legacyPoints": 8000,
+      "totalFoodProduced": 5000000
+    },
+    "autoProduction": {
+      "enabled": true,
+      "researches": {
+        "click_power_2x": true,
+        "auto_larvae": true
+      },
+      "buildings": {
+        "nursery": 15,
+        "hatchery": 10,
+        "queens_chamber": 5
+      },
+      "progress": 0.75
+    },
+    "offlineEfficiency": 0.6,
+    "research": {
+      "projects": {
+        "voidCrystalSynthesis": {
+          "state": "completed",
+          "progress": 100
+        },
+        "antimatterContainment": {
+          "state": "completed",
+          "progress": 100
+        },
+        "darkMatterDetection": {
+          "state": "in_progress",
+          "progress": 60
+        }
+      }
+    },
+    "conversions": {
+      "particleLab": 3
+    }
+  }
+}

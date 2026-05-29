@@ -1,0 +1,125 @@
+{
+  "version": 3,
+  "timestamp": 1694000000000,
+  "playTimeMs": 3600000,
+  "gameState": {
+    "phase": "territory",
+    "resources": {
+      "eggs": 500,
+      "larvae": 200,
+      "workers": 80,
+      "food": 5000,
+      "nestCapacity": 75,
+      "wood": 200,
+      "stone": 150,
+      "nectar": 80,
+      "voidCrystals": 0,
+      "antimatter": 0,
+      "darkMatter": 0
+    },
+    "workersAssigned": {
+      "gather": 30,
+      "tend": 20,
+      "dig": 15,
+      "guard": 10
+    },
+    "soldiers": {
+      "scouts": 15,
+      "warriors": 10,
+      "totalKilled": 25
+    },
+    "buildings": {
+      "barracks": {
+        "level": 3,
+        "count": 2
+      },
+      "walls": {
+        "level": 2
+      },
+      "warehouse": {
+        "level": 4
+      }
+    },
+    "territory": {
+      "ownedTiles": 25,
+      "bonuses": {
+        "food": 0.5,
+        "stone": 0.3,
+        "nectar": 0.2
+      }
+    },
+    "mapTiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "type": "meadow",
+        "discovered": true,
+        "claimed": true
+      },
+      {
+        "x": 1,
+        "y": 0,
+        "type": "forest",
+        "discovered": true,
+        "claimed": true
+      },
+      {
+        "x": 2,
+        "y": 1,
+        "type": "mountain",
+        "discovered": true,
+        "claimed": true
+      }
+    ],
+    "expeditions": [
+      {
+        "id": "exp_v3_1",
+        "scouts": 3,
+        "warriors": 2,
+        "destination": "Distant Forest",
+        "ticksRemaining": 15,
+        "risk": 0.4
+      }
+    ],
+    "upgrades": {
+      "click_power": 4
+    },
+    "stats": {
+      "totalEggsLaid": 2000,
+      "totalClicks": 400,
+      "playTimeMs": 3600000
+    },
+    "unlockedPanels": [
+      "resource_panel",
+      "worker_panel",
+      "building_panel",
+      "soldier_panel"
+    ],
+    "lastSaveTimestamp": 1694000000000,
+    "combatSoldiers": 15,
+    "soldierStats": {
+      "strength": 1.5,
+      "defense": 1.5,
+      "speed": 10,
+      "maxHp": 20
+    },
+    "equipment": {
+      "weapon": 1,
+      "armor": 1
+    },
+    "lastBattle": {
+      "enemyType": "spider",
+      "result": "victory",
+      "soldiersLost": 2,
+      "foodGained": 30,
+      "timestamp": 1693900000000
+    },
+    "combatResources": {
+      "chitin": 5,
+      "silk": 3,
+      "venom": 2
+    },
+    "battlesWon": 5,
+    "battlesLost": 1
+  }
+}

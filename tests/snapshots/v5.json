@@ -1,0 +1,121 @@
+{
+  "version": 5,
+  "timestamp": 1700000000000,
+  "playTimeMs": 3600000,
+  "gameState": {
+    "phase": "civilization",
+    "resources": {
+      "eggs": 500,
+      "larvae": 200,
+      "workers": 50,
+      "food": 3000,
+      "nestCapacity": 25,
+      "wood": 150,
+      "stone": 80,
+      "nectar": 40,
+      "voidCrystals": 0,
+      "antimatter": 0,
+      "darkMatter": 0
+    },
+    "eggPipeline": {
+      "count": 100,
+      "progress": 2.5
+    },
+    "larvaPipeline": {
+      "count": 80,
+      "progress": 1.2
+    },
+    "soldierPipeline": {
+      "count": 10,
+      "progress": 0.5
+    },
+    "workersAssigned": {
+      "gather": 20,
+      "tend": 10,
+      "dig": 5,
+      "guard": 3
+    },
+    "soldiers": {
+      "scouts": 5,
+      "warriors": 3,
+      "totalKilled": 12
+    },
+    "buildings": {
+      "barracks": {
+        "level": 2,
+        "count": 1
+      },
+      "walls": {
+        "level": 1
+      },
+      "warehouse": {
+        "level": 3
+      }
+    },
+    "territory": {
+      "ownedTiles": 15,
+      "bonuses": {
+        "food": 0.5,
+        "stone": 0.3
+      }
+    },
+    "mapTiles": [],
+    "expeditions": [
+      {
+        "id": "exp_v5_1",
+        "scouts": 2,
+        "warriors": 1,
+        "destination": "Nearby Meadow",
+        "ticksRemaining": 5,
+        "risk": 0.3
+      }
+    ],
+    "spaceExplorations": [],
+    "discoveredPlanets": [],
+    "spaceships": [
+      {
+        "id": "ship_v5_1",
+        "type": "scout_ship",
+        "level": 1,
+        "fuel": 50,
+        "maxFuel": 100,
+        "status": "idle",
+        "missionTicksRemaining": 0,
+        "destinationName": ""
+      }
+    ],
+    "upgrades": {
+      "click_power": 5
+    },
+    "stats": {
+      "totalEggsLaid": 1200,
+      "totalClicks": 300,
+      "playTimeMs": 3600000
+    },
+    "unlockedPanels": [
+      "resource_panel",
+      "worker_panel"
+    ],
+    "lastSaveTimestamp": 1700000000000,
+    "combatSoldiers": 0,
+    "soldierStats": {
+      "strength": 1,
+      "defense": 1,
+      "speed": 5,
+      "maxHp": 10
+    },
+    "equipment": {
+      "weapon": 0,
+      "armor": 0
+    },
+    "lastBattle": null,
+    "combatResources": {
+      "chitin": 0,
+      "silk": 0,
+      "venom": 0
+    },
+    "battlesWon": 0,
+    "battlesLost": 0,
+    "victoryAchieved": false
+  }
+}

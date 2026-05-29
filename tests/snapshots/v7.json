@@ -1,0 +1,196 @@
+{
+  "version": 7,
+  "timestamp": 1720000000000,
+  "playTimeMs": 14400000,
+  "gameState": {
+    "phase": "space",
+    "resources": {
+      "eggs": 5000,
+      "larvae": 3000,
+      "workers": 500,
+      "food": 25000,
+      "nestCapacity": 200,
+      "wood": 2000,
+      "stone": 1500,
+      "nectar": 800,
+      "voidCrystals": 150,
+      "antimatter": 75,
+      "darkMatter": 30
+    },
+    "eggPipeline": {
+      "count": 1000,
+      "progress": 6.3
+    },
+    "larvaPipeline": {
+      "count": 800,
+      "progress": 5.2
+    },
+    "soldierPipeline": {
+      "count": 150,
+      "progress": 9.1
+    },
+    "workersAssigned": {
+      "gather": 150,
+      "tend": 100,
+      "dig": 80,
+      "guard": 50
+    },
+    "soldiers": {
+      "scouts": 80,
+      "warriors": 60,
+      "totalKilled": 200
+    },
+    "buildings": {
+      "barracks": {
+        "level": 15,
+        "count": 4
+      },
+      "walls": {
+        "level": 10
+      },
+      "warehouse": {
+        "level": 12
+      }
+    },
+    "territory": {
+      "ownedTiles": 60,
+      "bonuses": {
+        "food": 1.2,
+        "stone": 0.9,
+        "nectar": 0.7
+      }
+    },
+    "mapTiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "type": "meadow",
+        "discovered": true,
+        "claimed": true
+      },
+      {
+        "x": 1,
+        "y": 0,
+        "type": "forest",
+        "discovered": true,
+        "claimed": true
+      },
+      {
+        "x": 2,
+        "y": 1,
+        "type": "mountain",
+        "discovered": true,
+        "claimed": true
+      }
+    ],
+    "expeditions": [],
+    "spaceExplorations": [
+      {
+        "id": "expl_v7_1",
+        "destination": "Orion Nebula",
+        "ticksRemaining": 8,
+        "risk": 0.4
+      }
+    ],
+    "discoveredPlanets": [
+      "Mars",
+      "Alpha Centauri B",
+      "Proxima B",
+      "Kepler-442b"
+    ],
+    "spaceships": [
+      {
+        "id": "ship_v7_1",
+        "type": "scout_ship",
+        "level": 4,
+        "fuel": 60,
+        "maxFuel": 250,
+        "status": "returning",
+        "missionTicksRemaining": 5,
+        "destinationName": "Orion Nebula"
+      },
+      {
+        "id": "ship_v7_2",
+        "type": "cruiser",
+        "level": 3,
+        "fuel": 150,
+        "maxFuel": 300,
+        "status": "idle",
+        "missionTicksRemaining": 0,
+        "destinationName": ""
+      },
+      {
+        "id": "ship_v7_3",
+        "type": "capital_ship",
+        "level": 1,
+        "fuel": 200,
+        "maxFuel": 500,
+        "status": "exploring",
+        "missionTicksRemaining": 40,
+        "destinationName": "Andromeda"
+      }
+    ],
+    "upgrades": {
+      "click_power": 15
+    },
+    "stats": {
+      "totalEggsLaid": 25000,
+      "totalClicks": 5000,
+      "playTimeMs": 14400000
+    },
+    "unlockedPanels": [
+      "resource_panel",
+      "worker_panel",
+      "building_panel",
+      "soldier_panel",
+      "expedition_panel",
+      "spaceship_panel",
+      "exploration_panel"
+    ],
+    "lastSaveTimestamp": 1720000000000,
+    "combatSoldiers": 100,
+    "soldierStats": {
+      "strength": 5.0,
+      "defense": 4.0,
+      "speed": 25,
+      "maxHp": 80
+    },
+    "equipment": {
+      "weapon": 5,
+      "armor": 4
+    },
+    "lastBattle": {
+      "enemyType": "mantis_queen",
+      "result": "victory",
+      "soldiersLost": 8,
+      "foodGained": 200,
+      "timestamp": 1715000000000
+    },
+    "combatResources": {
+      "chitin": 45,
+      "silk": 30,
+      "venom": 20
+    },
+    "battlesWon": 45,
+    "battlesLost": 5,
+    "victoryAchieved": false,
+    "spaceship": {
+      "level": 8,
+      "fuel": 250,
+      "maxFuel": 500
+    },
+    "spaceProbes": [
+      {
+        "id": "probe_v7_1",
+        "destination": "Sirius",
+        "ticksRemaining": 0,
+        "scouts": 1
+      }
+    ],
+    "discoveries": [
+      "Ancient signal from deep space",
+      "Dyson sphere fragment detected",
+      "Wormhole coordinates mapped"
+    ]
+  }
+}
