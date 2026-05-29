@@ -9,7 +9,7 @@ import { MapSystem } from './systems/MapSystem';
 import { TerritorySystem } from './systems/TerritorySystem';
 import { DecisionSystem } from './systems/DecisionSystem';
 import { tickExpeditions, resolveExpedition } from './systems/ExpeditionSystem';
-import { tickExplorations, resolveExploration } from './systems/ExplorationSystem';
+import { tickExplorations, resolveExploration, tickProbeSwarm } from './systems/ExplorationSystem';
 import { tickResearch } from './systems/ResearchSystem';
 import { tickConversions } from './systems/ResourceConversionSystem';
 import { tickEntropy } from './systems/EntropySystem';
@@ -267,6 +267,10 @@ export function bootstrap(): {
       }
     }
 
+    // Probe Swarm: auto-launch explorations when enough surveyData accumulated
+    newState = tickProbeSwarm(newState);
+    workingState = newState;
+
     // Spaceship system: tick missions and resolve returning ones
     newState = tickMissions(newState);
     for (const ship of newState.spaceships) {
@@ -517,6 +521,9 @@ export function processTick(
       newState = resolveExploration(newState, exp);
     }
   }
+
+  // Probe Swarm: auto-launch explorations when enough surveyData accumulated
+  newState = tickProbeSwarm(newState);
 
   // Tick spaceship missions
   newState = tickMissions(newState);
