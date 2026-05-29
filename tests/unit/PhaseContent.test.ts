@@ -205,5 +205,51 @@ describe('PhaseContent', () => {
       const payload = events[0] as { phase: string };
       expect(payload.phase).toBe(Phase.SPACE);
     });
+
+    it('includes skippable flag and onSkip in transition_start when prestigeCount > 0', () => {
+      const events: unknown[] = [];
+      bus.subscribe('transition_start', (payload) => events.push(payload));
+
+      phaseContent.triggerTransition(Phase.COLONY, bus, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot, 1);
+
+      expect(events).toHaveLength(1);
+      const payload = events[0] as { phase: string; quote: string; skippable: boolean; onSkip?: () => void };
+      expect(payload.phase).toBe(Phase.COLONY);
+      expect(payload.skippable).toBe(true);
+      expect(typeof payload.onSkip).toBe('function');
+    });
+
+    it('does NOT include skippable flag when prestigeCount is 0', () => {
+      const events: unknown[] = [];
+      bus.subscribe('transition_start', (payload) => events.push(payload));
+
+      phaseContent.triggerTransition(Phase.COLONY, bus, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot, 0);
+
+      const payload = events[0] as { phase: string; quote: string; skippable: boolean };
+      expect(payload.skippable).toBe(false);
+    });
+
+    it('skipping via onSkip fires transition_complete immediately without waiting for timeouts', () => {
+      const startEvents: unknown[] = [];
+      const completeEvents: unknown[] = [];
+      bus.subscribe('transition_start', (payload) => startEvents.push(payload));
+      bus.subscribe('transition_complete', (payload) => completeEvents.push(payload));
+
+      phaseContent.triggerTransition(Phase.COLONY, bus, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot, 1);
+
+      const startPayload = startEvents[0] as { onSkip?: () => void };
+      expect(startPayload.onSkip).toBeDefined();
+
+      // Call onSkip — should immediately fire transition_complete
+      startPayload.onSkip!();
+
+      expect(completeEvents).toHaveLength(1);
+      const completePayload = completeEvents[0] as { phase: string };
+      expect(completePayload.phase).toBe(Phase.COLONY);
+
+      // Advancing timers should NOT fire a second transition_complete
+      vi.advanceTimersByTime(5000);
+      expect(completeEvents).toHaveLength(1);
+    });
   });
 });

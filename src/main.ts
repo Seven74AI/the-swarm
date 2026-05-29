@@ -376,7 +376,8 @@ export function bootstrap(): {
   // Listen for phase changes to reveal new panels with transition animation
   bus.subscribe('phase_changed', (payload: unknown) => {
     const phase = (payload as { phase: string }).phase as Phase;
-    phaseContent.triggerTransition(phase, bus, ui);
+    const prestigeCount = gameState.value.prestige.count;
+    phaseContent.triggerTransition(phase, bus, ui, prestigeCount);
   });
 
   // ── Audio: wire sound effects to game events ──
