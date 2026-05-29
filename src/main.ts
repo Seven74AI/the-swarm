@@ -178,7 +178,7 @@ export function bootstrap(): {
       },
     };
 
-    newState = soldierSystem.tick(newState);
+    newState = soldierSystem.tick(newState, dtSec);
     newState = tickAutoProduction(newState, dtSec);
 
     // Auto-egg-layer from prestige tree (1 egg/sec)
@@ -469,7 +469,7 @@ export function processTick(
     };
   }
 
-  newState = soldierSystem.tick(newState);
+  newState = soldierSystem.tick(newState, dtSec);
   newState = tickAutoProduction(newState, dtSec);
 
   // Auto-egg-layer from prestige tree (1 egg/sec)
