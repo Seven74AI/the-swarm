@@ -163,23 +163,55 @@ export class PhaseContent {
    * Triggers the visual phase transition sequence.
    * Emits transition_start immediately and transition_complete after the animation duration.
    *
-   * @param phase   The new phase being entered.
-   * @param bus     Event bus for emitting transition events.
-   * @param uiRoot  Root UI controller for panel management.
+   * On prestige runs (prestigeCount > 0), the transition becomes skippable via
+   * click or keypress (Space/Enter/Escape). Skipping immediately calls onPhaseEnter
+   * and emits transition_complete.
+   *
+   * @param phase         The new phase being entered.
+   * @param bus           Event bus for emitting transition events.
+   * @param uiRoot        Root UI controller for panel management.
+   * @param prestigeCount Number of times the player has prestiged (0 = no skips).
    */
-  triggerTransition(phase: Phase, bus: EventBus, uiRoot: UIRoot): void {
+  triggerTransition(phase: Phase, bus: EventBus, uiRoot: UIRoot, prestigeCount: number = 0): void {
     const quote = this.getLoreQuote(phase);
-    bus.emit('transition_start', { phase, quote });
+    const skippable = prestigeCount > 0;
 
-    // Reveal new panels after the overlay is visible
-    setTimeout(() => {
+    // Timeout handles for auto-completion (cleared on skip)
+    let revealTimeout: ReturnType<typeof setTimeout> | undefined;
+    let completeTimeout: ReturnType<typeof setTimeout> | undefined;
+
+    const onSkip = skippable ? () => {
+      // Clear auto-completion timeouts
+      if (revealTimeout !== undefined) clearTimeout(revealTimeout);
+      if (completeTimeout !== undefined) clearTimeout(completeTimeout);
+      // Immediately reveal panels and complete transition
       this.onPhaseEnter(phase, uiRoot);
-    }, PANEL_REVEAL_DELAY_MS);
-
-    // End transition after full animation
-    setTimeout(() => {
       bus.emit('transition_complete', { phase });
-    }, TRANSITION_DURATION_MS);
+    } : undefined;
+
+    bus.emit('transition_start', { phase, quote, skippable, onSkip });
+
+    // If skipped, onSkip was already called — don't schedule timeouts.
+    // We detect skip by checking whether the timeouts have been cleared.
+    if (skippable) {
+      // Store timeouts for potential clearing
+      revealTimeout = setTimeout(() => {
+        this.onPhaseEnter(phase, uiRoot);
+      }, PANEL_REVEAL_DELAY_MS);
+
+      completeTimeout = setTimeout(() => {
+        bus.emit('transition_complete', { phase });
+      }, TRANSITION_DURATION_MS);
+    } else {
+      // Non-prestige: standard timing
+      setTimeout(() => {
+        this.onPhaseEnter(phase, uiRoot);
+      }, PANEL_REVEAL_DELAY_MS);
+
+      setTimeout(() => {
+        bus.emit('transition_complete', { phase });
+      }, TRANSITION_DURATION_MS);
+    }
   }
 
   /**
