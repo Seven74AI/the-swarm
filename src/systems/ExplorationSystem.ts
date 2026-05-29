@@ -4,6 +4,15 @@ import { PLANETS, type PlanetDef } from '../data/planets';
 
 export const MAX_ACTIVE_EXPLORATIONS = 3;
 
+/** Survey data scaling: each point gives 5% speed boost to exploration distance. */
+export const SURVEY_DATA_SPEED_MULTIPLIER = 0.05;
+
+/** Survey data threshold to activate probe swarm auto-launching. */
+export const PROBE_SWARM_THRESHOLD = 10;
+
+/** Survey data gained per successful exploration completion. */
+export const SURVEY_DATA_PER_EXPLORATION = 1;
+
 interface SpaceExploration {
   id: string;
   destination: string;
@@ -42,6 +51,17 @@ function calculateDistance(destination: string): number {
   return 40 + (hash % 81); // 40 to 120
 }
 
+/**
+ * Apply survey data speed multiplier to reduce exploration distance.
+ * More surveyData → shorter distances → faster exploration completion loop.
+ * This is the "recursive" scaling: exploring makes you explore faster.
+ */
+export function getScaledDistance(destination: string, surveyData: number): number {
+  const baseDistance = calculateDistance(destination);
+  const multiplier = 1 + surveyData * SURVEY_DATA_SPEED_MULTIPLIER;
+  return Math.max(10, Math.floor(baseDistance / multiplier));
+}
+
 export function launchExploration(
   state: GameState,
   destination: string,
@@ -50,7 +70,7 @@ export function launchExploration(
   if (state.spaceExplorations.length >= MAX_ACTIVE_EXPLORATIONS) return state;
 
   const risk = calculateRisk(destination);
-  const distance = calculateDistance(destination);
+  const distance = getScaledDistance(destination, state.resources.surveyData);
 
   const exploration: SpaceExploration = {
     id: generateId(state),
@@ -99,11 +119,13 @@ export function resolveExploration(
     // Failure: no rewards
     result = { ...result };
   } else if (roll < risk + 0.2) {
-    // Partial success: reduced rewards
+    // Partial success: reduced rewards, half surveyData
     result = addSpaceLoot(result, exploration.destination, 0.5);
+    result = addSurveyData(result, 0.5);
   } else {
-    // Full success: full rewards
+    // Full success: full rewards + full surveyData
     result = addSpaceLoot(result, exploration.destination, 1.0);
+    result = addSurveyData(result, 1.0);
   }
 
   // Space anomaly check (5% chance after any non-failure result)
@@ -128,6 +150,19 @@ export function resolveExploration(
   };
 
   return result;
+}
+
+function addSurveyData(state: GameState, multiplier: number): GameState {
+  const gain = Math.floor(SURVEY_DATA_PER_EXPLORATION * multiplier);
+  if (gain <= 0) return state;
+
+  return {
+    ...state,
+    resources: {
+      ...state.resources,
+      surveyData: state.resources.surveyData + gain,
+    },
+  };
 }
 
 function addSpaceLoot(
@@ -170,4 +205,28 @@ function addSpaceLoot(
       darkMatter: state.resources.darkMatter + darkMatter,
     },
   };
+}
+
+/**
+ * Probe Swarm passive: when surveyData >= PROBE_SWARM_THRESHOLD,
+ * auto-launch explorations periodically. This follows the idle game
+ * pattern where manual actions become automated as you progress.
+ *
+ * Returns the updated state, or the same state if no auto-launch occurred.
+ */
+export function tickProbeSwarm(state: GameState): GameState {
+  const surveyData = state.resources.surveyData;
+  if (surveyData < PROBE_SWARM_THRESHOLD) return state;
+
+  // Already at max active explorations — nothing to do
+  if (state.spaceExplorations.length >= MAX_ACTIVE_EXPLORATIONS) return state;
+
+  // Base chance per tick when swarm is active: 5% + 0.5% per surveyData above threshold
+  const chance = 0.05 + (surveyData - PROBE_SWARM_THRESHOLD) * 0.005;
+  const roll = Math.random();
+  if (roll >= chance) return state;
+
+  // Auto-launch to a random planet
+  const planet = PLANETS[Math.floor(Math.random() * PLANETS.length)];
+  return launchExploration(state, planet.name);
 }
