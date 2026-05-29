@@ -4,7 +4,8 @@ import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 
 /** Spaceship build costs per level. Lv.1 uses only basic resources.
- *  Costs flattened for smoother progression: T1→T4 ratio ~2.5-3x (was 4-5x). */
+ *  Costs flattened for smoother progression: T1→T4 ratio ~2.5-3x (was 4-5x).
+ *  See ADR-004 for cost cliff rationale. */
 const SHIP_COSTS: Array<{ food: number; wood: number; stone: number; nectar: number; voidCrystals: number; antimatter: number; darkMatter: number }> = [
   { food: 2000, wood: 500, stone: 500, nectar: 200, voidCrystals: 0, antimatter: 0, darkMatter: 0 },
   { food: 2800, wood: 700, stone: 700, nectar: 320, voidCrystals: 40, antimatter: 20, darkMatter: 4 },
