@@ -299,11 +299,14 @@ test.describe('Combat Edge Cases', () => {
   test('soldier training visible during battle', async ({ page }) => {
     await setupCombatPhase(page, { combatSoldiers: 10 });
 
-    // Click Recruit Soldier to start training
+    // Click Recruit Soldier 3 times to start multiple training
+    // (3 soldiers in pipeline ensures training doesn't finish during battle)
     const recruitBtn = page.locator('#soldier-panel button').filter({
       hasText: 'Recruit Soldier',
     });
     await expect(recruitBtn).toBeVisible({ timeout: 5000 });
+    await recruitBtn.click();
+    await recruitBtn.click();
     await recruitBtn.click();
 
     // Verify training status appears
