@@ -26,6 +26,7 @@ import { TechTreePanel } from './panels/TechTreePanel';
 import { AutoProductionPanel } from './panels/AutoProductionPanel';
 import { PrestigePanel } from './panels/PrestigePanel';
 import { PrestigeTreePanel } from './panels/PrestigeTreePanel';
+import { TranscendencePanel } from './panels/TranscendencePanel';
 import { ResearchPanel } from './panels/ResearchPanel';
 import type { DecisionEvent } from '../systems/DecisionSystem';
 import { DecisionPopup } from './components/DecisionPopup';
@@ -140,6 +141,9 @@ export class UIRoot {
       this.bus, this.getState, this.setState,
     ).getElement());
     this.panelRegistry.set('prestige_tree_panel', () => new PrestigeTreePanel(
+      this.bus, this.getState, this.setState,
+    ).getElement());
+    this.panelRegistry.set('transcendence_panel', () => new TranscendencePanel(
       this.bus, this.getState, this.setState,
     ).getElement());
 
