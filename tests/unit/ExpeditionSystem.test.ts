@@ -154,6 +154,7 @@ describe('ExpeditionSystem', () => {
     it('FOREST zone yields extra wood', () => {
       const exp = { id: 'e1', scouts: 1, warriors: 0, destination: 'FOREST', ticksRemaining: 1, risk: 0.01 };
       state.expeditions = [exp];
+      vi.spyOn(Math, 'random').mockReturnValue(0.5);
       const result = resolveExpedition(state, exp);
       // Very low risk (0.01) — should always succeed
       expect(result.resources.wood).toBeGreaterThan(0);
@@ -162,6 +163,7 @@ describe('ExpeditionSystem', () => {
     it('MOUNTAIN zone yields extra stone', () => {
       const exp = { id: 'e1', scouts: 1, warriors: 0, destination: 'MOUNTAIN', ticksRemaining: 1, risk: 0.01 };
       state.expeditions = [exp];
+      vi.spyOn(Math, 'random').mockReturnValue(0.5);
       const result = resolveExpedition(state, exp);
       expect(result.resources.stone).toBeGreaterThan(0);
     });
@@ -169,6 +171,7 @@ describe('ExpeditionSystem', () => {
     it('MEADOW zone yields nectar', () => {
       const exp = { id: 'e1', scouts: 1, warriors: 0, destination: 'MEADOW', ticksRemaining: 1, risk: 0.01 };
       state.expeditions = [exp];
+      vi.spyOn(Math, 'random').mockReturnValue(0.5);
       const result = resolveExpedition(state, exp);
       expect(result.resources.nectar).toBeGreaterThan(0);
     });

@@ -93,6 +93,7 @@ describe('ExplorationSystem', () => {
       state.resources.antimatter = 0;
       state.resources.darkMatter = 0;
 
+      vi.spyOn(Math, 'random').mockReturnValue(0.5);
       const result = resolveExploration(state, exp);
       expect(result.spaceExplorations).toHaveLength(0);
       expect(result.resources.voidCrystals).toBeGreaterThan(0);
@@ -105,6 +106,7 @@ describe('ExplorationSystem', () => {
       state.resources.antimatter = 0;
       state.resources.darkMatter = 0;
 
+      vi.spyOn(Math, 'random').mockReturnValue(0.5);
       const result = resolveExploration(state, exp);
       expect(result.resources.antimatter).toBeGreaterThan(0);
     });
@@ -116,6 +118,7 @@ describe('ExplorationSystem', () => {
       state.resources.antimatter = 0;
       state.resources.darkMatter = 0;
 
+      vi.spyOn(Math, 'random').mockReturnValue(0.5);
       const result = resolveExploration(state, exp);
       expect(result.resources.darkMatter).toBeGreaterThan(0);
     });
@@ -126,6 +129,7 @@ describe('ExplorationSystem', () => {
       state.resources.voidCrystals = 0;
       state.resources.food = 0;
 
+      vi.spyOn(Math, 'random').mockReturnValue(0.5);
       const result = resolveExploration(state, exp);
       expect(result.resources.food).toBeGreaterThan(0);
       expect(result.resources.voidCrystals).toBeGreaterThan(0);

@@ -76,6 +76,9 @@ html, body {
   margin-bottom: 1rem;
   width: 100%;
   max-width: 480px;
+  /* Performance: skip layout/paint for off-screen panels */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
 }
 
 .panel-title {
