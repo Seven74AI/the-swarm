@@ -159,7 +159,7 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
       await page.goto('/');
       await page.waitForSelector('#panels', { timeout: 10000 });
 
-      // Wait for real game tick + phase transition (setTimeout 300ms + 2000ms)
+      // Wait for real game tick + phase transition (PANEL_REVEAL_DELAY_MS + TRANSITION_DURATION_MS)
       await page.waitForTimeout(3500);
 
       // worker_assignment should now exist with panel-revealed class
@@ -200,7 +200,7 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
       await page.goto('/');
       await page.waitForSelector('#panels', { timeout: 10000 });
 
-      // Fast-forward past the first tick + transition setTimeout(300ms) + transition animation(2s)
+      // Fast-forward past the first tick + transition (PANEL_REVEAL_DELAY_MS + TRANSITION_DURATION_MS)
       await page.clock.runFor(4000);
 
       // Wait for transition to complete (overlay disappears)
