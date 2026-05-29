@@ -41,6 +41,26 @@ export const COLONY_TO_COMBAT: Transition = {
 };
 
 /**
+ * COMBAT → EXPANSION transition.
+ * Fires when workers >= 25 AND battlesWon >= 3.
+ * Needed because a player who enters COMBAT before EXPANSION
+ * has no way out — COLONY→EXPANSION only fires from COLONY.
+ */
+export const COMBAT_TO_EXPANSION: Transition = {
+  from: Phase.COMBAT,
+  to: Phase.EXPANSION,
+  guard: (state) => state.resources.workers >= 25 && state.battlesWon >= 3,
+  onEnter: (state, eventBus) => {
+    eventBus.emit('phase_changed', { phase: Phase.EXPANSION });
+    eventBus.emit('narrative', {
+      message:
+        'The battles have been won. The colony has proven its strength. Now it is time to expand beyond the nest.',
+    });
+    return state;
+  },
+};
+
+/**
  * COLONY → EXPANSION transition.
  * Fires when workers >= 20 AND food >= 500.
  */
@@ -98,4 +118,4 @@ export const SPACE_TO_TRANSCENDENCE: Transition = {
 };
 
 /** All defined transitions. */
-export const TRANSITIONS: Transition[] = [EGG_TO_COLONY, COLONY_TO_COMBAT, COLONY_TO_EXPANSION, EXPANSION_TO_SPACE, SPACE_TO_TRANSCENDENCE];
+export const TRANSITIONS: Transition[] = [EGG_TO_COLONY, COLONY_TO_COMBAT, COMBAT_TO_EXPANSION, COLONY_TO_EXPANSION, EXPANSION_TO_SPACE, SPACE_TO_TRANSCENDENCE];
