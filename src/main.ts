@@ -145,11 +145,19 @@ export function bootstrap(): {
     newState = soldierSystem.tick(newState);
     newState = tickAutoProduction(newState, dtSec);
 
-    // Auto-egg-layer from prestige tree (1 egg/sec into eggPipeline)
+    // Auto-egg-layer from prestige tree (1 egg/sec)
     const prestigeBonuses = getPrestigeBonuses(newState);
     if (prestigeBonuses.autoEggLayer) {
       newState = {
         ...newState,
+        resources: {
+          ...newState.resources,
+          eggs: newState.resources.eggs + dtSec,
+        },
+        stats: {
+          ...newState.stats,
+          totalEggsLaid: newState.stats.totalEggsLaid + dtSec,
+        },
         eggPipeline: {
           ...newState.eggPipeline,
           count: newState.eggPipeline.count + dtSec,
@@ -368,7 +376,7 @@ export function bootstrap(): {
  * Process a single tick for offline catch-up simulation.
  * Extracted so it can be reused by the main tick loop and offline processing.
  */
-function processTick(
+export function processTick(
   state: GameState,
   resourceSystem: ResourceSystem,
   soldierSystem: SoldierSystem,
@@ -406,11 +414,19 @@ function processTick(
   newState = soldierSystem.tick(newState);
   newState = tickAutoProduction(newState, dtSec);
 
-  // Auto-egg-layer from prestige tree (1 egg/sec into eggPipeline)
+  // Auto-egg-layer from prestige tree (1 egg/sec)
   const pBonuses = getPrestigeBonuses(newState);
   if (pBonuses.autoEggLayer) {
     newState = {
       ...newState,
+      resources: {
+        ...newState.resources,
+        eggs: newState.resources.eggs + dtSec,
+      },
+      stats: {
+        ...newState.stats,
+        totalEggsLaid: newState.stats.totalEggsLaid + dtSec,
+      },
       eggPipeline: {
         ...newState.eggPipeline,
         count: newState.eggPipeline.count + dtSec,
