@@ -286,6 +286,11 @@ describe('Phase transitions — property-based (no dead ends)', () => {
           state.resources.antimatter = 10;
           state.resources.darkMatter = 5;
           break;
+        case Phase.COMBAT:
+          // COMBAT → EXPANSION: workers >= 25 AND battlesWon >= 3
+          state.resources.workers = 25;
+          state.battlesWon = 3;
+          break;
       }
 
       expect(
@@ -311,8 +316,8 @@ describe('Phase transitions — property-based (no dead ends)', () => {
       ).toBe(true);
     }
 
-    // COMBAT has no outgoing transition (design choice)
-    expect(phasesWithOutgoing.has(Phase.COMBAT)).toBe(false);
+    // COMBAT has an outgoing transition to EXPANSION (added after property tests were written)
+    expect(phasesWithOutgoing.has(Phase.COMBAT)).toBe(true);
     // Transcendence is terminal — no outgoing transitions is correct
     expect(phasesWithOutgoing.has(Phase.TRANSCENDENCE)).toBe(false);
   });
