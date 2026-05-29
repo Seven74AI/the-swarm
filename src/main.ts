@@ -338,13 +338,26 @@ export function bootstrap(): {
     playTimeMs: gameState.value.stats.playTimeMs,
   }));
 
-  // Save on beforeunload
+  // Save on beforeunload (forced — always saves regardless of rate limit)
   if (typeof window !== 'undefined') {
     window.addEventListener('beforeunload', () => {
       const state = gameState.value;
-      saveManager.save(state, state.stats.playTimeMs);
+      saveManager.save(state, state.stats.playTimeMs, true);
     });
   }
+
+  // Save on meaningful user actions (rate-limited to max 1 per 5s via SaveManager)
+  const actionSave = () => {
+    const state = gameState.value;
+    saveManager.save(state, state.stats.playTimeMs);
+  };
+
+  bus.subscribe('battle_completed', actionSave);
+  bus.subscribe('prestige_triggered', actionSave);
+  bus.subscribe('upgrade_purchased', actionSave);
+  bus.subscribe('prestige_upgrade_purchased', actionSave);
+  bus.subscribe('expedition_return', actionSave);
+  bus.subscribe('exploration_return', actionSave);
 
   loop.start();
 
