@@ -296,6 +296,11 @@ describe('Phase transitions — property-based (no dead ends)', () => {
           state.resources.antimatter = 10;
           state.resources.darkMatter = 5;
           break;
+        case Phase.COMBAT:
+          // COMBAT → EXPANSION: workers >= 25 AND battlesWon >= 3
+          state.resources.workers = 25;
+          state.battlesWon = 3;
+          break;
       }
 
       expect(
