@@ -12,7 +12,7 @@ import { test, expect } from '@playwright/test';
 
 function makeSaveData(overrides?: Record<string, unknown>) {
   return {
-    version: 7,
+    version: 11,
     timestamp: Date.now(),
     playTimeMs: 0,
     gameState: {
@@ -51,6 +51,19 @@ function makeSaveData(overrides?: Record<string, unknown>) {
           darkMatterDetection: { state: 'locked', progress: 0 },
         },
       },
+      nextIds: { expedition: 1, exploration: 1, spaceship: 1 },
+      prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 0 },
+      autoProduction: {
+        enabled: false,
+        researches: {},
+        buildings: { nursery: 0, hatchery: 0, queens_chamber: 0 },
+        progress: 0,
+      },
+      conversions: { particleLab: 0 },
+      offlineEfficiency: 0.5,
+      entropy: 0,
+      entropyDampener: { level: 0 },
+      prestigeTree: { purchased: [] },
       ...overrides,
     },
   };
