@@ -87,6 +87,7 @@ export const LARVA_MATURE_TIME = 10; // ticks
 const FOOD_PER_WORKER = 1;
 const FOOD_PER_GATHER = 2;
 const TEND_MULTIPLIER = 0.25; // each tend worker gives +25% hatch rate
+const NEST_CAPACITY_PER_DIG = 1; // each dig worker gives +1 nest capacity/tick
 
 /**
  * ResourceSystem handles all resource mutations: clicking, ticking, buying.
@@ -237,6 +238,13 @@ export class ResourceSystem {
     stone = Math.max(0, stone);
     nectar = Math.max(0, nectar);
 
+    // Dig workers: each dig worker increases nest capacity by NEST_CAPACITY_PER_DIG/tick
+    const digCount = state.workersAssigned.dig;
+    let nestCapacity = state.resources.nestCapacity;
+    if (digCount > 0) {
+      nestCapacity += digCount * NEST_CAPACITY_PER_DIG * dtSec;
+    }
+
     const result: GameState = {
       ...state,
       resources: {
@@ -248,6 +256,7 @@ export class ResourceSystem {
         wood,
         stone,
         nectar,
+        nestCapacity,
       },
       eggPipeline: { count: newEggCount, progress: newEggProgress },
       larvaPipeline: { count: newLarvaCount, progress: newLarvaProgress },
