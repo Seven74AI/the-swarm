@@ -294,6 +294,45 @@ html, body {
   }
 }
 
+/* ── Burst Particle (radiating dots on click) ── */
+.burst-particle {
+  position: fixed;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent-glow);
+  box-shadow: 0 0 6px var(--accent-glow);
+  pointer-events: none;
+  z-index: 20;
+  animation: burst-expand 500ms ease-out forwards;
+}
+
+@keyframes burst-expand {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0);
+  }
+}
+
+/* ── Resource Flash (color tween on value change) ── */
+.critical-value {
+  transition: color 150ms ease-out, text-shadow 150ms ease-out;
+}
+
+.critical-value.flash-increase {
+  color: var(--success);
+  text-shadow: 0 0 8px var(--success);
+}
+
+.critical-value.flash-decrease {
+  color: var(--danger);
+  text-shadow: 0 0 8px var(--danger);
+}
+
 /* ── Progress Bar ── */
 .progress-bar {
   width: 100%;

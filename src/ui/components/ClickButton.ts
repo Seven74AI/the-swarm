@@ -5,10 +5,15 @@ import type { ResourceSystem } from '../../systems/ResourceSystem';
 import type { SaveManager } from '../../persistence/SaveManager';
 import type { GameState } from '../../state/GameState';
 import { formatNumber } from '../../utils/format';
+import type { AudioSystem } from '../AudioSystem';
+
+/** Number of burst particles spawned per click (in addition to the text particle). */
+const BURST_COUNT = 5;
 
 /**
  * The core "Lay Egg" button.
  * On click: calls ResourceSystem.clickEgg, updates state, triggers save.
+ * Spawns floating "+N 🥚" text particle + burst of small dot particles.
  */
 export class ClickButton {
   private container: HTMLDivElement;
@@ -22,6 +27,7 @@ export class ClickButton {
     private saveManager: SaveManager,
     private getState: () => GameState,
     private setState: (state: GameState) => void,
+    private audio?: AudioSystem,
   ) {
     this.container = document.createElement('div');
     this.container.className = 'click-button-container';
@@ -53,6 +59,8 @@ export class ClickButton {
     this.bus.emit('click:egg', {});
     this.saveManager.save(newState, newState.stats.playTimeMs);
     this.spawnClickParticle();
+    this.spawnBurstParticles();
+    this.audio?.play('click');
   }
 
   /** Spawn a floating "+1 🥚" particle near the click button */
@@ -79,6 +87,42 @@ export class ClickButton {
 
   private updateCounter(clicks: number): void {
     this.counter.textContent = `Clicks: ${formatNumber(clicks)}`;
+  }
+
+  /** Spawn small burst dot particles radiating from the button center. */
+  private spawnBurstParticles(): void {
+    const rect = this.button.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+
+    for (let i = 0; i < BURST_COUNT; i++) {
+      const dot = document.createElement('span');
+      dot.className = 'burst-particle';
+
+      // Random angle and distance
+      const angle = (Math.PI * 2 * i) / BURST_COUNT + (Math.random() - 0.5) * 0.5;
+      const distance = 30 + Math.random() * 40;
+      const dx = Math.cos(angle) * distance;
+      const dy = Math.sin(angle) * distance;
+
+      dot.style.cssText = [
+        `position: fixed`,
+        `left: ${cx + dx}px`,
+        `top: ${cy + dy}px`,
+        `animation-delay: ${Math.random() * 0.05}s`,
+      ].join('; ');
+
+      dot.addEventListener('animationend', () => {
+        dot.remove();
+      }, { once: true });
+
+      // Safety net: force-remove after animation duration
+      setTimeout(() => {
+        if (dot.isConnected) dot.remove();
+      }, 1500);
+
+      document.body.appendChild(dot);
+    }
   }
 
   getElement(): HTMLDivElement {
