@@ -37,7 +37,7 @@ import type { AudioSystem } from './AudioSystem';
 /**
  * Root UI controller. Mounts all panels into #app.
  * State flows through @preact/signals-core — no Store dependency.
- * Phase 4+ panels use lazy creation via createPanel() for progressive unfolding.
+ * Phase 2+ panels use lazy creation via createPanel() for progressive unfolding.
  */
 export class UIRoot {
   private bus: EventBus;
@@ -93,7 +93,7 @@ export class UIRoot {
     this.audio = deps.audio;
 
     // ── Populate panel registry with factory functions ──
-    // Phase 1 panels (mounted at boot for backward compat)
+    // Phase 1 panels (mounted at boot for always-visible UI)
     this.panelRegistry.set('resource_panel', () => new ResourcePanel().getElement());
     this.panelRegistry.set('phase_indicator', () => new PhaseIndicator(this.bus, this.getState().phase as Phase).getElement());
     this.panelRegistry.set('click_button', () => new ClickButton(
@@ -105,13 +105,13 @@ export class UIRoot {
       return el;
     });
 
-    // Phase 2 panels
+    // Phase 2 panels (lazy — created on demand when colony phase is entered)
     this.panelRegistry.set('worker_assignment', () => new WorkerAssignment(
       this.bus, this.resourceSystem, this.getState, this.setState,
     ).getElement());
     this.panelRegistry.set('food_display', () => new FoodDisplay().getElement());
 
-    // Phase 3 panels
+    // Phase 3 panels (lazy — created on demand when combat/expansion phase is entered)
     this.panelRegistry.set('soldier_panel', () => new SoldierPanel(
       this.bus, this.soldierSystem, this.getState, this.setState,
     ).getElement());
@@ -209,73 +209,15 @@ export class UIRoot {
     panels.id = 'panels';
     this.panelsContainer = panels;
 
-    // ── Phase 1–3 panels: mount at boot (backward compat) ──
+    // ── Phase 1 panels: mount at boot (always visible) ──
     const resourcePanel = new ResourcePanel();
     panels.appendChild(resourcePanel.getElement());
     this.panelElements.set('resource_panel', resourcePanel.getElement());
 
-    // Worker assignment panel (Phase 2), hidden until colony phase
-    const workerAssignment = new WorkerAssignment(
-      this.bus,
-      this.resourceSystem,
-      this.getState,
-      this.setState,
-    );
-    panels.appendChild(workerAssignment.getElement());
-    this.panelElements.set('worker_assignment', workerAssignment.getElement());
-
-    // Soldier panel (Phase 3), hidden until combat phase
-    const soldierPanel = new SoldierPanel(
-      this.bus,
-      this.soldierSystem,
-      this.getState,
-      this.setState,
-    );
-    panels.appendChild(soldierPanel.getElement());
-    this.panelElements.set('soldier_panel', soldierPanel.getElement());
-
-    // Battle panel (Phase 3), hidden until combat phase
-    const battlePanel = new BattlePanel(
-      this.bus,
-      this.soldierSystem,
-      this.battleSystem,
-      this.getState,
-      this.setState,
-    );
-    panels.appendChild(battlePanel.getElement());
-    this.panelElements.set('battle_panel', battlePanel.getElement());
-
-    // Combat log panel (Phase 3), hidden until combat phase
-    const combatLogPanel = new CombatLogPanel();
-    panels.appendChild(combatLogPanel.getElement());
-    this.panelElements.set('combat_log', combatLogPanel.getElement());
-
-    // Building panel (Phase 3), hidden until expansion phase
-    const buildingPanel = new BuildingPanel(this.bus, this.getState, this.setState);
-    panels.appendChild(buildingPanel.getElement());
-    this.panelElements.set('building_panel', buildingPanel.getElement());
-
-    // Expedition panel (Phase 3), hidden until expansion phase
-    const expeditionPanel = new ExpeditionPanel(
-      this.bus,
-      this.getState,
-      this.setState,
-    );
-    panels.appendChild(expeditionPanel.getElement());
-    this.panelElements.set('expedition_panel', expeditionPanel.getElement());
-
-    // Map panel (Phase 3), hidden until expansion phase
-    const mapPanel = new MapPanel(
-      this.mapSystem,
-      this.getState,
-      this.setState,
-    );
-    panels.appendChild(mapPanel.getElement());
-    this.panelElements.set('map_panel', mapPanel.getElement());
-
-    // ── Phase 4+ panels are NOT mounted at boot ──
+    // ── Phase 2+ panels are NOT mounted at boot ──
     // They are created lazily via createPanel() when their phase is entered.
-    // This makes panel reveals feel like genuine new features.
+    // This makes panel reveals feel like genuine new features and avoids
+    // cluttering the DOM with disabled buttons from the first second.
 
     // ── Decision popup (bottom-right fixed, non-blocking) ──
     container.appendChild(this.decisionPopup.getElement());
