@@ -14,6 +14,7 @@ import { PhaseIndicator } from './panels/PhaseIndicator';
 import { WorkerAssignment } from './panels/WorkerAssignment';
 import { SoldierPanel } from './panels/SoldierPanel';
 import { BattlePanel } from './panels/BattlePanel';
+import { CombatLogPanel } from './panels/CombatLogPanel';
 import { BuildingPanel } from './panels/BuildingPanel';
 import { ExpeditionPanel } from './panels/ExpeditionPanel';
 import { ExplorationPanel } from './panels/ExplorationPanel';
@@ -107,6 +108,7 @@ export class UIRoot {
     this.panelRegistry.set('battle_panel', () => new BattlePanel(
       this.bus, this.soldierSystem, this.battleSystem, this.getState, this.setState,
     ).getElement());
+    this.panelRegistry.set('combat_log', () => new CombatLogPanel().getElement());
     this.panelRegistry.set('building_panel', () => new BuildingPanel(
       this.bus, this.getState, this.setState,
     ).getElement());
@@ -221,6 +223,11 @@ export class UIRoot {
     );
     panels.appendChild(battlePanel.getElement());
     this.panelElements.set('battle_panel', battlePanel.getElement());
+
+    // Combat log panel (Phase 3), hidden until combat phase
+    const combatLogPanel = new CombatLogPanel();
+    panels.appendChild(combatLogPanel.getElement());
+    this.panelElements.set('combat_log', combatLogPanel.getElement());
 
     // Building panel (Phase 3), hidden until expansion phase
     const buildingPanel = new BuildingPanel(this.bus, this.getState, this.setState);

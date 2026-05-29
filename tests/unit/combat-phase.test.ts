@@ -192,10 +192,7 @@ describe('PhaseContent — COMBAT panels', () => {
 
   it('includes combat_log in COMBAT phase', () => {
     const panels = phaseContent.getActivePanels(Phase.COMBAT);
-    // combat_log was a phantom panel (never existed) — removed in #17
-    // COMBAT phase includes soldier_panel and battle_panel instead
-    expect(panels).toContain('soldier_panel');
-    expect(panels).toContain('battle_panel');
+    expect(panels).toContain('combat_log');
   });
 
   it('COMBAT phase includes all COLONY panels (additive)', () => {
