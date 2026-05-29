@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Phase, PHASE_ORDER } from '../../src/phases/phases';
 import type { Transition } from '../../src/phases/transitions';
-import { EGG_TO_COLONY, COLONY_TO_COMBAT, COLONY_TO_EXPANSION, EXPANSION_TO_SPACE, SPACE_TO_TRANSCENDENCE } from '../../src/phases/transitions';
+import { EGG_TO_COLONY, COLONY_TO_COMBAT, COMBAT_TO_EXPANSION, COLONY_TO_EXPANSION, EXPANSION_TO_SPACE, SPACE_TO_TRANSCENDENCE } from '../../src/phases/transitions';
 import { createInitialState } from '../../src/state/GameState';
 import { EventBus } from '../../src/engine/EventBus';
 
@@ -145,6 +145,53 @@ describe('Transition COLONY → COMBAT', () => {
     COLONY_TO_COMBAT.onEnter!(state, bus);
     expect(emitted).toBe(true);
     expect(phasePayload).toBe(Phase.COMBAT);
+  });
+});
+
+describe('Transition COMBAT → EXPANSION', () => {
+  it('has correct from/to', () => {
+    expect(COMBAT_TO_EXPANSION.from).toBe(Phase.COMBAT);
+    expect(COMBAT_TO_EXPANSION.to).toBe(Phase.EXPANSION);
+  });
+
+  it('guard returns true when workers >= 25 AND battlesWon >= 3', () => {
+    const state = createInitialState();
+    state.resources.workers = 25;
+    state.battlesWon = 3;
+    expect(COMBAT_TO_EXPANSION.guard(state)).toBe(true);
+  });
+
+  it('guard returns false when workers < 25 even if battlesWon >= 3', () => {
+    const state = createInitialState();
+    state.resources.workers = 24;
+    state.battlesWon = 3;
+    expect(COMBAT_TO_EXPANSION.guard(state)).toBe(false);
+  });
+
+  it('guard returns false when battlesWon < 3 even if workers >= 25', () => {
+    const state = createInitialState();
+    state.resources.workers = 25;
+    state.battlesWon = 2;
+    expect(COMBAT_TO_EXPANSION.guard(state)).toBe(false);
+  });
+
+  it('guard returns false when both conditions not met', () => {
+    const state = createInitialState();
+    expect(COMBAT_TO_EXPANSION.guard(state)).toBe(false);
+  });
+
+  it('onEnter emits phase_changed event with EXPANSION', () => {
+    const state = createInitialState();
+    const bus = new EventBus();
+    let emitted = false;
+    let phasePayload: string | null = null;
+    bus.subscribe('phase_changed', (payload: unknown) => {
+      emitted = true;
+      phasePayload = (payload as { phase: string }).phase;
+    });
+    COMBAT_TO_EXPANSION.onEnter!(state, bus);
+    expect(emitted).toBe(true);
+    expect(phasePayload).toBe(Phase.EXPANSION);
   });
 });
 
