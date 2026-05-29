@@ -69,7 +69,7 @@ describe('PhaseContent', () => {
       expect(panels).toContain('expedition_panel');
       expect(panels).toContain('spaceship_panel');
       expect(panels).toContain('exploration_panel');
-      // cosmic_panel was a phantom panel (never existed) — removed in #17
+      expect(panels).toContain('cosmic_panel');
     });
 
     it('space phase has more panels than expansion', () => {
@@ -92,6 +92,7 @@ describe('PhaseContent', () => {
       expect(panels).toContain('expedition_panel');
       expect(panels).toContain('spaceship_panel');
       expect(panels).toContain('exploration_panel');
+      expect(panels).toContain('cosmic_panel');
       // transcendence_panel was a phantom panel (never existed) — removed in #17
     });
 

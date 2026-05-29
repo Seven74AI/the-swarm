@@ -20,6 +20,7 @@ import { ExpeditionPanel } from './panels/ExpeditionPanel';
 import { ExplorationPanel } from './panels/ExplorationPanel';
 import { MapPanel } from './panels/MapPanel';
 import { SpaceshipPanel } from './panels/SpaceshipPanel';
+import { CosmicPanel } from './panels/CosmicPanel';
 import { StarmapPanel } from './panels/StarmapPanel';
 import { ResourceConverterPanel } from './panels/ResourceConverterPanel';
 import { TechTreePanel } from './panels/TechTreePanel';
@@ -122,6 +123,9 @@ export class UIRoot {
 
     // Phase 4 panels (lazy — created on demand)
     this.panelRegistry.set('spaceship_panel', () => new SpaceshipPanel(
+      this.bus, this.getState, this.setState,
+    ).getElement());
+    this.panelRegistry.set('cosmic_panel', () => new CosmicPanel(
       this.bus, this.getState, this.setState,
     ).getElement());
     this.panelRegistry.set('exploration_panel', () => new ExplorationPanel(
