@@ -9,26 +9,64 @@ on:
     paths-ignore: ['**.md', '**.txt']
 
 jobs:
-  ci:
+  typecheck:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v6
-
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: 'pnpm'
-
       - run: pnpm install --frozen-lockfile
-
-      - run: pnpm exec playwright install --with-deps
-
       - run: pnpm run typecheck
 
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
       - run: pnpm run lint
 
+  vitest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps
       - run: pnpm run test
 
+  playwright:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps
       - run: pnpm exec playwright test --workers=1
+
+  playwright-gate:
+    needs: [playwright]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          if [ "${{ needs.playwright.result }}" != "success" ]; then
+            echo "playwright job failed — gate blocked"
+            exit 1
+          fi
+          echo "playwright passed — gate open"
