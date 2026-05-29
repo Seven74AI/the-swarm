@@ -20,8 +20,10 @@ import {
 import { tickAutoProduction } from './engine/AutoProductionLoop';
 import { getPrestigeBonuses } from './systems/PrestigeBonusSystem';
 import { UIRoot } from './ui/UIRoot';
+import { AudioSystem } from './ui/AudioSystem';
 import { SaveManager } from './persistence/SaveManager';
 import type { OfflineLoadInfo } from './persistence/SaveManager';
+import { computeOfflineResourceDeltas } from './systems/OfflineProgression';
 import { OfflineSummaryPopup } from './ui/components/OfflineSummaryPopup';
 import { PhaseStateMachine } from './phases/PhaseStateMachine';
 import { Phase, PHASE_ORDER } from './phases/phases';
@@ -50,6 +52,7 @@ export function bootstrap(): {
   fsm: PhaseStateMachine;
   ui: UIRoot;
   decisionSystem: DecisionSystem;
+  audio: AudioSystem;
 } {
   const bus = new EventBus();
   const ticker = new Ticker();
@@ -58,6 +61,7 @@ export function bootstrap(): {
   const battleSystem = new BattleSystem(bus);
   const decisionSystem = new DecisionSystem(bus);
   const saveManager = new SaveManager();
+  const audio = new AudioSystem();
   const loop = new GameLoop(ticker);
   const phaseContent = new PhaseContent();
   const mapSystem = new MapSystem();
@@ -79,12 +83,44 @@ export function bootstrap(): {
       // Capture before-state for resource delta calculation
       const beforeState = gameState.value;
 
-      // Run accelerated catch-up: simulate only the efficiency-reduced tick count
-      const dtSec = 50 / 1000; // 50ms per tick
-      let catchUpState = gameState.value;
+      // ─── Closed-form resource computation (rate × time) ───
+      // Deterministic resources (food, wood, stone) use a single bulk computation
+      // instead of per-tick summation. This is O(1) instead of O(ticks) for
+      // resource math, making offline catch-up faster.
+      const totalDtSec = offlineData.effectiveMs / 1000;
+      const territoryBonuses = territorySystem.getBonuses(gameState.value);
+      const resourceDeltas = computeOfflineResourceDeltas(
+        gameState.value,
+        totalDtSec,
+        territoryBonuses,
+      );
 
+      // Apply closed-form resource deltas
+      let catchUpState = {
+        ...gameState.value,
+        resources: {
+          ...gameState.value.resources,
+          food: gameState.value.resources.food + resourceDeltas.foodDelta,
+          wood: gameState.value.resources.wood + resourceDeltas.woodDelta,
+          stone: gameState.value.resources.stone + resourceDeltas.stoneDelta,
+          nectar: gameState.value.resources.nectar + resourceDeltas.nectarDelta,
+        },
+        prestige: {
+          ...gameState.value.prestige,
+          totalFoodProduced: gameState.value.prestige.totalFoodProduced + resourceDeltas.grossFoodProduced,
+        },
+      };
+
+      // ─── Tick-based catch-up: only non-linear events ───
+      // Run the tick loop for pipelines (eggs→larvae→workers/soldiers),
+      // battles, expeditions, and other non-deterministic events.
+      // Deterministic resource deltas are skipped (applied above via closed-form).
+      const dtSec = 50 / 1000; // 50ms per tick
       for (let i = 0; i < offlineData.offlineTicks; i++) {
-        catchUpState = processTick(catchUpState, resourceSystem, soldierSystem, mapSystem, territorySystem, bus, dtSec);
+        catchUpState = processTick(
+          catchUpState, resourceSystem, soldierSystem, mapSystem, territorySystem, bus, dtSec,
+          true, // skipDeterministicResources — handled by closed-form above
+        );
       }
 
       gameState.value = catchUpState;
@@ -145,11 +181,19 @@ export function bootstrap(): {
     newState = soldierSystem.tick(newState);
     newState = tickAutoProduction(newState, dtSec);
 
-    // Auto-egg-layer from prestige tree (1 egg/sec into eggPipeline)
+    // Auto-egg-layer from prestige tree (1 egg/sec)
     const prestigeBonuses = getPrestigeBonuses(newState);
     if (prestigeBonuses.autoEggLayer) {
       newState = {
         ...newState,
+        resources: {
+          ...newState.resources,
+          eggs: newState.resources.eggs + dtSec,
+        },
+        stats: {
+          ...newState.stats,
+          totalEggsLaid: newState.stats.totalEggsLaid + dtSec,
+        },
         eggPipeline: {
           ...newState.eggPipeline,
           count: newState.eggPipeline.count + dtSec,
@@ -302,6 +346,7 @@ export function bootstrap(): {
     territorySystem,
     getState: () => gameState.value,
     setState: (state: GameState) => { gameState.value = state; },
+    audio,
   });
   if (app) {
     ui.mount(app);
@@ -323,6 +368,23 @@ export function bootstrap(): {
     phaseContent.triggerTransition(phase, bus, ui);
   });
 
+  // ── Audio: wire sound effects to game events ──
+  bus.subscribe('prestige_triggered', () => {
+    audio.play('prestige');
+  });
+  bus.subscribe('battle_completed', () => {
+    audio.play('battle');
+  });
+  bus.subscribe('battle_engage', () => {
+    audio.play('battle');
+  });
+  bus.subscribe('expedition_return', () => {
+    audio.play('discovery');
+  });
+  bus.subscribe('exploration_return', () => {
+    audio.play('discovery');
+  });
+
   console.log('[Offline] Before mount check. offlinePopup is:', !!offlinePopup);
 
   // If we have an offline popup, mount it after UI is mounted
@@ -338,24 +400,37 @@ export function bootstrap(): {
     playTimeMs: gameState.value.stats.playTimeMs,
   }));
 
-  // Save on beforeunload
+  // Save on beforeunload (forced — always saves regardless of rate limit)
   if (typeof window !== 'undefined') {
     window.addEventListener('beforeunload', () => {
       const state = gameState.value;
-      saveManager.save(state, state.stats.playTimeMs);
+      saveManager.save(state, state.stats.playTimeMs, true);
     });
   }
 
+  // Save on meaningful user actions (rate-limited to max 1 per 5s via SaveManager)
+  const actionSave = () => {
+    const state = gameState.value;
+    saveManager.save(state, state.stats.playTimeMs);
+  };
+
+  bus.subscribe('battle_completed', actionSave);
+  bus.subscribe('prestige_triggered', actionSave);
+  bus.subscribe('upgrade_purchased', actionSave);
+  bus.subscribe('prestige_upgrade_purchased', actionSave);
+  bus.subscribe('expedition_return', actionSave);
+  bus.subscribe('exploration_return', actionSave);
+
   loop.start();
 
-  return { bus, ticker, loop, resourceSystem, saveManager, fsm, ui, decisionSystem };
+  return { bus, ticker, loop, resourceSystem, saveManager, fsm, ui, decisionSystem, audio };
 }
 
 /**
  * Process a single tick for offline catch-up simulation.
  * Extracted so it can be reused by the main tick loop and offline processing.
  */
-function processTick(
+export function processTick(
   state: GameState,
   resourceSystem: ResourceSystem,
   soldierSystem: SoldierSystem,
@@ -363,6 +438,7 @@ function processTick(
   territorySystem: TerritorySystem,
   bus: EventBus,
   dtSec: number,
+  skipDeterministicResources: boolean = false,
 ): GameState {
   let workingState = state;
 
@@ -372,32 +448,43 @@ function processTick(
   }
 
   const bonuses = territorySystem.getBonuses(workingState);
-  let newState = resourceSystem.tick(workingState, bonuses, dtSec);
+  let newState = resourceSystem.tick(workingState, bonuses, dtSec, skipDeterministicResources);
 
   // Track gross food produced for prestige system
-  const pWorkers = workingState.resources.workers;
-  const pAssigned = workingState.workersAssigned;
-  const pGatherCount = pAssigned.gather;
-  const pUnassignedCount = pWorkers - pGatherCount - pAssigned.tend - pAssigned.dig - pAssigned.guard;
-  const pBaseFoodProduced = pGatherCount * 2 + Math.max(0, pUnassignedCount) * 1;
-  const pTerritoryFood = Math.floor(pWorkers * (bonuses.food ?? 0));
-  const pGrossFoodProduced = (pBaseFoodProduced + pTerritoryFood) * dtSec;
-  newState = {
-    ...newState,
-    prestige: {
-      ...newState.prestige,
-      totalFoodProduced: newState.prestige.totalFoodProduced + pGrossFoodProduced,
-    },
-  };
+  // Skip when using closed-form offline computation (already counted above)
+  if (!skipDeterministicResources) {
+    const pWorkers = workingState.resources.workers;
+    const pAssigned = workingState.workersAssigned;
+    const pGatherCount = pAssigned.gather;
+    const pUnassignedCount = pWorkers - pGatherCount - pAssigned.tend - pAssigned.dig - pAssigned.guard;
+    const pBaseFoodProduced = pGatherCount * 2 + Math.max(0, pUnassignedCount) * 1;
+    const pTerritoryFood = Math.floor(pWorkers * (bonuses.food ?? 0));
+    const pGrossFoodProduced = (pBaseFoodProduced + pTerritoryFood) * dtSec;
+    newState = {
+      ...newState,
+      prestige: {
+        ...newState.prestige,
+        totalFoodProduced: newState.prestige.totalFoodProduced + pGrossFoodProduced,
+      },
+    };
+  }
 
   newState = soldierSystem.tick(newState);
   newState = tickAutoProduction(newState, dtSec);
 
-  // Auto-egg-layer from prestige tree (1 egg/sec into eggPipeline)
+  // Auto-egg-layer from prestige tree (1 egg/sec)
   const pBonuses = getPrestigeBonuses(newState);
   if (pBonuses.autoEggLayer) {
     newState = {
       ...newState,
+      resources: {
+        ...newState.resources,
+        eggs: newState.resources.eggs + dtSec,
+      },
+      stats: {
+        ...newState.stats,
+        totalEggsLaid: newState.stats.totalEggsLaid + dtSec,
+      },
       eggPipeline: {
         ...newState.eggPipeline,
         count: newState.eggPipeline.count + dtSec,

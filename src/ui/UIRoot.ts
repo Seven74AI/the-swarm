@@ -14,20 +14,25 @@ import { PhaseIndicator } from './panels/PhaseIndicator';
 import { WorkerAssignment } from './panels/WorkerAssignment';
 import { SoldierPanel } from './panels/SoldierPanel';
 import { BattlePanel } from './panels/BattlePanel';
+import { CombatLogPanel } from './panels/CombatLogPanel';
 import { BuildingPanel } from './panels/BuildingPanel';
 import { ExpeditionPanel } from './panels/ExpeditionPanel';
 import { ExplorationPanel } from './panels/ExplorationPanel';
 import { MapPanel } from './panels/MapPanel';
 import { SpaceshipPanel } from './panels/SpaceshipPanel';
+import { CosmicPanel } from './panels/CosmicPanel';
 import { StarmapPanel } from './panels/StarmapPanel';
 import { ResourceConverterPanel } from './panels/ResourceConverterPanel';
 import { TechTreePanel } from './panels/TechTreePanel';
 import { AutoProductionPanel } from './panels/AutoProductionPanel';
 import { PrestigePanel } from './panels/PrestigePanel';
 import { PrestigeTreePanel } from './panels/PrestigeTreePanel';
+import { TranscendencePanel } from './panels/TranscendencePanel';
 import { ResearchPanel } from './panels/ResearchPanel';
+import { FoodDisplay } from './panels/FoodDisplay';
 import type { DecisionEvent } from '../systems/DecisionSystem';
 import { DecisionPopup } from './components/DecisionPopup';
+import type { AudioSystem } from './AudioSystem';
 
 /**
  * Root UI controller. Mounts all panels into #app.
@@ -53,6 +58,9 @@ export class UIRoot {
   /** Decision popup (bottom-right, non-blocking) */
   private decisionPopup: DecisionPopup;
 
+  /** Audio system for sound effects */
+  private audio: AudioSystem | undefined;
+
   /** Container div (#panels) where all panels are appended. */
   private panelsContainer: HTMLElement | null = null;
 
@@ -69,6 +77,7 @@ export class UIRoot {
     territorySystem: TerritorySystem;
     getState: () => GameState;
     setState: (state: GameState) => void;
+    audio?: AudioSystem;
   }) {
     this.bus = deps.bus;
     this.resourceSystem = deps.resourceSystem;
@@ -81,13 +90,14 @@ export class UIRoot {
     this.setState = deps.setState;
     this.eventLog = new EventLog(this.bus);
     this.decisionPopup = new DecisionPopup(this.bus);
+    this.audio = deps.audio;
 
     // ── Populate panel registry with factory functions ──
     // Phase 1 panels (mounted at boot for backward compat)
     this.panelRegistry.set('resource_panel', () => new ResourcePanel().getElement());
     this.panelRegistry.set('phase_indicator', () => new PhaseIndicator(this.bus, this.getState().phase as Phase).getElement());
     this.panelRegistry.set('click_button', () => new ClickButton(
-      this.bus, this.resourceSystem, this.saveManager, this.getState, this.setState,
+      this.bus, this.resourceSystem, this.saveManager, this.getState, this.setState, deps.audio,
     ).getElement());
     this.panelRegistry.set('event_log', () => {
       const el = this.eventLog.getElement();
@@ -99,6 +109,7 @@ export class UIRoot {
     this.panelRegistry.set('worker_assignment', () => new WorkerAssignment(
       this.bus, this.resourceSystem, this.getState, this.setState,
     ).getElement());
+    this.panelRegistry.set('food_display', () => new FoodDisplay().getElement());
 
     // Phase 3 panels
     this.panelRegistry.set('soldier_panel', () => new SoldierPanel(
@@ -107,6 +118,7 @@ export class UIRoot {
     this.panelRegistry.set('battle_panel', () => new BattlePanel(
       this.bus, this.soldierSystem, this.battleSystem, this.getState, this.setState,
     ).getElement());
+    this.panelRegistry.set('combat_log', () => new CombatLogPanel().getElement());
     this.panelRegistry.set('building_panel', () => new BuildingPanel(
       this.bus, this.getState, this.setState,
     ).getElement());
@@ -121,16 +133,23 @@ export class UIRoot {
     this.panelRegistry.set('spaceship_panel', () => new SpaceshipPanel(
       this.bus, this.getState, this.setState,
     ).getElement());
+    this.panelRegistry.set('cosmic_panel', () => new CosmicPanel(
+      this.bus, this.getState, this.setState,
+    ).getElement());
     this.panelRegistry.set('exploration_panel', () => new ExplorationPanel(
       this.bus, this.getState, this.setState,
     ).getElement());
-    this.panelRegistry.set('starmap_panel', () => new StarmapPanel().getElement());
-    this.panelRegistry.set('resource_converter_panel', () => new ResourceConverterPanel().getElement());
+    this.panelRegistry.set('starmap_panel', () => new StarmapPanel(
+      this.bus, this.getState, this.setState,
+    ).getElement());
+    this.panelRegistry.set('resource_converter_panel', () => new ResourceConverterPanel(
+      this.bus, this.getState, this.setState,
+    ).getElement());
 
     // Phase 5 panels (lazy — created on demand)
-    this.panelRegistry.set('tech_tree_panel', () => new TechTreePanel().getElement());
-    // Phase 5 panels (lazy — created on demand)
-    this.panelRegistry.set('tech_tree_panel', () => new TechTreePanel().getElement());
+    this.panelRegistry.set('tech_tree_panel', () => new TechTreePanel(
+      this.bus, this.getState, this.setState,
+    ).getElement());
     this.panelRegistry.set('automation_panel', () => new AutoProductionPanel(
       this.bus, this.getState, this.setState,
     ).getElement());
@@ -138,6 +157,9 @@ export class UIRoot {
       this.bus, this.getState, this.setState,
     ).getElement());
     this.panelRegistry.set('prestige_tree_panel', () => new PrestigeTreePanel(
+      this.bus, this.getState, this.setState,
+    ).getElement());
+    this.panelRegistry.set('transcendence_panel', () => new TranscendencePanel(
       this.bus, this.getState, this.setState,
     ).getElement());
 
@@ -171,6 +193,7 @@ export class UIRoot {
       this.saveManager,
       this.getState,
       this.setState,
+      this.audio,
     );
     container.appendChild(clickBtn.getElement());
     this.panelElements.set('click_button', clickBtn.getElement());
@@ -221,6 +244,11 @@ export class UIRoot {
     );
     panels.appendChild(battlePanel.getElement());
     this.panelElements.set('battle_panel', battlePanel.getElement());
+
+    // Combat log panel (Phase 3), hidden until combat phase
+    const combatLogPanel = new CombatLogPanel();
+    panels.appendChild(combatLogPanel.getElement());
+    this.panelElements.set('combat_log', combatLogPanel.getElement());
 
     // Building panel (Phase 3), hidden until expansion phase
     const buildingPanel = new BuildingPanel(this.bus, this.getState, this.setState);

@@ -1,0 +1,146 @@
+{
+  "version": 4,
+  "timestamp": 1696000000000,
+  "playTimeMs": 7200000,
+  "gameState": {
+    "phase": "war",
+    "resources": {
+      "eggs": 1000,
+      "larvae": 500,
+      "workers": 200,
+      "food": 12000,
+      "nestCapacity": 100,
+      "wood": 500,
+      "stone": 400,
+      "nectar": 200,
+      "voidCrystals": 5,
+      "antimatter": 2,
+      "darkMatter": 1
+    },
+    "workersAssigned": {
+      "gather": 60,
+      "tend": 40,
+      "dig": 30,
+      "guard": 25
+    },
+    "soldiers": {
+      "scouts": 40,
+      "warriors": 30,
+      "totalKilled": 80
+    },
+    "buildings": {
+      "barracks": {
+        "level": 6,
+        "count": 3
+      },
+      "walls": {
+        "level": 4
+      },
+      "warehouse": {
+        "level": 6
+      }
+    },
+    "territory": {
+      "ownedTiles": 40,
+      "bonuses": {
+        "food": 0.7,
+        "stone": 0.5,
+        "nectar": 0.4
+      }
+    },
+    "mapTiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "type": "meadow",
+        "discovered": true,
+        "claimed": true
+      },
+      {
+        "x": 1,
+        "y": 0,
+        "type": "forest",
+        "discovered": true,
+        "claimed": true
+      },
+      {
+        "x": 2,
+        "y": 1,
+        "type": "mountain",
+        "discovered": true,
+        "claimed": true
+      },
+      {
+        "x": 3,
+        "y": 2,
+        "type": "enemy_nest",
+        "discovered": true,
+        "claimed": false
+      }
+    ],
+    "expeditions": [],
+    "spaceExplorations": [
+      {
+        "id": "expl_v4_1",
+        "destination": "Mars",
+        "ticksRemaining": 20,
+        "risk": 0.5
+      }
+    ],
+    "discoveredPlanets": [],
+    "spaceships": [
+      {
+        "id": "ship_v4_1",
+        "type": "scout_ship",
+        "level": 1,
+        "fuel": 30,
+        "maxFuel": 100,
+        "status": "idle",
+        "missionTicksRemaining": 0,
+        "destinationName": ""
+      }
+    ],
+    "upgrades": {
+      "click_power": 6
+    },
+    "stats": {
+      "totalEggsLaid": 8000,
+      "totalClicks": 1000,
+      "playTimeMs": 7200000
+    },
+    "unlockedPanels": [
+      "resource_panel",
+      "worker_panel",
+      "building_panel",
+      "soldier_panel",
+      "expedition_panel"
+    ],
+    "lastSaveTimestamp": 1696000000000,
+    "combatSoldiers": 50,
+    "soldierStats": {
+      "strength": 2.0,
+      "defense": 2.0,
+      "speed": 15,
+      "maxHp": 30
+    },
+    "equipment": {
+      "weapon": 2,
+      "armor": 2
+    },
+    "lastBattle": {
+      "enemyType": "beetle",
+      "result": "victory",
+      "soldiersLost": 5,
+      "foodGained": 60,
+      "timestamp": 1695900000000
+    },
+    "combatResources": {
+      "chitin": 15,
+      "silk": 10,
+      "venom": 8
+    },
+    "battlesWon": 15,
+    "battlesLost": 3,
+    "victoryAchieved": false
+  }
+}

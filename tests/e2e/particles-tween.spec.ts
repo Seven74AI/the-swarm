@@ -16,6 +16,24 @@ test('click egg button spawns visible floating particle', async ({ page }) => {
   await expect(particle.first()).toContainText('🥚');
 });
 
+test('click egg button spawns burst particles', async ({ page }) => {
+  await page.goto('/');
+
+  // No burst particles before click
+  await expect(page.locator('.burst-particle')).toHaveCount(0);
+
+  // Click the egg button
+  await page.locator('#click-egg').click();
+
+  // Burst particles should appear (fixed position, in body)
+  const burst = page.locator('.burst-particle');
+  await expect(burst.first()).toBeVisible({ timeout: 500 });
+
+  // Multiple burst particles should spawn
+  const count = await burst.count();
+  expect(count).toBeGreaterThan(1);
+});
+
 test('resource increment triggers smooth tween animation', async ({ page }) => {
   await page.goto('/');
 

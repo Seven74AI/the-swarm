@@ -48,6 +48,8 @@ describe('ClickButton - floating "+N" particles', () => {
   });
 
   afterEach(() => {
+    // Clean up burst particles (appended to body, not container)
+    document.querySelectorAll('.burst-particle').forEach((p) => p.remove());
     document.body.removeChild(container);
     vi.restoreAllMocks();
   });
@@ -143,5 +145,59 @@ describe('ClickButton - floating "+N" particles', () => {
 
     const particles = getClickParticles();
     expect(particles.length).toBe(3);
+  });
+
+  it('spawns burst particles on click', () => {
+    const cb = new ClickButton(
+      bus, resourceSystem, saveManager,
+      () => gameState.value as GameState,
+      (s: GameState) => { gameState.value = s; },
+    );
+
+    const el = cb.getElement();
+    container.appendChild(el);
+
+    const button = el.querySelector('#click-egg') as HTMLButtonElement;
+
+    // Before click, no burst particles
+    const beforeBurst = document.querySelectorAll('.burst-particle');
+    expect(beforeBurst.length).toBe(0);
+
+    button.click();
+
+    // After click, burst particles should be spawned
+    const burstParticles = document.querySelectorAll('.burst-particle');
+    expect(burstParticles.length).toBeGreaterThan(0);
+
+    // Each burst particle should have the correct class
+    burstParticles.forEach((p) => {
+      expect(p.classList.contains('burst-particle')).toBe(true);
+    });
+  });
+
+  it('burst particles self-remove after animation end', () => {
+    const cb = new ClickButton(
+      bus, resourceSystem, saveManager,
+      () => gameState.value as GameState,
+      (s: GameState) => { gameState.value = s; },
+    );
+
+    const el = cb.getElement();
+    container.appendChild(el);
+
+    const button = el.querySelector('#click-egg') as HTMLButtonElement;
+    button.click();
+
+    const burstParticles = document.querySelectorAll('.burst-particle');
+    expect(burstParticles.length).toBeGreaterThan(0);
+
+    // Simulate animation end on all burst particles
+    burstParticles.forEach((p) => {
+      p.dispatchEvent(new Event('animationend', { bubbles: false }));
+    });
+
+    // Particles should be removed
+    const afterBurst = document.querySelectorAll('.burst-particle');
+    expect(afterBurst.length).toBe(0);
   });
 });

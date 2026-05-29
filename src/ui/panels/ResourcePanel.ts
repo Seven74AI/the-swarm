@@ -76,6 +76,12 @@ export class ResourcePanel {
   private lastEggRateText: string = '';
   private lastLarvaRateText: string = '';
 
+  // Critical bar dirty-checking cache — avoids DOM writes when unchanged
+  private lastEggsValue: string = '';
+  private lastLarvaeValue: string = '';
+  private lastFoodValue: string = '';
+  private lastSoldiersValue: string = '';
+
   // Colony section progress bars
   private nestCapacityBar!: ProgressBar;
 
@@ -126,17 +132,26 @@ export class ResourcePanel {
     );
 
     // ── Reactive updates ──────────────────────────────────────
+    // Track previous values for flash animation triggers
+    let prevEggs = -1;
+    let prevLarvae = -1;
+    let prevFood = -1;
+    let prevSoldiers = -1;
+
     effect(() => {
       const s = gameState.value;
       const phaseIdx = phaseIndex(s.phase);
 
-      // Update critical bar values (targeting inner .critical-value spans)
-      this.eggValEl.textContent = formatNumber(s.resources.eggs);
-      this.larvaValEl.textContent = formatNumber(s.resources.larvae);
-      this.foodValEl.textContent = formatNumber(s.resources.food);
-      this.soldierValEl.textContent = formatNumber(
-        s.soldiers.scouts + s.soldiers.warriors,
-      );
+      // Update critical bar values with flash animations
+      this.updateWithFlash(this.eggValEl, s.resources.eggs, prevEggs);
+      prevEggs = s.resources.eggs;
+      this.updateWithFlash(this.larvaValEl, s.resources.larvae, prevLarvae);
+      prevLarvae = s.resources.larvae;
+      this.updateWithFlash(this.foodValEl, s.resources.food, prevFood);
+      prevFood = s.resources.food;
+      const soldierTotal = s.soldiers.scouts + s.soldiers.warriors;
+      this.updateWithFlash(this.soldierValEl, soldierTotal, prevSoldiers);
+      prevSoldiers = soldierTotal;
 
       // Update rate indicators with dirty-checking
       const ep = s.eggPipeline;
@@ -187,6 +202,17 @@ export class ResourcePanel {
     const el = document.createElement('span');
     el.className = 'rate-indicator critical-rate';
     return el;
+  }
+
+  /** Helper: create an icon + label pair for resource rows. */
+  private makeIconLabel(icon: string, label: string): [HTMLSpanElement, HTMLSpanElement] {
+    const iconEl = document.createElement('span');
+    iconEl.className = 'hud-resource-icon';
+    iconEl.textContent = icon;
+    const labelEl = document.createElement('span');
+    labelEl.className = 'hud-resource-label';
+    labelEl.textContent = label;
+    return [iconEl, labelEl];
   }
 
   // ── Section builder ─────────────────────────────────────────────
@@ -256,16 +282,22 @@ export class ResourcePanel {
     const workerRow = document.createElement('div');
     workerRow.className = 'hud-resource-row';
     workerRow.setAttribute('data-stat', 'resources.workers');
-    workerRow.innerHTML = '<span class="hud-resource-icon">🐜</span>' +
-      '<span class="hud-resource-label">Workers</span>';
+    const [wIcon, wLabel] = this.makeIconLabel('🐜', 'Workers');
+    workerRow.appendChild(wIcon);
+    workerRow.appendChild(wLabel);
     const workerVal = document.createElement('span');
     workerVal.className = 'hud-resource-value';
     workerRow.appendChild(workerVal);
     body.appendChild(workerRow);
 
-    // Effect to update workers
+    // Effect to update workers with dirty-checking
+    let lastWorkersValue = '';
     effect(() => {
-      workerVal.textContent = formatNumber(gameState.value.resources.workers);
+      const formatted = formatNumber(gameState.value.resources.workers);
+      if (formatted !== lastWorkersValue) {
+        workerVal.textContent = formatted;
+        lastWorkersValue = formatted;
+      }
     });
 
     // Nest capacity progress bar
@@ -276,15 +308,22 @@ export class ResourcePanel {
     // Larvae count
     const larvaRow = document.createElement('div');
     larvaRow.className = 'hud-resource-row';
-    larvaRow.innerHTML = '<span class="hud-resource-icon">🐛</span>' +
-      '<span class="hud-resource-label">Larvae</span>';
+    const [lIcon, lLabel] = this.makeIconLabel('🐛', 'Larvae');
+    larvaRow.appendChild(lIcon);
+    larvaRow.appendChild(lLabel);
     const larvaVal = document.createElement('span');
     larvaVal.className = 'hud-resource-value';
     larvaRow.appendChild(larvaVal);
     body.appendChild(larvaRow);
 
+    // Effect to update larvae count with dirty-checking
+    let lastLarvaeCountValue = '';
     effect(() => {
-      larvaVal.textContent = formatNumber(gameState.value.resources.larvae);
+      const formatted = formatNumber(gameState.value.resources.larvae);
+      if (formatted !== lastLarvaeCountValue) {
+        larvaVal.textContent = formatted;
+        lastLarvaeCountValue = formatted;
+      }
     });
 
     return body;
@@ -303,15 +342,22 @@ export class ResourcePanel {
     for (const r of resources) {
       const row = document.createElement('div');
       row.className = 'hud-resource-row';
-      row.innerHTML = `<span class="hud-resource-icon">${r.icon}</span>` +
-        `<span class="hud-resource-label">${r.label}</span>`;
+      const [sIcon, sLabel] = this.makeIconLabel(r.icon, r.label);
+      row.appendChild(sIcon);
+      row.appendChild(sLabel);
       const val = document.createElement('span');
       val.className = 'hud-resource-value';
       row.appendChild(val);
       body.appendChild(row);
 
+      // Effect to update space resource with dirty-checking
+      let lastSpaceValue = '';
       effect(() => {
-        val.textContent = formatNumber(gameState.value.resources[r.path]);
+        const formatted = formatNumber(gameState.value.resources[r.path]);
+        if (formatted !== lastSpaceValue) {
+          val.textContent = formatted;
+          lastSpaceValue = formatted;
+        }
       });
     }
 
@@ -327,8 +373,9 @@ export class ResourcePanel {
 
     const row = document.createElement('div');
     row.className = 'hud-resource-row';
-    row.innerHTML = '<span class="hud-resource-icon">✨</span>' +
-      '<span class="hud-resource-label">Legacy Points</span>';
+    const [pIcon, pLabel] = this.makeIconLabel('✨', 'Legacy Points');
+    row.appendChild(pIcon);
+    row.appendChild(pLabel);
     const val = document.createElement('span');
     val.className = 'hud-resource-value';
     val.textContent = '0';
@@ -361,30 +408,47 @@ export class ResourcePanel {
     for (const def of defs) {
       const row = document.createElement('div');
       row.className = 'hud-resource-row conversion-row';
-      row.innerHTML = `<span class="hud-resource-icon">${icons[def.id] || '🔄'}</span>` +
-        `<span class="hud-resource-label">${def.name}</span>`;
+      const [cIcon, cLabel] = this.makeIconLabel(icons[def.id] || '🔄', def.name);
+      row.appendChild(cIcon);
+      row.appendChild(cLabel);
 
       const info = document.createElement('span');
       info.className = 'conversion-info';
       row.appendChild(info);
       body.appendChild(row);
 
-      // Reactive: update rate and cap display
+      // Reactive: update rate and cap display with dirty-checking
+      let lastConversionText = '';
       effect(() => {
         const s = gameState.value;
         const rate = getConversionRate(s, def.id);
         const cap = def.getRateCap(s);
 
+        let newText: string;
+        let isInactive: boolean;
+
         if (rate > 0) {
-          info.textContent = `${rate}/tick (cap: ${cap})`;
-          row.classList.remove('conversion-inactive');
+          newText = `${rate}/tick (cap: ${cap})`;
+          isInactive = false;
         } else if (cap > 0) {
           // Has capacity but missing inputs
-          info.textContent = `0/tick (cap: ${cap})`;
+          newText = `0/tick (cap: ${cap})`;
+          isInactive = true;
+        } else {
+          newText = 'locked';
+          isInactive = true;
+        }
+
+        // Dirty-check: only update DOM if display text or active state changed
+        if (newText !== lastConversionText) {
+          info.textContent = newText;
+          lastConversionText = newText;
+        }
+
+        if (isInactive) {
           row.classList.add('conversion-inactive');
         } else {
-          info.textContent = 'locked';
-          row.classList.add('conversion-inactive');
+          row.classList.remove('conversion-inactive');
         }
       });
     }
@@ -422,6 +486,31 @@ export class ResourcePanel {
   }
 
   // ── Public API ─────────────────────────────────────────────────
+
+  /**
+   * Update a critical-value element with a flash animation on change.
+   * Adds flash-increase (green) or flash-decrease (red) class briefly.
+   */
+  private updateWithFlash(el: HTMLSpanElement, newValue: number, prevValue: number): void {
+    el.textContent = formatNumber(newValue);
+
+    // Skip flash on initial render (prevValue = -1 sentinel)
+    if (prevValue < 0) return;
+    if (newValue === prevValue) return;
+
+    const flashClass = newValue > prevValue ? 'flash-increase' : 'flash-decrease';
+
+    // Remove any existing flash class, then add the new one
+    el.classList.remove('flash-increase', 'flash-decrease');
+    // Force reflow so the transition restarts
+    void el.offsetWidth;
+    el.classList.add(flashClass);
+
+    // Auto-remove after transition completes
+    setTimeout(() => {
+      el.classList.remove('flash-increase', 'flash-decrease');
+    }, 200);
+  }
 
   getElement(): HTMLDivElement {
     return this.container;

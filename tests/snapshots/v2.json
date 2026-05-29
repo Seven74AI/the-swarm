@@ -1,0 +1,105 @@
+{
+  "version": 2,
+  "timestamp": 1692000000000,
+  "playTimeMs": 1800000,
+  "gameState": {
+    "phase": "colony",
+    "resources": {
+      "eggs": 200,
+      "larvae": 80,
+      "workers": 30,
+      "food": 1200,
+      "nestCapacity": 50,
+      "wood": 60,
+      "stone": 30,
+      "nectar": 15
+    },
+    "workersAssigned": {
+      "gather": 12,
+      "tend": 8,
+      "dig": 5,
+      "guard": 3
+    },
+    "soldiers": {
+      "scouts": 5,
+      "warriors": 2,
+      "totalKilled": 3
+    },
+    "buildings": {
+      "barracks": {
+        "level": 1,
+        "count": 1
+      },
+      "walls": {
+        "level": 1
+      },
+      "warehouse": {
+        "level": 2
+      }
+    },
+    "territory": {
+      "ownedTiles": 10,
+      "bonuses": {
+        "food": 0.3
+      }
+    },
+    "mapTiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "type": "meadow",
+        "discovered": true,
+        "claimed": true
+      },
+      {
+        "x": 1,
+        "y": 0,
+        "type": "forest",
+        "discovered": true,
+        "claimed": false
+      }
+    ],
+    "expeditions": [
+      {
+        "id": "exp_v2_1",
+        "scouts": 2,
+        "warriors": 1,
+        "destination": "Nearby Meadow",
+        "ticksRemaining": 8,
+        "risk": 0.2
+      }
+    ],
+    "upgrades": {
+      "click_power": 2
+    },
+    "stats": {
+      "totalEggsLaid": 500,
+      "totalClicks": 100,
+      "playTimeMs": 1800000
+    },
+    "unlockedPanels": [
+      "resource_panel",
+      "worker_panel"
+    ],
+    "lastSaveTimestamp": 1692000000000,
+    "combatSoldiers": 0,
+    "soldierStats": {
+      "strength": 1.0,
+      "defense": 1.0,
+      "speed": 5,
+      "maxHp": 10
+    },
+    "equipment": {
+      "weapon": 0,
+      "armor": 0
+    },
+    "lastBattle": null,
+    "combatResources": {
+      "chitin": 0,
+      "silk": 0,
+      "venom": 0
+    },
+    "battlesWon": 1,
+    "battlesLost": 0
+  }
+}
