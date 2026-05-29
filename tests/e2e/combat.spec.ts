@@ -30,7 +30,7 @@ function makeSaveData(overrides?: Record<string, unknown>) {
         warehouse: { level: 0 },
       },
       territory: { ownedTiles: 0, bonuses: {} },
-      mapTiles: [],
+      // mapTiles omitted — let createInitialState() default provide 64 tiles
       expeditions: [],
       spaceExplorations: [],
       discoveredPlanets: [],
@@ -110,7 +110,7 @@ test.describe('Combat', () => {
             warehouse: { level: 0 },
           },
           territory: { ownedTiles: 0, bonuses: {} },
-          mapTiles: [],
+          // mapTiles omitted — let createInitialState() default provide 64 tiles
           expeditions: [],
           spaceExplorations: [],
           discoveredPlanets: [],
