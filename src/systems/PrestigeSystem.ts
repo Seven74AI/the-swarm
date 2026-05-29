@@ -267,6 +267,13 @@ export function canPurchasePrestigeUpgrade(
     }
   }
 
+  // Prerequisite check
+  for (const prereqId of upgrade.prerequisites) {
+    if (!state.prestigeTree.purchased.includes(prereqId)) {
+      return false;
+    }
+  }
+
   return true;
 }
 

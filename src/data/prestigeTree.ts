@@ -41,6 +41,10 @@ export interface PrestigeUpgrade {
   icon: string;
   /** Phase requirement — only relevant for unlock-type upgrades */
   phaseRequired?: string;
+  /** Upgrade IDs that must be purchased before this one */
+  prerequisites: PrestigeUpgradeId[];
+  /** Depth in the tree (0 = root node) */
+  depth: number;
 }
 
 /** All 8 prestige tree upgrades. */
@@ -54,6 +58,8 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     effect: 'egg_laying',
     type: 'production',
     icon: '🥚',
+    prerequisites: [],
+    depth: 0,
   },
   {
     id: 'hatching_bonus',
@@ -63,6 +69,8 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     effect: 'hatching',
     type: 'production',
     icon: '🐛',
+    prerequisites: [],
+    depth: 0,
   },
   {
     id: 'food_bonus',
@@ -72,6 +80,8 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     effect: 'food',
     type: 'production',
     icon: '🍃',
+    prerequisites: [],
+    depth: 0,
   },
   {
     id: 'soldier_training_bonus',
@@ -81,6 +91,8 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     effect: 'soldier_training',
     type: 'production',
     icon: '⚔️',
+    prerequisites: ['egg_laying_bonus'],
+    depth: 1,
   },
   {
     id: 'worker_efficiency_bonus',
@@ -90,6 +102,8 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     effect: 'worker_efficiency',
     type: 'production',
     icon: '🐜',
+    prerequisites: ['hatching_bonus'],
+    depth: 1,
   },
   // ── Unlock Upgrades (3) ──
   {
@@ -101,6 +115,8 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     type: 'unlock',
     icon: '🔄',
     phaseRequired: 'egg_laying',
+    prerequisites: ['worker_efficiency_bonus'],
+    depth: 2,
   },
   {
     id: 'starting_resources',
@@ -111,6 +127,8 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     type: 'unlock',
     icon: '📦',
     phaseRequired: 'egg_laying',
+    prerequisites: ['food_bonus'],
+    depth: 2,
   },
   {
     id: 'phase_skip',
@@ -121,5 +139,7 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     type: 'unlock',
     icon: '⚡',
     phaseRequired: 'egg_laying',
+    prerequisites: ['starting_resources', 'auto_egg_laying'],
+    depth: 3,
   },
 ];

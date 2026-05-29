@@ -1543,3 +1543,135 @@ body.phase-space .progress-fill {
     transform: translateX(0);
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   TECH TREE — Tree visualization with SVG connections
+   ═══════════════════════════════════════════════════════════════ */
+
+.tech-tree-panel {
+  border-color: #a78bfa;
+  overflow-x: auto;
+}
+
+.tech-tree-panel .panel-title {
+  color: #a78bfa;
+}
+
+.tech-tree-points {
+  margin-bottom: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  background: rgba(167, 139, 250, 0.08);
+  border-radius: 4px;
+}
+
+.tech-tree-points .stat-value {
+  color: #a78bfa;
+  font-size: 1.1rem;
+}
+
+/* SVG wrapper — scrollable if content overflows */
+.tech-tree-svg-wrapper {
+  position: relative;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+/* SVG connection lines */
+.tech-tree-line {
+  transition: stroke 0.3s;
+}
+
+.tech-tree-line.purchased-line {
+  stroke: #22c55e;
+  stroke-width: 2.5;
+}
+
+/* ── Upgraded node cards ── */
+
+.tech-tree-node {
+  background: rgba(26, 22, 20, 0.9);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  align-items: center;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  z-index: 2;
+}
+
+.tech-tree-node:hover {
+  transform: translateY(-2px);
+}
+
+/* Available — purple glow */
+.tech-node-available {
+  border-color: #a78bfa;
+  box-shadow: 0 0 8px rgba(167, 139, 250, 0.25);
+}
+
+.tech-node-available:hover {
+  box-shadow: 0 0 16px rgba(167, 139, 250, 0.45);
+}
+
+/* Unaffordable — greyed out */
+.tech-node-unaffordable {
+  border-color: #444;
+  opacity: 0.55;
+}
+
+/* Locked (prerequisites not met) — dark with lock icon feel */
+.tech-node-locked {
+  border-color: #333;
+  opacity: 0.4;
+}
+
+/* Purchased — green */
+.tech-node-purchased {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.08);
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.15);
+}
+
+.tech-tree-node-icon {
+  font-size: 1.5rem;
+}
+
+.tech-tree-node-name {
+  font-weight: bold;
+  font-size: 0.75rem;
+  color: var(--text-primary);
+}
+
+.tech-tree-node-type {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+}
+
+.tech-tree-node-desc {
+  font-size: 0.62rem;
+  color: var(--accent-glow);
+  margin-bottom: 0.2rem;
+}
+
+.tech-tree-node-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.tech-tree-node-cost {
+  font-size: 0.8rem;
+  color: #a78bfa;
+  font-weight: bold;
+}
+
+.tech-tree-purchased-badge {
+  font-size: 0.8rem;
+  color: #22c55e;
+  font-weight: bold;
+}
