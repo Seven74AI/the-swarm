@@ -94,14 +94,14 @@ export class TranscendencePanel {
 
     for (const [label, value] of statEntries) {
       const row = document.createElement('div');
-      row.className = 'transcendence-stat-row';
+      row.className = 'stat-row';
 
       const labelEl = document.createElement('span');
-      labelEl.className = 'transcendence-stat-label';
+      labelEl.className = 'stat-label';
       labelEl.textContent = label;
 
       const valueEl = document.createElement('span');
-      valueEl.className = 'transcendence-stat-value';
+      valueEl.className = 'stat-value';
       valueEl.textContent = value;
 
       row.appendChild(labelEl);
