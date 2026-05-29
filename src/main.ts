@@ -20,6 +20,7 @@ import {
 import { tickAutoProduction } from './engine/AutoProductionLoop';
 import { getPrestigeBonuses } from './systems/PrestigeBonusSystem';
 import { UIRoot } from './ui/UIRoot';
+import { AudioSystem } from './ui/AudioSystem';
 import { SaveManager } from './persistence/SaveManager';
 import type { OfflineLoadInfo } from './persistence/SaveManager';
 import { OfflineSummaryPopup } from './ui/components/OfflineSummaryPopup';
@@ -50,6 +51,7 @@ export function bootstrap(): {
   fsm: PhaseStateMachine;
   ui: UIRoot;
   decisionSystem: DecisionSystem;
+  audio: AudioSystem;
 } {
   const bus = new EventBus();
   const ticker = new Ticker();
@@ -58,6 +60,7 @@ export function bootstrap(): {
   const battleSystem = new BattleSystem(bus);
   const decisionSystem = new DecisionSystem(bus);
   const saveManager = new SaveManager();
+  const audio = new AudioSystem();
   const loop = new GameLoop(ticker);
   const phaseContent = new PhaseContent();
   const mapSystem = new MapSystem();
@@ -302,6 +305,7 @@ export function bootstrap(): {
     territorySystem,
     getState: () => gameState.value,
     setState: (state: GameState) => { gameState.value = state; },
+    audio,
   });
   if (app) {
     ui.mount(app);
@@ -321,6 +325,23 @@ export function bootstrap(): {
   bus.subscribe('phase_changed', (payload: unknown) => {
     const phase = (payload as { phase: string }).phase as Phase;
     phaseContent.triggerTransition(phase, bus, ui);
+  });
+
+  // ── Audio: wire sound effects to game events ──
+  bus.subscribe('prestige_triggered', () => {
+    audio.play('prestige');
+  });
+  bus.subscribe('battle_completed', () => {
+    audio.play('battle');
+  });
+  bus.subscribe('battle_engage', () => {
+    audio.play('battle');
+  });
+  bus.subscribe('expedition_return', () => {
+    audio.play('discovery');
+  });
+  bus.subscribe('exploration_return', () => {
+    audio.play('discovery');
   });
 
   console.log('[Offline] Before mount check. offlinePopup is:', !!offlinePopup);
@@ -348,7 +369,7 @@ export function bootstrap(): {
 
   loop.start();
 
-  return { bus, ticker, loop, resourceSystem, saveManager, fsm, ui, decisionSystem };
+  return { bus, ticker, loop, resourceSystem, saveManager, fsm, ui, decisionSystem, audio };
 }
 
 /**

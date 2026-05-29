@@ -28,6 +28,7 @@ import { PrestigeTreePanel } from './panels/PrestigeTreePanel';
 import { ResearchPanel } from './panels/ResearchPanel';
 import type { DecisionEvent } from '../systems/DecisionSystem';
 import { DecisionPopup } from './components/DecisionPopup';
+import type { AudioSystem } from './AudioSystem';
 
 /**
  * Root UI controller. Mounts all panels into #app.
@@ -53,6 +54,9 @@ export class UIRoot {
   /** Decision popup (bottom-right, non-blocking) */
   private decisionPopup: DecisionPopup;
 
+  /** Audio system for sound effects */
+  private audio: AudioSystem | undefined;
+
   /** Container div (#panels) where all panels are appended. */
   private panelsContainer: HTMLElement | null = null;
 
@@ -69,6 +73,7 @@ export class UIRoot {
     territorySystem: TerritorySystem;
     getState: () => GameState;
     setState: (state: GameState) => void;
+    audio?: AudioSystem;
   }) {
     this.bus = deps.bus;
     this.resourceSystem = deps.resourceSystem;
@@ -81,13 +86,14 @@ export class UIRoot {
     this.setState = deps.setState;
     this.eventLog = new EventLog(this.bus);
     this.decisionPopup = new DecisionPopup(this.bus);
+    this.audio = deps.audio;
 
     // ── Populate panel registry with factory functions ──
     // Phase 1 panels (mounted at boot for backward compat)
     this.panelRegistry.set('resource_panel', () => new ResourcePanel().getElement());
     this.panelRegistry.set('phase_indicator', () => new PhaseIndicator(this.bus, this.getState().phase as Phase).getElement());
     this.panelRegistry.set('click_button', () => new ClickButton(
-      this.bus, this.resourceSystem, this.saveManager, this.getState, this.setState,
+      this.bus, this.resourceSystem, this.saveManager, this.getState, this.setState, deps.audio,
     ).getElement());
     this.panelRegistry.set('event_log', () => {
       const el = this.eventLog.getElement();
@@ -171,6 +177,7 @@ export class UIRoot {
       this.saveManager,
       this.getState,
       this.setState,
+      this.audio,
     );
     container.appendChild(clickBtn.getElement());
     this.panelElements.set('click_button', clickBtn.getElement());

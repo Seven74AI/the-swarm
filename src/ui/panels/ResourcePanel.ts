@@ -126,17 +126,26 @@ export class ResourcePanel {
     );
 
     // ── Reactive updates ──────────────────────────────────────
+    // Track previous values for flash animation triggers
+    let prevEggs = -1;
+    let prevLarvae = -1;
+    let prevFood = -1;
+    let prevSoldiers = -1;
+
     effect(() => {
       const s = gameState.value;
       const phaseIdx = phaseIndex(s.phase);
 
-      // Update critical bar values (targeting inner .critical-value spans)
-      this.eggValEl.textContent = formatNumber(s.resources.eggs);
-      this.larvaValEl.textContent = formatNumber(s.resources.larvae);
-      this.foodValEl.textContent = formatNumber(s.resources.food);
-      this.soldierValEl.textContent = formatNumber(
-        s.soldiers.scouts + s.soldiers.warriors,
-      );
+      // Update critical bar values with flash animations
+      this.updateWithFlash(this.eggValEl, s.resources.eggs, prevEggs);
+      prevEggs = s.resources.eggs;
+      this.updateWithFlash(this.larvaValEl, s.resources.larvae, prevLarvae);
+      prevLarvae = s.resources.larvae;
+      this.updateWithFlash(this.foodValEl, s.resources.food, prevFood);
+      prevFood = s.resources.food;
+      const soldierTotal = s.soldiers.scouts + s.soldiers.warriors;
+      this.updateWithFlash(this.soldierValEl, soldierTotal, prevSoldiers);
+      prevSoldiers = soldierTotal;
 
       // Update rate indicators with dirty-checking
       const ep = s.eggPipeline;
@@ -422,6 +431,31 @@ export class ResourcePanel {
   }
 
   // ── Public API ─────────────────────────────────────────────────
+
+  /**
+   * Update a critical-value element with a flash animation on change.
+   * Adds flash-increase (green) or flash-decrease (red) class briefly.
+   */
+  private updateWithFlash(el: HTMLSpanElement, newValue: number, prevValue: number): void {
+    el.textContent = formatNumber(newValue);
+
+    // Skip flash on initial render (prevValue = -1 sentinel)
+    if (prevValue < 0) return;
+    if (newValue === prevValue) return;
+
+    const flashClass = newValue > prevValue ? 'flash-increase' : 'flash-decrease';
+
+    // Remove any existing flash class, then add the new one
+    el.classList.remove('flash-increase', 'flash-decrease');
+    // Force reflow so the transition restarts
+    void el.offsetWidth;
+    el.classList.add(flashClass);
+
+    // Auto-remove after transition completes
+    setTimeout(() => {
+      el.classList.remove('flash-increase', 'flash-decrease');
+    }, 200);
+  }
 
   getElement(): HTMLDivElement {
     return this.container;
