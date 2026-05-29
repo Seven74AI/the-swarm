@@ -101,10 +101,21 @@ export class ExplorationPanel {
       for (const probe of state.spaceProbes) {
         const row = document.createElement('div');
         row.className = 'expedition-row';
-        row.innerHTML = `<div class="expedition-row-info">
-          <strong>${probe.destination}</strong> <span class="text-muted">${probe.scouts}S</span>
-        </div>
-        <div class="expedition-row-status">⏳ ${probe.ticksRemaining}s</div>`;
+        const rowInfo = document.createElement('div');
+        rowInfo.className = 'expedition-row-info';
+        const destStrong = document.createElement('strong');
+        destStrong.textContent = probe.destination;
+        rowInfo.appendChild(destStrong);
+        rowInfo.appendChild(document.createTextNode(' '));
+        const mutedSpan = document.createElement('span');
+        mutedSpan.className = 'text-muted';
+        mutedSpan.textContent = `${probe.scouts}S`;
+        rowInfo.appendChild(mutedSpan);
+        row.appendChild(rowInfo);
+        const rowStatus = document.createElement('div');
+        rowStatus.className = 'expedition-row-status';
+        rowStatus.textContent = `⏳ ${probe.ticksRemaining}s`;
+        row.appendChild(rowStatus);
         this.container.appendChild(row);
       }
     }

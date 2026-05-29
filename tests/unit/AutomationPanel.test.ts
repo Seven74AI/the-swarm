@@ -97,6 +97,22 @@ describe('AutoProductionPanel', () => {
     expect(buildingRows.length).toBe(3); // Nursery, Hatchery, Queen's Chamber
   });
 
+  it('refresh() rebuilds the panel DOM', () => {
+    state.resources.food = 100;
+    state.resources.workers = 50;
+    const panel = new AutoProductionPanel(bus, () => state, (s) => { state = s; });
+    const el = panel.getElement();
+    const oldBtn = el.querySelector('[data-research="basic_incubation"] button') as HTMLButtonElement;
+
+    // Research basic_incubation
+    oldBtn.click();
+    panel.refresh();
+
+    // After refresh, basic_incubation should show as researched (✅)
+    const row = el.querySelector('[data-research="basic_incubation"]');
+    expect(row?.classList.contains('researched')).toBe(true);
+  });
+
   it('toggle enables/disables auto production', () => {
     let captured: GameState | null = null;
     const panel = new AutoProductionPanel(bus, () => state, (s) => { state = s; captured = s; });
