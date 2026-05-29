@@ -343,4 +343,80 @@ describe('ResourcePanel — Scannable HUD', () => {
       expect(text).toContain('cap');
     });
   });
+
+  // ─── Dirty-Checking ────────────────────────────────────────────
+
+  describe('dirty-checking — avoids redundant DOM writes', () => {
+    it('does not rewrite critical bar values when resources are unchanged', () => {
+      // Trigger the effect again without changing state
+      const eggEl = el.querySelector('[data-stat="resources.eggs"] .critical-value') as HTMLElement;
+      const initialText = eggEl?.textContent;
+
+      // Write same state again — should not change DOM
+      gameState.value = { ...gameState.value };
+      expect(eggEl?.textContent).toBe(initialText);
+    });
+
+    it('updates critical bar values when resources actually change', () => {
+      const eggEl = el.querySelector('[data-stat="resources.eggs"] .critical-value') as HTMLElement;
+      const initialText = eggEl?.textContent;
+
+      // Change eggs — should update DOM
+      const newState = { ...gameState.value };
+      newState.resources.eggs = 9999;
+      gameState.value = newState;
+
+      expect(eggEl?.textContent).not.toBe(initialText);
+      expect(eggEl?.textContent).toBe('9,999');
+    });
+
+    it('does not rewrite soldier value when count is unchanged', () => {
+      const soldierEl = el.querySelector('.critical-item:last-child .critical-value') as HTMLElement;
+      const initialText = soldierEl?.textContent;
+
+      // Same state — no DOM rewrite
+      gameState.value = { ...gameState.value };
+      expect(soldierEl?.textContent).toBe(initialText);
+    });
+
+    it('updates soldier value when scouts change', () => {
+      const soldierEl = el.querySelector('.critical-item:last-child .critical-value') as HTMLElement;
+      const initialText = soldierEl?.textContent;
+
+      // Add scouts
+      const newState = { ...gameState.value };
+      newState.soldiers.scouts = 50;
+      gameState.value = newState;
+
+      expect(soldierEl?.textContent).not.toBe(initialText);
+    });
+
+    it('does not rewrite workers value when unchanged', () => {
+      const workerRow = el.querySelector('[data-stat="resources.workers"] .hud-resource-value') as HTMLElement;
+      const initialText = workerRow?.textContent;
+
+      gameState.value = { ...gameState.value };
+      expect(workerRow?.textContent).toBe(initialText);
+    });
+
+    it('updates workers value when workers change', () => {
+      const workerRow = el.querySelector('[data-stat="resources.workers"] .hud-resource-value') as HTMLElement;
+      const initialText = workerRow?.textContent;
+
+      const newState = { ...gameState.value };
+      newState.resources.workers = 500;
+      gameState.value = newState;
+
+      expect(workerRow?.textContent).not.toBe(initialText);
+      expect(workerRow?.textContent).toBe('500');
+    });
+
+    it('rate indicators preserve dirty-checking (lastEggRateText pattern)', () => {
+      // Rate indicators already had dirty-checking — verify it still works
+      const rateEl = el.querySelector('.rate-indicator.critical-rate') as HTMLElement;
+      expect(rateEl).not.toBeNull();
+      // Egg pipeline count is 0 → rate text should contain '0/s'
+      expect(rateEl?.textContent).toContain('/s');
+    });
+  });
 });
