@@ -76,6 +76,12 @@ export class ResourcePanel {
   private lastEggRateText: string = '';
   private lastLarvaRateText: string = '';
 
+  // Critical bar dirty-checking cache — avoids DOM writes when unchanged
+  private lastEggsValue: string = '';
+  private lastLarvaeValue: string = '';
+  private lastFoodValue: string = '';
+  private lastSoldiersValue: string = '';
+
   // Colony section progress bars
   private nestCapacityBar!: ProgressBar;
 
@@ -130,13 +136,30 @@ export class ResourcePanel {
       const s = gameState.value;
       const phaseIdx = phaseIndex(s.phase);
 
-      // Update critical bar values (targeting inner .critical-value spans)
-      this.eggValEl.textContent = formatNumber(s.resources.eggs);
-      this.larvaValEl.textContent = formatNumber(s.resources.larvae);
-      this.foodValEl.textContent = formatNumber(s.resources.food);
-      this.soldierValEl.textContent = formatNumber(
-        s.soldiers.scouts + s.soldiers.warriors,
-      );
+      // Update critical bar values with dirty-checking (targeting inner .critical-value spans)
+      const eggsFormatted = formatNumber(s.resources.eggs);
+      if (eggsFormatted !== this.lastEggsValue) {
+        this.eggValEl.textContent = eggsFormatted;
+        this.lastEggsValue = eggsFormatted;
+      }
+
+      const larvaeFormatted = formatNumber(s.resources.larvae);
+      if (larvaeFormatted !== this.lastLarvaeValue) {
+        this.larvaValEl.textContent = larvaeFormatted;
+        this.lastLarvaeValue = larvaeFormatted;
+      }
+
+      const foodFormatted = formatNumber(s.resources.food);
+      if (foodFormatted !== this.lastFoodValue) {
+        this.foodValEl.textContent = foodFormatted;
+        this.lastFoodValue = foodFormatted;
+      }
+
+      const soldiersFormatted = formatNumber(s.soldiers.scouts + s.soldiers.warriors);
+      if (soldiersFormatted !== this.lastSoldiersValue) {
+        this.soldierValEl.textContent = soldiersFormatted;
+        this.lastSoldiersValue = soldiersFormatted;
+      }
 
       // Update rate indicators with dirty-checking
       const ep = s.eggPipeline;
@@ -263,9 +286,14 @@ export class ResourcePanel {
     workerRow.appendChild(workerVal);
     body.appendChild(workerRow);
 
-    // Effect to update workers
+    // Effect to update workers with dirty-checking
+    let lastWorkersValue = '';
     effect(() => {
-      workerVal.textContent = formatNumber(gameState.value.resources.workers);
+      const formatted = formatNumber(gameState.value.resources.workers);
+      if (formatted !== lastWorkersValue) {
+        workerVal.textContent = formatted;
+        lastWorkersValue = formatted;
+      }
     });
 
     // Nest capacity progress bar
@@ -283,8 +311,14 @@ export class ResourcePanel {
     larvaRow.appendChild(larvaVal);
     body.appendChild(larvaRow);
 
+    // Effect to update larvae count with dirty-checking
+    let lastLarvaeCountValue = '';
     effect(() => {
-      larvaVal.textContent = formatNumber(gameState.value.resources.larvae);
+      const formatted = formatNumber(gameState.value.resources.larvae);
+      if (formatted !== lastLarvaeCountValue) {
+        larvaVal.textContent = formatted;
+        lastLarvaeCountValue = formatted;
+      }
     });
 
     return body;
@@ -310,8 +344,14 @@ export class ResourcePanel {
       row.appendChild(val);
       body.appendChild(row);
 
+      // Effect to update space resource with dirty-checking
+      let lastSpaceValue = '';
       effect(() => {
-        val.textContent = formatNumber(gameState.value.resources[r.path]);
+        const formatted = formatNumber(gameState.value.resources[r.path]);
+        if (formatted !== lastSpaceValue) {
+          val.textContent = formatted;
+          lastSpaceValue = formatted;
+        }
       });
     }
 
@@ -369,22 +409,38 @@ export class ResourcePanel {
       row.appendChild(info);
       body.appendChild(row);
 
-      // Reactive: update rate and cap display
+      // Reactive: update rate and cap display with dirty-checking
+      let lastConversionText = '';
       effect(() => {
         const s = gameState.value;
         const rate = getConversionRate(s, def.id);
         const cap = def.getRateCap(s);
 
+        let newText: string;
+        let isInactive: boolean;
+
         if (rate > 0) {
-          info.textContent = `${rate}/tick (cap: ${cap})`;
-          row.classList.remove('conversion-inactive');
+          newText = `${rate}/tick (cap: ${cap})`;
+          isInactive = false;
         } else if (cap > 0) {
           // Has capacity but missing inputs
-          info.textContent = `0/tick (cap: ${cap})`;
+          newText = `0/tick (cap: ${cap})`;
+          isInactive = true;
+        } else {
+          newText = 'locked';
+          isInactive = true;
+        }
+
+        // Dirty-check: only update DOM if display text or active state changed
+        if (newText !== lastConversionText) {
+          info.textContent = newText;
+          lastConversionText = newText;
+        }
+
+        if (isInactive) {
           row.classList.add('conversion-inactive');
         } else {
-          info.textContent = 'locked';
-          row.classList.add('conversion-inactive');
+          row.classList.remove('conversion-inactive');
         }
       });
     }
