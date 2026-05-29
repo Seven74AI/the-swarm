@@ -55,6 +55,7 @@ html, body {
   font-size: 16px;
   line-height: 1.5;
   overflow-x: hidden;
+  touch-action: manipulation;
   transition: --bg-primary 3s ease, --bg-secondary 3s ease, --accent-glow 3s ease, --border 3s ease, --text-primary 3s ease, background-color 3s ease, color 3s ease;
 }
 
