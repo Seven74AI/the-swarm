@@ -48,6 +48,11 @@ export class AutoProductionPanel {
     });
   }
 
+  /** Public refresh for tests and manual updates. */
+  refresh(): void {
+    this.build();
+  }
+
   private build(): void {
     this.container.innerHTML = '';
 
