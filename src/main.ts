@@ -30,6 +30,7 @@ import { Phase, PHASE_ORDER } from './phases/phases';
 import { PhaseContent } from './phases/PhaseContent';
 import { TRANSITIONS } from './phases/transitions';
 import type { GameState } from './state/GameState';
+import { OnboardingManager } from './ui/OnboardingManager';
 
 /**
  * THE SWARM — Bootstrap
@@ -351,6 +352,12 @@ export function bootstrap(): {
   if (app) {
     ui.mount(app);
   }
+
+  // Start onboarding tutorial for new players (persisted via localStorage)
+  setTimeout(() => {
+    const onboarding = new OnboardingManager();
+    onboarding.start();
+  }, 500);
 
   // Reveal panels for current phase
   phaseContent.onPhaseEnter(currentPhase as Phase, ui);
