@@ -61,6 +61,9 @@ export class OnboardingManager {
    */
   start(): void {
     if (OnboardingManager.isCompleted()) return;
+    // If the player already has a save, they're a returning player — skip onboarding.
+    // This also prevents the onboarding overlay from blocking E2E tests that seed a save.
+    if (localStorage.getItem('the_swarm_save') !== null) return;
     if (this.currentStep >= TOOLTIP_STEPS.length) return;
 
     this.showCurrentStep();

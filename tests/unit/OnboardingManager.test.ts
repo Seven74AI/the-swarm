@@ -66,6 +66,14 @@ describe('OnboardingManager', () => {
       expect(document.querySelector('.onboarding-overlay')).toBeNull();
     });
 
+    it('does not show tooltip when a save already exists (returning player)', () => {
+      localStorage.setItem('the_swarm_save', JSON.stringify({ version: 2 }));
+      const mgr = new OnboardingManager();
+      mgr.start();
+
+      expect(document.querySelector('.onboarding-overlay')).toBeNull();
+    });
+
     it('marks onboarding as complete after all steps dismissed', () => {
       const mgr = new OnboardingManager();
       mgr.start();
