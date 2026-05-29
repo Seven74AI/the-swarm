@@ -312,13 +312,24 @@ export class UIRoot {
   /**
    * Reveal a panel by its ID. If the panel element exists, shows it.
    * Used by PhaseContent.onPhaseEnter to unlock panels as phases advance.
+   *
+   * @param panelId        The panel identifier (e.g. 'worker_assignment').
+   * @param revealDelayMs  Optional stagger delay in milliseconds. Applied as
+   *                       inline animation-delay before the reveal animation
+   *                       triggers, so panels appear one-by-one during phase
+   *                       transitions. Defaults to 0 (no stagger).
    */
-  showPanel(panelId: string): void {
+  showPanel(panelId: string, revealDelayMs: number = 0): void {
     const el = this.panelElements.get(panelId);
     if (el) {
       // Remove legacy scroll-awaiting class if present
       el.classList.remove('panel-awaiting-reveal');
       el.style.display = '';
+      // Apply stagger delay before triggering the reveal animation
+      // so panels cascade in rather than appearing simultaneously.
+      if (revealDelayMs > 0) {
+        el.style.animationDelay = `${revealDelayMs}ms`;
+      }
       // Phase-based reveal: mark as unlocked and trigger animation
       el.classList.add('panel-unlocked', 'panel-revealed');
       this.bus.emit('panel_revealed', { panelId });
