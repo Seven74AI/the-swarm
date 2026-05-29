@@ -189,6 +189,17 @@ export class ResourcePanel {
     return el;
   }
 
+  /** Helper: create an icon + label pair for resource rows. */
+  private makeIconLabel(icon: string, label: string): [HTMLSpanElement, HTMLSpanElement] {
+    const iconEl = document.createElement('span');
+    iconEl.className = 'hud-resource-icon';
+    iconEl.textContent = icon;
+    const labelEl = document.createElement('span');
+    labelEl.className = 'hud-resource-label';
+    labelEl.textContent = label;
+    return [iconEl, labelEl];
+  }
+
   // ── Section builder ─────────────────────────────────────────────
 
   /**
@@ -256,8 +267,9 @@ export class ResourcePanel {
     const workerRow = document.createElement('div');
     workerRow.className = 'hud-resource-row';
     workerRow.setAttribute('data-stat', 'resources.workers');
-    workerRow.innerHTML = '<span class="hud-resource-icon">🐜</span>' +
-      '<span class="hud-resource-label">Workers</span>';
+    const [wIcon, wLabel] = this.makeIconLabel('🐜', 'Workers');
+    workerRow.appendChild(wIcon);
+    workerRow.appendChild(wLabel);
     const workerVal = document.createElement('span');
     workerVal.className = 'hud-resource-value';
     workerRow.appendChild(workerVal);
@@ -276,8 +288,9 @@ export class ResourcePanel {
     // Larvae count
     const larvaRow = document.createElement('div');
     larvaRow.className = 'hud-resource-row';
-    larvaRow.innerHTML = '<span class="hud-resource-icon">🐛</span>' +
-      '<span class="hud-resource-label">Larvae</span>';
+    const [lIcon, lLabel] = this.makeIconLabel('🐛', 'Larvae');
+    larvaRow.appendChild(lIcon);
+    larvaRow.appendChild(lLabel);
     const larvaVal = document.createElement('span');
     larvaVal.className = 'hud-resource-value';
     larvaRow.appendChild(larvaVal);
@@ -303,8 +316,9 @@ export class ResourcePanel {
     for (const r of resources) {
       const row = document.createElement('div');
       row.className = 'hud-resource-row';
-      row.innerHTML = `<span class="hud-resource-icon">${r.icon}</span>` +
-        `<span class="hud-resource-label">${r.label}</span>`;
+      const [sIcon, sLabel] = this.makeIconLabel(r.icon, r.label);
+      row.appendChild(sIcon);
+      row.appendChild(sLabel);
       const val = document.createElement('span');
       val.className = 'hud-resource-value';
       row.appendChild(val);
@@ -327,8 +341,9 @@ export class ResourcePanel {
 
     const row = document.createElement('div');
     row.className = 'hud-resource-row';
-    row.innerHTML = '<span class="hud-resource-icon">✨</span>' +
-      '<span class="hud-resource-label">Legacy Points</span>';
+    const [pIcon, pLabel] = this.makeIconLabel('✨', 'Legacy Points');
+    row.appendChild(pIcon);
+    row.appendChild(pLabel);
     const val = document.createElement('span');
     val.className = 'hud-resource-value';
     val.textContent = '0';
@@ -361,8 +376,9 @@ export class ResourcePanel {
     for (const def of defs) {
       const row = document.createElement('div');
       row.className = 'hud-resource-row conversion-row';
-      row.innerHTML = `<span class="hud-resource-icon">${icons[def.id] || '🔄'}</span>` +
-        `<span class="hud-resource-label">${def.name}</span>`;
+      const [cIcon, cLabel] = this.makeIconLabel(icons[def.id] || '🔄', def.name);
+      row.appendChild(cIcon);
+      row.appendChild(cLabel);
 
       const info = document.createElement('span');
       info.className = 'conversion-info';
