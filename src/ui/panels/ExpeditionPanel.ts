@@ -19,6 +19,7 @@ const DESTINATIONS: Destination[] = [
 
 export class ExpeditionPanel {
   private container: HTMLDivElement;
+  private lastHash: string = '';
 
   constructor(
     private bus: EventBus,
@@ -41,10 +42,20 @@ export class ExpeditionPanel {
   refresh(): void { this.render(); }
 
   private render(): void {
-    this.container.innerHTML = '';
     const state = this.getState();
     const canLaunch = state.expeditions.length < MAX_ACTIVE_EXPEDITIONS
       && (state.soldiers.scouts > 0 || state.soldiers.warriors > 0);
+
+    // Compute hash of expedition state to skip re-render when unchanged
+    const expHash = state.expeditions.map(e =>
+      `${e.id}:${e.scouts}:${e.warriors}:${e.destination}:${e.ticksRemaining}:${e.risk}`
+    ).join(',');
+    const hash = `scouts:${state.soldiers.scouts}|warriors:${state.soldiers.warriors}|canLaunch:${canLaunch}|exps:${expHash}`;
+
+    if (hash === this.lastHash) return;
+    this.lastHash = hash;
+
+    this.container.innerHTML = '';
 
     // Title + available counts
     const header = document.createElement('div');

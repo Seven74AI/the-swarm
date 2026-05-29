@@ -142,15 +142,38 @@ export class ResourcePanel {
       const s = gameState.value;
       const phaseIdx = phaseIndex(s.phase);
 
-      // Update critical bar values with flash animations
-      this.updateWithFlash(this.eggValEl, s.resources.eggs, prevEggs);
+      // Update critical bar values with dirty-checking + flash animations
+      const eggsFormatted = formatNumber(s.resources.eggs);
+      if (eggsFormatted !== this.lastEggsValue) {
+        this.eggValEl.textContent = eggsFormatted;
+        this.lastEggsValue = eggsFormatted;
+      }
+      this.triggerFlashIfChanged(this.eggValEl, s.resources.eggs, prevEggs);
       prevEggs = s.resources.eggs;
-      this.updateWithFlash(this.larvaValEl, s.resources.larvae, prevLarvae);
+
+      const larvaeFormatted = formatNumber(s.resources.larvae);
+      if (larvaeFormatted !== this.lastLarvaeValue) {
+        this.larvaValEl.textContent = larvaeFormatted;
+        this.lastLarvaeValue = larvaeFormatted;
+      }
+      this.triggerFlashIfChanged(this.larvaValEl, s.resources.larvae, prevLarvae);
       prevLarvae = s.resources.larvae;
-      this.updateWithFlash(this.foodValEl, s.resources.food, prevFood);
+
+      const foodFormatted = formatNumber(s.resources.food);
+      if (foodFormatted !== this.lastFoodValue) {
+        this.foodValEl.textContent = foodFormatted;
+        this.lastFoodValue = foodFormatted;
+      }
+      this.triggerFlashIfChanged(this.foodValEl, s.resources.food, prevFood);
       prevFood = s.resources.food;
+
       const soldierTotal = s.soldiers.scouts + s.soldiers.warriors;
-      this.updateWithFlash(this.soldierValEl, soldierTotal, prevSoldiers);
+      const soldiersFormatted = formatNumber(soldierTotal);
+      if (soldiersFormatted !== this.lastSoldiersValue) {
+        this.soldierValEl.textContent = soldiersFormatted;
+        this.lastSoldiersValue = soldiersFormatted;
+      }
+      this.triggerFlashIfChanged(this.soldierValEl, soldierTotal, prevSoldiers);
       prevSoldiers = soldierTotal;
 
       // Update rate indicators with dirty-checking
@@ -488,12 +511,11 @@ export class ResourcePanel {
   // ── Public API ─────────────────────────────────────────────────
 
   /**
-   * Update a critical-value element with a flash animation on change.
+   * Trigger flash animation on a critical-value element when the numeric value changes.
+   * Does NOT update textContent — dirty-checking above handles DOM writes.
    * Adds flash-increase (green) or flash-decrease (red) class briefly.
    */
-  private updateWithFlash(el: HTMLSpanElement, newValue: number, prevValue: number): void {
-    el.textContent = formatNumber(newValue);
-
+  private triggerFlashIfChanged(el: HTMLSpanElement, newValue: number, prevValue: number): void {
     // Skip flash on initial render (prevValue = -1 sentinel)
     if (prevValue < 0) return;
     if (newValue === prevValue) return;

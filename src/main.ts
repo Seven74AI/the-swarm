@@ -384,6 +384,9 @@ export function bootstrap(): {
   bus.subscribe('exploration_return', () => {
     audio.play('discovery');
   });
+  bus.subscribe('spaceship_return', () => {
+    audio.play('discovery');
+  });
 
   console.log('[Offline] Before mount check. offlinePopup is:', !!offlinePopup);
 
