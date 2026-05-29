@@ -2,6 +2,11 @@ import { Phase } from './phases';
 import type { UIRoot } from '../ui/UIRoot';
 import type { EventBus } from '../engine/EventBus';
 
+/** Delay before revealing new panels after the transition overlay appears (ms). */
+const PANEL_REVEAL_DELAY_MS = 300;
+/** Total duration of the phase transition cinematic (ms). */
+const TRANSITION_DURATION_MS = 3500;
+
 /** Lore quotes — one displayed during each phase transition. */
 const LORE_QUOTES: Record<string, string[]> = {
   [Phase.EGG_LAYING]: [
@@ -166,15 +171,15 @@ export class PhaseContent {
     const quote = this.getLoreQuote(phase);
     bus.emit('transition_start', { phase, quote });
 
-    // Reveal new panels after the overlay is visible (0.3s delay)
+    // Reveal new panels after the overlay is visible
     setTimeout(() => {
       this.onPhaseEnter(phase, uiRoot);
-    }, 300);
+    }, PANEL_REVEAL_DELAY_MS);
 
-    // End transition after full animation (2s total)
+    // End transition after full animation
     setTimeout(() => {
       bus.emit('transition_complete', { phase });
-    }, 2000);
+    }, TRANSITION_DURATION_MS);
   }
 
   /**
