@@ -1191,6 +1191,26 @@ body.phase-space .progress-fill {
   animation: phase-quote-enter 3.5s ease forwards;
 }
 
+/* Skip hint — shown on prestige runs (click or press Space/Enter/Escape) */
+.phase-transition-skip-hint {
+  margin-top: 2rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  opacity: 0;
+  animation: phase-skip-hint-enter 3.5s ease forwards;
+  cursor: pointer;
+  user-select: none;
+}
+
+@keyframes phase-skip-hint-enter {
+  0%   { opacity: 0; }
+  20%  { opacity: 0; }
+  35%  { opacity: 0.7; }
+  55%  { opacity: 0.7; }
+  75%  { opacity: 0.3; }
+  100% { opacity: 0; }
+}
+
 @keyframes phase-quote-enter {
   0%   { opacity: 0; transform: translateY(16px); }
   15%  { opacity: 1; transform: translateY(0); }
