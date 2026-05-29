@@ -217,4 +217,36 @@ describe('ResourceSystem', () => {
       expect(fired).toBe(true);
     });
   });
+
+  describe('tick — dig workers', () => {
+    it('increases nestCapacity when dig workers are assigned', () => {
+      state.resources.workers = 5;
+      state.workersAssigned = { gather: 0, tend: 0, dig: 3, guard: 0, researchers: 0 };
+      const capBefore = state.resources.nestCapacity;
+      const result = system.tick(state);
+      expect(result.resources.nestCapacity).toBeGreaterThan(capBefore);
+    });
+
+    it('does not change nestCapacity when no dig workers', () => {
+      state.resources.workers = 5;
+      state.workersAssigned = { gather: 3, tend: 0, dig: 0, guard: 0, researchers: 0 };
+      const capBefore = state.resources.nestCapacity;
+      const result = system.tick(state);
+      expect(result.resources.nestCapacity).toBe(capBefore);
+    });
+
+    it('nestCapacity scales with dig worker count', () => {
+      state.resources.workers = 10;
+
+      state.workersAssigned = { gather: 0, tend: 0, dig: 1, guard: 0, researchers: 0 };
+      const withOne = system.tick(state);
+      const gain1 = withOne.resources.nestCapacity - state.resources.nestCapacity;
+
+      state.workersAssigned = { gather: 0, tend: 0, dig: 5, guard: 0, researchers: 0 };
+      const withFive = system.tick(state);
+      const gain5 = withFive.resources.nestCapacity - state.resources.nestCapacity;
+
+      expect(gain5).toBeGreaterThan(gain1);
+    });
+  });
 });
