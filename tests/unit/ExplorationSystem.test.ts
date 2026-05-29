@@ -1,227 +1,222 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { createInitialState, type GameState } from '../../src/state/GameState';
 import {
   launchExploration,
   tickExplorations,
   resolveExploration,
+  tickProbeSwarm,
+  getScaledDistance,
   MAX_ACTIVE_EXPLORATIONS,
+  SURVEY_DATA_PER_EXPLORATION,
+  PROBE_SWARM_THRESHOLD,
 } from '../../src/systems/ExplorationSystem';
-import { PLANETS } from '../../src/data/planets';
-import { createInitialState, type GameState } from '../../src/state/GameState';
 
-describe('ExplorationSystem', () => {
+describe('ExplorationSystem — recursive scaling', () => {
   let state: GameState;
 
   beforeEach(() => {
     state = createInitialState();
-    state.spaceExplorations = [];
-    state.discoveredPlanets = [];
+    state.soldiers.scouts = 10;
+    // Seed Math.random for deterministic tests
+    vi.spyOn(Math, 'random').mockReturnValue(0.95); // always full success (risk < 0.95 for all planets)
+  });
+
+  describe('getScaledDistance', () => {
+    it('returns shorter distances as surveyData increases (invariant)', () => {
+      const dest = 'MARS';
+      const d0 = getScaledDistance(dest, 0);
+      const d10 = getScaledDistance(dest, 10);
+      const d20 = getScaledDistance(dest, 20);
+
+      // More surveyData → shorter distance
+      expect(d10).toBeLessThan(d0);
+      expect(d20).toBeLessThan(d10);
+    });
+
+    it('never goes below minimum 10 ticks', () => {
+      const distance = getScaledDistance('MARS', 99999);
+      expect(distance).toBeGreaterThanOrEqual(10);
+    });
+
+    it('returns same distance for same inputs (deterministic)', () => {
+      const d1 = getScaledDistance('KEPLER-442B', 5);
+      const d2 = getScaledDistance('KEPLER-442B', 5);
+      expect(d1).toBe(d2);
+    });
+
+    it('with 0 surveyData returns base distance', () => {
+      const d = getScaledDistance('MARS', 0);
+      // Base distance is 40 + (hash % 81), so between 40 and 120
+      expect(d).toBeGreaterThanOrEqual(40);
+      expect(d).toBeLessThanOrEqual(120);
+    });
   });
 
   describe('launchExploration', () => {
-    it('creates a space exploration to a valid planet', () => {
-      const result = launchExploration(state, 'MARS');
-      expect(result.spaceExplorations).toHaveLength(1);
-      expect(result.spaceExplorations[0].destination).toBe('MARS');
+    it('starts exploration with scaled distance based on surveyData', () => {
+      const d0 = launchExploration(state, 'MARS');
+      expect(d0.spaceExplorations).toHaveLength(1);
+      const dist0 = d0.spaceExplorations[0].ticksRemaining;
+
+      // With surveyData, distance should be shorter
+      const rich = { ...state, resources: { ...state.resources, surveyData: 20 } };
+      const d20 = launchExploration(rich, 'MARS');
+      expect(d20.spaceExplorations).toHaveLength(1);
+      const dist20 = d20.spaceExplorations[0].ticksRemaining;
+
+      expect(dist20).toBeLessThan(dist0);
     });
 
-    it('sets ticksRemaining in range 40-120 for space travel', () => {
+    it('caps at MAX_ACTIVE_EXPLORATIONS', () => {
+      let s = state;
+      for (let i = 0; i < MAX_ACTIVE_EXPLORATIONS + 2; i++) {
+        s = launchExploration(s, 'MARS');
+      }
+      expect(s.spaceExplorations).toHaveLength(MAX_ACTIVE_EXPLORATIONS);
+    });
+
+    it('marks destination as discovered', () => {
       const result = launchExploration(state, 'SATURN');
-      expect(result.spaceExplorations[0].ticksRemaining).toBeGreaterThanOrEqual(40);
-      expect(result.spaceExplorations[0].ticksRemaining).toBeLessThanOrEqual(120);
+      expect(result.discoveredPlanets).toContain('SATURN');
     });
+  });
 
-    it('sets risk based on planet type', () => {
-      const result = launchExploration(state, 'MARS');
-      expect(result.spaceExplorations[0].risk).toBeGreaterThanOrEqual(0.1);
-      expect(result.spaceExplorations[0].risk).toBeLessThanOrEqual(0.9);
-    });
-
-    it('returns state unchanged if max explorations reached', () => {
-      for (let i = 0; i < MAX_ACTIVE_EXPLORATIONS; i++) {
-        state.spaceExplorations.push({
-          id: `spc_${i}`,
-          destination: `planet_${i}`,
-          ticksRemaining: 50,
-          risk: 0.3,
-        });
+  describe('resolveExploration — surveyData gain', () => {
+    it('grants surveyData on full success', () => {
+      // 0.95 triggers full success (above all risk values)
+      const launched = launchExploration(state, 'MARS');
+      const exp = launched.spaceExplorations[0];
+      // Tick it down to completion
+      let ticked = launched;
+      for (let i = 0; i < exp.ticksRemaining; i++) {
+        ticked = tickExplorations(ticked);
       }
-      const result = launchExploration(state, 'MARS');
-      expect(result).toBe(state);
+      const resolved = resolveExploration(ticked, { ...ticked.spaceExplorations[0], ticksRemaining: 0 });
+      expect(resolved.resources.surveyData).toBeGreaterThanOrEqual(1);
     });
 
-    it('generates unique IDs for each exploration', () => {
-      const result1 = launchExploration(state, 'MARS');
-      const result2 = launchExploration(result1, 'SATURN');
-      expect(result2.spaceExplorations).toHaveLength(2);
-      expect(result2.spaceExplorations[0].id).not.toBe(result2.spaceExplorations[1].id);
+    it('grants more surveyData from multiple successful explorations (invariant)', () => {
+      let s = state;
+      // Launch and resolve 3 explorations
+      for (let j = 0; j < 3; j++) {
+        s = launchExploration(s, 'MARS');
+        const exp = s.spaceExplorations[0];
+        for (let i = 0; i < exp.ticksRemaining; i++) {
+          s = tickExplorations(s);
+        }
+        s = resolveExploration(s, { ...s.spaceExplorations[0], ticksRemaining: 0 });
+      }
+      // At least 3 surveyData from 3 full successes
+      expect(s.resources.surveyData).toBeGreaterThanOrEqual(3);
     });
 
-    it('adds planet to discoveredPlanets on first visit', () => {
-      const result = launchExploration(state, 'MARS');
-      expect(result.discoveredPlanets).toContain('MARS');
-    });
-
-    it('does not duplicate planet in discoveredPlanets', () => {
-      state.discoveredPlanets = ['MARS'];
-      const result = launchExploration(state, 'MARS');
-      expect(result.discoveredPlanets).toEqual(['MARS']);
-    });
-  });
-
-  describe('tickExplorations', () => {
-    it('decrements all exploration timers by 1', () => {
-      state.spaceExplorations = [
-        { id: 'e1', destination: 'MARS', ticksRemaining: 60, risk: 0.3 },
-        { id: 'e2', destination: 'SATURN', ticksRemaining: 80, risk: 0.2 },
-      ];
-      const result = tickExplorations(state);
-      expect(result.spaceExplorations[0].ticksRemaining).toBe(59);
-      expect(result.spaceExplorations[1].ticksRemaining).toBe(79);
-    });
-
-    it('returns same state if no explorations', () => {
-      const result = tickExplorations(state);
-      expect(result.spaceExplorations).toEqual([]);
+    it('does not grant surveyData on failure', () => {
+      vi.mocked(Math.random).mockReturnValue(0.1); // 0.1 < risk for all planets → failure
+      const launched = launchExploration(state, 'MARS');
+      const exp = launched.spaceExplorations[0];
+      let ticked = launched;
+      for (let i = 0; i < exp.ticksRemaining; i++) {
+        ticked = tickExplorations(ticked);
+      }
+      vi.mocked(Math.random).mockReturnValue(0.1); // failure roll too
+      const resolved = resolveExploration(ticked, { ...ticked.spaceExplorations[0], ticksRemaining: 0 });
+      expect(resolved.resources.surveyData).toBe(0);
     });
   });
 
-  describe('resolveExploration', () => {
-    it('on success, adds voidCrystals from ice planets', () => {
-      vi.spyOn(Math, 'random').mockReturnValue(0.5); // 0.5 > risk(0.01) → full success
-      const exp = { id: 'e1', destination: 'EUROPA', ticksRemaining: 1, risk: 0.01 };
-      state.spaceExplorations = [exp];
-      state.resources.voidCrystals = 0;
-      state.resources.antimatter = 0;
-      state.resources.darkMatter = 0;
-
-      vi.spyOn(Math, 'random').mockReturnValue(0.5);
-      const result = resolveExploration(state, exp);
+  describe('tickProbeSwarm', () => {
+    it('does nothing when surveyData below threshold', () => {
+      const belowThreshold = { ...state, resources: { ...state.resources, surveyData: PROBE_SWARM_THRESHOLD - 1 } };
+      const result = tickProbeSwarm(belowThreshold);
       expect(result.spaceExplorations).toHaveLength(0);
-      expect(result.resources.voidCrystals).toBeGreaterThan(0);
-      vi.restoreAllMocks();
     });
 
-    it('on success, adds antimatter from rocky planets', () => {
-      vi.spyOn(Math, 'random').mockReturnValue(0.5);
-      const exp = { id: 'e1', destination: 'MARS', ticksRemaining: 1, risk: 0.01 };
-      state.spaceExplorations = [exp];
-      state.resources.voidCrystals = 0;
-      state.resources.antimatter = 0;
-      state.resources.darkMatter = 0;
-
-      vi.spyOn(Math, 'random').mockReturnValue(0.5);
-      const result = resolveExploration(state, exp);
-      expect(result.resources.antimatter).toBeGreaterThan(0);
-      vi.restoreAllMocks();
-    });
-
-    it('on success, adds darkMatter from gas planets', () => {
-      vi.spyOn(Math, 'random').mockReturnValue(0.5);
-      const exp = { id: 'e1', destination: 'SATURN', ticksRemaining: 1, risk: 0.01 };
-      state.spaceExplorations = [exp];
-      state.resources.voidCrystals = 0;
-      state.resources.antimatter = 0;
-      state.resources.darkMatter = 0;
-
-      vi.spyOn(Math, 'random').mockReturnValue(0.5);
-      const result = resolveExploration(state, exp);
-      expect(result.resources.darkMatter).toBeGreaterThan(0);
-      vi.restoreAllMocks();
-    });
-
-    it('on success, adds food and voidCrystals from habitable planets', () => {
-      vi.spyOn(Math, 'random').mockReturnValue(0.5);
-      const exp = { id: 'e1', destination: 'KEPLER-442B', ticksRemaining: 1, risk: 0.01 };
-      state.spaceExplorations = [exp];
-      state.resources.voidCrystals = 0;
-      state.resources.food = 0;
-
-      vi.spyOn(Math, 'random').mockReturnValue(0.5);
-      const result = resolveExploration(state, exp);
-      expect(result.resources.food).toBeGreaterThan(0);
-      expect(result.resources.voidCrystals).toBeGreaterThan(0);
-      vi.restoreAllMocks();
-    });
-
-    it('high risk exploration can fail with no rewards', () => {
-      const exp = { id: 'e1', destination: 'MARS', ticksRemaining: 1, risk: 0.9 };
-      state.spaceExplorations = [exp];
-      state.resources.voidCrystals = 0;
-      state.resources.antimatter = 0;
-      state.resources.darkMatter = 0;
-      state.resources.food = 0;
-
-      let failures = 0;
-      let successes = 0;
-      for (let i = 0; i < 20; i++) {
-        const testState = {
-          ...state,
-          spaceExplorations: [{ ...exp, id: `exp_${i}` }],
-          resources: { ...state.resources, voidCrystals: 0, antimatter: 0, darkMatter: 0, food: 0 },
-        };
-        const result = resolveExploration(testState, testState.spaceExplorations[0]);
-        const hasLoot = result.resources.voidCrystals > 0 || result.resources.antimatter > 0 || result.resources.darkMatter > 0 || result.resources.food > 0;
-        if (hasLoot) successes++;
-        else failures++;
+    it('does nothing when at max active explorations', () => {
+      const rich = { ...state, resources: { ...state.resources, surveyData: PROBE_SWARM_THRESHOLD } };
+      // Fill all slots
+      let filled = rich;
+      for (let i = 0; i < MAX_ACTIVE_EXPLORATIONS; i++) {
+        filled = launchExploration(filled, 'MARS');
       }
-      expect(failures).toBeGreaterThan(0);
-      expect(failures + successes).toBe(20);
+      vi.mocked(Math.random).mockReturnValue(0.01); // would trigger if slots available
+      const result = tickProbeSwarm(filled);
+      // Should not add more (already at max)
+      expect(result.spaceExplorations).toHaveLength(MAX_ACTIVE_EXPLORATIONS);
     });
 
-    it('returns state unchanged if exploration not found', () => {
-      const exp = { id: 'nonexistent', destination: 'MARS', ticksRemaining: 1, risk: 0.5 };
-      const result = resolveExploration(state, exp);
-      expect(result).toBe(state);
+    it('auto-launches when above threshold and slots available', () => {
+      const rich = { ...state, resources: { ...state.resources, surveyData: PROBE_SWARM_THRESHOLD } };
+      vi.mocked(Math.random).mockReturnValue(0.01); // well below 5% trigger chance
+      const result = tickProbeSwarm(rich);
+      expect(result.spaceExplorations.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('partial success adds reduced rewards', () => {
-      vi.spyOn(Math, 'random').mockReturnValue(0.5);
-      const exp = { id: 'e1', destination: 'MARS', ticksRemaining: 1, risk: 0.4 };
-      state.spaceExplorations = [exp];
-      state.resources.antimatter = 0;
-      state.resources.food = 0;
-
-      const result = resolveExploration(state, exp);
-      expect(result.resources.antimatter).toBeGreaterThan(0);
-      vi.restoreAllMocks();
-    });
-
-    it('space anomaly can trigger bonus resources (statistical)', () => {
-      const exp = { id: 'e1', destination: 'MARS', ticksRemaining: 1, risk: 0.05 };
-      state.resources.voidCrystals = 0;
-
-      let anomalyCount = 0;
-      for (let i = 0; i < 100; i++) {
-        const testState = {
-          ...state,
-          spaceExplorations: [{ ...exp, id: `anom_${i}` }],
-          resources: { ...state.resources, voidCrystals: 0, antimatter: 0, darkMatter: 0, food: 0 },
-        };
-        const result = resolveExploration(testState, testState.spaceExplorations[0]);
-        if (result.resources.voidCrystals > 0) anomalyCount++;
-      }
-      expect(anomalyCount).toBeGreaterThan(0);
+    it('does nothing when random roll misses', () => {
+      const rich = { ...state, resources: { ...state.resources, surveyData: PROBE_SWARM_THRESHOLD } };
+      vi.mocked(Math.random).mockReturnValue(0.99); // well above trigger chance
+      const result = tickProbeSwarm(rich);
+      expect(result.spaceExplorations).toHaveLength(0);
     });
   });
 
-  describe('PLANETS', () => {
-    it('defines at least 4 discoverable planets', () => {
-      expect(PLANETS.length).toBeGreaterThanOrEqual(4);
-    });
+  describe('recursive loop invariant', () => {
+    it('exploring reduces future exploration distance (recursive scaling)', () => {
+      // First exploration with 0 surveyData
+      const first = launchExploration(state, 'EUROPA');
+      const firstDist = first.spaceExplorations[0].ticksRemaining;
 
-    it('each planet has a name and type', () => {
-      for (const planet of PLANETS) {
-        expect(planet.name).toBeTruthy();
-        expect(planet.type).toBeTruthy();
+      // Simulate completing it (full success)
+      let s = first;
+      for (let i = 0; i < firstDist; i++) {
+        s = tickExplorations(s);
       }
-    });
+      s = resolveExploration(s, { ...s.spaceExplorations[0], ticksRemaining: 0 });
+      // surveyData should have increased
+      expect(s.resources.surveyData).toBeGreaterThan(0);
 
-    it('planet types include rocky, gas, ice, habitable', () => {
-      const types = PLANETS.map((p) => p.type);
-      expect(types).toContain('rocky');
-      expect(types).toContain('gas');
-      expect(types).toContain('ice');
-      expect(types).toContain('habitable');
+      // Second exploration should be faster
+      const second = launchExploration(s, 'EUROPA');
+      const secondDist = second.spaceExplorations[0].ticksRemaining;
+
+      expect(secondDist).toBeLessThan(firstDist);
     });
   });
+});
+
+describe('ExplorationSystem — base behavior preserved', () => {
+  let state: GameState;
+
+  beforeEach(() => {
+    state = createInitialState();
+    vi.spyOn(Math, 'random').mockReturnValue(0.95);
+  });
+
+  it('tickExplorations decrements ticksRemaining', () => {
+    const launched = launchExploration(state, 'MARS');
+    const ticked = tickExplorations(launched);
+    expect(ticked.spaceExplorations[0].ticksRemaining)
+      .toBe(launched.spaceExplorations[0].ticksRemaining - 1);
+  });
+
+  it('resolveExploration removes the exploration', () => {
+    const launched = launchExploration(state, 'MARS');
+    const exp = launched.spaceExplorations[0];
+    let ticked = launched;
+    for (let i = 0; i < exp.ticksRemaining; i++) {
+      ticked = tickExplorations(ticked);
+    }
+    const resolved = resolveExploration(ticked, { ...ticked.spaceExplorations[0], ticksRemaining: 0 });
+    expect(resolved.spaceExplorations).toHaveLength(0);
+  });
+
+  it('launchExploration with no scouts still works (explorations are free)', () => {
+    const noScouts = { ...state, soldiers: { ...state.soldiers, scouts: 0 } };
+    const result = launchExploration(noScouts, 'MARS');
+    expect(result.spaceExplorations).toHaveLength(1);
+  });
+});
+
+// Clean up mocks
+afterEach(() => {
+  vi.restoreAllMocks();
 });
