@@ -275,6 +275,11 @@ describe('Phase transitions — property-based (no dead ends)', () => {
             state.resources.food = 500;
           }
           break;
+        case Phase.COMBAT:
+          // COMBAT → EXPANSION: workers >= 25 AND battlesWon >= 3
+          state.resources.workers = 25;
+          state.battlesWon = 3;
+          break;
         case Phase.EXPANSION:
           // EXPANSION → SPACE: workers >= 30 AND food >= 2000
           state.resources.workers = 30;
@@ -295,12 +300,11 @@ describe('Phase transitions — property-based (no dead ends)', () => {
     }
   });
 
-  it('every phase (except combat and transcendence) has at least one outgoing transition', () => {
-    // COMBAT is an optional branch from COLONY — once entered, it has no exit.
-    // This is a known design choice: combat is a dead-end sub-path.
+  it('every phase (except transcendence) has at least one outgoing transition', () => {
+    // COMBAT is an optional branch from COLONY and can exit to EXPANSION.
     // TRANSCENDENCE is the terminal victory phase.
     const phasesRequiringOutgoing = new Set([
-      Phase.EGG_LAYING, Phase.COLONY, Phase.EXPANSION, Phase.SPACE,
+      Phase.EGG_LAYING, Phase.COLONY, Phase.COMBAT, Phase.EXPANSION, Phase.SPACE,
     ]);
     const phasesWithOutgoing = new Set(TRANSITIONS.map((t) => t.from));
 
@@ -311,8 +315,6 @@ describe('Phase transitions — property-based (no dead ends)', () => {
       ).toBe(true);
     }
 
-    // COMBAT has no outgoing transition (design choice)
-    expect(phasesWithOutgoing.has(Phase.COMBAT)).toBe(false);
     // Transcendence is terminal — no outgoing transitions is correct
     expect(phasesWithOutgoing.has(Phase.TRANSCENDENCE)).toBe(false);
   });
