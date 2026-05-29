@@ -1,0 +1,182 @@
+{
+  "version": 6,
+  "timestamp": 1710000000000,
+  "playTimeMs": 7200000,
+  "gameState": {
+    "phase": "expansion",
+    "resources": {
+      "eggs": 1500,
+      "larvae": 600,
+      "workers": 120,
+      "food": 8000,
+      "nestCapacity": 75,
+      "wood": 500,
+      "stone": 350,
+      "nectar": 200,
+      "voidCrystals": 10,
+      "antimatter": 5,
+      "darkMatter": 2
+    },
+    "eggPipeline": {
+      "count": 300,
+      "progress": 4.7
+    },
+    "larvaPipeline": {
+      "count": 250,
+      "progress": 3.1
+    },
+    "soldierPipeline": {
+      "count": 40,
+      "progress": 1.8
+    },
+    "workersAssigned": {
+      "gather": 40,
+      "tend": 25,
+      "dig": 15,
+      "guard": 10
+    },
+    "soldiers": {
+      "scouts": 20,
+      "warriors": 15,
+      "totalKilled": 45
+    },
+    "buildings": {
+      "barracks": {
+        "level": 5,
+        "count": 2
+      },
+      "walls": {
+        "level": 3
+      },
+      "warehouse": {
+        "level": 5
+      }
+    },
+    "territory": {
+      "ownedTiles": 35,
+      "bonuses": {
+        "food": 0.8,
+        "stone": 0.5,
+        "nectar": 0.4
+      }
+    },
+    "mapTiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "type": "meadow",
+        "discovered": true,
+        "claimed": true
+      },
+      {
+        "x": 1,
+        "y": 0,
+        "type": "forest",
+        "discovered": true,
+        "claimed": true
+      }
+    ],
+    "expeditions": [
+      {
+        "id": "exp_v6_1",
+        "scouts": 5,
+        "warriors": 3,
+        "destination": "Distant Forest",
+        "ticksRemaining": 12,
+        "risk": 0.5
+      }
+    ],
+    "spaceExplorations": [
+      {
+        "id": "expl_v6_1",
+        "destination": "Alpha Centauri",
+        "ticksRemaining": 30,
+        "risk": 0.6
+      }
+    ],
+    "discoveredPlanets": [
+      "Mars",
+      "Alpha Centauri B"
+    ],
+    "spaceships": [
+      {
+        "id": "ship_v6_1",
+        "type": "scout_ship",
+        "level": 2,
+        "fuel": 30,
+        "maxFuel": 150,
+        "status": "idle",
+        "missionTicksRemaining": 0,
+        "destinationName": ""
+      },
+      {
+        "id": "ship_v6_2",
+        "type": "cruiser",
+        "level": 1,
+        "fuel": 80,
+        "maxFuel": 200,
+        "status": "exploring",
+        "missionTicksRemaining": 25,
+        "destinationName": "Alpha Centauri"
+      }
+    ],
+    "upgrades": {
+      "click_power": 8
+    },
+    "stats": {
+      "totalEggsLaid": 5000,
+      "totalClicks": 1200,
+      "playTimeMs": 7200000
+    },
+    "unlockedPanels": [
+      "resource_panel",
+      "worker_panel",
+      "building_panel",
+      "soldier_panel",
+      "expedition_panel"
+    ],
+    "lastSaveTimestamp": 1710000000000,
+    "combatSoldiers": 25,
+    "soldierStats": {
+      "strength": 2.5,
+      "defense": 2,
+      "speed": 15,
+      "maxHp": 30
+    },
+    "equipment": {
+      "weapon": 2,
+      "armor": 1
+    },
+    "lastBattle": {
+      "enemyType": "spider",
+      "result": "victory",
+      "soldiersLost": 3,
+      "foodGained": 50,
+      "timestamp": 1709999999000
+    },
+    "combatResources": {
+      "chitin": 15,
+      "silk": 8,
+      "venom": 5
+    },
+    "battlesWon": 12,
+    "battlesLost": 2,
+    "victoryAchieved": false,
+    "spaceship": {
+      "level": 3,
+      "fuel": 75,
+      "maxFuel": 200
+    },
+    "spaceProbes": [
+      {
+        "id": "probe_v6_1",
+        "destination": "Sirius",
+        "ticksRemaining": 15,
+        "scouts": 1
+      }
+    ],
+    "discoveries": [
+      "Ancient signal from deep space"
+    ]
+  }
+}

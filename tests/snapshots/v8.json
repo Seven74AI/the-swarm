@@ -1,0 +1,198 @@
+{
+  "version": 8,
+  "timestamp": 1730000000000,
+  "playTimeMs": 28800000,
+  "gameState": {
+    "phase": "civilization",
+    "resources": {
+      "eggs": 10000,
+      "larvae": 5000,
+      "workers": 1000,
+      "food": 50000,
+      "nestCapacity": 500,
+      "wood": 5000,
+      "stone": 4000,
+      "nectar": 2000,
+      "voidCrystals": 500,
+      "antimatter": 200,
+      "darkMatter": 100
+    },
+    "eggPipeline": {
+      "count": 2000,
+      "progress": 12.5
+    },
+    "larvaPipeline": {
+      "count": 1500,
+      "progress": 8.3
+    },
+    "soldierPipeline": {
+      "count": 500,
+      "progress": 15.2
+    },
+    "workersAssigned": {
+      "gather": 300,
+      "tend": 200,
+      "dig": 150,
+      "guard": 100,
+      "researchers": 50
+    },
+    "soldiers": {
+      "scouts": 200,
+      "warriors": 150,
+      "totalKilled": 500
+    },
+    "buildings": {
+      "barracks": {
+        "level": 25,
+        "count": 6
+      },
+      "walls": {
+        "level": 15
+      },
+      "warehouse": {
+        "level": 20
+      }
+    },
+    "territory": {
+      "ownedTiles": 64,
+      "bonuses": {
+        "food": 2.0,
+        "stone": 1.5,
+        "nectar": 1.0
+      }
+    },
+    "mapTiles": [],
+    "expeditions": [],
+    "spaceExplorations": [
+      {
+        "id": "expl_v8_1",
+        "destination": "Black Hole",
+        "ticksRemaining": 50,
+        "risk": 0.8
+      }
+    ],
+    "discoveredPlanets": [
+      "Mars",
+      "Alpha Centauri B",
+      "Proxima B",
+      "Kepler-442b",
+      "TRAPPIST-1e",
+      "Gliese 667 Cc"
+    ],
+    "spaceships": [
+      {
+        "id": "ship_v8_1",
+        "type": "capital_ship",
+        "level": 5,
+        "fuel": 500,
+        "maxFuel": 1000,
+        "status": "exploring",
+        "missionTicksRemaining": 30,
+        "destinationName": "Andromeda"
+      }
+    ],
+    "upgrades": {
+      "click_power": 30
+    },
+    "stats": {
+      "totalEggsLaid": 100000,
+      "totalClicks": 15000,
+      "playTimeMs": 28800000
+    },
+    "unlockedPanels": [
+      "resource_panel",
+      "worker_panel",
+      "building_panel",
+      "soldier_panel",
+      "expedition_panel",
+      "spaceship_panel",
+      "exploration_panel",
+      "prestige_panel"
+    ],
+    "lastSaveTimestamp": 1730000000000,
+    "combatSoldiers": 250,
+    "soldierStats": {
+      "strength": 10.0,
+      "defense": 8.0,
+      "speed": 40,
+      "maxHp": 200
+    },
+    "equipment": {
+      "weapon": 10,
+      "armor": 8
+    },
+    "lastBattle": {
+      "enemyType": "dragon_queen",
+      "result": "victory",
+      "soldiersLost": 15,
+      "foodGained": 500,
+      "timestamp": 1729000000000
+    },
+    "combatResources": {
+      "chitin": 100,
+      "silk": 80,
+      "venom": 60
+    },
+    "battlesWon": 120,
+    "battlesLost": 10,
+    "victoryAchieved": false,
+    "spaceship": {
+      "level": 15,
+      "fuel": 500,
+      "maxFuel": 1000
+    },
+    "spaceProbes": [
+      {
+        "id": "probe_v8_1",
+        "destination": "Deep Space",
+        "ticksRemaining": 100,
+        "scouts": 5
+      }
+    ],
+    "discoveries": [
+      "Ancient signal from deep space",
+      "Dyson sphere fragment detected",
+      "Wormhole coordinates mapped",
+      "Dark matter signature identified"
+    ],
+    "nextIds": {
+      "expedition": 1,
+      "exploration": 1,
+      "spaceship": 1
+    },
+    "prestige": {
+      "count": 2,
+      "legacyPoints": 1500,
+      "totalFoodProduced": 500000
+    },
+    "autoProduction": {
+      "enabled": true,
+      "researches": {
+        "click_power_2x": true
+      },
+      "buildings": {
+        "nursery": 5,
+        "hatchery": 3,
+        "queens_chamber": 1
+      },
+      "progress": 0.5
+    },
+    "offlineEfficiency": 0.5,
+    "research": {
+      "projects": {
+        "voidCrystalSynthesis": {
+          "state": "completed",
+          "progress": 100
+        },
+        "antimatterContainment": {
+          "state": "in_progress",
+          "progress": 45
+        },
+        "darkMatterDetection": {
+          "state": "available",
+          "progress": 0
+        }
+      }
+    }
+  }
+}
