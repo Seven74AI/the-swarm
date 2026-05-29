@@ -75,7 +75,6 @@ html, body {
   padding: 1rem;
   margin-bottom: 1rem;
   width: 100%;
-  max-width: 480px;
   /* Performance: skip layout/paint for off-screen panels */
   content-visibility: auto;
   contain-intrinsic-size: auto 500px;
@@ -131,7 +130,6 @@ html, body {
 /* ── Top Bar ── */
 .top-bar {
   width: 100%;
-  max-width: 480px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -545,7 +543,24 @@ html, body {
   font-size: 0.72rem;
 }
 
-/* ── Mobile Responsive ── */
+/* ── Mobile Responsive (mobile-first) ── */
+
+/*
+ * Base styles (no media query) target mobile < 480px:
+ * Panels are full-width and stack vertically.
+ * No max-width constraints — fluid layout.
+ */
+
+/* 480px+ — Small tablets: cap panel widths for readability */
+@media (min-width: 480px) {
+  .panel { max-width: 480px; }
+  .top-bar { max-width: 480px; }
+  .phase-indicator { max-width: 480px; }
+  .map-panel { max-width: 480px; }
+  #app { padding: 2rem 1.5rem; }
+}
+
+/* 768px+ — Tablets: two-column resource panel, wider layout */
 @media (min-width: 768px) {
   .resource-panel {
     display: grid;
@@ -566,6 +581,19 @@ html, body {
   .hud-section {
     grid-column: 1 / -1;
   }
+
+  .panel { max-width: 720px; padding: 1.25rem; }
+  .top-bar { max-width: 720px; }
+  .phase-indicator { max-width: 720px; }
+  .map-panel { max-width: 720px; }
+}
+
+/* 1024px+ — Desktop: wider panels, more breathing room */
+@media (min-width: 1024px) {
+  .panel { max-width: 960px; padding: 1.5rem; }
+  .top-bar { max-width: 960px; }
+  .phase-indicator { max-width: 960px; }
+  .map-panel { max-width: 960px; }
 }
 
 /* ── Phase Indicator ── */
@@ -575,7 +603,6 @@ html, body {
   margin-bottom: 0.5rem;
   transition: all 0.5s ease;
   width: 100%;
-  max-width: 480px;
 }
 
 .phase-indicator .phase-text {
@@ -691,7 +718,6 @@ html, body {
   padding: 0.75rem;
   margin-bottom: 1rem;
   width: 100%;
-  max-width: 480px;
 }
 
 .map-summary {
