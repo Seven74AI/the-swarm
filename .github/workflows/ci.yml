@@ -23,30 +23,32 @@ jobs:
     steps:
       - name: ⬇️ Checkout repo
         uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
       - name: ⎔ Setup node
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          cache: 'npm'
+          cache: 'pnpm'
       - name: 📥 Install deps
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       - name: 🔎 Type check
-        run: npx tsc --noEmit
+        run: pnpm run typecheck
 
   vitest:
     runs-on: ubuntu-24.04
     steps:
       - name: ⬇️ Checkout repo
         uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
       - name: ⎔ Setup node
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          cache: 'npm'
+          cache: 'pnpm'
       - name: 📥 Install deps
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       - name: ⚡ Run vitest
-        run: npm run test
+        run: pnpm run test
 
   playwright:
     runs-on: ubuntu-24.04
@@ -58,17 +60,18 @@ jobs:
     steps:
       - name: ⬇️ Checkout repo
         uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
       - name: ⎔ Setup node
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          cache: 'npm'
+          cache: 'pnpm'
       - name: 📥 Install deps
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       - name: 📥 Install Playwright Browsers
-        run: npx playwright install --with-deps
+        run: pnpm exec playwright install --with-deps
       - name: 🎭 Playwright tests
-        run: npx playwright test --repeat-each=3 --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+        run: pnpm exec playwright test --repeat-each=3 --shard=${{ matrix.shard }}/${{ strategy.job-total }}
       - name: 📊 Upload report
         uses: actions/upload-artifact@v7
         if: always()
