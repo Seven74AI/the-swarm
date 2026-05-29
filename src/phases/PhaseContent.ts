@@ -2,6 +2,9 @@ import { Phase } from './phases';
 import type { UIRoot } from '../ui/UIRoot';
 import type { EventBus } from '../engine/EventBus';
 
+/** CSS animation duration for phase transitions (3.5s in ms). */
+const TRANSITION_DURATION_MS = 3500;
+
 /** Lore quotes — one displayed during each phase transition. */
 const LORE_QUOTES: Record<string, string[]> = {
   [Phase.EGG_LAYING]: [
@@ -171,10 +174,10 @@ export class PhaseContent {
       this.onPhaseEnter(phase, uiRoot);
     }, 300);
 
-    // End transition after full animation (2s total)
+    // End transition after full CSS animation (3.5s)
     setTimeout(() => {
       bus.emit('transition_complete', { phase });
-    }, 2000);
+    }, TRANSITION_DURATION_MS);
   }
 
   /**
