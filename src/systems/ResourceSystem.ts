@@ -134,7 +134,7 @@ export class ResourceSystem {
    * Rate-based pipelines replace per-item timer iteration → O(1).
    * Two-phase: compute all rates first, then apply all deltas.
    */
-  tick(state: GameState, territoryBonuses?: TerritoryBonuses, dtSec: number = 1, skipDeterministicResources: boolean = false): GameState {
+  tick(state: GameState, territoryBonuses?: TerritoryBonuses, dtSec: number = 0.05, skipDeterministicResources: boolean = false): GameState {
     // ─── Phase 1: Compute all rates from current state (read-only) ───
 
     const rates = computeResourceRates(state, territoryBonuses);
