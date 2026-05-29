@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 test('click egg button increments counter and spawns particle', async ({ page }) => {
+  // Suppress onboarding overlay — it intercepts clicks in E2E tests
+  await page.addInitScript(() => { localStorage.setItem('the_swarm_onboarding', 'done'); });
   await page.goto('/');
   // Verify initial egg count is 0 (critical-bar format: "🥚 0")
   const eggDisplay = page.locator('[data-stat="resources.eggs"] .critical-value');
@@ -83,6 +85,8 @@ test('phase transitions from egg_laying to colony', async ({ page }) => {
 });
 
 test('save persists across reload', async ({ page }) => {
+  // Suppress onboarding overlay — it intercepts clicks in E2E tests
+  await page.addInitScript(() => { localStorage.setItem('the_swarm_onboarding', 'done'); });
   await page.goto('/');
 
   // Click the egg button
