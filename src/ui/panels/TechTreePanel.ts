@@ -359,7 +359,7 @@ export class TechTreePanel {
       const btn = document.createElement('button');
       btn.className = 'btn btn-sm btn-tree-purchase';
       btn.textContent = 'Buy';
-      btn.disabled = !canPurchase;
+      btn.disabled = !canPurchase || anyPrereqMissing;
 
       if (canPurchase) {
         btn.addEventListener('click', () => {
