@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EventBus } from '../../src/engine/EventBus';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 import { BattleSystem } from '../../src/systems/BattleSystem';
@@ -39,19 +39,12 @@ describe('BattleSystem', () => {
     it('returns defeat with 1 weak soldier vs scorpion (after 5+ battles to unlock boss)', () => {
       setupWeakArmy(1);
       state.battlesWon = 10; // unlock scorpion
-      // Force scorpion by running many battles until we get one
-      let scorpionDefeat = false;
-      for (let i = 0; i < 100; i++) {
-        const testState = { ...state, battlesWon: 10 };
-        const { result, newState } = system.resolveBattle(testState);
-        if (result.enemyType === 'scorpion' && !result.victory) {
-          scorpionDefeat = true;
-          expect(newState.battlesLost).toBe(testState.battlesLost + 1);
-          break;
-        }
-      }
-      // With 100 tries and 3% scorpion chance, should get at least one
-      expect(scorpionDefeat).toBe(true);
+      // Force scorpion by mocking random to hit the scorpion bucket (indices 97-99 of 100)
+      vi.spyOn(Math, 'random').mockReturnValue(0.98);
+      const { result, newState } = system.resolveBattle(state);
+      expect(result.enemyType).toBe('scorpion');
+      expect(result.victory).toBe(false);
+      expect(newState.battlesLost).toBe(state.battlesLost + 1);
     });
 
     it('soldiers lost never exceeds soldier count', () => {
