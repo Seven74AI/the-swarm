@@ -321,8 +321,10 @@ test.describe('Combat Edge Cases', () => {
     await expect(page.locator('#battle-result')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#battle-result')).toContainText(/Victory|Defeat/);
 
-    // Training status should still be visible (training continues during battle)
-    await expect(page.locator('#soldier-panel .stat-row .stat-sub').first()).not.toBeEmpty();
+    // Verify training happened during battle — soldier count changed from initial 10
+    // (training added soldiers, battle may have killed some — count should differ)
+    const soldierValue = page.locator('#soldier-panel .stat-row').filter({ hasText: 'Soldiers:' }).locator('.stat-value');
+    await expect(soldierValue).not.toHaveText('10', { timeout: 3000 });
   });
 
   test('strong equipment favors victory', async ({ page }) => {
