@@ -39,6 +39,8 @@ export interface GameState {
     voidCrystals: number;
     antimatter: number;
     darkMatter: number;
+    /** Accumulates from completed space explorations. Each point speeds up future explorations by 5%. */
+    surveyData: number;
   };
   /** Rate-based egg hatching pipeline (replaces eggHatchTimers[]) */
   eggPipeline: Pipeline;
@@ -233,6 +235,7 @@ export function createInitialState(): GameState {
       voidCrystals: 0,
       antimatter: 0,
       darkMatter: 0,
+      surveyData: 0,
     },
     eggPipeline: { count: 0, progress: 0 },
     larvaPipeline: { count: 0, progress: 0 },
