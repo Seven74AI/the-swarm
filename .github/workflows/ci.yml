@@ -7,24 +7,84 @@ on:
   pull_request:
     branches: [main]
     paths-ignore: ['**.md', '**.txt']
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: write
+  contents: read
 
 jobs:
-  ci:
-    runs-on: ubuntu-latest
+  typecheck:
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v6
+      - name: ⎔ Setup node
+        uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: 22
           cache: 'npm'
+      - name: 📥 Install deps
+        run: npm ci
+      - name: 🔎 Type check
+        run: npx tsc --noEmit
 
-      - run: npm ci
+  vitest:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v6
+      - name: ⎔ Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'npm'
+      - name: 📥 Install deps
+        run: npm ci
+      - name: ⚡ Run vitest
+        run: npm run test
 
-      - run: npx playwright install --with-deps
+  playwright:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v6
+      - name: ⎔ Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'npm'
+      - name: 📥 Install deps
+        run: npm ci
+      - name: 📥 Install Playwright Browsers
+        run: npx playwright install --with-deps
+      - name: 🎭 Playwright tests
+        run: npx playwright test --repeat-each=3 --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+      - name: 📊 Upload report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
 
-      - run: npm run test
-
-      - run: npm run lint
-
-      - run: npx playwright test --workers=1
+  playwright-gate:
+    needs: playwright
+    runs-on: ubuntu-24.04
+    if: always()
+    steps:
+      - run: |
+          if [ "${{ needs.playwright.result }}" = "success" ]; then
+            exit 0
+          else
+            exit 1
+          fi
