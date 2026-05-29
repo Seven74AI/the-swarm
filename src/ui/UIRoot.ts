@@ -129,8 +129,6 @@ export class UIRoot {
 
     // Phase 5 panels (lazy — created on demand)
     this.panelRegistry.set('tech_tree_panel', () => new TechTreePanel().getElement());
-    // Phase 5 panels (lazy — created on demand)
-    this.panelRegistry.set('tech_tree_panel', () => new TechTreePanel().getElement());
     this.panelRegistry.set('automation_panel', () => new AutoProductionPanel(
       this.bus, this.getState, this.setState,
     ).getElement());
