@@ -269,6 +269,19 @@ function migrateV10toV11(data: SaveData): SaveData {
   return { ...data, version: 11, gameState };
 }
 
+/** v11 → v12: adds surveyData to resources (recursive exploration scaling) */
+function migrateV11toV12(data: SaveData): SaveData {
+  const gameState = data.gameState as GameState & {
+    resources: { surveyData?: number };
+  };
+
+  if (gameState.resources.surveyData === undefined) {
+    gameState.resources.surveyData = 0;
+  }
+
+  return { ...data, version: 12, gameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -281,6 +294,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   8: migrateV8toV9,
   9: migrateV9toV10,
   10: migrateV10toV11,
+  11: migrateV11toV12,
 };
 
 /**

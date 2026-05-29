@@ -9,7 +9,7 @@ import { MapSystem } from './systems/MapSystem';
 import { TerritorySystem } from './systems/TerritorySystem';
 import { DecisionSystem } from './systems/DecisionSystem';
 import { tickExpeditions, resolveExpedition } from './systems/ExpeditionSystem';
-import { tickExplorations, resolveExploration } from './systems/ExplorationSystem';
+import { tickExplorations, resolveExploration, tickProbeSwarm } from './systems/ExplorationSystem';
 import { tickResearch } from './systems/ResearchSystem';
 import { tickConversions } from './systems/ResourceConversionSystem';
 import { tickEntropy } from './systems/EntropySystem';
@@ -267,6 +267,10 @@ export function bootstrap(): {
       }
     }
 
+    // Probe Swarm: auto-launch explorations when enough surveyData accumulated
+    newState = tickProbeSwarm(newState);
+    workingState = newState;
+
     // Spaceship system: tick missions and resolve returning ones
     newState = tickMissions(newState);
     for (const ship of newState.spaceships) {
@@ -372,7 +376,8 @@ export function bootstrap(): {
   // Listen for phase changes to reveal new panels with transition animation
   bus.subscribe('phase_changed', (payload: unknown) => {
     const phase = (payload as { phase: string }).phase as Phase;
-    phaseContent.triggerTransition(phase, bus, ui);
+    const prestigeCount = gameState.value.prestige.count;
+    phaseContent.triggerTransition(phase, bus, ui, prestigeCount);
   });
 
   // ── Audio: wire sound effects to game events ──
@@ -517,6 +522,9 @@ export function processTick(
       newState = resolveExploration(newState, exp);
     }
   }
+
+  // Probe Swarm: auto-launch explorations when enough surveyData accumulated
+  newState = tickProbeSwarm(newState);
 
   // Tick spaceship missions
   newState = tickMissions(newState);

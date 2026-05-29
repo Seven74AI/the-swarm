@@ -163,6 +163,7 @@ describe('PrestigeSystem', () => {
         eggs: 50, larvae: 30, workers: 100, food: 200_000,
         nestCapacity: 25, wood: 500, stone: 300, nectar: 200,
         voidCrystals: 10, antimatter: 5, darkMatter: 2,
+        surveyData: 0,
       };
       s.buildings.barracks.level = 6;
       s.buildings.walls.level = 5;

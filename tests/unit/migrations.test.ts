@@ -346,4 +346,26 @@ describe('migrateSave', () => {
     expect(gs6.spaceProbes).toEqual([]);
     expect(gs6.discoveries).toEqual([]);
   });
+
+  it('migrates v11 to v12 adding surveyData to resources', () => {
+    const state = createInitialState();
+    // Remove surveyData from state to simulate pre-v12 save
+    const { surveyData, ...resourcesWithoutSurveyData } = state.resources as { surveyData: number } & Record<string, unknown>;
+    const preV12State = {
+      ...state,
+      resources: resourcesWithoutSurveyData as unknown as typeof state.resources,
+    };
+
+    const v11Data: SaveData = {
+      version: 11,
+      timestamp: 1234567890,
+      playTimeMs: 5000,
+      gameState: preV12State as GameState,
+    };
+
+    const v12Data = migrateSave(v11Data, 11, 12);
+    expect(v12Data.version).toBe(12);
+    expect(v12Data.gameState.resources.surveyData).toBe(0);
+    expect(v12Data.timestamp).toBe(1234567890);
+  });
 });

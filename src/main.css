@@ -39,6 +39,22 @@
   --success: #5a7a3a;
   --danger: #8b3a3a;
   --border: #3d3528;
+
+  /* Animation durations — semantic custom properties */
+  --anim-phase-transition: 3.5s;  /* cinematic phase transition overlay + quote */
+  --anim-panel-reveal: 0.6s;      /* panel appears when phase unlocks */
+  --anim-theme-shift: 3s;         /* color theme transition between phases */
+  --anim-particle: 0.8s;          /* resource up/down particles */
+  --anim-click-particle: 0.9s;    /* click float particle */
+  --anim-burst: 0.5s;             /* burst expansion particle */
+  --anim-pulse: 2.5s;             /* prestige / neon pulse loop */
+  --anim-popup: 0.3s;             /* popup / overlay entrance */
+  --anim-tooltip: 0.35s;          /* tooltip entrance */
+  --anim-star-drift: 60s;         /* starfield background drift */
+  --anim-micro: 0.15s;            /* micro-interactions (hover, tooltip opacity) */
+  --anim-fast: 0.2s;              /* fast transitions (cards, tree buttons) */
+  --anim-ui: 0.3s;                /* standard UI transitions (progress, buttons) */
+  --anim-slow: 0.5s;              /* slow transitions (phase indicator, dim) */
 }
 
 * {
@@ -56,7 +72,7 @@ html, body {
   line-height: 1.5;
   overflow-x: hidden;
   touch-action: manipulation;
-  transition: --bg-primary 3s ease, --bg-secondary 3s ease, --accent-glow 3s ease, --border 3s ease, --text-primary 3s ease, background-color 3s ease, color 3s ease;
+  transition: --bg-primary var(--anim-theme-shift) ease, --bg-secondary var(--anim-theme-shift) ease, --accent-glow var(--anim-theme-shift) ease, --border var(--anim-theme-shift) ease, --text-primary var(--anim-theme-shift) ease, background-color var(--anim-theme-shift) ease, color var(--anim-theme-shift) ease;
 }
 
 #app {
@@ -114,7 +130,7 @@ html, body {
   cursor: pointer;
   font-family: inherit;
   font-size: 0.9rem;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background var(--anim-micro), border-color var(--anim-micro);
 }
 
 .btn:hover {
@@ -146,7 +162,7 @@ html, body {
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transition: opacity var(--anim-micro) ease;
   z-index: 50;
   border: 1px solid var(--border);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
@@ -204,7 +220,7 @@ html, body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.15s;
+  transition: transform var(--anim-micro), box-shadow var(--anim-micro);
   user-select: none;
 }
 
@@ -258,13 +274,13 @@ html, body {
 .number-particle-up {
   background: var(--success);
   box-shadow: 0 0 4px var(--success);
-  animation: particle-rise 800ms ease-out forwards;
+  animation: particle-rise var(--anim-particle) ease-out forwards;
 }
 
 .number-particle-down {
   background: var(--danger);
   box-shadow: 0 0 4px var(--danger);
-  animation: particle-fall 800ms ease-out forwards;
+  animation: particle-fall var(--anim-particle) ease-out forwards;
 }
 
 @keyframes particle-rise {
@@ -309,7 +325,7 @@ html, body {
   z-index: 10;
   white-space: nowrap;
   text-shadow: 0 0 6px var(--accent-glow);
-  animation: click-particle-float 900ms ease-out forwards;
+  animation: click-particle-float var(--anim-click-particle) ease-out forwards;
 }
 
 @keyframes click-particle-float {
@@ -337,7 +353,7 @@ html, body {
   box-shadow: 0 0 6px var(--accent-glow);
   pointer-events: none;
   z-index: 20;
-  animation: burst-expand 500ms ease-out forwards;
+  animation: burst-expand var(--anim-burst) ease-out forwards;
 }
 
 @keyframes burst-expand {
@@ -353,7 +369,7 @@ html, body {
 
 /* ── Resource Flash (color tween on value change) ── */
 .critical-value {
-  transition: color 150ms ease-out, text-shadow 150ms ease-out;
+  transition: color var(--anim-micro) ease-out, text-shadow var(--anim-micro) ease-out;
 }
 
 .critical-value.flash-increase {
@@ -399,7 +415,7 @@ html, body {
   height: 100%;
   background: var(--accent);
   border-radius: 4px;
-  transition: width 0.3s ease;
+  transition: width var(--anim-ui) ease;
 }
 
 /* ── Event Log ── */
@@ -478,7 +494,7 @@ html, body {
   border-left: 3px solid transparent;
   background: var(--bg-secondary);
   border-radius: 3px;
-  transition: background 0.15s;
+  transition: background var(--anim-micro);
 }
 
 .section-header:hover {
@@ -636,7 +652,7 @@ html, body {
   text-align: center;
   padding: 0.75rem 1rem;
   margin-bottom: 0.5rem;
-  transition: all 0.5s ease;
+  transition: all var(--anim-slow) ease;
   width: 100%;
 }
 
@@ -644,7 +660,7 @@ html, body {
   font-size: 0.9rem;
   color: var(--text-muted);
   font-style: italic;
-  transition: font-size 0.5s ease, color 0.5s ease;
+  transition: font-size var(--anim-slow) ease, color var(--anim-slow) ease;
 }
 
 .phase-indicator.phase-colony .phase-text {
@@ -978,7 +994,7 @@ body.phase-space::before {
     radial-gradient(1px 1px at 20% 15%, rgba(255,255,255,0.3), transparent),
     radial-gradient(1px 1px at 80% 65%, rgba(210,240,255,0.7), transparent);
   background-size: 200% 200%;
-  animation: star-drift 60s linear infinite;
+  animation: star-drift var(--anim-star-drift) linear infinite;
   pointer-events: none;
   z-index: 0;
 }
@@ -1044,7 +1060,7 @@ body.phase-space .top-bar {
 }
 
 body.phase-space #click-egg {
-  animation: neon-pulse 2s ease-in-out infinite;
+  animation: neon-pulse var(--anim-pulse) ease-in-out infinite;
   border-color: var(--accent);
   background: radial-gradient(circle, rgba(0, 100, 150, 0.5), rgba(10, 10, 20, 0.9));
   color: var(--accent-glow);
@@ -1168,7 +1184,7 @@ body.phase-space .progress-fill {
 
 /* Fade-in when active — 3.5s total */
 #phase-transition-overlay.active {
-  animation: phase-transition-overlay 3.5s ease forwards;
+  animation: phase-transition-overlay var(--anim-phase-transition) ease forwards;
 }
 
 @keyframes phase-transition-overlay {
@@ -1188,7 +1204,27 @@ body.phase-space .progress-fill {
   font-size: 1.1rem;
   line-height: 1.6;
   padding: 0 2rem;
-  animation: phase-quote-enter 3.5s ease forwards;
+  animation: phase-quote-enter var(--anim-phase-transition) ease forwards;
+}
+
+/* Skip hint — shown on prestige runs (click or press Space/Enter/Escape) */
+.phase-transition-skip-hint {
+  margin-top: 2rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  opacity: 0;
+  animation: phase-skip-hint-enter 3.5s ease forwards;
+  cursor: pointer;
+  user-select: none;
+}
+
+@keyframes phase-skip-hint-enter {
+  0%   { opacity: 0; }
+  20%  { opacity: 0; }
+  35%  { opacity: 0.7; }
+  55%  { opacity: 0.7; }
+  75%  { opacity: 0.3; }
+  100% { opacity: 0; }
 }
 
 @keyframes phase-quote-enter {
@@ -1202,12 +1238,12 @@ body.phase-space .progress-fill {
 /* Dim panels during transition */
 .panel.transition-dimmed {
   opacity: 0.4;
-  transition: opacity 0.5s ease;
+  transition: opacity var(--anim-slow) ease;
 }
 
 /* Phase indicator pulse before transition */
 .phase-indicator.transitioning {
-  animation: phase-pulse 0.5s ease;
+  animation: phase-pulse var(--anim-burst) ease;
 }
 
 @keyframes phase-pulse {
@@ -1222,7 +1258,7 @@ body.phase-space .progress-fill {
 
 /* Panel revealed by phase unlock: triggers phaseReveal animation */
 .panel-revealed {
-  animation: phaseReveal 0.6s ease forwards;
+  animation: phaseReveal var(--anim-panel-reveal) ease forwards;
 }
 
 @keyframes phaseReveal {
@@ -1261,7 +1297,7 @@ body.phase-space .progress-fill {
   font-size: 1rem;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--anim-ui) ease;
 }
 
 /* Greyed-out disabled state */
@@ -1289,7 +1325,7 @@ body.phase-space .progress-fill {
   border-color: #ffd700;
   background: linear-gradient(135deg, rgba(40, 30, 0, 0.6), rgba(20, 10, 0, 0.4));
   color: #ffd700;
-  animation: prestige-pulse 2.5s ease-in-out infinite;
+  animation: prestige-pulse var(--anim-pulse) ease-in-out infinite;
   cursor: pointer;
 }
 
@@ -1326,7 +1362,7 @@ body.phase-space .progress-fill {
   font-size: 0.85rem;
   font-weight: bold;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background var(--anim-fast);
 }
 
 .btn-tree:hover {
@@ -1375,7 +1411,7 @@ body.phase-space .progress-fill {
   flex-direction: column;
   gap: 0.2rem;
   align-items: center;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color var(--anim-fast), box-shadow var(--anim-fast);
 }
 
 /* Available — emphasizes the green border */
@@ -1451,7 +1487,7 @@ body.phase-space .progress-fill {
   cursor: pointer;
   font-size: 0.75rem;
   font-weight: bold;
-  transition: background 0.2s;
+  transition: background var(--anim-fast);
 }
 
 .btn-tree-purchase:hover:not(:disabled) {
@@ -1485,7 +1521,7 @@ body.phase-space .progress-fill {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  animation: offline-overlay-in 0.3s ease-out;
+  animation: offline-overlay-in var(--anim-popup) ease-out;
 }
 
 @keyframes offline-overlay-in {
@@ -1501,7 +1537,7 @@ body.phase-space .progress-fill {
   text-align: center;
   max-width: 440px;
   box-shadow: 0 0 40px rgba(184, 148, 46, 0.3);
-  animation: offline-popup-in 0.4s ease-out;
+  animation: offline-popup-in var(--anim-popup) ease-out;
 }
 
 @keyframes offline-popup-in {
@@ -1535,7 +1571,7 @@ body.phase-space .progress-fill {
   border-radius: 8px;
   cursor: pointer;
   font-size: 1rem;
-  transition: all 0.2s ease;
+  transition: all var(--anim-fast) ease;
 }
 
 .offline-dismiss-btn:hover {
@@ -1553,7 +1589,7 @@ body.phase-space .progress-fill {
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5), 0 0 12px rgba(233, 69, 96, 0.3);
-  animation: popup-slide-in 0.3s ease-out;
+  animation: popup-slide-in var(--anim-popup) ease-out;
   font-family: 'Courier New', monospace;
   color: #eee;
 }
@@ -1591,7 +1627,7 @@ body.phase-space .progress-fill {
   padding: 8px 12px;
   color: #ddd;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  transition: background var(--anim-micro), border-color var(--anim-micro), transform var(--anim-micro);
   text-align: left;
   font-family: inherit;
   font-size: 0.9em;
@@ -1665,7 +1701,7 @@ body.phase-space .progress-fill {
 
 /* SVG connection lines */
 .tech-tree-line {
-  transition: stroke 0.3s;
+  transition: stroke var(--anim-ui);
 }
 
 .tech-tree-line.purchased-line {
@@ -1685,7 +1721,7 @@ body.phase-space .progress-fill {
   flex-direction: column;
   gap: 0.2rem;
   align-items: center;
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  transition: border-color var(--anim-fast), box-shadow var(--anim-fast), transform var(--anim-micro);
   z-index: 2;
 }
 
@@ -1773,7 +1809,7 @@ body.phase-space .progress-fill {
   inset: 0;
   z-index: 200;
   background: rgba(0, 0, 0, 0.55);
-  animation: onboarding-overlay-in 0.3s ease-out;
+  animation: onboarding-overlay-in var(--anim-popup) ease-out;
 }
 
 @keyframes onboarding-overlay-in {
@@ -1791,7 +1827,7 @@ body.phase-space .progress-fill {
   padding: 1rem 1.25rem;
   max-width: 280px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5), 0 0 12px rgba(164, 126, 255, 0.15);
-  animation: onboarding-tooltip-pop 0.35s ease-out;
+  animation: onboarding-tooltip-pop var(--anim-tooltip) ease-out;
   text-align: center;
 }
 
@@ -1824,7 +1860,7 @@ body.phase-space .progress-fill {
   font-weight: bold;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background var(--anim-fast);
 }
 
 .onboarding-tooltip-dismiss:hover {
