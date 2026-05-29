@@ -280,6 +280,11 @@ describe('Phase transitions — property-based (no dead ends)', () => {
           state.resources.workers = 30;
           state.resources.food = 2000;
           break;
+        case Phase.COMBAT:
+          // COMBAT → EXPANSION: workers >= 25 AND battlesWon >= 3
+          state.resources.workers = 25;
+          state.battlesWon = 3;
+          break;
         case Phase.SPACE:
           // SPACE → TRANSCENDENCE: voidCrystals >= 50, antimatter >= 10, darkMatter >= 5
           state.resources.voidCrystals = 50;
@@ -311,8 +316,8 @@ describe('Phase transitions — property-based (no dead ends)', () => {
       ).toBe(true);
     }
 
-    // COMBAT has no outgoing transition (design choice)
-    expect(phasesWithOutgoing.has(Phase.COMBAT)).toBe(false);
+    // COMBAT has one outgoing transition (COMBAT → EXPANSION) — intentional rescue path
+    expect(phasesWithOutgoing.has(Phase.COMBAT)).toBe(true);
     // Transcendence is terminal — no outgoing transitions is correct
     expect(phasesWithOutgoing.has(Phase.TRANSCENDENCE)).toBe(false);
   });
