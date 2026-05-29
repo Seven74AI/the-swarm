@@ -17,7 +17,7 @@ function makeSaveData(overrides?: Record<string, unknown>) {
   }
 
   return {
-    version: 8,
+    version: 11,
     timestamp: Date.now(),
     playTimeMs: 0,
     gameState: {
@@ -60,6 +60,11 @@ function makeSaveData(overrides?: Record<string, unknown>) {
       victoryAchieved: false,
       nextIds: { expedition: 1, exploration: 1, spaceship: 1 },
       prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 100_000 },
+      offlineEfficiency: 0.5,
+      conversions: { particleLab: 0 },
+      entropy: 0,
+      entropyDampener: { level: 0 },
+      prestigeTree: { purchased: [] },
       ...overrides,
     },
   };

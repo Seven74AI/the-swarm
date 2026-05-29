@@ -29,7 +29,7 @@ function makeSeedStr(playTimeMs: number): string {
   }
 
   return JSON.stringify({
-    version: 8,
+    version: 11,
     timestamp: Date.now(),
     playTimeMs,
     gameState: {
@@ -84,6 +84,11 @@ function makeSeedStr(playTimeMs: number): string {
       spaceProbes: [],
       discoveries: [],
       nextIds: { expedition: 1, exploration: 1, spaceship: 1 },
+      offlineEfficiency: 0.5,
+      conversions: { particleLab: 0 },
+      entropy: 0,
+      entropyDampener: { level: 0 },
+      prestigeTree: { purchased: [] },
     },
   });
 }

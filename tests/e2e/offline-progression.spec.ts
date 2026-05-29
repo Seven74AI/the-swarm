@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test';
 
 function makeOfflineSaveData(saveTimestamp: number) {
   return {
-    version: 9,
+    version: 11,
     timestamp: saveTimestamp,
     playTimeMs: 60000,
     gameState: {
@@ -44,6 +44,23 @@ function makeOfflineSaveData(saveTimestamp: number) {
       nextIds: { expedition: 1, exploration: 1, spaceship: 1 },
       prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 0 },
       offlineEfficiency: 0.5,
+      conversions: { particleLab: 0 },
+      entropy: 0,
+      entropyDampener: { level: 0 },
+      prestigeTree: { purchased: [] },
+      research: {
+        projects: {
+          voidCrystalSynthesis: { state: 'available' as const, progress: 0 },
+          antimatterContainment: { state: 'locked' as const, progress: 0 },
+          darkMatterDetection: { state: 'locked' as const, progress: 0 },
+        },
+      },
+      autoProduction: {
+        enabled: false,
+        researches: {},
+        buildings: { nursery: 0, hatchery: 0, queens_chamber: 0 },
+        progress: 0,
+      },
     },
   };
 }
