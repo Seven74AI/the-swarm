@@ -147,6 +147,9 @@ export class AutoProductionPanel {
         btn.className = 'btn btn-sm';
         btn.textContent = 'Research';
         btn.disabled = !affordable;
+        if (btn.disabled) {
+          btn.setAttribute('data-tooltip', this.researchTooltip(researchId, state));
+        }
         btn.addEventListener('click', () => {
           const s = this.getState();
           const result = research(researchId, s);
@@ -226,6 +229,9 @@ export class AutoProductionPanel {
         btn.className = 'btn btn-sm';
         btn.textContent = 'Build';
         btn.disabled = !canBuild;
+        if (btn.disabled) {
+          btn.setAttribute('data-tooltip', this.autoBuildTooltip(buildingId, state));
+        }
         btn.addEventListener('click', () => {
           const s = this.getState();
           const oldLevel = s.autoProduction.buildings[buildingId] ?? 0;
@@ -247,6 +253,40 @@ export class AutoProductionPanel {
     }
 
     this.container.appendChild(buildingSection);
+  }
+
+  private researchTooltip(researchId: ResearchType, state: GameState): string {
+    const def = RESEARCHES[researchId];
+    // Check prerequisites
+    for (const prereq of def.prerequisites) {
+      if (!state.autoProduction.researches[prereq]) {
+        return `Requires: ${RESEARCHES[prereq].name}`;
+      }
+    }
+    // Check resources
+    const cost = def.cost;
+    const missing: string[] = [];
+    if ((cost.food ?? 0) > state.resources.food) missing.push(`🍞${(cost.food ?? 0) - state.resources.food} food`);
+    if ((cost.workers ?? 0) > state.resources.workers) missing.push(`🐜${(cost.workers ?? 0) - state.resources.workers} workers`);
+    if ((cost.stone ?? 0) > state.resources.stone) missing.push(`🪨${(cost.stone ?? 0) - state.resources.stone} stone`);
+    if ((cost.voidCrystals ?? 0) > state.resources.voidCrystals) missing.push(`💎${(cost.voidCrystals ?? 0) - state.resources.voidCrystals} void`);
+    if ((cost.antimatter ?? 0) > state.resources.antimatter) missing.push(`⚛${(cost.antimatter ?? 0) - state.resources.antimatter} antimatter`);
+    if (missing.length > 0) return `Need: ${missing.join(', ')}`;
+    return 'Cannot research';
+  }
+
+  private autoBuildTooltip(buildingId: AutomationBuildingType, state: GameState): string {
+    const currentLevel = state.autoProduction.buildings[buildingId] ?? 0;
+    const cost = getAutoBuildCost(buildingId, currentLevel + 1);
+    const missing: string[] = [];
+    if ((cost.food ?? 0) > state.resources.food) missing.push(`🍞${(cost.food ?? 0) - state.resources.food} food`);
+    if ((cost.wood ?? 0) > state.resources.wood) missing.push(`🪵${(cost.wood ?? 0) - state.resources.wood} wood`);
+    if ((cost.stone ?? 0) > state.resources.stone) missing.push(`🪨${(cost.stone ?? 0) - state.resources.stone} stone`);
+    if ((cost.nectar ?? 0) > state.resources.nectar) missing.push(`🍯${(cost.nectar ?? 0) - state.resources.nectar} nectar`);
+    if ((cost.voidCrystals ?? 0) > state.resources.voidCrystals) missing.push(`💎${(cost.voidCrystals ?? 0) - state.resources.voidCrystals} void`);
+    if ((cost.antimatter ?? 0) > state.resources.antimatter) missing.push(`⚛${(cost.antimatter ?? 0) - state.resources.antimatter} antimatter`);
+    if (missing.length > 0) return `Need: ${missing.join(', ')}`;
+    return 'Cannot build';
   }
 
   getElement(): HTMLDivElement {

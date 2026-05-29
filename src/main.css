@@ -128,6 +128,41 @@ html, body {
   border-color: var(--accent-glow);
 }
 
+/* ── Tooltip system via data-tooltip attribute ── */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a2e;
+  color: #e0e0ff;
+  padding: 0.4rem 0.7rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 50;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+[data-tooltip]:hover::after {
+  opacity: 1;
+}
+
+/* Keep tooltip visible when button is the hover target */
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after {
+  opacity: 1;
+}
+
 /* ── Top Bar ── */
 .top-bar {
   width: 100%;
