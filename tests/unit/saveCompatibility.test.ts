@@ -44,8 +44,8 @@ function loadAndMigrate(version: number): { saveData: SaveData; gameState: GameS
   const raw = fs.readFileSync(snapshotPath, 'utf-8');
   const saveData: SaveData = JSON.parse(raw);
 
-  // Migrate from version to current (11)
-  const migrated = migrateSave(saveData, version, 11);
+  // Migrate from version to current (12)
+  const migrated = migrateSave(saveData, version, 12);
 
   // Deep-merge with createInitialState() — same as SaveManager.applyDefaults
   const defaults = createInitialState();
@@ -66,7 +66,7 @@ describe('Save Version Compatibility', () => {
     }
   });
 
-  // Test v1 → v11 migration
+  // Test v1 → v12 migration
   describe('v1 migration', () => {
     const { gameState } = loadAndMigrate(1);
 
@@ -129,7 +129,7 @@ describe('Save Version Compatibility', () => {
     });
   });
 
-  // Test v2 → v11 migration
+  // Test v2 → v12 migration
   describe('v2 migration', () => {
     const { gameState } = loadAndMigrate(2);
 
@@ -150,7 +150,7 @@ describe('Save Version Compatibility', () => {
     });
   });
 
-  // Test v3 → v11 migration
+  // Test v3 → v12 migration
   describe('v3 migration', () => {
     const { gameState } = loadAndMigrate(3);
 
@@ -161,7 +161,7 @@ describe('Save Version Compatibility', () => {
     });
   });
 
-  // Test v4 → v11 migration
+  // Test v4 → v12 migration
   describe('v4 migration', () => {
     const { gameState } = loadAndMigrate(4);
 
@@ -175,7 +175,7 @@ describe('Save Version Compatibility', () => {
     });
   });
 
-  // Test v5 → v11 migration
+  // Test v5 → v12 migration
   describe('v5 migration', () => {
     const { gameState } = loadAndMigrate(5);
 
@@ -184,7 +184,7 @@ describe('Save Version Compatibility', () => {
     });
   });
 
-  // Test v6 → v11 migration
+  // Test v6 → v12 migration
   describe('v6 migration', () => {
     const { gameState } = loadAndMigrate(6);
 
@@ -203,7 +203,7 @@ describe('Save Version Compatibility', () => {
     });
   });
 
-  // Test v7 → v11 migration
+  // Test v7 → v12 migration
   describe('v7 migration', () => {
     const { gameState } = loadAndMigrate(7);
 
@@ -219,7 +219,7 @@ describe('Save Version Compatibility', () => {
     });
   });
 
-  // Test v8 → v11 migration
+  // Test v8 → v12 migration
   describe('v8 migration', () => {
     const { gameState } = loadAndMigrate(8);
 
@@ -244,7 +244,7 @@ describe('Save Version Compatibility', () => {
     });
   });
 
-  // Test v9 → v11 migration
+  // Test v9 → v12 migration
   describe('v9 migration', () => {
     const { gameState } = loadAndMigrate(9);
 
@@ -254,7 +254,7 @@ describe('Save Version Compatibility', () => {
     });
   });
 
-  // Test v10 → v11 migration
+  // Test v10 → v12 migration
   describe('v10 migration', () => {
     const { gameState } = loadAndMigrate(10);
 
@@ -268,10 +268,11 @@ describe('Save Version Compatibility', () => {
     });
   });
 
-  // Test v11 → v11 (no migration needed, just verify consistency)
-  describe('v11 snapshot', () => {
+  // Test v12 → v12 (no migration needed, just verify consistency)
+  describe('v12 snapshot (v11 snapshot migrated)', () => {
     const { gameState } = loadAndMigrate(11);
-
+    // After v11→v12 migration, surveyData should exist
+    expect(gameState.resources.surveyData).toBe(0);
     it('preserves prestigeTree purchases', () => {
       expect(gameState.prestigeTree).toBeDefined();
       expect(Array.isArray(gameState.prestigeTree.purchased)).toBe(true);
@@ -290,8 +291,8 @@ describe('Save Version Compatibility', () => {
   // === CHAIN MIGRATION TESTS ===
   // Verify that chaining all migrations produces valid state
 
-  describe('full chain v1→v11', () => {
-    // Load v1, migrate all the way to v11, verify complete state shape
+  describe('full chain v1→v12', () => {
+    // Load v1, migrate all the way to v12, verify complete state shape
     const { gameState } = loadAndMigrate(1);
 
     it('produces a GameState with all required top-level fields', () => {
@@ -363,7 +364,7 @@ describe('Save Version Compatibility', () => {
       'wood', 'stone', 'nectar', 'voidCrystals', 'antimatter', 'darkMatter'] as const;
 
     for (let v = 1; v <= 11; v++) {
-      it(`v${v} → v11: all resources are non-negative`, () => {
+      it(`v${v} → v12: all resources are non-negative`, () => {
         const { gameState } = loadAndMigrate(v);
         for (const key of resourceKeys) {
           const val = gameState.resources[key];

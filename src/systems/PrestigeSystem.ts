@@ -112,6 +112,7 @@ export function prestige(state: GameState): GameState {
       voidCrystals: state.resources.voidCrystals,
       antimatter: state.resources.antimatter,
       darkMatter: state.resources.darkMatter,
+      surveyData: state.resources.surveyData,
     },
     eggPipeline: {
       count: bonuses.startingResources ? 50 : 0,

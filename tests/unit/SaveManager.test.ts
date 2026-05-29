@@ -64,7 +64,7 @@ describe('SaveManager', () => {
       const raw = localStorage.getItem('the_swarm_save');
       expect(raw).not.toBeNull();
       const parsed = JSON.parse(raw!);
-      expect(parsed.version).toBe(11);
+      expect(parsed.version).toBe(12);
       expect(parsed.timestamp).toBeGreaterThanOrEqual(before);
     });
   });
