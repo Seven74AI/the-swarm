@@ -1736,3 +1736,79 @@ body.phase-space .progress-fill {
   color: #22c55e;
   font-weight: bold;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   ONBOARDING TOOLTIP
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Full-screen overlay that dims the background */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.55);
+  animation: onboarding-overlay-in 0.3s ease-out;
+}
+
+@keyframes onboarding-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* The tooltip bubble itself */
+.onboarding-tooltip {
+  position: fixed;
+  z-index: 201;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 1px solid var(--accent-glow);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  max-width: 280px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5), 0 0 12px rgba(164, 126, 255, 0.15);
+  animation: onboarding-tooltip-pop 0.35s ease-out;
+  text-align: center;
+}
+
+@keyframes onboarding-tooltip-pop {
+  from { opacity: 0; transform: translateY(8px) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Arrow pointer */
+.onboarding-tooltip-arrow {
+  display: none;
+}
+
+/* Tooltip text */
+.onboarding-tooltip-text {
+  margin: 0 0 0.75rem 0;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Dismiss button */
+.onboarding-tooltip-dismiss {
+  display: inline-block;
+  padding: 0.4rem 1.2rem;
+  background: var(--accent-glow);
+  color: #0f0f1a;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.onboarding-tooltip-dismiss:hover {
+  background: #c4a6ff;
+}
+
+/* Center fallback when target not found */
+.onboarding-tooltip--center {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) !important;
+}
+
