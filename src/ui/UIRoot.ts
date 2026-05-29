@@ -136,7 +136,9 @@ export class UIRoot {
     this.panelRegistry.set('starmap_panel', () => new StarmapPanel(
       this.bus, this.getState, this.setState,
     ).getElement());
-    this.panelRegistry.set('resource_converter_panel', () => new ResourceConverterPanel().getElement());
+    this.panelRegistry.set('resource_converter_panel', () => new ResourceConverterPanel(
+      this.bus, this.getState, this.setState,
+    ).getElement());
 
     // Phase 5 panels (lazy — created on demand)
     this.panelRegistry.set('tech_tree_panel', () => new TechTreePanel().getElement());
