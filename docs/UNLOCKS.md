@@ -11,6 +11,7 @@
 | **COLONY** | Workers ≥ 10 | EGG_LAYING |
 | **COMBAT** | Workers ≥ 15 **AND** ≥ 1 Guard assigned | COLONY |
 | **EXPANSION** | Workers ≥ 20 **AND** Food ≥ 500 | COLONY |
+| **EXPANSION** | Workers ≥ 25 **AND** Battles Won ≥ 3 | COMBAT |
 | **SPACE** | Workers ≥ 30 **AND** Food ≥ 2,000 | EXPANSION |
 | **TRANSCENDENCE** | Void Crystals ≥ 50, Antimatter ≥ 10, Dark Matter ≥ 5 | SPACE |
 
@@ -34,12 +35,15 @@
 ### Soldiers
 - **Unlock:** Phase COMBAT (soldier panel)
 - **Cost:** 5 food + 1 worker → training pipeline
-- **Train time:** 15 ticks (pipeline: 1/15 per tick per soldier)
+- **Train time:** 15 seconds (~300 ticks at 20 Hz). Rate-based pipeline: progress += (count/15) × dtSec
 - **Requires:** Worker ≥ 1, Food ≥ 5
 
-### Scouts (sub-type of expedition units)
-- **Unlock:** Phase COMBAT (recruit soldiers, they auto-split into scouts/warriors)
-- Barracks Lv.1 → scouts cap = 2, Barracks Lv.2 → scouts cap = 3, warriors cap = 2
+### Scouts & Warriors (expedition/combat units)
+- **Unlock:** Phase EXPANSION (requires Barracks building)
+- **Recruitment:** Separate from combat soldiers — recruited at the Barracks (RecruitmentSystem), NOT auto-split from soldiers.
+- **Scout cost:** 50 food + 1 worker, requires Barracks Lv.1
+- **Warrior cost:** 100 food + 1 worker, requires Barracks Lv.2
+- **Barracks caps:** Lv.0: none. Lv.1: scouts cap = 2, warriors cap = 0. Lv.2: scouts cap = 3, warriors cap = 2.
 
 ### Equipment
 - **Weapon upgrade:** 10 food (×1.20 per level), max Lv.5
@@ -51,9 +55,9 @@
 
 | Building | Cost (Lv.1) | Cost Formula | Effect |
 |---|---|---|---|
-| **Barracks** | 100 food, 50 wood | × level | Scouts/Warriors cap |
-| **Walls** | 200 stone | × level | +5% defense per level |
-| **Warehouse** | 150 wood, 100 stone | × level | +25 nest capacity per level |
+| **Barracks** | 100 food, 50 wood | floor(baseCost × 2.5^level) — exponential | Scouts/Warriors cap (see above) |
+| **Walls** | 200 stone | floor(baseCost × 2.5^level) — exponential | +5% defense per level |
+| **Warehouse** | 150 wood, 100 stone | floor(baseCost × 2.5^level) — exponential | +25 nest capacity per level |
 
 ---
 
@@ -77,9 +81,9 @@
 
 | Destination | Soldiers | Time | Loot |
 |---|---|---|---|
-| MEADOW 🌼 | 1 scout, 0 warrior | ~20-60 ticks | Nectar + Food |
-| FOREST 🌲 | 1 scout, 0 warrior | ~20-60 ticks | Wood + Food |
-| MOUNTAIN ⛰️ | 1 scout, 0 warrior | ~20-60 ticks | Stone + Food |
+| MEADOW 🌼 | 1 scout, 0 warrior | ~30-90 ticks | Nectar + Food |
+| FOREST 🌲 | 1 scout, 0 warrior | ~30-90 ticks | Wood + Food |
+| MOUNTAIN ⛰️ | 1 scout, 0 warrior | ~30-90 ticks | Stone + Food |
 
 Risk varies by destination. Higher risk = more casualties but better loot.
 
