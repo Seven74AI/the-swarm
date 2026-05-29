@@ -67,7 +67,6 @@ const PHASE_PANELS: Record<string, string[]> = {
     'map_panel',
     'building_panel',
     'expedition_panel',
-    'research_panel',
   ],
   [Phase.SPACE]: [
     'click_button',

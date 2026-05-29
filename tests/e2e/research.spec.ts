@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 /**
  * Research System E2E Tests
  *
- * Seeds a colony in EXPANSION phase and verifies the research panel,
+ * Seeds a colony in SPACE phase and verifies the research panel,
  * researcher assignment, project start, progress, completion, and chain unlock.
  *
  * Pattern: use page.clock.install() before goto, then advance time to trigger
@@ -16,7 +16,7 @@ function makeSaveData(overrides?: Record<string, unknown>) {
     timestamp: Date.now(),
     playTimeMs: 0,
     gameState: {
-      phase: 'expansion',
+      phase: 'space',
       resources: {
         eggs: 5, larvae: 3, workers: 100, food: 2100,
         nestCapacity: 100, wood: 500, stone: 1000, nectar: 500,
@@ -56,7 +56,7 @@ function makeSaveData(overrides?: Record<string, unknown>) {
   };
 }
 
-async function seedExpansionAndWait(page: any, overrides?: Record<string, unknown>) {
+async function seedSpaceAndWait(page: any, overrides?: Record<string, unknown>) {
   const data = makeSaveData(overrides);
   await page.addInitScript((saveStr: string) => {
     localStorage.setItem('the_swarm_save', saveStr);
@@ -69,8 +69,8 @@ async function seedExpansionAndWait(page: any, overrides?: Record<string, unknow
 }
 
 test.describe('Research System', () => {
-  test('research panel visible in expansion phase', async ({ page }) => {
-    await seedExpansionAndWait(page);
+  test('research panel visible in space phase', async ({ page }) => {
+    await seedSpaceAndWait(page);
 
     const panel = page.locator('#research-panel');
     await expect(panel).toBeVisible({ timeout: 10000 });
@@ -78,7 +78,7 @@ test.describe('Research System', () => {
   });
 
   test('research panel lists all 3 projects', async ({ page }) => {
-    await seedExpansionAndWait(page);
+    await seedSpaceAndWait(page);
 
     const panel = page.locator('#research-panel');
     await expect(panel).toContainText('Void Crystal Synthesis');
@@ -87,7 +87,7 @@ test.describe('Research System', () => {
   });
 
   test('first project shows Available status', async ({ page }) => {
-    await seedExpansionAndWait(page);
+    await seedSpaceAndWait(page);
 
     const panel = page.locator('#research-panel');
     const vcsCard = panel.locator('[data-research-project="voidCrystalSynthesis"]');
@@ -95,7 +95,7 @@ test.describe('Research System', () => {
   });
 
   test('chained projects show Locked status', async ({ page }) => {
-    await seedExpansionAndWait(page);
+    await seedSpaceAndWait(page);
 
     const panel = page.locator('#research-panel');
     const acCard = panel.locator('[data-research-project="antimatterContainment"]');
@@ -106,7 +106,7 @@ test.describe('Research System', () => {
   });
 
   test('assign researchers and start project', async ({ page }) => {
-    await seedExpansionAndWait(page);
+    await seedSpaceAndWait(page);
 
     // Click '+' on researcher pool 50 times to assign researchers
     const panel = page.locator('#research-panel');
@@ -129,7 +129,7 @@ test.describe('Research System', () => {
   });
 
   test('progress bar appears for in-progress project', async ({ page }) => {
-    await seedExpansionAndWait(page, {
+    await seedSpaceAndWait(page, {
       workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 50 },
       research: {
         projects: {
@@ -157,7 +157,7 @@ test.describe('Research System', () => {
   });
 
   test('completed project shows unlock and Completed status', async ({ page }) => {
-    await seedExpansionAndWait(page, {
+    await seedSpaceAndWait(page, {
       workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 },
       research: {
         projects: {
@@ -179,7 +179,7 @@ test.describe('Research System', () => {
   });
 
   test('cancel project shows Cancel button and clicking it works', async ({ page }) => {
-    await seedExpansionAndWait(page, {
+    await seedSpaceAndWait(page, {
       workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 50 },
       research: {
         projects: {
