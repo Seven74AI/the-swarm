@@ -248,4 +248,144 @@ describe('SaveManager', () => {
       expect(loaded).toBeNull();
     });
   });
+
+  describe('action save rate limiting', () => {
+    it('save() returns true on first call and persists', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
+
+      const state = createInitialState();
+      state.resources.eggs = 10;
+      const result = saveManager.save(state, 0);
+      expect(result).toBe(true);
+
+      const loaded = saveManager.load();
+      expect(loaded!.gameState.resources.eggs).toBe(10);
+
+      vi.useRealTimers();
+    });
+
+    it('save() returns false when called within 5s of a previous action save', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
+
+      const state = createInitialState();
+      state.resources.eggs = 1;
+      expect(saveManager.save(state, 0)).toBe(true);
+
+      // 3 seconds later — should be rate-limited
+      vi.setSystemTime(new Date('2026-05-20T12:00:03Z'));
+      const state2 = createInitialState();
+      state2.resources.eggs = 99;
+      const result = saveManager.save(state2, 0);
+      expect(result).toBe(false);
+
+      // The loaded state should still have eggs=1 (first save)
+      const loaded = saveManager.load();
+      expect(loaded!.gameState.resources.eggs).toBe(1);
+
+      vi.useRealTimers();
+    });
+
+    it('save() succeeds again after 5s cooldown expires', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
+
+      const state = createInitialState();
+      state.resources.eggs = 1;
+      expect(saveManager.save(state, 0)).toBe(true);
+
+      // 6 seconds later — cooldown expired
+      vi.setSystemTime(new Date('2026-05-20T12:00:06Z'));
+      const state2 = createInitialState();
+      state2.resources.eggs = 42;
+      const result = saveManager.save(state2, 0);
+      expect(result).toBe(true);
+
+      const loaded = saveManager.load();
+      expect(loaded!.gameState.resources.eggs).toBe(42);
+
+      vi.useRealTimers();
+    });
+
+    it('save() with force=true always saves, ignoring rate limit', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
+
+      const state = createInitialState();
+      state.resources.eggs = 1;
+      expect(saveManager.save(state, 0, true)).toBe(true);
+
+      // 1 second later — normally rate-limited, but force=true bypasses
+      vi.setSystemTime(new Date('2026-05-20T12:00:01Z'));
+      const state2 = createInitialState();
+      state2.resources.eggs = 99;
+      const result = saveManager.save(state2, 0, true);
+      expect(result).toBe(true);
+
+      const loaded = saveManager.load();
+      expect(loaded!.gameState.resources.eggs).toBe(99);
+
+      vi.useRealTimers();
+    });
+
+    it('autosave uses force=true and always persists', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
+
+      const state = createInitialState();
+      state.resources.eggs = 5;
+      saveManager.startAutosave(() => ({ state, playTimeMs: 0 }));
+
+      // Autosave fires at 30s
+      vi.advanceTimersByTime(30_000);
+      let loaded = saveManager.load();
+      expect(loaded).not.toBeNull();
+      expect(loaded!.gameState.resources.eggs).toBe(5);
+
+      // Change state but advance only 10s — autosave hasn't fired again
+      state.resources.eggs = 10;
+      vi.advanceTimersByTime(10_000);
+      loaded = saveManager.load();
+      // Autosave hasn't fired at 40s total (only at 30s and 60s), so still eggs=5
+      expect(loaded!.gameState.resources.eggs).toBe(5);
+
+      // Advance to 60s — autosave fires again
+      vi.advanceTimersByTime(20_000);
+      loaded = saveManager.load();
+      expect(loaded!.gameState.resources.eggs).toBe(10);
+
+      saveManager.stopAutosave();
+      vi.useRealTimers();
+    });
+
+    it('multiple rapid action saves only persist the first one per window', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
+
+      // First save at t=0 — succeeds
+      const s1 = createInitialState();
+      s1.resources.eggs = 1;
+      expect(saveManager.save(s1, 0)).toBe(true);
+
+      // Rapid saves at t=1s, 2s, 3s, 4s — all skipped
+      for (let i = 1; i <= 4; i++) {
+        vi.setSystemTime(new Date(`2026-05-20T12:00:0${i}Z`));
+        const s = createInitialState();
+        s.resources.eggs = i * 100;
+        expect(saveManager.save(s, 0)).toBe(false);
+      }
+
+      // t=6s — succeeds again
+      vi.setSystemTime(new Date('2026-05-20T12:00:06Z'));
+      const sFinal = createInitialState();
+      sFinal.resources.eggs = 999;
+      expect(saveManager.save(sFinal, 0)).toBe(true);
+
+      const loaded = saveManager.load();
+      expect(loaded!.gameState.resources.eggs).toBe(999);
+
+      vi.useRealTimers();
+    });
+  });
 });
