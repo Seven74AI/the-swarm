@@ -89,7 +89,11 @@ export class AutoProductionPanel {
     const rate = state.autoProduction.enabled ? getAutoEggRate(state) : 0;
     const rateDisplay = document.createElement('div');
     rateDisplay.className = 'auto-rate';
-    rateDisplay.innerHTML = `Auto rate: <strong>${rate.toFixed(1)} eggs/s</strong>`;
+    rateDisplay.textContent = `Auto rate: ${rate.toFixed(1)} eggs/s`;
+    const strong = document.createElement('strong');
+    strong.textContent = `${rate.toFixed(1)} eggs/s`;
+    rateDisplay.textContent = 'Auto rate: ';
+    rateDisplay.appendChild(strong);
     this.container.appendChild(rateDisplay);
 
     // ── Research tree ──
