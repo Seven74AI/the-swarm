@@ -74,8 +74,8 @@ describe('ResourceConverterPanel', () => {
 
   it('shows unlocked status when research is completed', () => {
     // Complete voidCrystalSynthesis research and provide resources
-    currentState.research.projects.voidCrystalSynthesis = { state: 'completed', progress: 120 };
-    currentState.workersAssigned.researchers = 10;
+    currentState.research.projects.voidCrystalSynthesis = { state: 'completed', progress: 600 };
+    currentState.workersAssigned.researchers = 40;
     currentState.resources.stone = 50;
     currentState.resources.nectar = 20;
 
@@ -93,8 +93,8 @@ describe('ResourceConverterPanel', () => {
     expect(btn.disabled).toBe(true);
 
     // Unlock void crystal synthesis
-    currentState.research.projects.voidCrystalSynthesis = { state: 'completed', progress: 120 };
-    currentState.workersAssigned.researchers = 10;
+    currentState.research.projects.voidCrystalSynthesis = { state: 'completed', progress: 600 };
+    currentState.workersAssigned.researchers = 40;
     currentState.resources.stone = 50;
     currentState.resources.nectar = 20;
 
@@ -110,14 +110,14 @@ describe('ResourceConverterPanel', () => {
       ...currentState,
       research: {
         projects: {
-          voidCrystalSynthesis: { state: 'completed', progress: 120 },
+          voidCrystalSynthesis: { state: 'completed', progress: 600 },
           antimatterContainment: { state: 'locked', progress: 0 },
           darkMatterDetection: { state: 'locked', progress: 0 },
         },
       },
       workersAssigned: {
         ...currentState.workersAssigned,
-        researchers: 10,
+        researchers: 40,
       },
       resources: {
         ...currentState.resources,
@@ -156,7 +156,7 @@ describe('ResourceConverterPanel', () => {
 
   it('shows antimatter containment as locked without particle lab', () => {
     // Complete research but no particle lab
-    currentState.research.projects.antimatterContainment = { state: 'completed', progress: 300 };
+    currentState.research.projects.antimatterContainment = { state: 'completed', progress: 1500 };
     currentState.conversions.particleLab = 0;
 
     panel.refresh();
@@ -167,7 +167,7 @@ describe('ResourceConverterPanel', () => {
 
   it('shows darkMatter detection as locked without space explorations', () => {
     // Complete research but no exploration
-    currentState.research.projects.darkMatterDetection = { state: 'completed', progress: 500 };
+    currentState.research.projects.darkMatterDetection = { state: 'completed', progress: 3000 };
     currentState.spaceExplorations = [];
 
     panel.refresh();

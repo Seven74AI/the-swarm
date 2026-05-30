@@ -41,10 +41,10 @@ const CONVERSIONS: ConversionDef[] = [
     outputs: { voidCrystals: 1 },
     requiredResearch: 'voidCrystalSynthesis',
     baseRate: 1,
-    /** Rate cap: 1 per 5 researchers assigned per tick */
+    /** Rate cap: 1 per 20 researchers assigned per tick */
     getRateCap: (state: GameState): number => {
       const researchers = state.workersAssigned.researchers ?? 0;
-      return Math.floor(researchers / 5);
+      return Math.floor(researchers / 20);
     },
     isReady: (): boolean => true,
   },
@@ -55,10 +55,10 @@ const CONVERSIONS: ConversionDef[] = [
     outputs: { antimatter: 1 },
     requiredResearch: 'antimatterContainment',
     baseRate: 1,
-    /** Rate cap: particleLab level * 1 per tick */
+    /** Rate cap: particleLab level / 3 per tick (need level 3+ for 1/sec) */
     getRateCap: (state: GameState): number => {
       const lab = state.conversions?.particleLab ?? 0;
-      return lab;
+      return Math.floor(lab / 3);
     },
     isReady: (state: GameState): boolean => {
       return (state.conversions?.particleLab ?? 0) > 0;
@@ -71,9 +71,9 @@ const CONVERSIONS: ConversionDef[] = [
     outputs: { darkMatter: 1 },
     requiredResearch: 'darkMatterDetection',
     baseRate: 1,
-    /** Rate cap: 1 per active space exploration */
+    /** Rate cap: 1 per 2 active space explorations */
     getRateCap: (state: GameState): number => {
-      return state.spaceExplorations?.length ?? 0;
+      return Math.floor((state.spaceExplorations?.length ?? 0) / 2);
     },
     isReady: (state: GameState): boolean => {
       return (state.spaceExplorations?.length ?? 0) > 0;
