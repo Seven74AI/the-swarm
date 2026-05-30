@@ -26,9 +26,9 @@ describe('ResourceConversionSystem', () => {
     state.resources.antimatter = 5;
     state.resources.workers = 50;
     // Set up research completions for testing
-    state.research.projects.voidCrystalSynthesis = { state: 'completed', progress: 120 };
-    state.research.projects.antimatterContainment = { state: 'completed', progress: 300 };
-    state.research.projects.darkMatterDetection = { state: 'completed', progress: 500 };
+    state.research.projects.voidCrystalSynthesis = { state: 'completed', progress: 600 };
+    state.research.projects.antimatterContainment = { state: 'completed', progress: 1500 };
+    state.research.projects.darkMatterDetection = { state: 'completed', progress: 3000 };
     // Assign researchers
     state.workersAssigned.researchers = 10;
     // Build particle lab
@@ -137,6 +137,8 @@ describe('ResourceConversionSystem', () => {
       // Disable antimatter and darkMatter so VC production is isolated
       state.research.projects.antimatterContainment = { state: 'locked', progress: 0 };
       state.research.projects.darkMatterDetection = { state: 'locked', progress: 0 };
+      // Need ≥20 researchers for void crystal rate (researchers/20)
+      state.workersAssigned.researchers = 40;
 
       const beforeVC = state.resources.voidCrystals;
       const beforeStone = state.resources.stone;
@@ -152,9 +154,12 @@ describe('ResourceConversionSystem', () => {
     it('produces antimatter from voidCrystals when research and particleLab present', () => {
       // Disable darkMatter so antimatter production is isolated
       state.research.projects.darkMatterDetection = { state: 'locked', progress: 0 };
+      // Need particleLab≥3 for antimatter rate (lab/3), and ≥20 researchers for voidCrystals
+      state.conversions.particleLab = 3;
+      state.workersAssigned.researchers = 40;
 
       const result = tickConversions(state);
-      // With particleLab=1 and voidCrystals available, antimatter should increase
+      // With particleLab=3 and voidCrystals available, antimatter should increase
       expect(result.resources.antimatter).toBeGreaterThan(state.resources.antimatter);
     });
 
@@ -175,7 +180,11 @@ describe('ResourceConversionSystem', () => {
     it('produces darkMatter from antimatter when expeditions active', () => {
       // Disable antimatter containment so it doesn't add antimatter during tick
       state.research.projects.antimatterContainment = { state: 'locked', progress: 0 };
-      state.spaceExplorations = [{ id: 'spc_1', destination: 'SATURN', ticksRemaining: 50, risk: 0.3 }];
+      // Need ≥2 space explorations for darkMatter rate (explorations/2)
+      state.spaceExplorations = [
+        { id: 'spc_1', destination: 'SATURN', ticksRemaining: 50, risk: 0.3 },
+        { id: 'spc_2', destination: 'MARS', ticksRemaining: 80, risk: 0.2 },
+      ];
       const beforeDM = state.resources.darkMatter;
       const beforeAM = state.resources.antimatter;
 
@@ -205,11 +214,13 @@ describe('ResourceConversionSystem', () => {
       // Disable antimatter and darkMatter for isolated VC test
       state.research.projects.antimatterContainment = { state: 'locked', progress: 0 };
       state.research.projects.darkMatterDetection = { state: 'locked', progress: 0 };
+      // Boost researchers for meaningful rate: floor(40/20) = 2
+      state.workersAssigned.researchers = 40;
 
       const result = tickConversions(state);
       const vcIncrease = result.resources.voidCrystals - state.resources.voidCrystals;
 
-      // Rate cap with 10 researchers: floor(10/5) = 2, so max 2 conversions = 2 voidCrystals
+      // Rate cap with 40 researchers: floor(40/20) = 2, so max 2 conversions = 2 voidCrystals
       expect(vcIncrease).toBeLessThanOrEqual(2);
       expect(vcIncrease).toBeGreaterThan(0);
     });
@@ -230,6 +241,8 @@ describe('ResourceConversionSystem', () => {
       // Disable antimatter and darkMatter for isolated test
       state.research.projects.antimatterContainment = { state: 'locked', progress: 0 };
       state.research.projects.darkMatterDetection = { state: 'locked', progress: 0 };
+      // Need ≥20 researchers for meaningful rate
+      state.workersAssigned.researchers = 40;
 
       const result1x = tickConversions(state, 1);
       const result2x = tickConversions(state, 2);
