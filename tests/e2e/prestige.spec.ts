@@ -59,7 +59,7 @@ function makeSaveData(overrides?: Record<string, unknown>) {
       discoveries: [],
       victoryAchieved: false,
       nextIds: { expedition: 1, exploration: 1, spaceship: 1 },
-      prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 100_000 },
+      prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 100_000, totalWoodProduced: 50_000, totalStoneProduced: 50_000, totalNectarProduced: 25_000 },
       offlineEfficiency: 0.5,
       conversions: { particleLab: 0 },
       entropy: 0,
@@ -146,6 +146,9 @@ test.describe('Prestige System — Legacy Layer', () => {
       count: 0,
       legacyPoints: 0,
       totalFoodProduced: 0,
+      totalWoodProduced: 0,
+      totalStoneProduced: 0,
+      totalNectarProduced: 0,
     };
 
     await page.addInitScript((saveStr) => {
