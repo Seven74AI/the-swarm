@@ -119,8 +119,9 @@ test.describe('Prestige System — Legacy Layer', () => {
     const disabled = await prestigeBtn.isDisabled();
     expect(disabled).toBe(false);
 
-    // Click prestige
-    await prestigeBtn.click();
+    // Click prestige — use force to bypass DOM stability checks
+    // (game loop re-renders panels every tick, causing button instability)
+    await prestigeBtn.click({ force: true });
 
     // Verify resources reset — food should be 0 after prestige
     await page.waitForTimeout(500);
