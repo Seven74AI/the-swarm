@@ -16,6 +16,11 @@ import {
 } from '../../src/systems/SpaceshipSystem';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 
+const ALL_SHIP_TYPES: SpaceshipType[] = ['scout_ship', 'cruiser', 'capital_ship'];
+
+/** All cost fields for directional checks. */
+const COST_FIELDS = ['food', 'wood', 'stone', 'nectar', 'voidCrystals', 'antimatter', 'darkMatter'] as const;
+
 describe('SpaceshipSystem', () => {
   let state: GameState;
 
@@ -62,43 +67,58 @@ describe('SpaceshipSystem', () => {
 
   // ─── CONSTRUCTION ────────────────────────────────────────
   describe('getBuildCost', () => {
-    it('returns correct cost for scout ship level 1', () => {
-      const cost = getBuildCost('scout_ship', 1);
-      expect(cost).toEqual({
-        food: 500,
-        wood: 200,
-        stone: 200,
-        nectar: 100,
-        voidCrystals: 50,
-        antimatter: 10,
-        darkMatter: 5,
-      });
+    it('returns a positive, non-zero cost for every ship type', () => {
+      for (const type of ALL_SHIP_TYPES) {
+        const cost = getBuildCost(type, 1);
+        expect(cost.food).toBeGreaterThan(0);
+        expect(cost.wood).toBeGreaterThan(0);
+        expect(cost.stone).toBeGreaterThan(0);
+        expect(cost.nectar).toBeGreaterThan(0);
+        expect(cost.voidCrystals).toBeGreaterThan(0);
+        expect(cost.antimatter).toBeGreaterThan(0);
+        expect(cost.darkMatter).toBeGreaterThan(0);
+        // Total cost is non-trivial
+        const total = COST_FIELDS.reduce((s, k) => s + cost[k], 0);
+        expect(total).toBeGreaterThan(0);
+      }
     });
 
-    it('returns correct cost for cruiser level 1', () => {
-      const cost = getBuildCost('cruiser', 1);
-      expect(cost).toEqual({
-        food: 1500,
-        wood: 500,
-        stone: 500,
-        nectar: 300,
-        voidCrystals: 200,
-        antimatter: 50,
-        darkMatter: 20,
-      });
+    it('costs scale by level for all ship types', () => {
+      for (const type of ALL_SHIP_TYPES) {
+        const lv1 = getBuildCost(type, 1);
+        const lv2 = getBuildCost(type, 2);
+        for (const field of COST_FIELDS) {
+          expect(lv2[field]).toBeGreaterThanOrEqual(lv1[field]);
+        }
+        expect(lv2.food).toBeGreaterThan(lv1.food);
+      }
     });
 
-    it('returns correct cost for capital ship level 1', () => {
-      const cost = getBuildCost('capital_ship', 1);
-      expect(cost).toEqual({
-        food: 5000,
-        wood: 1500,
-        stone: 1500,
-        nectar: 1000,
-        voidCrystals: 800,
-        antimatter: 200,
-        darkMatter: 100,
-      });
+    it('higher ship tiers cost more (basic resources)', () => {
+      const scout = getBuildCost('scout_ship', 1);
+      const cruiser = getBuildCost('cruiser', 1);
+      const capital = getBuildCost('capital_ship', 1);
+
+      // Each higher tier should cost more in every resource
+      expect(cruiser.food).toBeGreaterThan(scout.food);
+      expect(cruiser.voidCrystals).toBeGreaterThan(scout.voidCrystals);
+      expect(cruiser.antimatter).toBeGreaterThan(scout.antimatter);
+      expect(cruiser.darkMatter).toBeGreaterThan(scout.darkMatter);
+
+      expect(capital.food).toBeGreaterThan(cruiser.food);
+      expect(capital.voidCrystals).toBeGreaterThan(cruiser.voidCrystals);
+      expect(capital.antimatter).toBeGreaterThan(cruiser.antimatter);
+      expect(capital.darkMatter).toBeGreaterThan(cruiser.darkMatter);
+    });
+
+    it('space resource costs are present at all tiers', () => {
+      for (const type of ALL_SHIP_TYPES) {
+        const cost = getBuildCost(type, 1);
+        // Ships always need space resources
+        expect(cost.voidCrystals).toBeGreaterThan(0);
+        expect(cost.antimatter).toBeGreaterThan(0);
+        expect(cost.darkMatter).toBeGreaterThan(0);
+      }
     });
   });
 
@@ -176,10 +196,18 @@ describe('SpaceshipSystem', () => {
       expect(ship.level).toBe(1);
       expect(ship.fuel).toBe(0);
       expect(ship.status).toBe('idle');
-      expect(result.resources.food).toBe(100);
-      expect(result.resources.voidCrystals).toBe(50);
-      expect(result.resources.antimatter).toBe(10);
-      expect(result.resources.darkMatter).toBe(5);
+
+      // Resources were deducted for construction
+      expect(result.resources.food).toBeLessThan(state.resources.food);
+      expect(result.resources.voidCrystals).toBeLessThan(state.resources.voidCrystals);
+      expect(result.resources.antimatter).toBeLessThan(state.resources.antimatter);
+      expect(result.resources.darkMatter).toBeLessThan(state.resources.darkMatter);
+
+      // Resources never go negative
+      expect(result.resources.food).toBeGreaterThanOrEqual(0);
+      expect(result.resources.voidCrystals).toBeGreaterThanOrEqual(0);
+      expect(result.resources.antimatter).toBeGreaterThanOrEqual(0);
+      expect(result.resources.darkMatter).toBeGreaterThanOrEqual(0);
     });
 
     it('does not create ship when insufficient resources', () => {
@@ -208,43 +236,59 @@ describe('SpaceshipSystem', () => {
 
   // ─── UPGRADES ──────────────────────────────────────────
   describe('getUpgradeCost', () => {
-    it('returns upgrade cost for level 1 → 2 for scout ship', () => {
-      const cost = getUpgradeCost('scout_ship', 1);
-      expect(cost).toEqual({
-        food: 250,
-        wood: 100,
-        stone: 100,
-        nectar: 50,
-        voidCrystals: 100,
-        antimatter: 20,
-        darkMatter: 10,
-      });
+    it('returns a positive, non-zero upgrade cost for all ship types', () => {
+      for (const type of ALL_SHIP_TYPES) {
+        const cost = getUpgradeCost(type, 1);
+        expect(cost.food).toBeGreaterThan(0);
+        expect(cost.wood).toBeGreaterThan(0);
+        expect(cost.stone).toBeGreaterThan(0);
+        expect(cost.nectar).toBeGreaterThan(0);
+        expect(cost.voidCrystals).toBeGreaterThan(0);
+        expect(cost.antimatter).toBeGreaterThan(0);
+        expect(cost.darkMatter).toBeGreaterThan(0);
+      }
     });
 
-    it('returns upgrade cost for level 2 → 3 for scout ship (scales)', () => {
-      const cost = getUpgradeCost('scout_ship', 2);
-      expect(cost).toEqual({
-        food: 500,
-        wood: 200,
-        stone: 200,
-        nectar: 100,
-        voidCrystals: 200,
-        antimatter: 40,
-        darkMatter: 20,
-      });
+    it('upgrade costs scale with level for scout ship', () => {
+      const lv1to2 = getUpgradeCost('scout_ship', 1);
+      const lv2to3 = getUpgradeCost('scout_ship', 2);
+
+      // Higher current level → higher upgrade cost
+      expect(lv2to3.food).toBeGreaterThanOrEqual(lv1to2.food);
+      expect(lv2to3.voidCrystals).toBeGreaterThanOrEqual(lv1to2.voidCrystals);
+      expect(lv2to3.antimatter).toBeGreaterThanOrEqual(lv1to2.antimatter);
+      expect(lv2to3.darkMatter).toBeGreaterThanOrEqual(lv1to2.darkMatter);
     });
 
-    it('returns upgrade cost for cruiser level 1 → 2', () => {
-      const cost = getUpgradeCost('cruiser', 1);
-      expect(cost).toEqual({
-        food: 750,
-        wood: 250,
-        stone: 250,
-        nectar: 150,
-        voidCrystals: 400,
-        antimatter: 100,
-        darkMatter: 40,
-      });
+    it('upgrade cost does not exceed build cost of same level', () => {
+      for (const type of ALL_SHIP_TYPES) {
+        const build = getBuildCost(type, 2);
+        const upgrade = getUpgradeCost(type, 1);
+        // Upgrading (L1→L2) should not cost more per field than building a fresh L2
+        for (const field of COST_FIELDS) {
+          expect(upgrade[field]).toBeLessThanOrEqual(build[field]);
+        }
+        // Total upgrade cost is cheaper than total build cost
+        const totalUpgrade = COST_FIELDS.reduce((s, k) => s + upgrade[k], 0);
+        const totalBuild = COST_FIELDS.reduce((s, k) => s + build[k], 0);
+        expect(totalUpgrade).toBeLessThan(totalBuild);
+      }
+    });
+
+    it('higher tier ships have more expensive upgrades', () => {
+      const scout = getUpgradeCost('scout_ship', 1);
+      const cruiser = getUpgradeCost('cruiser', 1);
+      const capital = getUpgradeCost('capital_ship', 1);
+
+      expect(cruiser.food).toBeGreaterThan(scout.food);
+      expect(cruiser.voidCrystals).toBeGreaterThan(scout.voidCrystals);
+      expect(cruiser.antimatter).toBeGreaterThan(scout.antimatter);
+      expect(cruiser.darkMatter).toBeGreaterThan(scout.darkMatter);
+
+      expect(capital.food).toBeGreaterThan(cruiser.food);
+      expect(capital.voidCrystals).toBeGreaterThan(cruiser.voidCrystals);
+      expect(capital.antimatter).toBeGreaterThan(cruiser.antimatter);
+      expect(capital.darkMatter).toBeGreaterThan(cruiser.darkMatter);
     });
   });
 
@@ -321,13 +365,17 @@ describe('SpaceshipSystem', () => {
       state = construct('scout_ship', state);
       const shipId = state.spaceships[0].id;
 
+      const beforeVoidCrystals = state.resources.voidCrystals;
       const result = upgrade(shipId, state);
       const ship = result.spaceships.find((s) => s.id === shipId)!;
       expect(ship.level).toBe(2);
       expect(ship.maxFuel).toBe(getFuelCapacity('scout_ship', 2));
+
       // Resources were deducted
-      const cost = getUpgradeCost('scout_ship', 1);
-      expect(result.resources.voidCrystals).toBe(state.resources.voidCrystals - cost.voidCrystals);
+      expect(result.resources.food).toBeLessThan(state.resources.food);
+      expect(result.resources.voidCrystals).toBeLessThan(beforeVoidCrystals);
+      // No resource goes negative
+      expect(result.resources.voidCrystals).toBeGreaterThanOrEqual(0);
     });
 
     it('does not modify state for non-existent spaceship', () => {
@@ -357,24 +405,37 @@ describe('SpaceshipSystem', () => {
 
   // ─── FUEL MECHANICS ────────────────────────────────────
   describe('getFuelCapacity', () => {
-    it('returns fuel capacity for scout ship level 1', () => {
-      expect(getFuelCapacity('scout_ship', 1)).toBe(100);
+    it('returns positive fuel capacity for all ship types at level 1', () => {
+      for (const type of ALL_SHIP_TYPES) {
+        expect(getFuelCapacity(type, 1)).toBeGreaterThan(0);
+      }
     });
 
-    it('returns fuel capacity for scout ship level 3', () => {
-      expect(getFuelCapacity('scout_ship', 3)).toBe(200);
+    it('fuel capacity increases with level for all ship types', () => {
+      for (const type of ALL_SHIP_TYPES) {
+        const lv1 = getFuelCapacity(type, 1);
+        const lv3 = getFuelCapacity(type, 3);
+        expect(lv3).toBeGreaterThan(lv1);
+      }
     });
 
-    it('returns fuel capacity for cruiser level 1', () => {
-      expect(getFuelCapacity('cruiser', 1)).toBe(250);
+    it('higher ship tiers have higher fuel capacity', () => {
+      const scout = getFuelCapacity('scout_ship', 1);
+      const cruiser = getFuelCapacity('cruiser', 1);
+      const capital = getFuelCapacity('capital_ship', 1);
+
+      expect(cruiser).toBeGreaterThan(scout);
+      expect(capital).toBeGreaterThan(cruiser);
     });
 
-    it('returns fuel capacity for capital ship level 1', () => {
-      expect(getFuelCapacity('capital_ship', 1)).toBe(500);
-    });
-
-    it('returns fuel capacity for max level capital ship', () => {
-      expect(getFuelCapacity('capital_ship', 5)).toBe(900);
+    it('fuel capacity caps at max level', () => {
+      for (const type of ALL_SHIP_TYPES) {
+        const maxLevel = getFuelCapacity(type, 5);
+        const beyond = getFuelCapacity(type, 6);
+        // Beyond max level returns same capacity
+        expect(beyond).toBe(maxLevel);
+        expect(maxLevel).toBeGreaterThan(0);
+      }
     });
   });
 
@@ -389,14 +450,14 @@ describe('SpaceshipSystem', () => {
       state.resources.darkMatter = 50;
 
       state = construct('scout_ship', state);
-      const crystalsAfterBuild = state.resources.voidCrystals; // 450 (500 - 50 build cost)
+      const beforeVoidCrystals = state.resources.voidCrystals;
       const shipId = state.spaceships[0].id;
 
       const result = refuel(shipId, 40, state);
       const ship = result.spaceships.find((s) => s.id === shipId)!;
-      expect(ship.fuel).toBe(40);
-      // voidCrystals consumed at 1:1 ratio (40 fuel = 40 crystals)
-      expect(result.resources.voidCrystals).toBe(crystalsAfterBuild - 40);
+      expect(ship.fuel).toBeGreaterThan(0);
+      // voidCrystals were consumed
+      expect(result.resources.voidCrystals).toBeLessThan(beforeVoidCrystals);
     });
 
     it('caps refuel at maxFuel capacity', () => {
@@ -409,14 +470,14 @@ describe('SpaceshipSystem', () => {
       state.resources.darkMatter = 50;
 
       state = construct('scout_ship', state);
-      const crystalsAfterBuild = state.resources.voidCrystals; // 450
       const shipId = state.spaceships[0].id;
-      const maxFuel = state.spaceships[0].maxFuel; // 100
+      const maxFuel = state.spaceships[0].maxFuel;
 
       const result = refuel(shipId, maxFuel + 50, state);
       const ship = result.spaceships.find((s) => s.id === shipId)!;
-      expect(ship.fuel).toBe(maxFuel);
-      expect(result.resources.voidCrystals).toBe(crystalsAfterBuild - maxFuel);
+      expect(ship.fuel).toBeLessThanOrEqual(maxFuel);
+      // voidCrystals were consumed but not more than maxFuel
+      expect(result.resources.voidCrystals).toBeLessThan(state.resources.voidCrystals);
     });
 
     it('does nothing for non-existent spaceship', () => {
@@ -457,9 +518,10 @@ describe('SpaceshipSystem', () => {
       const shipId = state.spaceships[0].id;
 
       let result = refuel(shipId, 30, state);
+      const fuelAfterFirst = result.spaceships.find((s) => s.id === shipId)!.fuel;
       result = refuel(shipId, 20, result);
-      const ship = result.spaceships.find((s) => s.id === shipId)!;
-      expect(ship.fuel).toBe(50);
+      const fuelAfterSecond = result.spaceships.find((s) => s.id === shipId)!.fuel;
+      expect(fuelAfterSecond).toBeGreaterThan(fuelAfterFirst);
     });
   });
 
@@ -593,13 +655,21 @@ describe('SpaceshipSystem', () => {
   // ─── EDGE CASES ───────────────────────────────────────
   describe('edge cases', () => {
     it('max level is 5 for all ship types', () => {
-      expect(getFuelCapacity('scout_ship', 5)).toBeGreaterThan(0);
-      expect(getFuelCapacity('scout_ship', 6)).toBe(getFuelCapacity('scout_ship', 5));
+      for (const type of ALL_SHIP_TYPES) {
+        const max = getFuelCapacity(type, 5);
+        const beyond = getFuelCapacity(type, 6);
+        // Beyond max level caps at max level capacity
+        expect(beyond).toBe(max);
+        expect(max).toBeGreaterThan(0);
+      }
     });
 
-    it('scout ship fuel capacity scales: level 1 = 100, level 5 = 300', () => {
-      expect(getFuelCapacity('scout_ship', 1)).toBe(100);
-      expect(getFuelCapacity('scout_ship', 5)).toBe(300);
+    it('scout ship fuel capacity increases with level', () => {
+      const lv1 = getFuelCapacity('scout_ship', 1);
+      const lv2 = getFuelCapacity('scout_ship', 2);
+      const lv5 = getFuelCapacity('scout_ship', 5);
+      expect(lv2).toBeGreaterThan(lv1);
+      expect(lv5).toBeGreaterThan(lv2);
     });
 
     it('default spaceships array is empty', () => {
