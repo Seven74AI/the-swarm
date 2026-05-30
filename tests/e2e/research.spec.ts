@@ -174,7 +174,7 @@ test.describe('Research System', () => {
       workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 },
       research: {
         projects: {
-          voidCrystalSynthesis: { state: 'completed', progress: 120 },
+          voidCrystalSynthesis: { state: 'completed', progress: 600 },
           antimatterContainment: { state: 'available', progress: 0 },
           darkMatterDetection: { state: 'locked', progress: 0 },
         },

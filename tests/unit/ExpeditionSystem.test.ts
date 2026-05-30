@@ -138,6 +138,8 @@ describe('ExpeditionSystem', () => {
 
   describe('resolveExpedition', () => {
     it('on success, adds loot, returns soldiers, and discovers tiles', () => {
+      // Guarantee full success (roll >= 0.21 for risk=0.01)
+      vi.spyOn(Math, 'random').mockReturnValue(1.0);
       const exp = { id: 'e1', scouts: 2, warriors: 1, destination: 'forest_tile', ticksRemaining: 1, risk: 0.01 };
       state.expeditions = [exp];
       state.soldiers.scouts = 0;

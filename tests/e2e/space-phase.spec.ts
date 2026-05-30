@@ -16,7 +16,7 @@ function makeSaveData(overrides?: Record<string, unknown>) {
       resources: {
         eggs: 5, larvae: 3, workers: 30, food: 2100,
         nestCapacity: 100, wood: 500, stone: 500, nectar: 300,
-        voidCrystals: 50, antimatter: 9, darkMatter: 4,
+        voidCrystals: 500, antimatter: 99, darkMatter: 49,
       },
       eggPipeline: { count: 0, progress: 0 },
       larvaPipeline: { count: 0, progress: 0 },
