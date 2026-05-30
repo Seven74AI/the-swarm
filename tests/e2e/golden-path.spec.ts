@@ -17,8 +17,8 @@ const SEED = {
     resources: {
       eggs: 5,
       larvae: 3,
-      workers: 20,
-      food: 1200,
+      workers: 40,
+      food: 5000,
       nestCapacity: 100,
       wood: 400,
       stone: 400,
@@ -26,7 +26,7 @@ const SEED = {
     },
     eggPipeline: { count: 0, progress: 0 },
     larvaPipeline: { count: 0, progress: 0 },
-    workersAssigned: { gather: 12, tend: 4, dig: 4, guard: 0, researchers: 0 },
+    workersAssigned: { gather: 24, tend: 8, dig: 4, guard: 0, researchers: 0 },
     soldiers: { scouts: 10, warriors: 5, totalKilled: 2 },
     buildings: {
       barracks: { level: 2, count: 1 },
@@ -100,13 +100,13 @@ test.describe('Golden Path — Full Progression', () => {
     const saved = await page.evaluate(() => localStorage.getItem('the_swarm_save'));
     expect(saved).toBeTruthy();
     const parsed = JSON.parse(saved!);
-    expect(parsed.gameState.resources.food).toBe(1200);
+    expect(parsed.gameState.resources.food).toBe(5000);
     expect(parsed.gameState.buildings.barracks.level).toBe(2);
 
     // Wait for panels container to render
     await page.waitForSelector('#panels', { timeout: 10000 });
 
-    // Wait for phase transition: COLONY → EXPANSION (20 workers + 500 food)
+    // Wait for phase transition: COLONY → EXPANSION (40 workers + 1000 food)
     const indicator = page.locator('#phase-indicator');
     await expect(indicator).toContainText('The Expansion', { timeout: 15000 });
   });
@@ -125,10 +125,10 @@ test.describe('Golden Path — Full Progression', () => {
   });
 
   test('resource panel shows seeded values', async ({ page }) => {
-    // Food should show 1200+
+    // Food should show 5000+
     const foodDisplay = page.locator('[data-stat="resources.food"]');
     await expect(foodDisplay).toBeVisible();
-    await expect(foodDisplay).toContainText(/1[,.]?2/); // 1200+
+    await expect(foodDisplay).toContainText(/5[,.]?0/); // 5000+
 
     // Eggs and workers are also in the resource panel
     await expect(page.locator('[data-stat="resources.eggs"]')).toBeVisible();

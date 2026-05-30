@@ -281,8 +281,8 @@ test.describe('Prestige Integration — Slice 5', () => {
     });
     expect(clicksText).toMatch(/Clicks:\s*[1-9]/);
 
-    // Let pipeline produce workers + food
-    await page.waitForTimeout(3000);
+    // Let pipeline produce workers + food (5x pacing nerf needs longer wait)
+    await page.waitForTimeout(8000);
     const foodText = await page.locator('[data-stat="resources.food"] .critical-value').textContent();
     expect(parseInt(foodText || '0', 10)).toBeGreaterThan(25);
   });

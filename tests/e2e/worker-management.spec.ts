@@ -183,21 +183,21 @@ test.describe('Worker Management', () => {
     await seedAndGoto(page, {
       phase: 'colony',
       resources: { eggs: 3, larvae: 0, workers: 5, food: 50, nestCapacity: 25 },
-      eggPipeline: { count: 3, progress: 0 },
+      eggPipeline: { count: 10, progress: 0 },
       workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 },
     });
 
     await expect(page.locator('#worker-assignment')).toBeVisible({ timeout: 5000 });
 
-    // Without tend, 3 eggs at timer 1 would all hatch in 1 tick.
-    // With 1 tend worker, the FIRST egg gets extra -1 → hatches immediately.
-    // But we only care that larvae appear.
+    // With 5x pacing nerf (EGG_HATCH_TIME=50, LARVA_MATURE_TIME=50),
+    // we need more time for eggs to hatch AND larvae to mature.
+    // Use more eggs + longer wait.
     const tendRow = page.locator('[data-role="tend"]');
     await tendRow.locator('.role-controls button').filter({ hasText: '+' }).click();
     await expect(tendRow.locator('.role-count')).toHaveText('1');
 
-    // Wait for ticks
-    await page.waitForTimeout(3000);
+    // Wait for ticks — 5x pacing needs ~8s for egg→larva→worker chain
+    await page.waitForTimeout(8000);
 
     // Verify larvae appeared (eggs hatched)
     const larvaeDisplay = page.locator('[data-stat="resources.larvae"]');

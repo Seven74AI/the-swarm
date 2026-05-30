@@ -32,37 +32,37 @@ describe('Transition COLONY → COMBAT', () => {
     expect(COLONY_TO_COMBAT.to).toBe(Phase.COMBAT);
   });
 
-  it('guard returns false when workers < 15', () => {
+  it('guard returns false when workers < 50', () => {
     const state = createInitialState();
-    state.resources.workers = 14;
+    state.resources.workers = 49;
     state.workersAssigned.guard = 1;
     expect(COLONY_TO_COMBAT.guard(state)).toBe(false);
   });
 
-  it('guard returns false when guard === 0 (even with 15+ workers)', () => {
+  it('guard returns false when guard === 0 (even with 50+ workers)', () => {
     const state = createInitialState();
-    state.resources.workers = 15;
+    state.resources.workers = 50;
     state.workersAssigned.guard = 0;
     expect(COLONY_TO_COMBAT.guard(state)).toBe(false);
   });
 
-  it('guard returns false when workers < 15 AND guard === 0', () => {
+  it('guard returns false when workers < 50 AND guard === 0', () => {
     const state = createInitialState();
-    state.resources.workers = 14;
+    state.resources.workers = 49;
     state.workersAssigned.guard = 0;
     expect(COLONY_TO_COMBAT.guard(state)).toBe(false);
   });
 
-  it('guard returns true when workers >= 15 AND guard >= 1', () => {
+  it('guard returns true when workers >= 50 AND guard >= 1', () => {
     const state = createInitialState();
-    state.resources.workers = 15;
+    state.resources.workers = 50;
     state.workersAssigned.guard = 1;
     expect(COLONY_TO_COMBAT.guard(state)).toBe(true);
   });
 
   it('onEnter emits phase_changed event with COMBAT phase', () => {
     const state = createInitialState();
-    state.resources.workers = 15;
+    state.resources.workers = 50;
     const bus = new EventBus();
     let emitted = false;
     let phasePayload: string | null = null;
@@ -88,8 +88,8 @@ describe('PhaseStateMachine — COLONY → COMBAT', () => {
     state = createInitialState();
   });
 
-  it('does NOT transition when workers < 15', () => {
-    state.resources.workers = 14;
+  it('does NOT transition when workers < 50', () => {
+    state.resources.workers = 49;
     state.workersAssigned.guard = 1;
     const result = fsm.tick(state, bus);
     expect(result.phase).toBe(Phase.COLONY);
@@ -97,15 +97,15 @@ describe('PhaseStateMachine — COLONY → COMBAT', () => {
   });
 
   it('does NOT transition when guard === 0', () => {
-    state.resources.workers = 15;
+    state.resources.workers = 50;
     state.workersAssigned.guard = 0;
     const result = fsm.tick(state, bus);
     expect(result.phase).toBe(Phase.COLONY);
     expect(fsm.getCurrent()).toBe(Phase.COLONY);
   });
 
-  it('transitions to COMBAT when workers >= 15 AND guard >= 1', () => {
-    state.resources.workers = 15;
+  it('transitions to COMBAT when workers >= 50 AND guard >= 1', () => {
+    state.resources.workers = 50;
     state.workersAssigned.guard = 1;
     const result = fsm.tick(state, bus);
     expect(result.phase).toBe(Phase.COMBAT);
@@ -113,7 +113,7 @@ describe('PhaseStateMachine — COLONY → COMBAT', () => {
   });
 
   it('only fires one transition per tick', () => {
-    state.resources.workers = 15;
+    state.resources.workers = 50;
     state.workersAssigned.guard = 1;
     fsm.tick(state, bus);
     expect(fsm.getCurrent()).toBe(Phase.COMBAT);
@@ -123,7 +123,7 @@ describe('PhaseStateMachine — COLONY → COMBAT', () => {
   });
 
   it('onEnter fires on COMBAT transition', () => {
-    state.resources.workers = 15;
+    state.resources.workers = 50;
     state.workersAssigned.guard = 1;
     let phasePayload: string | null = null;
     bus.subscribe('phase_changed', (payload: unknown) => {

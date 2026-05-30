@@ -69,8 +69,9 @@ describe('SoldierSystem — pipeline-based', () => {
   });
 
   describe('tick', () => {
-    it('produces soldiers and reduces pipeline over time', () => {
-      state.soldierPipeline = { count: 15, progress: 0 };
+    it('completes training at rate count/SOLDIER_TRAIN_TIME', () => {
+      // 75 in pipeline, rate = 75/75 = 1/tick with dtSec=1 (5x pacing nerf)
+      state.soldierPipeline = { count: 75, progress: 0 };
       state.combatSoldiers = 0;
       const before = {
         count: state.soldierPipeline.count,
@@ -81,8 +82,9 @@ describe('SoldierSystem — pipeline-based', () => {
       expect(result.soldierPipeline.count).toBeLessThan(before.count);
     });
 
-    it('completes more soldiers with larger pipeline', () => {
-      state.soldierPipeline = { count: 45, progress: 0 };
+    it('completes multiple when count is large', () => {
+      // 225 in pipeline, rate = 225/75 = 3/tick with dtSec=1 (5x pacing nerf)
+      state.soldierPipeline = { count: 225, progress: 0 };
       state.combatSoldiers = 0;
       const before = {
         count: state.soldierPipeline.count,
@@ -93,8 +95,9 @@ describe('SoldierSystem — pipeline-based', () => {
       expect(result.soldierPipeline.count).toBeLessThan(before.count);
     });
 
-    it('accumulates fractional progress across multiple ticks', () => {
-      state.soldierPipeline = { count: 5, progress: 0 };
+    it('accumulates fractional progress', () => {
+      // 25 in pipeline, rate = 25/75 = 0.333/tick with dtSec=1 (5x pacing nerf)
+      state.soldierPipeline = { count: 25, progress: 0 };
       state.combatSoldiers = 0;
       const before = {
         count: state.soldierPipeline.count,
@@ -113,11 +116,12 @@ describe('SoldierSystem — pipeline-based', () => {
     });
 
     it('does not exceed pipeline count', () => {
-      state.soldierPipeline = { count: 100, progress: 14.9 };
+      // 500 in pipeline, rate = 500/75 = 6.66/tick with dtSec=1 (5x pacing nerf)
+      state.soldierPipeline = { count: 500, progress: 14.9 };
       state.combatSoldiers = 0;
       const result = system.tick(state, 1);
       expect(result.combatSoldiers).toBeGreaterThan(0);
-      expect(result.soldierPipeline.count).toBeLessThan(100);
+      expect(result.soldierPipeline.count).toBeLessThan(500);
     });
   });
 
@@ -125,7 +129,7 @@ describe('SoldierSystem — pipeline-based', () => {
     it('emits soldiers_changed when training completes', () => {
       let count = -1;
       bus.subscribe('soldiers_changed', (p) => { count = (p as { soldiers: number }).soldiers; });
-      state.soldierPipeline = { count: 15, progress: 0 };
+      state.soldierPipeline = { count: 75, progress: 0 };
       system.tick(state, 1);
       expect(count).toBeGreaterThan(-1);
     });

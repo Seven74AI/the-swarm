@@ -98,16 +98,16 @@ describe('PhaseStateMachine', () => {
   it('transitions from EXPANSION to SPACE when conditions met', () => {
     state.resources.workers = 10;
     fsm.tick(state, bus);
-    state.resources.workers = 15;
+    state.resources.workers = 50;
     state.workersAssigned.guard = 1;
     fsm.tick(state, bus);
-    state.resources.workers = 20;
-    state.resources.food = 500;
+    state.resources.workers = 40;
+    state.resources.food = 1000;
     fsm.tick(state, bus);
 
     const fsm2 = new PhaseStateMachine(Phase.EXPANSION, TRANSITIONS);
-    state.resources.workers = 30;
-    state.resources.food = 2000;
+    state.resources.workers = 80;
+    state.resources.food = 5000;
     const result = fsm2.tick(state, bus);
     expect(result.phase).toBe(Phase.SPACE);
     expect(fsm2.getCurrent()).toBe(Phase.SPACE);
@@ -115,8 +115,8 @@ describe('PhaseStateMachine', () => {
 
   it('does NOT transition from EXPANSION to SPACE when conditions not met', () => {
     const fsm2 = new PhaseStateMachine(Phase.EXPANSION, TRANSITIONS);
-    state.resources.workers = 25;
-    state.resources.food = 500;
+    state.resources.workers = 79;
+    state.resources.food = 4999;
     const result = fsm2.tick(state, bus);
     expect(result.phase).toBe(Phase.EXPANSION);
     expect(fsm2.getCurrent()).toBe(Phase.EXPANSION);

@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 
 /**
  * E2E: Space Phase UI — Neon Theme, Spaceship & Exploration Panels.
- * Seeds a colony in EXPANSION phase on the verge of SPACE (workers≥30, food≥2000),
+ * Seeds a colony in EXPANSION phase on the verge of SPACE (workers≥80, food≥5000),
  * waits for transition, and verifies the neon theme + new space panels.
  */
 
@@ -14,13 +14,13 @@ function makeSaveData(overrides?: Record<string, unknown>) {
     gameState: {
       phase: 'expansion',
       resources: {
-        eggs: 5, larvae: 3, workers: 30, food: 2100,
+        eggs: 5, larvae: 3, workers: 80, food: 5000,
         nestCapacity: 100, wood: 500, stone: 500, nectar: 300,
         voidCrystals: 500, antimatter: 99, darkMatter: 49,
       },
       eggPipeline: { count: 0, progress: 0 },
       larvaPipeline: { count: 0, progress: 0 },
-      workersAssigned: { gather: 20, tend: 6, dig: 3, guard: 0, researchers: 0 },
+      workersAssigned: { gather: 40, tend: 6, dig: 3, guard: 0, researchers: 0 },
       soldiers: { scouts: 10, warriors: 5, totalKilled: 2 },
       buildings: {
         barracks: { level: 2, count: 1 },
@@ -91,9 +91,9 @@ async function seedAndWaitForSpace(page: Page, overrides?: Record<string, unknow
   await page.goto('/');
   await page.waitForSelector('#panels', { timeout: 10000 });
 
-  // Advance time: workers=30, gather=20 → produce food each tick.
+  // Advance time: workers=80, gather=40 → produce food each tick.
   // Need to pass through EXPANSION first, then hit SPACE guard.
-  // With food=2100 and workers=30, the guard should trigger quickly.
+  // With food=5000 and workers=80, the guard should trigger quickly.
   await page.clock.runFor(5000);
 
   // Wait for spaceship panel (only visible in SPACE phase)
@@ -189,7 +189,7 @@ test.describe('Space Phase — Neon Theme & Panels', () => {
     await seedAndWaitForSpace(page, {
       spaceship: { level: 1, fuel: 80, maxFuel: 100 },
       resources: {
-        eggs: 5, larvae: 3, workers: 30, food: 2100,
+        eggs: 5, larvae: 3, workers: 80, food: 5000,
         nestCapacity: 100, wood: 500, stone: 500, nectar: 300,
         voidCrystals: 200, antimatter: 50, darkMatter: 10,
       },
@@ -214,7 +214,7 @@ test.describe('Space Phase — Neon Theme & Panels', () => {
   test('spaceship build button disabled without resources', async ({ page }) => {
     await seedAndWaitForSpace(page, {
       resources: {
-        eggs: 5, larvae: 3, workers: 30, food: 2100,
+        eggs: 5, larvae: 3, workers: 80, food: 5000,
         nestCapacity: 100, wood: 0, stone: 0, nectar: 0,
         voidCrystals: 0, antimatter: 0, darkMatter: 0,
       },
@@ -334,7 +334,7 @@ test.describe('Space Phase — Neon Theme & Panels', () => {
     // Set voidCrystals/antimatter/darkMatter below transcendence thresholds.
     const data = makeSaveData({
       resources: {
-        eggs: 5, larvae: 3, workers: 20, food: 1500,
+        eggs: 5, larvae: 3, workers: 60, food: 4000,
         nestCapacity: 100, wood: 500, stone: 500, nectar: 300,
         voidCrystals: 0, antimatter: 0, darkMatter: 0,
       },

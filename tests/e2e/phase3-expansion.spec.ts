@@ -6,9 +6,9 @@ import { test, expect } from '@playwright/test';
  */
 test.describe('Phase 3 — Expansion', () => {
   test.beforeEach(async ({ page }) => {
-    // Seed a rich colony state with 20 workers, 500 food, 200 wood, 200 stone
+    // Seed a rich colony state with 40 workers, 1000 food, 200 wood, 200 stone
     // Plus 5 scouts for expedition testing
-    // Note: 19 assigned (gather:12 + tend:4 + dig:3), 1 available worker
+    // Note: 39 assigned (gather:24 + tend:8 + dig:3), 1 available worker
     await page.addInitScript(() => {
       const data = {
         version: 11,
@@ -17,12 +17,12 @@ test.describe('Phase 3 — Expansion', () => {
         gameState: {
           phase: 'colony',
           resources: {
-            eggs: 0, larvae: 0, workers: 20, food: 500,
+            eggs: 0, larvae: 0, workers: 40, food: 1000,
             nestCapacity: 50, wood: 200, stone: 200, nectar: 50,
           },
           eggPipeline: { count: 0, progress: 0 },
           larvaPipeline: { count: 0, progress: 0 },
-          workersAssigned: { gather: 12, tend: 4, dig: 3, guard: 0, researchers: 0 },
+          workersAssigned: { gather: 24, tend: 8, dig: 3, guard: 0, researchers: 0 },
           soldiers: { scouts: 5, warriors: 3, totalKilled: 0 },
           buildings: {
             barracks: { level: 0, count: 0 },
@@ -80,17 +80,17 @@ test.describe('Phase 3 — Expansion', () => {
     const saved = await page.evaluate(() => localStorage.getItem('the_swarm_save'));
     expect(saved).toBeTruthy();
     const parsed = JSON.parse(saved!);
-    expect(parsed.gameState.resources.workers).toBe(20);
+    expect(parsed.gameState.resources.workers).toBe(40);
 
     // Wait for the app to mount and render panels
     await page.waitForSelector('#panels', { timeout: 10000 });
 
-    // Wait for phase transition — COLONY → EXPANSION (20 workers + 500 food)
+    // Wait for phase transition — COLONY → EXPANSION (40 workers + 1000 food)
     const indicator = page.locator('#phase-indicator');
     await expect(indicator).toContainText('The Expansion', { timeout: 15000 });
   });
 
-  test('phase transitions to expansion with 20 workers', async ({ page }) => {
+  test('phase transitions to expansion with 40 workers', async ({ page }) => {
     const indicator = page.locator('#phase-indicator');
     // Already verified in beforeEach — confirm it persists
     await expect(indicator).toContainText('The Expansion');

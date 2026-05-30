@@ -267,29 +267,29 @@ describe('Phase transitions — property-based (no dead ends)', () => {
           break;
         case Phase.COLONY:
           if (t.to === Phase.COMBAT) {
-            // COLONY → COMBAT: workers >= 15 AND guard >= 1
-            state.resources.workers = 15;
+            // COLONY → COMBAT: workers >= 50 AND guard >= 1
+            state.resources.workers = 50;
             state.workersAssigned.guard = 1;
           } else if (t.to === Phase.EXPANSION) {
-            // COLONY → EXPANSION: workers >= 20 AND food >= 500
-            state.resources.workers = 20;
-            state.resources.food = 500;
+            // COLONY → EXPANSION: workers >= 40 AND food >= 1000
+            state.resources.workers = 40;
+            state.resources.food = 1000;
           }
           break;
         case Phase.COMBAT:
-          // COMBAT → EXPANSION: workers >= 25 AND battlesWon >= 3
-          state.resources.workers = 25;
-          state.battlesWon = 3;
+          // COMBAT → EXPANSION: workers >= 60 AND battlesWon >= 5
+          state.resources.workers = 60;
+          state.battlesWon = 5;
           break;
         case Phase.EXPANSION:
-          // EXPANSION → SPACE: workers >= 30 AND food >= 2000
-          state.resources.workers = 30;
-          state.resources.food = 2000;
+          // EXPANSION → SPACE: workers >= 80 AND food >= 5000
+          state.resources.workers = 80;
+          state.resources.food = 5000;
           break;
         case Phase.COMBAT:
-          // COMBAT → EXPANSION: workers >= 25 AND battlesWon >= 3
-          state.resources.workers = 25;
-          state.battlesWon = 3;
+          // COMBAT → EXPANSION: workers >= 60 AND battlesWon >= 5
+          state.resources.workers = 60;
+          state.battlesWon = 5;
           break;
         case Phase.SPACE:
           // SPACE → TRANSCENDENCE: voidCrystals >= 500, antimatter >= 100, darkMatter >= 50
