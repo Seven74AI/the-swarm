@@ -116,26 +116,26 @@ describe('PrestigeSystem', () => {
       expect(calculateLegacyPoints(5, 10)).toBe(0);
     });
 
-    it('uses the formula: floor(log10(food) * phaseScore / 100)', () => {
+    it('uses the formula: floor(log10(food) * phaseScore / 10)', () => {
       // totalFoodProduced = 100_000 → log10(100000) = 5
       // phaseScore for max phase 5 (sum 1+2+3+4+5 = 15)
-      // legacyPoints = floor(5 * 15 / 100) = floor(0.75) = 0
-      expect(calculateLegacyPoints(100_000, 15)).toBe(0);
+      // legacyPoints = floor(5 * 15 / 10) = floor(7.5) = 7
+      expect(calculateLegacyPoints(100_000, 15)).toBe(7);
 
       // totalFoodProduced = 1_000_000 → log10 = 6
-      // legacyPoints = floor(6 * 15 / 100) = floor(0.90) = 0
-      expect(calculateLegacyPoints(1_000_000, 15)).toBe(0);
+      // legacyPoints = floor(6 * 15 / 10) = floor(9.0) = 9
+      expect(calculateLegacyPoints(1_000_000, 15)).toBe(9);
 
       // totalFoodProduced = 10_000_000_000 → log10 = 10
-      // legacyPoints = floor(10 * 15 / 100) = floor(1.5) = 1
-      expect(calculateLegacyPoints(10_000_000_000, 15)).toBe(1);
+      // legacyPoints = floor(10 * 15 / 10) = floor(15) = 15
+      expect(calculateLegacyPoints(10_000_000_000, 15)).toBe(15);
     });
 
     it('scales with higher phase scores', () => {
       // phaseScore = 30 (higher phase count)
       // totalFoodProduced = 100_000 → log10 = 5
-      // legacyPoints = floor(5 * 30 / 100) = floor(1.5) = 1
-      expect(calculateLegacyPoints(100_000, 30)).toBe(1);
+      // legacyPoints = floor(5 * 30 / 10) = floor(15) = 15
+      expect(calculateLegacyPoints(100_000, 30)).toBe(15);
     });
 
     it('handles edge case: zero food produced', () => {
@@ -148,9 +148,9 @@ describe('PrestigeSystem', () => {
     });
 
     it('handles large numbers without overflow', () => {
-      // 1e20 → log10 = 20, phaseScore = 100 → floor(20*100/100) = 20
+      // 1e20 → log10 = 20, phaseScore = 100 → floor(20*100/10) = 200
       const result = calculateLegacyPoints(1e20, 100);
-      expect(result).toBe(20);
+      expect(result).toBe(200);
       expect(Number.isFinite(result)).toBe(true);
     });
   });

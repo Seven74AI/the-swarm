@@ -58,14 +58,20 @@ export function getUnmetRequirements(state: GameState): string[] {
 
 /**
  * Calculate Legacy Points gained from a prestige reset.
- * Formula: floor(log10(totalFoodProduced) * phaseScore / 100)
+ * Formula: floor(log10(totalFoodProduced) * phaseScore / 10)
+ *
+ * Examples:
+ *   - 100K food at combat (phaseScore=6):  floor(5 * 6 / 10) = 3 LP
+ *   - 500K food at space  (phaseScore=15): floor(~5.7 * 15 / 10) = 8 LP
+ *   - 1M food at space    (phaseScore=15): floor(6 * 15 / 10) = 9 LP
+ *   - 10B food at space   (phaseScore=15): floor(10 * 15 / 10) = 15 LP
  */
 export function calculateLegacyPoints(
   totalFoodProduced: number,
   phaseScore: number,
 ): number {
   if (totalFoodProduced < 10) return 0;
-  return Math.floor(Math.log10(totalFoodProduced) * phaseScore / 100);
+  return Math.floor(Math.log10(totalFoodProduced) * phaseScore / 10);
 }
 
 /**
