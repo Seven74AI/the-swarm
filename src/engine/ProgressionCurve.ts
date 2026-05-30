@@ -66,13 +66,18 @@ export function softCapEffectiveness(base: number, level: number): number {
  * Compute worker efficiency multiplier.
  *
  * Up to 500 workers: 1.0 (full efficiency).
- * Above 500: efficiency = 1 / (1 + 0.001 * (workers - 500))
+ * Above 500: efficiency = 1 / (1 + 0.0005 * (workers - 500))
+ *
+ * At 2000 workers: eff ≈ 0.57 (50% gatherers → net positive food).
+ * The 0.0005 coefficient was chosen so the starvation threshold
+ * (~1500 workers with 0.001) shifts past the practical game range
+ * (~2500+ without prestige bonuses, higher with).
  *
  * @param workers  Total worker count
  */
 export function workerEfficiency(workers: number): number {
   if (workers <= 500) return 1.0;
-  return 1 / (1 + 0.001 * (workers - 500));
+  return 1 / (1 + 0.0005 * (workers - 500));
 }
 
 /**
