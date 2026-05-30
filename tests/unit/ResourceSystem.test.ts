@@ -167,6 +167,40 @@ describe('ResourceSystem', () => {
       // No workers = no production, no consumption
       expect(result.resources.food).toBe(state.resources.food);
     });
+
+    // Regression test for #128: worker starvation trap above ~1800 workers.
+    // workerEfficiency drops to 0.4 at 2000 workers — production AND consumption
+    // must both scale, otherwise consumption outpaces production.
+    it('2000 workers with 50% gathering have net positive food (starvation trap fix)', () => {
+      state.resources.workers = 2000;
+      state.resources.food = 5000;
+      // 50% gatherers, rest in non-food-producing roles
+      state.workersAssigned = { gather: 1000, tend: 500, dig: 250, guard: 250, researchers: 0 };
+      const before = state.resources.food;
+
+      // Simulate 1 second of ticks (20 ticks × 0.05s)
+      let result = state;
+      for (let i = 0; i < 20; i++) {
+        result = system.tick(result);
+      }
+
+      // Food must increase — if it decreases, the starvation trap is still present
+      expect(result.resources.food).toBeGreaterThan(before);
+    });
+
+    it('2000 workers all unassigned still have net positive food', () => {
+      state.resources.workers = 2000;
+      state.resources.food = 5000;
+      state.workersAssigned = { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 };
+      const before = state.resources.food;
+
+      let result = state;
+      for (let i = 0; i < 20; i++) {
+        result = system.tick(result);
+      }
+
+      expect(result.resources.food).toBeGreaterThan(before);
+    });
   });
 
   describe('worker assignment', () => {

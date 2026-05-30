@@ -13,7 +13,7 @@ import { getPrestigeBonuses } from './PrestigeBonusSystem';
 export interface ResourceRates {
   /** Gross food produced per second (before consumption). */
   foodProducedPerSec: number;
-  /** Food consumed per second (workers / 2). */
+  /** Food consumed per second ((workers / 2) × workerEfficiency). */
   foodConsumedPerSec: number;
   /** Wood produced per second from territory bonuses. */
   woodPerSec: number;
@@ -47,7 +47,7 @@ export function computeResourceRates(
     (gatherCount * 2 + Math.max(0, unassignedCount) * 1)
     * prodMult * workerEff * prestigeBonuses.food * prestigeBonuses.workerEfficiency
   );
-  const foodConsumedPerSec = workers / 2;
+  const foodConsumedPerSec = (workers / 2) * workerEff;
 
   let territoryFoodRate = 0;
   let territoryStoneRate = 0;
