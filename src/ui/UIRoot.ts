@@ -95,7 +95,7 @@ export class UIRoot {
 
     // ── Populate panel registry with factory functions ──
     // Phase 1 panels (mounted at boot for always-visible UI)
-    this.panelRegistry.set('resource_panel', () => new ResourcePanel().getElement());
+    this.panelRegistry.set('resource_panel', () => new ResourcePanel(this.resourceSystem).getElement());
     this.panelRegistry.set('phase_indicator', () => new PhaseIndicator(this.bus, this.getState().phase as Phase).getElement());
     this.panelRegistry.set('click_button', () => new ClickButton(
       this.bus, this.resourceSystem, this.saveManager, this.getState, this.setState, deps.audio,
@@ -219,7 +219,7 @@ export class UIRoot {
     this.panelsContainer = panels;
 
     // ── Phase 1 panels: mount at boot (always visible) ──
-    const resourcePanel = new ResourcePanel();
+    const resourcePanel = new ResourcePanel(this.resourceSystem);
     panels.appendChild(resourcePanel.getElement());
     this.panelElements.set('resource_panel', resourcePanel.getElement());
 

@@ -60,6 +60,17 @@ export class ClickButton {
     this.dispose = effect(() => {
       this.updateCounter(gameState.value.stats.totalClicks);
     });
+
+    // Reactive: toggle disabled appearance when at capacity
+    effect(() => {
+      const s = gameState.value;
+      const effectiveCap = this.resourceSystem.getEffectiveNestCapacity(s);
+      if (s.resources.workers >= effectiveCap && effectiveCap > 0) {
+        this.button.classList.add('click-button-at-capacity');
+      } else {
+        this.button.classList.remove('click-button-at-capacity');
+      }
+    });
   }
 
   private onClick(): void {
