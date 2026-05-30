@@ -42,7 +42,7 @@ describe('PrestigePanel', () => {
   it('shows legacy points count when > 0', () => {
     currentState = {
       ...currentState,
-      prestige: { count: 0, legacyPoints: 5, totalFoodProduced: 50_000 },
+      prestige: { count: 0, legacyPoints: 5, totalFoodProduced: 50_000, totalWoodProduced: 0, totalStoneProduced: 0, totalNectarProduced: 0 },
     };
     panel.refresh();
     const el = panel.getElement();
@@ -59,7 +59,7 @@ describe('PrestigePanel', () => {
   it('shows "Legacy 3" after 3 prestiges', () => {
     currentState = {
       ...currentState,
-      prestige: { count: 3, legacyPoints: 12, totalFoodProduced: 500_000 },
+      prestige: { count: 3, legacyPoints: 12, totalFoodProduced: 500_000, totalWoodProduced: 0, totalStoneProduced: 0, totalNectarProduced: 0 },
     };
     panel.refresh();
     const el = panel.getElement();
@@ -89,7 +89,7 @@ describe('PrestigePanel', () => {
         walls: { level: 5 },
         warehouse: { level: 5 },
       },
-      prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 100_000 },
+      prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 100_000, totalWoodProduced: 50_000, totalStoneProduced: 50_000, totalNectarProduced: 25_000 },
     };
     panel.refresh();
     const el = panel.getElement();
@@ -116,7 +116,7 @@ describe('PrestigePanel', () => {
         walls: { level: 5 },
         warehouse: { level: 5 },
       },
-      prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 1_000_000_000 },
+      prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 1_000_000_000, totalWoodProduced: 50_000, totalStoneProduced: 50_000, totalNectarProduced: 25_000 },
     };
     panel.refresh();
     const el = panel.getElement();
@@ -133,7 +133,7 @@ describe('PrestigePanel', () => {
         walls: { level: 5 },
         warehouse: { level: 5 },
       },
-      prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 100_000 },
+      prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 100_000, totalWoodProduced: 50_000, totalStoneProduced: 50_000, totalNectarProduced: 25_000 },
     };
     panel.refresh();
     const el = panel.getElement();

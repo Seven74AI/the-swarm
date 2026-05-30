@@ -34,6 +34,9 @@ function getPhaseScore(currentPhase: string): number {
  * Requirements:
  *   - All colony buildings at level 5+
  *   - 100K+ total food produced (lifetime)
+ *   - 50K+ total wood produced (lifetime)
+ *   - 50K+ total stone produced (lifetime)
+ *   - 25K+ total nectar produced (lifetime)
  */
 export function isPrestigeAvailable(state: GameState): boolean {
   const buildings = state.buildings;
@@ -41,6 +44,9 @@ export function isPrestigeAvailable(state: GameState): boolean {
   if (buildings.walls.level < 5) return false;
   if (buildings.warehouse.level < 5) return false;
   if (state.prestige.totalFoodProduced < 100_000) return false;
+  if (state.prestige.totalWoodProduced < 50_000) return false;
+  if (state.prestige.totalStoneProduced < 50_000) return false;
+  if (state.prestige.totalNectarProduced < 25_000) return false;
   return true;
 }
 
@@ -53,6 +59,9 @@ export function getUnmetRequirements(state: GameState): string[] {
   if (state.buildings.walls.level < 5) unmet.push('walls level 5+');
   if (state.buildings.warehouse.level < 5) unmet.push('warehouse level 5+');
   if (state.prestige.totalFoodProduced < 100_000) unmet.push('100K total food produced');
+  if (state.prestige.totalWoodProduced < 50_000) unmet.push('50K total wood produced');
+  if (state.prestige.totalStoneProduced < 50_000) unmet.push('50K total stone produced');
+  if (state.prestige.totalNectarProduced < 25_000) unmet.push('25K total nectar produced');
   return unmet;
 }
 
@@ -163,6 +172,9 @@ export function prestige(state: GameState): GameState {
       count: state.prestige.count + 1,
       legacyPoints: state.prestige.legacyPoints + totalNewLegacyPoints,
       totalFoodProduced: state.prestige.totalFoodProduced,
+      totalWoodProduced: state.prestige.totalWoodProduced,
+      totalStoneProduced: state.prestige.totalStoneProduced,
+      totalNectarProduced: state.prestige.totalNectarProduced,
     },
     prestigeTree: state.prestigeTree,
   };
