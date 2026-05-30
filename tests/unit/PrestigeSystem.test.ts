@@ -58,6 +58,9 @@ describe('PrestigeSystem', () => {
       state.buildings.walls.level = 5;
       state.buildings.warehouse.level = 5;
       state.prestige.totalFoodProduced = 100_000;
+      state.prestige.totalWoodProduced = 50_000;
+      state.prestige.totalStoneProduced = 50_000;
+      state.prestige.totalNectarProduced = 25_000;
       expect(isPrestigeAvailable(state)).toBe(true);
     });
 
@@ -66,6 +69,9 @@ describe('PrestigeSystem', () => {
       state.buildings.walls.level = 8;
       state.buildings.warehouse.level = 7;
       state.prestige.totalFoodProduced = 500_000;
+      state.prestige.totalWoodProduced = 50_000;
+      state.prestige.totalStoneProduced = 50_000;
+      state.prestige.totalNectarProduced = 25_000;
       expect(isPrestigeAvailable(state)).toBe(true);
     });
   });
@@ -106,6 +112,9 @@ describe('PrestigeSystem', () => {
       state.buildings.walls.level = 5;
       state.buildings.warehouse.level = 5;
       state.prestige.totalFoodProduced = 100_000;
+      state.prestige.totalWoodProduced = 50_000;
+      state.prestige.totalStoneProduced = 50_000;
+      state.prestige.totalNectarProduced = 25_000;
       const unmet = getUnmetRequirements(state);
       expect(unmet).toEqual([]);
     });
@@ -168,7 +177,7 @@ describe('PrestigeSystem', () => {
       s.buildings.barracks.level = 6;
       s.buildings.walls.level = 5;
       s.buildings.warehouse.level = 5;
-      s.prestige = { count: 0, legacyPoints: 0, totalFoodProduced: 200_000 };
+      s.prestige = { count: 0, legacyPoints: 0, totalFoodProduced: 200_000, totalWoodProduced: 0, totalStoneProduced: 0, totalNectarProduced: 0 };
       s.workersAssigned = { gather: 30, tend: 20, dig: 10, guard: 5, researchers: 0 };
       s.upgrades = { click_power: 3 };
       s.soldiers.scouts = 5;
@@ -396,7 +405,7 @@ describe('PrestigeSystem', () => {
       const s = createInitialState();
       s.phase = 'transcendence';
       s.offlineEfficiency = 0.5;
-      s.prestige = { count: 1, legacyPoints: 15, totalFoodProduced: 500_000 };
+      s.prestige = { count: 1, legacyPoints: 15, totalFoodProduced: 500_000, totalWoodProduced: 0, totalStoneProduced: 0, totalNectarProduced: 0 };
       s.resources.voidCrystals = 20;
       return s;
     }
@@ -517,7 +526,7 @@ describe('PrestigeSystem', () => {
       s.buildings.barracks.level = 5;
       s.buildings.walls.level = 5;
       s.buildings.warehouse.level = 5;
-      s.prestige = { count: 1, legacyPoints: 5, totalFoodProduced: 200_000 };
+      s.prestige = { count: 1, legacyPoints: 5, totalFoodProduced: 200_000, totalWoodProduced: 0, totalStoneProduced: 0, totalNectarProduced: 0 };
       return s;
     }
 

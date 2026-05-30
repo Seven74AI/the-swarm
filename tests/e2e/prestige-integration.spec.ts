@@ -64,7 +64,7 @@ function makeBaseState(overrides?: Record<string, unknown>) {
     discoveries: [],
     victoryAchieved: false,
     nextIds: { expedition: 1, exploration: 1, spaceship: 1 },
-    prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 100_000 },
+    prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 100_000, totalWoodProduced: 50_000, totalStoneProduced: 50_000, totalNectarProduced: 25_000 },
     prestigeTree: { purchased: [] as string[] },
     offlineEfficiency: 0.5,
     soldierEquipment: {},
@@ -177,7 +177,7 @@ test.describe('Prestige Integration — Slice 5', () => {
   /** ─── Test 2: Purchase egg-laying bonus → Prestige → Bonus persists ─── */
   test('egg-laying bonus persists through prestige and boosts egg production', async ({ page }) => {
     await seedAndGo(page, makeBaseState({
-      prestige: { count: 0, legacyPoints: 15, totalFoodProduced: 100_000 },
+      prestige: { count: 0, legacyPoints: 15, totalFoodProduced: 100_000, totalWoodProduced: 50_000, totalStoneProduced: 50_000, totalNectarProduced: 25_000 },
     }));
 
     await openPrestigeTree(page);
@@ -211,7 +211,7 @@ test.describe('Prestige Integration — Slice 5', () => {
   /** ─── Test 3: Auto-egg-layer → Prestige → Auto-eggs sustain production ─── */
   test('auto-egg-layer sustains egg production in new run after prestige', async ({ page }) => {
     await seedAndGo(page, makeBaseState({
-      prestige: { count: 0, legacyPoints: 20, totalFoodProduced: 100_000 },
+      prestige: { count: 0, legacyPoints: 20, totalFoodProduced: 100_000, totalWoodProduced: 50_000, totalStoneProduced: 50_000, totalNectarProduced: 25_000 },
     }));
 
     await openPrestigeTree(page);
@@ -246,7 +246,7 @@ test.describe('Prestige Integration — Slice 5', () => {
   /** ─── Test 4: Starting resources + Phase skip → Phase 2 with resources ─── */
   test('starting resources and phase skip apply after prestige', async ({ page }) => {
     await seedAndGo(page, makeBaseState({
-      prestige: { count: 0, legacyPoints: 30, totalFoodProduced: 100_000 },
+      prestige: { count: 0, legacyPoints: 30, totalFoodProduced: 100_000, totalWoodProduced: 50_000, totalStoneProduced: 50_000, totalNectarProduced: 25_000 },
     }));
 
     await openPrestigeTree(page);
@@ -290,7 +290,7 @@ test.describe('Prestige Integration — Slice 5', () => {
   /** ─── Test 5: Double prestige — compound bonuses ─── */
   test('multiple prestiges compound bonuses correctly', async ({ page }) => {
     await seedAndGo(page, makeBaseState({
-      prestige: { count: 0, legacyPoints: 40, totalFoodProduced: 1_000_000 },
+      prestige: { count: 0, legacyPoints: 40, totalFoodProduced: 1_000_000, totalWoodProduced: 50_000, totalStoneProduced: 50_000, totalNectarProduced: 25_000 },
     }));
 
     await openPrestigeTree(page);
@@ -311,7 +311,7 @@ test.describe('Prestige Integration — Slice 5', () => {
     await page.addInitScript((saveStr: string) => {
       localStorage.setItem('the_swarm_save', saveStr);
     }, JSON.stringify(makeSaveData(makeBaseState({
-      prestige: { count: 1, legacyPoints: 30, totalFoodProduced: 2_000_000 },
+      prestige: { count: 1, legacyPoints: 30, totalFoodProduced: 2_000_000, totalWoodProduced: 50_000, totalStoneProduced: 50_000, totalNectarProduced: 25_000 },
       prestigeTree: { purchased: ['egg_laying_bonus'] },
     }))));
     await page.goto('/');

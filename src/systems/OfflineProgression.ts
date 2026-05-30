@@ -7,7 +7,7 @@ import { computeResourceRates, type ResourceRates } from './ResourceSystem';
  * when the player returns after being away.
  *
  * Standard incremental convention:
- * - Offline progress is capped at 8 hours
+ * - Offline progress is capped at 4 hours
  * - Offline efficiency starts at 50% (Phase 1-4)
  * - Upgrades can increase efficiency to 75% and 100%
  *
@@ -94,7 +94,7 @@ export function calculateOfflineTicks(
   efficiency: number,
   tickIntervalMs: number = 50,
 ): OfflineTickResult {
-  const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000; // 8 hours
+  const OFFLINE_CAP_MS = 4 * 60 * 60 * 1000; // 4 hours
 
   // Guard against negative elapsed (clock skew)
   if (elapsedMs <= 0) {

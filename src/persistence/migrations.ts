@@ -200,7 +200,7 @@ function migrateV7toV8(data: SaveData): SaveData {
   };
 
   // GM-1: Prestige fields
-  gameState.prestige = gameState.prestige ?? { count: 0, legacyPoints: 0, totalFoodProduced: 0 };
+  gameState.prestige = gameState.prestige ?? { count: 0, legacyPoints: 0, totalFoodProduced: 0, totalWoodProduced: 0, totalStoneProduced: 0, totalNectarProduced: 0 };
 
   // GM-3: Automation fields
   gameState.autoProduction = gameState.autoProduction ?? {
@@ -282,6 +282,29 @@ function migrateV11toV12(data: SaveData): SaveData {
   return { ...data, version: 12, gameState };
 }
 
+/** v12 → v13: adds totalWood/Stone/NectarProduced to prestige tracking */
+function migrateV12toV13(data: SaveData): SaveData {
+  const gameState = data.gameState as GameState & {
+    prestige: {
+      totalWoodProduced?: number;
+      totalStoneProduced?: number;
+      totalNectarProduced?: number;
+    };
+  };
+
+  if (gameState.prestige.totalWoodProduced === undefined) {
+    gameState.prestige.totalWoodProduced = 0;
+  }
+  if (gameState.prestige.totalStoneProduced === undefined) {
+    gameState.prestige.totalStoneProduced = 0;
+  }
+  if (gameState.prestige.totalNectarProduced === undefined) {
+    gameState.prestige.totalNectarProduced = 0;
+  }
+
+  return { ...data, version: 13, gameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -295,6 +318,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   9: migrateV9toV10,
   10: migrateV10toV11,
   11: migrateV11toV12,
+  12: migrateV12toV13,
 };
 
 /**

@@ -32,7 +32,7 @@ export function getPhaseNumber(phase: string): number {
  *
  * Formula:
  *   base = 1.12 ^ phaseNumber          (×1.12 per phase reached)
- *   result = base * (1 + 0.50 * legacyPoints)  (+50% per Legacy Point)
+ *   result = base * (1 + 0.15 * legacyPoints)   (+15% per Legacy Point)
  *
  * @param phase         Current phase name (e.g., 'combat')
  * @param legacyPoints  Accumulated Legacy Points from prestige
@@ -45,7 +45,7 @@ export function productionMultiplier(
 ): number {
   const phaseNumber = overridePhaseNumber ?? getPhaseNumber(phase);
   const base = Math.pow(1.12, phaseNumber);
-  return base * (1 + 0.50 * legacyPoints);
+  return base * (1 + 0.15 * legacyPoints);
 }
 
 /**

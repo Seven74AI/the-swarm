@@ -61,23 +61,23 @@ describe('ProgressionCurve', () => {
       expect(productionMultiplier('space', 0)).toBeCloseTo(1.762342, 4);
     });
 
-    it('applies 50% per legacy point on top of base', () => {
-      // Phase 1: base = 1.12, legacy = 2 → 1.12 * (1 + 2*0.50) = 1.12 * 2 = 2.24
+    it('applies 15% per legacy point on top of base', () => {
+      // Phase 1: base = 1.12, legacy = 2 → 1.12 * (1 + 2*0.15) = 1.12 * 1.30 = 1.456
       const result = productionMultiplier('egg_laying', 2);
-      expect(result).toBeCloseTo(2.24, 4);
+      expect(result).toBeCloseTo(1.456, 4);
     });
 
     it('phase and legacy combine multiplicatively', () => {
       // Phase 3 (combat): base = 1.12^3 = 1.404928, legacy = 5
-      // → 1.404928 * (1 + 5*0.50) = 1.404928 * 3.5 = 4.917248
+      // → 1.404928 * (1 + 5*0.15) = 1.404928 * 1.75 = 2.458624
       const result = productionMultiplier('combat', 5);
-      expect(result).toBeCloseTo(4.917248, 4);
+      expect(result).toBeCloseTo(2.458624, 4);
     });
 
     it('phase 6 (transcendence) with 10 legacy points', () => {
-      // base = 1.12^6 = 1.973823, legacy = 10 → *6 = 11.842938
+      // base = 1.12^6 = 1.973823, legacy = 10 → *2.5 = 4.934558
       const result = productionMultiplier('transcendence', 10);
-      expect(result).toBeCloseTo(11.842938, 4);
+      expect(result).toBeCloseTo(4.934558, 4);
     });
 
     it('phase 7 (beyond transcendence virtual phase)', () => {
@@ -94,9 +94,9 @@ describe('ProgressionCurve', () => {
     });
 
     it('high legacy points (100) dramatically boost multiplier', () => {
-      // Phase 3, 100 LP: 1.404928 * (1 + 100*0.50) = 1.404928 * 51 = 71.651328
+      // Phase 3, 100 LP: 1.404928 * (1 + 100*0.15) = 1.404928 * 16 = 22.478848
       const result = productionMultiplier('combat', 100);
-      expect(result).toBeCloseTo(71.651328, 4);
+      expect(result).toBeCloseTo(22.478848, 4);
     });
 
     it('returns minimum 1.0 for phase 0 or unknown', () => {
@@ -300,15 +300,15 @@ describe('ProgressionCurve', () => {
       expect(curve[1].multiplier).toBeCloseTo(1.2544, 4); // 1.12^2 = 1.2544
 
       // After first prestige (tick 500, tickIndex 5): boost
-      // Phase is combat (3), LP=3: 1.12^3 * (1+3*0.5) = 1.404928 * 2.5 = 3.51232
-      expect(curve[5].multiplier).toBeCloseTo(3.51232, 4);
+      // Phase is combat (3), LP=3: 1.12^3 * (1+3*0.15) = 1.404928 * 1.45 = 2.037146
+      expect(curve[5].multiplier).toBeCloseTo(2.037146, 4);
 
       // After second prestige (tick 900, tickIndex 9): larger boost
-      // Phase is space (5), LP=8: 1.12^5 * (1+8*0.5) = 1.762342 * 5 = 8.81171
-      expect(curve[9].multiplier).toBeCloseTo(8.81171, 4);
+      // Phase is space (5), LP=8: 1.12^5 * (1+8*0.15) = 1.762342 * 2.2 = 3.877152
+      expect(curve[9].multiplier).toBeCloseTo(3.877152, 4);
 
       // Final tick 1000: space, LP=8
-      expect(curve[10].multiplier).toBeCloseTo(8.81171, 4);
+      expect(curve[10].multiplier).toBeCloseTo(3.877152, 4);
     });
 
     it('progression curve monotonically increases with prestige and phase', () => {

@@ -109,6 +109,9 @@ export function bootstrap(): {
         prestige: {
           ...gameState.value.prestige,
           totalFoodProduced: gameState.value.prestige.totalFoodProduced + resourceDeltas.grossFoodProduced,
+          totalWoodProduced: gameState.value.prestige.totalWoodProduced + Math.max(0, resourceDeltas.woodDelta),
+          totalStoneProduced: gameState.value.prestige.totalStoneProduced + Math.max(0, resourceDeltas.stoneDelta),
+          totalNectarProduced: gameState.value.prestige.totalNectarProduced + Math.max(0, resourceDeltas.nectarDelta),
         },
       };
 
@@ -163,7 +166,7 @@ export function bootstrap(): {
     const bonuses = territorySystem.getBonuses(workingState);
     let newState = resourceSystem.tick(workingState, bonuses, dtSec);
 
-    // Track gross food produced for prestige system
+    // Track gross resource production for prestige system
     const workers = workingState.resources.workers;
     const assigned = workingState.workersAssigned;
     const gatherCount = assigned.gather;
@@ -171,11 +174,17 @@ export function bootstrap(): {
     const baseFoodProduced = gatherCount * 2 + Math.max(0, unassignedCount) * 1;
     const territoryFood = Math.floor(workers * (bonuses.food ?? 0));
     const grossFoodProduced = (baseFoodProduced + territoryFood) * dtSec;
+    const woodProduced = workers * (bonuses.wood ?? 0) * dtSec;
+    const stoneProduced = workers * (bonuses.stone ?? 0) * dtSec;
+    const nectarProduced = workers * (bonuses.nectar ?? 0) * dtSec;
     newState = {
       ...newState,
       prestige: {
         ...newState.prestige,
         totalFoodProduced: newState.prestige.totalFoodProduced + grossFoodProduced,
+        totalWoodProduced: newState.prestige.totalWoodProduced + woodProduced,
+        totalStoneProduced: newState.prestige.totalStoneProduced + stoneProduced,
+        totalNectarProduced: newState.prestige.totalNectarProduced + nectarProduced,
       },
     };
 
@@ -465,7 +474,7 @@ export function processTick(
   const bonuses = territorySystem.getBonuses(workingState);
   let newState = resourceSystem.tick(workingState, bonuses, dtSec, skipDeterministicResources);
 
-  // Track gross food produced for prestige system
+  // Track gross resource production for prestige system
   // Skip when using closed-form offline computation (already counted above)
   if (!skipDeterministicResources) {
     const pWorkers = workingState.resources.workers;
@@ -475,11 +484,17 @@ export function processTick(
     const pBaseFoodProduced = pGatherCount * 2 + Math.max(0, pUnassignedCount) * 1;
     const pTerritoryFood = Math.floor(pWorkers * (bonuses.food ?? 0));
     const pGrossFoodProduced = (pBaseFoodProduced + pTerritoryFood) * dtSec;
+    const pWoodProduced = pWorkers * (bonuses.wood ?? 0) * dtSec;
+    const pStoneProduced = pWorkers * (bonuses.stone ?? 0) * dtSec;
+    const pNectarProduced = pWorkers * (bonuses.nectar ?? 0) * dtSec;
     newState = {
       ...newState,
       prestige: {
         ...newState.prestige,
         totalFoodProduced: newState.prestige.totalFoodProduced + pGrossFoodProduced,
+        totalWoodProduced: newState.prestige.totalWoodProduced + pWoodProduced,
+        totalStoneProduced: newState.prestige.totalStoneProduced + pStoneProduced,
+        totalNectarProduced: newState.prestige.totalNectarProduced + pNectarProduced,
       },
     };
   }

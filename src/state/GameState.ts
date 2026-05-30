@@ -160,6 +160,12 @@ export interface GameState {
     legacyPoints: number;
     /** Lifetime total food produced (never reset). */
     totalFoodProduced: number;
+    /** Lifetime total wood produced (never reset). */
+    totalWoodProduced: number;
+    /** Lifetime total stone produced (never reset). */
+    totalStoneProduced: number;
+    /** Lifetime total nectar produced (never reset). */
+    totalNectarProduced: number;
   };
   /** Automation system — research tree, buildings, auto-production (GM-3). */
   autoProduction: {
@@ -311,6 +317,9 @@ export function createInitialState(): GameState {
       count: 0,
       legacyPoints: 0,
       totalFoodProduced: 0,
+      totalWoodProduced: 0,
+      totalStoneProduced: 0,
+      totalNectarProduced: 0,
     },
     autoProduction: {
       enabled: false,
