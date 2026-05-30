@@ -34,10 +34,16 @@ export class ProgressBar {
     this.container.appendChild(track);
   }
 
-  update(current: number, max: number): void {
+  update(current: number, max: number, colorClass?: string): void {
     const pct = max > 0 ? Math.min(100, (current / max) * 100) : 0;
     this.fill.style.width = `${pct}%`;
     this.label.textContent = `${pct.toFixed(0)}%`;
+
+    // Apply capacity-state color classes
+    this.fill.classList.remove('capacity-warning', 'capacity-full');
+    if (colorClass) {
+      this.fill.classList.add(colorClass);
+    }
   }
 
   getElement(): HTMLDivElement {

@@ -8,6 +8,10 @@ import { ResourcePanel } from '../../src/ui/panels/ResourcePanel';
 import { Phase } from '../../src/phases/phases';
 import { createInitialState } from '../../src/state/GameState';
 
+const mockResourceSystem = {
+  getEffectiveNestCapacity: (s: { resources: { nestCapacity: number } }) => s.resources.nestCapacity,
+} as unknown as import('../../src/systems/ResourceSystem').ResourceSystem;
+
 describe('ResourcePanel — Scannable HUD', () => {
   let panel: ResourcePanel;
   let el: HTMLDivElement;
@@ -32,7 +36,7 @@ describe('ResourcePanel — Scannable HUD', () => {
     // Clear localStorage between tests
     localStorage.clear();
 
-    panel = new ResourcePanel();
+    panel = new ResourcePanel(mockResourceSystem);
     el = panel.getElement();
   });
 
@@ -158,7 +162,7 @@ describe('ResourcePanel — Scannable HUD', () => {
       // Pre-set colony as collapsed in localStorage
       localStorage.setItem('swarm_hud_sections', JSON.stringify({ colony: false }));
 
-      const panel2 = new ResourcePanel();
+      const panel2 = new ResourcePanel(mockResourceSystem);
       const el2 = panel2.getElement();
       const colonySection = el2.querySelector('.hud-section.colony-section');
       const toggle = colonySection?.querySelector('.section-toggle');
@@ -205,7 +209,7 @@ describe('ResourcePanel — Scannable HUD', () => {
       state.resources.darkMatter = 2;
       gameState.value = { ...state };
 
-      const panel2 = new ResourcePanel();
+      const panel2 = new ResourcePanel(mockResourceSystem);
       const el2 = panel2.getElement();
       const spaceSection = el2.querySelector('.hud-section.space-section');
       expect(spaceSection).not.toBeNull();
@@ -221,7 +225,7 @@ describe('ResourcePanel — Scannable HUD', () => {
       state.phase = Phase.TRANSCENDENCE;
       gameState.value = { ...state };
 
-      const panel2 = new ResourcePanel();
+      const panel2 = new ResourcePanel(mockResourceSystem);
       const el2 = panel2.getElement();
       const prestigeSection = el2.querySelector('.hud-section.prestige-section');
       expect(prestigeSection).not.toBeNull();
@@ -244,7 +248,7 @@ describe('ResourcePanel — Scannable HUD', () => {
       state.resources.voidCrystals = 10;
       gameState.value = { ...state };
 
-      const panel2 = new ResourcePanel();
+      const panel2 = new ResourcePanel(mockResourceSystem);
       const el2 = panel2.getElement();
       const spaceSection = el2.querySelector('.hud-section.space-section') as HTMLElement;
       expect(spaceSection).not.toBeNull();
@@ -256,7 +260,7 @@ describe('ResourcePanel — Scannable HUD', () => {
       state.phase = Phase.TRANSCENDENCE;
       gameState.value = { ...state };
 
-      const panel2 = new ResourcePanel();
+      const panel2 = new ResourcePanel(mockResourceSystem);
       const el2 = panel2.getElement();
       const prestigeSection = el2.querySelector('.hud-section.prestige-section') as HTMLElement;
       expect(prestigeSection).not.toBeNull();
@@ -290,7 +294,7 @@ describe('ResourcePanel — Scannable HUD', () => {
       state.resources.darkMatter = 2;
       gameState.value = { ...state };
 
-      const panel2 = new ResourcePanel();
+      const panel2 = new ResourcePanel(mockResourceSystem);
       const el2 = panel2.getElement();
       const convBody = el2.querySelector('.conversions-body');
       expect(convBody).not.toBeNull();
@@ -310,7 +314,7 @@ describe('ResourcePanel — Scannable HUD', () => {
       state.resources.darkMatter = 2;
       gameState.value = { ...state };
 
-      const panel2 = new ResourcePanel();
+      const panel2 = new ResourcePanel(mockResourceSystem);
       const el2 = panel2.getElement();
       const convBody = el2.querySelector('.conversions-body');
       const text = convBody?.textContent || '';
@@ -337,7 +341,7 @@ describe('ResourcePanel — Scannable HUD', () => {
       state.resources.darkMatter = 2;
       gameState.value = { ...state };
 
-      const panel2 = new ResourcePanel();
+      const panel2 = new ResourcePanel(mockResourceSystem);
       const el2 = panel2.getElement();
       const convBody = el2.querySelector('.conversions-body');
       const text = convBody?.textContent || '';

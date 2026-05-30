@@ -239,6 +239,18 @@ html, body {
   font-size: 0.85rem;
 }
 
+.click-button-at-capacity {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+  border-color: var(--text-secondary) !important;
+  color: var(--text-secondary) !important;
+}
+
+.click-button-at-capacity:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 /* ── Number Display ── */
 .number-display {
   display: block;
@@ -416,6 +428,15 @@ html, body {
   background: var(--accent);
   border-radius: 4px;
   transition: width var(--anim-ui) ease;
+}
+
+/* Capacity state colors */
+.progress-fill.capacity-warning {
+  background: #e67e22; /* orange */
+}
+
+.progress-fill.capacity-full {
+  background: #e74c3c; /* red */
 }
 
 /* ── Event Log ── */
@@ -722,6 +743,15 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* ── Capacity Line (Worker Assignment) ── */
+.capacity-line {
+  margin-top: 0.4rem;
+  padding: 0.3rem 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border);
 }
 
 .worker-summary {
