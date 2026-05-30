@@ -48,6 +48,9 @@ export interface GameState {
   larvaPipeline: Pipeline;
   /** Rate-based soldier training pipeline (replaces soldierTrainTimers[]) */
   soldierPipeline: Pipeline;
+  /** Integer accumulator for nest capacity expansion. Incremented each tick by digCount.
+   * When >= 20, converts to +1 nestCapacity. Ensures integer-only accumulation. */
+  capacityAccumulator: number;
   workersAssigned: {
     gather: number;
     tend: number;
@@ -294,6 +297,7 @@ export function createInitialState(): GameState {
     battlesWon: 0,
     battlesLost: 0,
     soldierPipeline: { count: 0, progress: 0 },
+    capacityAccumulator: 0,
     victoryAchieved: false,
     spaceship: {
       level: 0,

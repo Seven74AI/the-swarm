@@ -219,34 +219,130 @@ describe('ResourceSystem', () => {
   });
 
   describe('tick — dig workers', () => {
-    it('increases nestCapacity when dig workers are assigned', () => {
+    it('accumulates capacityAccumulator but does not change nestCapacity in one tick', () => {
       state.resources.workers = 5;
       state.workersAssigned = { gather: 0, tend: 0, dig: 3, guard: 0, researchers: 0 };
-      const capBefore = state.resources.nestCapacity;
       const result = system.tick(state);
-      expect(result.resources.nestCapacity).toBeGreaterThan(capBefore);
+      // Accumulator grows but < 20, so capacity unchanged
+      expect(result.capacityAccumulator).toBeGreaterThan(state.capacityAccumulator);
+      expect(result.capacityAccumulator).toBeLessThan(20);
+      expect(result.resources.nestCapacity).toBe(state.resources.nestCapacity);
+    });
+
+    it('increases nestCapacity when accumulator crosses threshold', () => {
+      state.resources.workers = 10;
+      state.workersAssigned = { gather: 0, tend: 0, dig: 3, guard: 0, researchers: 0 };
+
+      let result = state;
+      // 3 dig workers × 7 ticks = 21 accumulator → +1 capacity
+      for (let i = 0; i < 7; i++) {
+        result = system.tick(result);
+      }
+      expect(result.resources.nestCapacity).toBeGreaterThan(state.resources.nestCapacity);
     });
 
     it('does not change nestCapacity when no dig workers', () => {
       state.resources.workers = 5;
       state.workersAssigned = { gather: 3, tend: 0, dig: 0, guard: 0, researchers: 0 };
-      const capBefore = state.resources.nestCapacity;
-      const result = system.tick(state);
-      expect(result.resources.nestCapacity).toBe(capBefore);
+
+      let result = state;
+      for (let i = 0; i < 20; i++) {
+        result = system.tick(result);
+      }
+      expect(result.resources.nestCapacity).toBe(state.resources.nestCapacity);
     });
 
-    it('nestCapacity scales with dig worker count', () => {
+    it('nestCapacity grows faster with more dig workers', () => {
       state.resources.workers = 10;
-
+      // With 1 dig worker: 20 ticks = 20 accumulator → exactly +1
       state.workersAssigned = { gather: 0, tend: 0, dig: 1, guard: 0, researchers: 0 };
-      const withOne = system.tick(state);
+      let withOne = state;
+      for (let i = 0; i < 20; i++) {
+        withOne = system.tick(withOne);
+      }
       const gain1 = withOne.resources.nestCapacity - state.resources.nestCapacity;
 
+      // With 5 dig workers: 20 ticks = 100 accumulator → +5 capacity
       state.workersAssigned = { gather: 0, tend: 0, dig: 5, guard: 0, researchers: 0 };
-      const withFive = system.tick(state);
+      let withFive = state;
+      for (let i = 0; i < 20; i++) {
+        withFive = system.tick(withFive);
+      }
       const gain5 = withFive.resources.nestCapacity - state.resources.nestCapacity;
 
       expect(gain5).toBeGreaterThan(gain1);
+    });
+
+    it('accumulator persists across ticks (integer-only, no floating-point drift)', () => {
+      state.resources.workers = 5;
+      state.workersAssigned = { gather: 0, tend: 0, dig: 1, guard: 0, researchers: 0 };
+
+      let result = state;
+      for (let i = 0; i < 20; i++) {
+        result = system.tick(result);
+      }
+      // After exactly 20 ticks with 1 dig worker, accumulator should be 0 (reset after gain)
+      expect(result.capacityAccumulator).toBe(0);
+      expect(result.resources.nestCapacity).toBe(state.resources.nestCapacity + 1);
+    });
+  });
+
+  describe('tick — nest capacity cap enforcement', () => {
+    it('produces zero new workers when workers >= effective capacity', () => {
+      state.resources.workers = 25;
+      state.resources.nestCapacity = 25; // effective = 25 (no warehouse)
+      state.resources.larvae = 50;
+      state.larvaPipeline = { count: 50, progress: 0 };
+
+      let result = state;
+      for (let i = 0; i < LARVA_MATURE_TIME * 2; i++) {
+        result = system.tick(result);
+      }
+      // Workers should not increase — at capacity cap
+      expect(result.resources.workers).toBe(25);
+    });
+
+    it('produces workers up to the cap when below capacity', () => {
+      state.resources.workers = 20;
+      state.resources.nestCapacity = 25;
+      state.resources.larvae = 50;
+      state.larvaPipeline = { count: 50, progress: 0 };
+
+      let result = state;
+      for (let i = 0; i < LARVA_MATURE_TIME * 2; i++) {
+        result = system.tick(result);
+      }
+      // Workers should increase but not exceed capacity
+      expect(result.resources.workers).toBeGreaterThan(20);
+      expect(result.resources.workers).toBeLessThanOrEqual(25);
+    });
+
+    it('existing workers continue normally at cap (no attrition)', () => {
+      state.resources.workers = 30;
+      state.resources.nestCapacity = 25;
+      state.resources.food = 100;
+
+      const result = system.tick(state);
+      // Workers should not decrease (no attrition)
+      expect(result.resources.workers).toBe(30);
+      // Food should still change (production/consumption continues)
+      expect(result.resources.food).not.toBe(state.resources.food);
+    });
+
+    it('warehouse building bonus increases effective capacity', () => {
+      state.resources.workers = 25;
+      state.resources.nestCapacity = 25;
+      state.buildings.warehouse.level = 1; // +25 capacity per level
+      state.resources.larvae = 50;
+      state.larvaPipeline = { count: 50, progress: 0 };
+
+      let result = state;
+      for (let i = 0; i < LARVA_MATURE_TIME * 2; i++) {
+        result = system.tick(result);
+      }
+      // Effective capacity = 25 + 25 = 50, so workers can grow beyond 25
+      expect(result.resources.workers).toBeGreaterThan(25);
+      expect(result.resources.workers).toBeLessThanOrEqual(50);
     });
   });
 });
