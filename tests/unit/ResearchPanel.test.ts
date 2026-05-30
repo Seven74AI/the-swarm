@@ -152,7 +152,7 @@ describe('ResearchPanel', () => {
       ...currentState,
       research: {
         projects: {
-          voidCrystalSynthesis: { state: 'completed', progress: 120 },
+          voidCrystalSynthesis: { state: 'completed', progress: 600 },
           antimatterContainment: { state: 'locked', progress: 0 },
           darkMatterDetection: { state: 'locked', progress: 0 },
         },
@@ -220,7 +220,7 @@ describe('ResearchPanel', () => {
       ...currentState,
       research: {
         projects: {
-          voidCrystalSynthesis: { state: 'completed', progress: 120 },
+          voidCrystalSynthesis: { state: 'completed', progress: 600 },
           antimatterContainment: { state: 'locked', progress: 0 },
           darkMatterDetection: { state: 'locked', progress: 0 },
         },
@@ -236,6 +236,6 @@ describe('ResearchPanel', () => {
   it('shows tick count requirement', () => {
     const el = panel.getElement();
     const text = el.textContent || '';
-    expect(text).toContain('120'); // ticks for VCS
+    expect(text).toContain('600'); // ticks for VCS
   });
 });

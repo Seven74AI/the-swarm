@@ -100,16 +100,16 @@ export const EXPANSION_TO_SPACE: Transition = {
 
 /**
  * SPACE → TRANSCENDENCE transition.
- * Fires when voidCrystals >= 50, antimatter >= 10, darkMatter >= 5.
+ * Fires when voidCrystals >= 500, antimatter >= 100, darkMatter >= 50.
  * The colony achieves cosmic transcendence — victory condition.
  */
 export const SPACE_TO_TRANSCENDENCE: Transition = {
   from: Phase.SPACE,
   to: Phase.TRANSCENDENCE,
   guard: (state) =>
-    state.resources.voidCrystals >= 50 &&
-    state.resources.antimatter >= 10 &&
-    state.resources.darkMatter >= 5,
+    state.resources.voidCrystals >= 500 &&
+    state.resources.antimatter >= 100 &&
+    state.resources.darkMatter >= 50,
   onEnter: (state, eventBus) => {
     const newState = { ...state, victoryAchieved: true };
     eventBus.emit('phase_changed', { phase: Phase.TRANSCENDENCE });

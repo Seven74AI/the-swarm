@@ -295,35 +295,35 @@ describe('Transition SPACE → TRANSCENDENCE', () => {
     expect(SPACE_TO_TRANSCENDENCE.to).toBe(Phase.TRANSCENDENCE);
   });
 
-  it('guard returns true when voidCrystals >= 50, antimatter >= 10, darkMatter >= 5', () => {
+  it('guard returns true when voidCrystals >= 500, antimatter >= 100, darkMatter >= 50', () => {
     const state = createInitialState();
-    state.resources.voidCrystals = 50;
-    state.resources.antimatter = 10;
-    state.resources.darkMatter = 5;
+    state.resources.voidCrystals = 500;
+    state.resources.antimatter = 100;
+    state.resources.darkMatter = 50;
     expect(SPACE_TO_TRANSCENDENCE.guard(state)).toBe(true);
   });
 
-  it('guard returns false when voidCrystals < 50', () => {
+  it('guard returns false when voidCrystals < 500', () => {
     const state = createInitialState();
-    state.resources.voidCrystals = 49;
-    state.resources.antimatter = 10;
-    state.resources.darkMatter = 5;
+    state.resources.voidCrystals = 499;
+    state.resources.antimatter = 100;
+    state.resources.darkMatter = 50;
     expect(SPACE_TO_TRANSCENDENCE.guard(state)).toBe(false);
   });
 
-  it('guard returns false when antimatter < 10', () => {
+  it('guard returns false when antimatter < 100', () => {
     const state = createInitialState();
-    state.resources.voidCrystals = 50;
-    state.resources.antimatter = 9;
-    state.resources.darkMatter = 5;
+    state.resources.voidCrystals = 500;
+    state.resources.antimatter = 99;
+    state.resources.darkMatter = 50;
     expect(SPACE_TO_TRANSCENDENCE.guard(state)).toBe(false);
   });
 
-  it('guard returns false when darkMatter < 5', () => {
+  it('guard returns false when darkMatter < 50', () => {
     const state = createInitialState();
-    state.resources.voidCrystals = 50;
-    state.resources.antimatter = 10;
-    state.resources.darkMatter = 4;
+    state.resources.voidCrystals = 500;
+    state.resources.antimatter = 100;
+    state.resources.darkMatter = 49;
     expect(SPACE_TO_TRANSCENDENCE.guard(state)).toBe(false);
   });
 

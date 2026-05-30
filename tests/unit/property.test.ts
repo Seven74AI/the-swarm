@@ -292,10 +292,10 @@ describe('Phase transitions — property-based (no dead ends)', () => {
           state.battlesWon = 5;
           break;
         case Phase.SPACE:
-          // SPACE → TRANSCENDENCE: voidCrystals >= 50, antimatter >= 10, darkMatter >= 5
-          state.resources.voidCrystals = 50;
-          state.resources.antimatter = 10;
-          state.resources.darkMatter = 5;
+          // SPACE → TRANSCENDENCE: voidCrystals >= 500, antimatter >= 100, darkMatter >= 50
+          state.resources.voidCrystals = 500;
+          state.resources.antimatter = 100;
+          state.resources.darkMatter = 50;
           break;
         case Phase.COMBAT:
           // COMBAT → EXPANSION: workers >= 25 AND battlesWon >= 3

@@ -87,7 +87,6 @@ export const LARVA_MATURE_TIME = 50; // ticks (5x pacing nerf)
 const FOOD_PER_WORKER = 1;
 const FOOD_PER_GATHER = 2;
 const TEND_MULTIPLIER = 0.25; // each tend worker gives +25% hatch rate
-const NEST_CAPACITY_PER_DIG = 1; // each dig worker gives +1 nest capacity/tick
 
 /**
  * ResourceSystem handles all resource mutations: clicking, ticking, buying.
@@ -177,6 +176,22 @@ export class ResourceSystem {
     let stoneChanged = false;
     let nectarChanged = false;
 
+    // Integer-only nest capacity accumulation: accumulate digCount each tick.
+    // When accumulator >= 20, gain +1 nestCapacity (1 capacity/sec/dig worker).
+    const digCount = state.workersAssigned.dig;
+    let capacityAccumulator = state.capacityAccumulator;
+    if (digCount > 0) {
+      capacityAccumulator += digCount;
+      while (capacityAccumulator >= 20) {
+        capacityAccumulator -= 20;
+        state = {
+          ...state,
+          resources: { ...state.resources, nestCapacity: state.resources.nestCapacity + 1 },
+        };
+      }
+    }
+    const effectiveNestCapacity = this.getEffectiveNestCapacity(state);
+
     // Egg pipeline progress
     let newEggCount = eggPipe.count;
     let newEggProgress = eggPipe.progress + hatchDelta;
@@ -199,12 +214,17 @@ export class ResourceSystem {
     newLarvaProgress -= matured;
 
     if (matured > 0) {
-      const actual = Math.min(matured, larvae);
+      const raw = Math.min(matured, larvae);
+      // Cap enforcement: clamp to available nest capacity
+      const capacityRemaining = Math.max(0, effectiveNestCapacity - newWorkers);
+      const actual = Math.min(raw, capacityRemaining);
       larvae -= actual;
       newWorkers += actual;
       newLarvaCount = Math.max(0, newLarvaCount - actual);
-      larvaeChanged = true;
-      workersChanged = true;
+      if (actual > 0) {
+        larvaeChanged = true;
+        workersChanged = true;
+      }
     }
 
     // Deterministic resource production (skipped during closed-form offline catch-up)
@@ -238,13 +258,6 @@ export class ResourceSystem {
     stone = Math.max(0, stone);
     nectar = Math.max(0, nectar);
 
-    // Dig workers: each dig worker increases nest capacity by NEST_CAPACITY_PER_DIG/tick
-    const digCount = state.workersAssigned.dig;
-    let nestCapacity = state.resources.nestCapacity;
-    if (digCount > 0) {
-      nestCapacity += digCount * NEST_CAPACITY_PER_DIG * dtSec;
-    }
-
     const result: GameState = {
       ...state,
       resources: {
@@ -256,10 +269,11 @@ export class ResourceSystem {
         wood,
         stone,
         nectar,
-        nestCapacity,
+        nestCapacity: state.resources.nestCapacity,
       },
       eggPipeline: { count: newEggCount, progress: newEggProgress },
       larvaPipeline: { count: newLarvaCount, progress: newLarvaProgress },
+      capacityAccumulator,
     };
 
     if (eggsChanged) this.bus.emit('eggs_changed', { eggs: result.resources.eggs });
