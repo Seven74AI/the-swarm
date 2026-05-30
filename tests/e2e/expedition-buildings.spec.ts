@@ -20,7 +20,7 @@ function makeSaveData(overrides?: Record<string, unknown>) {
     timestamp: Date.now(),
     playTimeMs: 0,
     gameState: {
-      phase: 'colony',
+      phase: 'expansion',
       resources: {
         eggs: 0, larvae: 0, workers: 40, food: 5000,
         nestCapacity: 50, wood: 5000, stone: 5000, nectar: 500,
@@ -95,7 +95,7 @@ async function readGameState(page: Page, path: string): Promise<unknown> {
   }, path);
 }
 
-/** Seed with colony phase and wait for transition to expansion (real time). */
+/** Seed with expansion phase (workers=40, food=5000 — meets the expansion threshold immediately). */
 async function seedAndWaitForExpansion(page: Page, overrides?: Record<string, unknown>) {
   const data = makeSaveData(overrides);
   await page.addInitScript((saveStr) => {
@@ -106,7 +106,7 @@ async function seedAndWaitForExpansion(page: Page, overrides?: Record<string, un
   await expect(page.locator('#phase-indicator')).toContainText('The Expansion', { timeout: 15000 });
 }
 
-/** Seed with colony phase using fake timers, then advance to expansion. */
+/** Seed with expansion phase using fake timers. */
 async function seedWithFakeTimers(page: Page, overrides?: Record<string, unknown>) {
   const data = makeSaveData(overrides);
   await page.addInitScript((saveStr) => {
@@ -118,7 +118,7 @@ async function seedWithFakeTimers(page: Page, overrides?: Record<string, unknown
   // Wait for the app to mount before advancing time
   await page.waitForSelector('#panels', { timeout: 10000 });
 
-  // Advance a few ticks: map generation + phase transition colony→expansion
+  // Advance a few ticks: map generation + expansion panel initialization
   await page.clock.runFor(5000);
 
   // Now wait for expansion panels
@@ -352,7 +352,7 @@ test.describe('Buildings', () => {
   });
 
   test('cannot build without resources — buttons disabled', async ({ page }) => {
-    // Need food≥500 for colony→expansion transition, but 0 food/wood/stone so no buildings
+    // Need food≥1000 for colony→expansion transition, but 0 food/wood/stone so no buildings
     const data = makeSaveData({
       resources: {
         eggs: 0, larvae: 0, workers: 40, food: 1000,

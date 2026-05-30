@@ -91,9 +91,9 @@ async function seedAndWaitForSpace(page: Page, overrides?: Record<string, unknow
   await page.goto('/');
   await page.waitForSelector('#panels', { timeout: 10000 });
 
-  // Advance time: workers=80, gather=20 → produce food each tick.
+  // Advance time: workers=80, gather=40 → produce food each tick.
   // Need to pass through EXPANSION first, then hit SPACE guard.
-  // With food=2100 and workers=80, the guard should trigger quickly.
+  // With food=5000 and workers=80, the guard should trigger quickly.
   await page.clock.runFor(5000);
 
   // Wait for spaceship panel (only visible in SPACE phase)

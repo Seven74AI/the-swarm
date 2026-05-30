@@ -80,17 +80,17 @@ test.describe('Phase 3 — Expansion', () => {
     const saved = await page.evaluate(() => localStorage.getItem('the_swarm_save'));
     expect(saved).toBeTruthy();
     const parsed = JSON.parse(saved!);
-    expect(parsed.gameState.resources.workers).toBe(20);
+    expect(parsed.gameState.resources.workers).toBe(40);
 
     // Wait for the app to mount and render panels
     await page.waitForSelector('#panels', { timeout: 10000 });
 
-    // Wait for phase transition — COLONY → EXPANSION (20 workers + 500 food)
+    // Wait for phase transition — COLONY → EXPANSION (40 workers + 1000 food)
     const indicator = page.locator('#phase-indicator');
     await expect(indicator).toContainText('The Expansion', { timeout: 15000 });
   });
 
-  test('phase transitions to expansion with 20 workers', async ({ page }) => {
+  test('phase transitions to expansion with 40 workers', async ({ page }) => {
     const indicator = page.locator('#phase-indicator');
     // Already verified in beforeEach — confirm it persists
     await expect(indicator).toContainText('The Expansion');
