@@ -310,10 +310,8 @@ test.describe('Space Phase — Neon Theme & Panels', () => {
 
     // Reload
     await page.reload();
-    // Reinstall clock after reload — clock state resets on navigation
-    await page.clock.install();
     await page.waitForSelector('#panels', { timeout: 10000 });
-    await page.clock.runFor(2000);
+    await page.clock.runFor(5000);
 
     // Wait for SPACE phase to be re-entered (state is preserved in save)
     await expect(page.locator('#phase-indicator')).toContainText('Space', { timeout: 10000 });
