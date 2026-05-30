@@ -49,19 +49,19 @@ describe('calculateOfflineTicks', () => {
     expect(result.offlineTicks).toBe(36000);
   });
 
-  it('caps at 8 hours max', () => {
-    const elapsedMs = 8 * 60 * 60 * 1000; // 8h
+  it('caps at 4 hours max', () => {
+    const elapsedMs = 8 * 60 * 60 * 1000; // 8h (exceeds 4h cap)
     const result = calculateOfflineTicks(elapsedMs, 0.5, TICK_MS);
-    // 28800000 / 50 = 576000 * 0.5 = 288000
-    expect(result.effectiveMs).toBe(elapsedMs);
-    expect(result.offlineTicks).toBe(288000);
+    // 14400000 / 50 = 288000 * 0.5 = 144000
+    expect(result.effectiveMs).toBe(4 * 60 * 60 * 1000);
+    expect(result.offlineTicks).toBe(144000);
   });
 
-  it('caps 24h absence at 8h (same as 8h result)', () => {
+  it('caps 24h absence at 4h (same as 4h result)', () => {
     const elapsed24h = 24 * 60 * 60 * 1000;
     const result = calculateOfflineTicks(elapsed24h, 0.5, TICK_MS);
-    expect(result.effectiveMs).toBe(8 * 60 * 60 * 1000); // capped
-    expect(result.offlineTicks).toBe(288000); // same as 8h at 50%
+    expect(result.effectiveMs).toBe(4 * 60 * 60 * 1000); // capped
+    expect(result.offlineTicks).toBe(144000); // same as 4h at 50%
   });
 
   it('applies 75% efficiency correctly for 1h absence', () => {
@@ -71,11 +71,11 @@ describe('calculateOfflineTicks', () => {
     expect(result.offlineTicks).toBe(54000);
   });
 
-  it('applies 100% efficiency correctly for 8h absence', () => {
-    const elapsedMs = 8 * 60 * 60 * 1000;
+  it('applies 100% efficiency correctly for 4h absence', () => {
+    const elapsedMs = 4 * 60 * 60 * 1000; // 4h (at new cap)
     const result = calculateOfflineTicks(elapsedMs, 1.0, TICK_MS);
-    // 28800000 / 50 = 576000 * 1.0 = 576000
-    expect(result.offlineTicks).toBe(576000);
+    // 14400000 / 50 = 288000 * 1.0 = 288000
+    expect(result.offlineTicks).toBe(288000);
   });
 
   it('returns 0 ticks for negative elapsed time (clock skew protection)', () => {
