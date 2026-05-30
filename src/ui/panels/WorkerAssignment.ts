@@ -15,7 +15,7 @@ interface RoleDef {
 const ROLE_DISPLAY: Record<Role, RoleDef> = {
   gather: { label: 'Gather', icon: '🌾', desc: '+2 food/tick' },
   tend:   { label: 'Tend',   icon: '🥚', desc: '+25% hatch rate each' },
-  dig:    { label: 'Dig',    icon: '⛏️', desc: '+1 nest capacity/tick' },
+  dig:    { label: 'Dig',    icon: '⛏️', desc: 'Each Dig worker adds +1 capacity per second.' },
   guard:  { label: 'Guard',  icon: '🛡️', desc: 'defense + unlocks combat phase' },
 };
 
@@ -52,6 +52,22 @@ export class WorkerAssignment {
     for (const role of roles) {
       this.container.appendChild(this.createRoleRow(role));
     }
+
+    // Capacity display line
+    const capacityLine = document.createElement('div');
+    capacityLine.className = 'capacity-line';
+    this.container.appendChild(capacityLine);
+
+    // Reactive: update capacity display
+    effect(() => {
+      const s = gameState.value;
+      const effectiveCap = this.resourceSystem.getEffectiveNestCapacity(s);
+      const baseCap = s.resources.nestCapacity;
+      const warehouseBonus = effectiveCap - baseCap;
+      capacityLine.textContent = warehouseBonus > 0
+        ? `Capacity: ${baseCap} (+Warehouse ${warehouseBonus}) — Workers: ${s.resources.workers}/${effectiveCap}`
+        : `Capacity: ${baseCap} — Workers: ${s.resources.workers}/${effectiveCap}`;
+    });
 
     const summary = document.createElement('div');
     summary.className = 'worker-summary';
@@ -130,6 +146,12 @@ export class WorkerAssignment {
     row.appendChild(controls);
 
     row.setAttribute('data-role', role);
+
+    // Add tooltip for Dig role
+    if (role === 'dig') {
+      row.setAttribute('data-tooltip', 'Each Dig worker adds +1 capacity per second.');
+    }
+
     return row;
   }
 

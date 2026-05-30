@@ -4,6 +4,7 @@ import { Phase, PHASE_ORDER } from '../../phases/phases';
 import { EGG_HATCH_TIME, LARVA_MATURE_TIME } from '../../systems/ResourceSystem';
 import { getConversionDefs, getConversionRate } from '../../systems/ResourceConversionSystem';
 import type { ConversionId } from '../../systems/ResourceConversionSystem';
+import type { ResourceSystem } from '../../systems/ResourceSystem';
 import { formatNumber, formatRate } from '../../utils/format';
 import { ProgressBar } from '../components/ProgressBar';
 
@@ -85,7 +86,7 @@ export class ResourcePanel {
   // Colony section progress bars
   private nestCapacityBar!: ProgressBar;
 
-  constructor() {
+  constructor(private resourceSystem: ResourceSystem) {
     this.sectionState = loadSectionState();
 
     this.container = document.createElement('div');
@@ -195,8 +196,16 @@ export class ResourcePanel {
         this.lastLarvaRateText = larvaText;
       }
 
-      // Update progress bar
-      this.nestCapacityBar.update(s.resources.workers, s.resources.nestCapacity);
+      // Update progress bar with effective capacity and color states
+      const effectiveCap = this.resourceSystem.getEffectiveNestCapacity(s);
+      const pct = effectiveCap > 0 ? (s.resources.workers / effectiveCap) * 100 : 0;
+      let colorClass: string | undefined;
+      if (pct >= 100) {
+        colorClass = 'capacity-full';
+      } else if (pct >= 90) {
+        colorClass = 'capacity-warning';
+      }
+      this.nestCapacityBar.update(s.resources.workers, effectiveCap, colorClass);
 
       // Phase-gated section management
       this.manageSpaceSection(phaseIdx);

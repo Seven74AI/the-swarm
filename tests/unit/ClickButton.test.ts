@@ -19,13 +19,13 @@ describe('ClickButton - floating "+N" particles', () => {
 
     // Setup minimal game state for testing
     gameState.value = {
-      resources: { eggs: 0, larvae: 0, workers: 0, food: 100 },
+      resources: { eggs: 0, larvae: 0, workers: 0, food: 100, nestCapacity: 25 },
       stats: { totalClicks: 0, playTimeMs: 0 },
       upgrades: { click_power: 0 },
       eggPipeline: { count: 0, progress: 0 },
       larvaPipeline: { count: 0, progress: 0 },
       assignedWorkers: { food: 0, hunt: 0, build: 0, explore: 0 },
-      buildings: { hatchery: { count: 0 } },
+      buildings: { warehouse: { level: 0 }, barracks: { level: 0, count: 0 }, walls: { level: 0 } },
       territory: { tiles: [] },
       expeditions: [],
       soldiers: { ants: 0, level: 1 },
