@@ -12,6 +12,7 @@ export interface Transition {
 /**
  * EGG_LAYING → COLONY transition.
  * Fires when the colony has 10 or more workers.
+ * (Pipeline slowdown handles Phase 1 pacing; threshold unchanged.)
  */
 export const EGG_TO_COLONY: Transition = {
   from: Phase.EGG_LAYING,
@@ -24,12 +25,13 @@ export const EGG_TO_COLONY: Transition = {
 };
 /**
  * COLONY → COMBAT transition.
- * Fires when the colony has 15+ workers and at least 1 guard assigned.
+ * Fires when the colony has 50+ workers and at least 1 guard assigned.
+ * (Pacing nerf: was 15, now 50.)
  */
 export const COLONY_TO_COMBAT: Transition = {
   from: Phase.COLONY,
   to: Phase.COMBAT,
-  guard: (state) => state.resources.workers >= 15 && state.workersAssigned.guard >= 1,
+  guard: (state) => state.resources.workers >= 50 && state.workersAssigned.guard >= 1,
   onEnter: (state, eventBus) => {
     eventBus.emit('phase_changed', { phase: Phase.COMBAT });
     eventBus.emit('narrative', {
@@ -42,14 +44,15 @@ export const COLONY_TO_COMBAT: Transition = {
 
 /**
  * COMBAT → EXPANSION transition.
- * Fires when workers >= 25 AND battlesWon >= 3.
+ * Fires when workers >= 60 AND battlesWon >= 5.
+ * (Pacing nerf: was 25/3, now 60/5.)
  * Needed because a player who enters COMBAT before EXPANSION
  * has no way out — COLONY→EXPANSION only fires from COLONY.
  */
 export const COMBAT_TO_EXPANSION: Transition = {
   from: Phase.COMBAT,
   to: Phase.EXPANSION,
-  guard: (state) => state.resources.workers >= 25 && state.battlesWon >= 3,
+  guard: (state) => state.resources.workers >= 60 && state.battlesWon >= 5,
   onEnter: (state, eventBus) => {
     eventBus.emit('phase_changed', { phase: Phase.EXPANSION });
     eventBus.emit('narrative', {
@@ -62,12 +65,13 @@ export const COMBAT_TO_EXPANSION: Transition = {
 
 /**
  * COLONY → EXPANSION transition.
- * Fires when workers >= 20 AND food >= 500.
+ * Fires when workers >= 40 AND food >= 1000.
+ * (Pacing nerf: was 20/500, now 40/1000.)
  */
 export const COLONY_TO_EXPANSION: Transition = {
   from: Phase.COLONY,
   to: Phase.EXPANSION,
-  guard: (state) => state.resources.workers >= 20 && state.resources.food >= 500,
+  guard: (state) => state.resources.workers >= 40 && state.resources.food >= 1000,
   onEnter: (state, eventBus) => {
     eventBus.emit('phase_changed', { phase: Phase.EXPANSION });
     return state;
@@ -76,13 +80,14 @@ export const COLONY_TO_EXPANSION: Transition = {
 
 /**
  * EXPANSION → SPACE transition.
- * Fires when workers >= 30 AND food >= 2000.
+ * Fires when workers >= 80 AND food >= 5000.
+ * (Pacing nerf: was 30/2000, now 80/5000.)
  * The colony has grown large enough to reach for the stars.
  */
 export const EXPANSION_TO_SPACE: Transition = {
   from: Phase.EXPANSION,
   to: Phase.SPACE,
-  guard: (state) => state.resources.workers >= 30 && state.resources.food >= 2000,
+  guard: (state) => state.resources.workers >= 80 && state.resources.food >= 5000,
   onEnter: (state, eventBus) => {
     eventBus.emit('phase_changed', { phase: Phase.SPACE });
     eventBus.emit('narrative', {

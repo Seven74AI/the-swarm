@@ -4,7 +4,7 @@ import { upgradeCost } from '../utils/math';
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
 
 export const SOLDIER_COST_FOOD = 5;
-export const SOLDIER_TRAIN_TIME = 15;
+export const SOLDIER_TRAIN_TIME = 75; // 5x pacing nerf (was 15)
 export const MAX_EQUIPMENT_LEVEL = 5;
 
 /**

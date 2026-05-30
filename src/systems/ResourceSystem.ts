@@ -82,8 +82,8 @@ const UPGRADES: Record<string, UpgradeDef> = {
   click_power: { baseCost: 10, costMultiplier: 1.15 },
 };
 
-export const EGG_HATCH_TIME = 10; // ticks (at 1s per tick equivalent)
-export const LARVA_MATURE_TIME = 10; // ticks
+export const EGG_HATCH_TIME = 50; // ticks (at 1s per tick equivalent, 5x pacing nerf)
+export const LARVA_MATURE_TIME = 50; // ticks (5x pacing nerf)
 const FOOD_PER_WORKER = 1;
 const FOOD_PER_GATHER = 2;
 const TEND_MULTIPLIER = 0.25; // each tend worker gives +25% hatch rate

@@ -112,23 +112,23 @@ describe('Transition COLONY → COMBAT', () => {
     expect(COLONY_TO_COMBAT.to).toBe(Phase.COMBAT);
   });
 
-  it('guard returns false when workers < 15', () => {
+  it('guard returns false when workers < 50', () => {
     const state = createInitialState();
-    state.resources.workers = 14;
+    state.resources.workers = 49;
     state.workersAssigned.guard = 1;
     expect(COLONY_TO_COMBAT.guard(state)).toBe(false);
   });
 
-  it('guard returns false when guard === 0 (even with 15+ workers)', () => {
+  it('guard returns false when guard === 0 (even with 50+ workers)', () => {
     const state = createInitialState();
-    state.resources.workers = 15;
+    state.resources.workers = 50;
     state.workersAssigned.guard = 0;
     expect(COLONY_TO_COMBAT.guard(state)).toBe(false);
   });
 
-  it('guard returns true when workers >= 15 AND guard >= 1', () => {
+  it('guard returns true when workers >= 50 AND guard >= 1', () => {
     const state = createInitialState();
-    state.resources.workers = 15;
+    state.resources.workers = 50;
     state.workersAssigned.guard = 1;
     expect(COLONY_TO_COMBAT.guard(state)).toBe(true);
   });
@@ -154,24 +154,24 @@ describe('Transition COMBAT → EXPANSION', () => {
     expect(COMBAT_TO_EXPANSION.to).toBe(Phase.EXPANSION);
   });
 
-  it('guard returns true when workers >= 25 AND battlesWon >= 3', () => {
+  it('guard returns true when workers >= 60 AND battlesWon >= 5', () => {
     const state = createInitialState();
-    state.resources.workers = 25;
-    state.battlesWon = 3;
+    state.resources.workers = 60;
+    state.battlesWon = 5;
     expect(COMBAT_TO_EXPANSION.guard(state)).toBe(true);
   });
 
-  it('guard returns false when workers < 25 even if battlesWon >= 3', () => {
+  it('guard returns false when workers < 60 even if battlesWon >= 5', () => {
     const state = createInitialState();
-    state.resources.workers = 24;
-    state.battlesWon = 3;
+    state.resources.workers = 59;
+    state.battlesWon = 5;
     expect(COMBAT_TO_EXPANSION.guard(state)).toBe(false);
   });
 
-  it('guard returns false when battlesWon < 3 even if workers >= 25', () => {
+  it('guard returns false when battlesWon < 5 even if workers >= 60', () => {
     const state = createInitialState();
-    state.resources.workers = 25;
-    state.battlesWon = 2;
+    state.resources.workers = 60;
+    state.battlesWon = 4;
     expect(COMBAT_TO_EXPANSION.guard(state)).toBe(false);
   });
 
@@ -201,24 +201,24 @@ describe('Transition COLONY → EXPANSION', () => {
     expect(COLONY_TO_EXPANSION.to).toBe(Phase.EXPANSION);
   });
 
-  it('guard returns true when workers >= 20 AND food >= 500', () => {
+  it('guard returns true when workers >= 40 AND food >= 1000', () => {
     const state = createInitialState();
-    state.resources.workers = 20;
-    state.resources.food = 500;
+    state.resources.workers = 40;
+    state.resources.food = 1000;
     expect(COLONY_TO_EXPANSION.guard(state)).toBe(true);
   });
 
-  it('guard returns false when workers < 20 even if food >= 500', () => {
+  it('guard returns false when workers < 40 even if food >= 1000', () => {
     const state = createInitialState();
-    state.resources.workers = 19;
-    state.resources.food = 500;
+    state.resources.workers = 39;
+    state.resources.food = 1000;
     expect(COLONY_TO_EXPANSION.guard(state)).toBe(false);
   });
 
-  it('guard returns false when food < 500 even if workers >= 20', () => {
+  it('guard returns false when food < 1000 even if workers >= 40', () => {
     const state = createInitialState();
-    state.resources.workers = 20;
-    state.resources.food = 499;
+    state.resources.workers = 40;
+    state.resources.food = 999;
     expect(COLONY_TO_EXPANSION.guard(state)).toBe(false);
   });
 
@@ -248,24 +248,24 @@ describe('Transition EXPANSION → SPACE', () => {
     expect(EXPANSION_TO_SPACE.to).toBe(Phase.SPACE);
   });
 
-  it('guard returns true when workers >= 30 AND food >= 2000', () => {
+  it('guard returns true when workers >= 80 AND food >= 5000', () => {
     const state = createInitialState();
-    state.resources.workers = 30;
-    state.resources.food = 2000;
+    state.resources.workers = 80;
+    state.resources.food = 5000;
     expect(EXPANSION_TO_SPACE.guard(state)).toBe(true);
   });
 
-  it('guard returns false when workers < 30 even if food >= 2000', () => {
+  it('guard returns false when workers < 80 even if food >= 5000', () => {
     const state = createInitialState();
-    state.resources.workers = 29;
-    state.resources.food = 2000;
+    state.resources.workers = 79;
+    state.resources.food = 5000;
     expect(EXPANSION_TO_SPACE.guard(state)).toBe(false);
   });
 
-  it('guard returns false when food < 2000 even if workers >= 30', () => {
+  it('guard returns false when food < 5000 even if workers >= 80', () => {
     const state = createInitialState();
-    state.resources.workers = 30;
-    state.resources.food = 1999;
+    state.resources.workers = 80;
+    state.resources.food = 4999;
     expect(EXPANSION_TO_SPACE.guard(state)).toBe(false);
   });
 
