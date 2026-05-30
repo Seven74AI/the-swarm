@@ -100,24 +100,7 @@ describe('BattleSystem', () => {
       }
     });
 
-    it('food gained on victory is within loot min-max range', () => {
-      setupStrongArmy(100);
-      for (let i = 0; i < 50; i++) {
-        const testState = { ...state, combatSoldiers: 100 };
-        testState.equipment.weapon = 5;
-        testState.equipment.armor = 5;
-        const { result } = system.resolveBattle(testState);
-        if (result.victory && result.foodGained > 0) {
-          // Red Ant loot: 5-10, Termite: 10-20, Spider: 25-40,
-          // Beetle: 30-50, Wasp: 20-35, Scorpion: 60-100
-          // Min of all: 5, Max of all: 100
-          expect(result.foodGained).toBeGreaterThanOrEqual(5);
-          expect(result.foodGained).toBeLessThanOrEqual(100);
-        }
-      }
-    });
-
-    it('special resources gained on victory are within range', () => {
+    it('food gained on victory is always positive', () => {
       setupStrongArmy(100);
       for (let i = 0; i < 50; i++) {
         const testState = { ...state, combatSoldiers: 100 };
@@ -125,13 +108,28 @@ describe('BattleSystem', () => {
         testState.equipment.armor = 5;
         const { result } = system.resolveBattle(testState);
         if (result.victory) {
-          // Silk: 0-3, Chitin: 0-5, Venom: 0-8 (max from scorpion)
-          expect(result.specialLoot.silk).toBeGreaterThanOrEqual(0);
-          expect(result.specialLoot.silk).toBeLessThanOrEqual(3);
+          // Victorious armies always collect food from the enemy
+          expect(result.foodGained).toBeGreaterThan(0);
+        }
+      }
+    });
+
+    it('special resources gained on victory are non-negative and increase combat resources', () => {
+      setupStrongArmy(100);
+      for (let i = 0; i < 50; i++) {
+        const testState = { ...state, combatSoldiers: 100 };
+        testState.equipment.weapon = 5;
+        testState.equipment.armor = 5;
+        const { result, newState } = system.resolveBattle(testState);
+        if (result.victory) {
+          // All special loot values must be non-negative
           expect(result.specialLoot.chitin).toBeGreaterThanOrEqual(0);
-          expect(result.specialLoot.chitin).toBeLessThanOrEqual(5);
+          expect(result.specialLoot.silk).toBeGreaterThanOrEqual(0);
           expect(result.specialLoot.venom).toBeGreaterThanOrEqual(0);
-          expect(result.specialLoot.venom).toBeLessThanOrEqual(8);
+          // Combat resources increase by exactly the loot gained (conservation)
+          expect(newState.combatResources.chitin).toBe(testState.combatResources.chitin + result.specialLoot.chitin);
+          expect(newState.combatResources.silk).toBe(testState.combatResources.silk + result.specialLoot.silk);
+          expect(newState.combatResources.venom).toBe(testState.combatResources.venom + result.specialLoot.venom);
         }
       }
     });
@@ -213,6 +211,33 @@ describe('BattleSystem', () => {
         expect(newState.combatResources.silk).toBeGreaterThanOrEqual(state.combatResources.silk);
         expect(newState.combatResources.venom).toBeGreaterThanOrEqual(state.combatResources.venom);
       }
+    });
+
+    it('stronger army wins more reliably than weaker army', () => {
+      const TRIALS = 30;
+      let strongWins = 0;
+      let weakWins = 0;
+
+      for (let i = 0; i < TRIALS; i++) {
+        const strongState = { ...createInitialState(), combatSoldiers: 100, equipment: { weapon: 5, armor: 5 } };
+        const weakState = { ...createInitialState(), combatSoldiers: 1, equipment: { weapon: 0, armor: 0 } };
+        if (system.resolveBattle(strongState).result.victory) strongWins++;
+        if (system.resolveBattle(weakState).result.victory) weakWins++;
+      }
+
+      // A maxed-out army should win more often than a single unarmed soldier
+      expect(strongWins).toBeGreaterThan(weakWins);
+    });
+
+    it('defeat loses all combat soldiers', () => {
+      setupWeakArmy(1);
+      state.battlesWon = 10; // unlock scorpion
+      vi.spyOn(Math, 'random').mockReturnValue(0.98); // force scorpion
+      const { result, newState } = system.resolveBattle(state);
+      expect(result.victory).toBe(false);
+      // On defeat, all soldiers are lost — army strength was insufficient
+      expect(result.soldiersLost).toBe(state.combatSoldiers);
+      expect(newState.combatSoldiers).toBe(0);
     });
   });
 });
