@@ -168,18 +168,18 @@ describe('ProgressionCurve', () => {
     });
 
     it('drops slightly above 500 workers', () => {
-      // 501 workers: 1/(1 + 0.001 * 1) = 1/1.001 = 0.999001
-      expect(workerEfficiency(501)).toBeCloseTo(0.999001, 6);
+      // 501 workers: 1/(1 + 0.0005 * 1) = 1/1.0005 ≈ 0.9995
+      expect(workerEfficiency(501)).toBeCloseTo(0.9995, 4);
     });
 
     it('drops more at 1000 workers', () => {
-      // 1000 workers: 1/(1 + 0.001 * 500) = 1/1.5 = 0.666667
-      expect(workerEfficiency(1000)).toBeCloseTo(0.666667, 4);
+      // 1000 workers: 1/(1 + 0.0005 * 500) = 1/1.25 = 0.8
+      expect(workerEfficiency(1000)).toBeCloseTo(0.8, 4);
     });
 
     it('drops significantly at 2000 workers', () => {
-      // 2000 workers: 1/(1 + 0.001 * 1500) = 1/2.5 = 0.4
-      expect(workerEfficiency(2000)).toBeCloseTo(0.4, 4);
+      // 2000 workers: 1/(1 + 0.0005 * 1500) = 1/1.75 ≈ 0.571429
+      expect(workerEfficiency(2000)).toBeCloseTo(0.571429, 4);
     });
 
     it('asymptotically approaches 0 but never negative', () => {
