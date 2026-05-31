@@ -6,6 +6,7 @@ import type { SaveManager } from '../persistence/SaveManager';
 import type { GameState } from '../state/GameState';
 import type { MapSystem } from '../systems/MapSystem';
 import type { TerritorySystem } from '../systems/TerritorySystem';
+import type { GameLoop } from '../engine/GameLoop';
 import { Phase } from '../phases/phases';
 import { ClickButton } from './components/ClickButton';
 import { ResourcePanel } from './panels/ResourcePanel';
@@ -62,6 +63,9 @@ export class UIRoot {
   /** Audio system for sound effects */
   private audio: AudioSystem | undefined;
 
+  /** Game loop for pause/resume control */
+  private loop: GameLoop;
+
   /** Container div (#panels) where all panels are appended. */
   private panelsContainer: HTMLElement | null = null;
 
@@ -79,6 +83,7 @@ export class UIRoot {
     getState: () => GameState;
     setState: (state: GameState) => void;
     audio?: AudioSystem;
+    loop: GameLoop;
   }) {
     this.bus = deps.bus;
     this.resourceSystem = deps.resourceSystem;
@@ -92,6 +97,7 @@ export class UIRoot {
     this.eventLog = new EventLog(this.bus);
     this.decisionPopup = new DecisionPopup(this.bus);
     this.audio = deps.audio;
+    this.loop = deps.loop;
 
     // ── Populate panel registry with factory functions ──
     // Phase 1 panels (mounted at boot for always-visible UI)
@@ -204,8 +210,35 @@ export class UIRoot {
     topBar.id = 'top-bar';
     topBar.className = 'top-bar';
     topBar.innerHTML =
-      '<span class="game-title">🐜 THE SWARM</span>' +
-      '<span class="game-phase">Queen\'s Chamber</span>';
+      '<span class="game-title">🐜 THE SWARM</span>';
+
+    // Pause button between title and phase label
+    const pauseBtn = document.createElement('button');
+    pauseBtn.id = 'pause-button';
+    pauseBtn.className = 'pause-btn';
+    pauseBtn.setAttribute('aria-label', 'Pause game');
+    pauseBtn.textContent = '⏸';
+    pauseBtn.addEventListener('click', () => {
+      const state = this.getState();
+      if (state.paused) {
+        this.loop.resume();
+        this.setState({ ...state, paused: false });
+        // Restore body class and icon immediately (before next signal tick)
+        document.body.classList.remove('game-paused');
+        pauseBtn.textContent = '⏸';
+      } else {
+        this.loop.pause();
+        this.setState({ ...state, paused: true });
+        document.body.classList.add('game-paused');
+        pauseBtn.textContent = '▶';
+      }
+    });
+    topBar.appendChild(pauseBtn);
+
+    const phaseLabel = document.createElement('span');
+    phaseLabel.className = 'game-phase';
+    phaseLabel.textContent = "Queen's Chamber";
+    topBar.appendChild(phaseLabel);
     container.appendChild(topBar);
 
     // Phase indicator (always visible) — boot panel (Phase 1)
