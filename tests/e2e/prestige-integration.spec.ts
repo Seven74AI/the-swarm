@@ -250,15 +250,18 @@ test.describe('Prestige Integration — Slice 5', () => {
     }));
 
     await openPrestigeTree(page);
+    await purchaseUpgrade(page, 'Autonomous Queen');  // 10 LP (prerequisite for phase_skip)
+
+    await openPrestigeTree(page);
     await purchaseUpgrade(page, 'Royal Cache');      // 8 LP
 
     await openPrestigeTree(page);
-    await purchaseUpgrade(page, 'Ancestral Memory');  // 20 LP
+    await purchaseUpgrade(page, 'Ancestral Memory');  // 12 LP
 
-    // 30 - 8 - 20 = 2 LP
+    // 30 - 10 - 8 - 12 = 0 LP
     await expect(
       page.locator('#prestige-panel .stat-row', { hasText: 'Legacy Points' }).locator('.stat-value')
-    ).toHaveText('2', { timeout: 5000 });
+    ).toHaveText('0', { timeout: 5000 });
 
     // Prestige
     await page.evaluate(() => {
