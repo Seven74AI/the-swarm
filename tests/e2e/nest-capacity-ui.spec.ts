@@ -180,7 +180,7 @@ test.describe('Nest Capacity UI', () => {
 
     // Should have data-tooltip attribute
     const tooltip = await digRow.getAttribute('data-tooltip');
-    expect(tooltip).toContain('nest capacity');
+    expect(tooltip).toContain('capacity per second');
   });
 
   test('worker assignment shows capacity display line', async ({ page }) => {

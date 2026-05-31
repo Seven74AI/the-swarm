@@ -65,7 +65,7 @@
 
 | Role | Effect | Unlock |
 |---|---|---|
-| **Gather** | +2 food/tick each | Phase COLONY (worker panel) |
+| **Gather** | +2 food/sec each | Phase COLONY (worker panel) |
 | **Tend** | +25% egg hatch rate each | Phase COLONY |
 | **Dig** | WIP (reserved) | Phase COLONY |
 | **Guard** | Required for COMBAT phase transition (+combat stats) | Phase COLONY |
