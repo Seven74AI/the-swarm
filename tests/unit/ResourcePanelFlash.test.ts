@@ -3,7 +3,6 @@ import { gameState } from '../../src/state/gameSignal';
 import { ResourcePanel } from '../../src/ui/panels/ResourcePanel';
 
 const mockResourceSystem = {
-  getEffectiveNestCapacity: (s: { resources: { nestCapacity: number } }) => s.resources.nestCapacity,
 } as unknown as import('../../src/systems/ResourceSystem').ResourceSystem;
 
 /**

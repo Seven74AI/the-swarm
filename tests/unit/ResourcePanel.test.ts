@@ -9,7 +9,6 @@ import { Phase } from '../../src/phases/phases';
 import { createInitialState } from '../../src/state/GameState';
 
 const mockResourceSystem = {
-  getEffectiveNestCapacity: (s: { resources: { nestCapacity: number } }) => s.resources.nestCapacity,
 } as unknown as import('../../src/systems/ResourceSystem').ResourceSystem;
 
 describe('ResourcePanel — Scannable HUD', () => {
