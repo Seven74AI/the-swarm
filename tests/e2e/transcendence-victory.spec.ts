@@ -149,7 +149,7 @@ test.describe('Transcendence Victory — Phase Transition & Overlay', () => {
       resources: {
         eggs: 5, larvae: 3, workers: 100, food: 10000,
         nestCapacity: 100, wood: 500, stone: 500, nectar: 300,
-        voidCrystals: 1999, antimatter: 399, darkMatter: 199,
+        voidCrystals: 499, antimatter: 99, darkMatter: 49,
       },
       phase: 'space',
     });
