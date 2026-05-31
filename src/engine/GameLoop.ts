@@ -25,6 +25,18 @@ export class GameLoop {
     this.ticker.stop();
   }
 
+  pause(): void {
+    this.ticker.pause();
+  }
+
+  resume(): void {
+    this.ticker.resume();
+  }
+
+  isPaused(): boolean {
+    return this.ticker.isPaused();
+  }
+
   /** Pre-fill accumulator for offline catch-up (in milliseconds, capped at 8h) */
   setOfflineAccumulator(ms: number): void {
     this.ticker.setAccumulator(Math.min(ms, 8 * 60 * 60 * 1000));
