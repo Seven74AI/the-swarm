@@ -11,13 +11,19 @@ interface RoleDef {
   label: string;
   icon: string;
   desc: string;
+  /** Hover tooltip explaining what this worker role does. */
+  tooltip: string;
 }
 
 const ROLE_DISPLAY: Record<Role, RoleDef> = {
-  gather: { label: 'Gather', icon: '🌾', desc: '+2 food/tick' },
-  tend:   { label: 'Tend',   icon: '🥚', desc: '+25% hatch rate each' },
-  dig:    { label: 'Dig',    icon: '⛏️', desc: 'Each Dig worker adds +1 capacity per second.' },
-  guard:  { label: 'Guard',  icon: '🛡️', desc: 'defense + unlocks combat phase' },
+  gather: { label: 'Gather', icon: '🌾', desc: '+2 food/tick',
+    tooltip: 'Assign workers to gather food. Each gatherer produces +2 food/tick.' },
+  tend:   { label: 'Tend',   icon: '🥚', desc: '+25% hatch rate each',
+    tooltip: 'Assign workers to tend eggs. Each tender boosts hatch rate by +25%.' },
+  dig:    { label: 'Dig',    icon: '⛏️', desc: 'Each Dig worker adds +1 capacity per second.',
+    tooltip: 'Each Dig worker adds +1 nest capacity per second.' },
+  guard:  { label: 'Guard',  icon: '🛡️', desc: 'defense + unlocks combat phase',
+    tooltip: 'Assign guards to defend the colony. Unlocks the combat phase at 50 workers.' },
 };
 
 const FOOD_PER_GATHER = 2;
@@ -148,10 +154,8 @@ export class WorkerAssignment {
 
     row.setAttribute('data-role', role);
 
-    // Add tooltip for Dig role
-    if (role === 'dig') {
-      row.setAttribute('data-tooltip', 'Each Dig worker adds +1 capacity per second.');
-    }
+    // Set hover tooltip from role definition
+    row.setAttribute('data-tooltip', ROLE_DISPLAY[role].tooltip);
 
     return row;
   }

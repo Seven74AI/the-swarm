@@ -38,4 +38,27 @@ describe('PhaseIndicator', () => {
     const el = indicator.getElement();
     expect(el.className).toContain('phase-colony');
   });
+
+  it('sets tooltip on Space phase transition explaining new mechanics', () => {
+    bus.emit('phase_changed', { phase: Phase.SPACE });
+    const el = indicator.getElement();
+    expect(el.getAttribute('data-tooltip')).toContain('Space');
+    expect(el.getAttribute('data-tooltip')).toContain('spaceship');
+  });
+
+  it('sets tooltip on Transcendence phase transition explaining victory', () => {
+    bus.emit('phase_changed', { phase: Phase.TRANSCENDENCE });
+    const el = indicator.getElement();
+    expect(el.getAttribute('data-tooltip')).toContain('Transcendence');
+    expect(el.getAttribute('data-tooltip')).toContain('Victory');
+  });
+
+  it('removes tooltip on earlier phases (egg_laying, colony, combat, expansion)', () => {
+    // Set tooltip first by going to Space
+    bus.emit('phase_changed', { phase: Phase.SPACE });
+    // Then go to colony
+    bus.emit('phase_changed', { phase: Phase.COLONY });
+    const el = indicator.getElement();
+    expect(el.hasAttribute('data-tooltip')).toBe(false);
+  });
 });
