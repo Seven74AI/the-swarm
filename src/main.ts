@@ -30,6 +30,7 @@ import { Phase, PHASE_ORDER } from './phases/phases';
 import { PhaseContent } from './phases/PhaseContent';
 import { TRANSITIONS } from './phases/transitions';
 import type { GameState } from './state/GameState';
+import { gameStatePool } from './state/GameStatePool';
 import { OnboardingManager } from './ui/OnboardingManager';
 
 /**
@@ -171,13 +172,12 @@ export function bootstrap(): {
     const baseFoodProduced = gatherCount * 2 + Math.max(0, unassignedCount) * 1;
     const territoryFood = Math.floor(workers * (bonuses.food ?? 0));
     const grossFoodProduced = (baseFoodProduced + territoryFood) * dtSec;
-    newState = {
-      ...newState,
+    newState = gameStatePool.spread(newState, {
       prestige: {
         ...newState.prestige,
         totalFoodProduced: newState.prestige.totalFoodProduced + grossFoodProduced,
       },
-    };
+    });
 
     newState = soldierSystem.tick(newState, dtSec);
     newState = tickAutoProduction(newState, dtSec);
@@ -185,8 +185,7 @@ export function bootstrap(): {
     // Auto-egg-layer from prestige tree (1 egg/sec)
     const prestigeBonuses = getPrestigeBonuses(newState);
     if (prestigeBonuses.autoEggLayer) {
-      newState = {
-        ...newState,
+      newState = gameStatePool.spread(newState, {
         resources: {
           ...newState.resources,
           eggs: newState.resources.eggs + dtSec,
@@ -199,7 +198,7 @@ export function bootstrap(): {
           ...newState.eggPipeline,
           count: newState.eggPipeline.count + dtSec,
         },
-      };
+      });
     }
 
     // Expedition system: tick timers and resolve completed ones
@@ -302,13 +301,12 @@ export function bootstrap(): {
     newState = tickEntropy(newState, dtSec);
 
     // Advance playTimeMs by dt in ms (dtSec * 1000)
-    newState = {
-      ...newState,
+    newState = gameStatePool.spread(newState, {
       stats: {
         ...newState.stats,
         playTimeMs: newState.stats.playTimeMs + (dtSec * 1000),
       },
-    };
+    });
 
     // Write to signal — triggers all UI effects
     gameState.value = newState;
@@ -475,13 +473,12 @@ export function processTick(
     const pBaseFoodProduced = pGatherCount * 2 + Math.max(0, pUnassignedCount) * 1;
     const pTerritoryFood = Math.floor(pWorkers * (bonuses.food ?? 0));
     const pGrossFoodProduced = (pBaseFoodProduced + pTerritoryFood) * dtSec;
-    newState = {
-      ...newState,
+    newState = gameStatePool.spread(newState, {
       prestige: {
         ...newState.prestige,
         totalFoodProduced: newState.prestige.totalFoodProduced + pGrossFoodProduced,
       },
-    };
+    });
   }
 
   newState = soldierSystem.tick(newState, dtSec);
@@ -490,8 +487,7 @@ export function processTick(
   // Auto-egg-layer from prestige tree (1 egg/sec)
   const pBonuses = getPrestigeBonuses(newState);
   if (pBonuses.autoEggLayer) {
-    newState = {
-      ...newState,
+    newState = gameStatePool.spread(newState, {
       resources: {
         ...newState.resources,
         eggs: newState.resources.eggs + dtSec,
@@ -504,7 +500,7 @@ export function processTick(
         ...newState.eggPipeline,
         count: newState.eggPipeline.count + dtSec,
       },
-    };
+    });
   }
 
   // Tick expedition timers
@@ -544,13 +540,12 @@ export function processTick(
   newState = tickEntropy(newState, dtSec);
 
   // Advance playTimeMs
-  newState = {
-    ...newState,
+  newState = gameStatePool.spread(newState, {
     stats: {
       ...newState.stats,
       playTimeMs: newState.stats.playTimeMs + (dtSec * 1000),
     },
-  };
+  });
 
   return newState;
 }
