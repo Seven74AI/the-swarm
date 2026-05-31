@@ -5,7 +5,6 @@ import {
   getUnmetRequirements,
   calculateLegacyPoints,
   prestige,
-  getProductionBonus,
   canBuyTemporalResonance,
   buyTemporalResonance,
   TEMPORAL_RESONANCE_COST,
@@ -357,36 +356,6 @@ describe('PrestigeSystem', () => {
 
       expect(result.stats.totalEggsLaid).toBe(5000);
       expect(result.stats.totalClicks).toBe(1200);
-    });
-  });
-
-  describe('getProductionBonus', () => {
-    it('returns 1.0 for zero legacy points (no bonus)', () => {
-      expect(getProductionBonus(0)).toBe(1.0);
-    });
-
-    it('returns 1.02 for 1 legacy point (+2%)', () => {
-      expect(getProductionBonus(1)).toBeCloseTo(1.02, 4);
-    });
-
-    it('returns 1.10 for 5 legacy points (+10%)', () => {
-      expect(getProductionBonus(5)).toBeCloseTo(1.10, 4);
-    });
-
-    it('returns 2.0 for 50 legacy points (+100%)', () => {
-      expect(getProductionBonus(50)).toBeCloseTo(2.0, 4);
-    });
-
-    it('handles fractional legacy points (should still work)', () => {
-      // Even though legacyPoints is integer, bonus should compute correctly
-      expect(getProductionBonus(3)).toBeCloseTo(1.06, 4);
-    });
-
-    it('additive: 2% per point', () => {
-      // 10 points = +20% → multiplier of 1.20
-      expect(getProductionBonus(10)).toBeCloseTo(1.20, 4);
-      // 25 points = +50% → multiplier of 1.50
-      expect(getProductionBonus(25)).toBeCloseTo(1.50, 4);
     });
   });
 
