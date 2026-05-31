@@ -320,8 +320,10 @@ export function bootstrap(): {
       bus.emit('decision_event', decisionEvent);
     }
 
-    // Check phase transitions
+    // Check phase transitions — sync FSM with potential external phase changes
+    // (e.g., prestige reset) before evaluating transitions
     const updated = gameState.value;
+    fsm.setPhase(updated.phase as Phase);
     const tickResult = fsm.tick(updated, bus);
     if (tickResult.phase !== updated.phase) {
       gameState.value = {
