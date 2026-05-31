@@ -212,13 +212,13 @@ export class PrestigePanel {
       if (!available) return;
       const current = this.getState();
       const reset = doPrestige(current);
+      this.setState(reset);
       this.bus.emit('prestige_triggered', {
         fromCount: current.prestige.count,
         toCount: reset.prestige.count,
         legacyPointsGained: reset.prestige.legacyPoints - current.prestige.legacyPoints,
         totalLegacyPoints: reset.prestige.legacyPoints,
       });
-      this.setState(reset);
     });
 
     this.container.appendChild(btn);
