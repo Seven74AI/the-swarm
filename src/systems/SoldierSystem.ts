@@ -2,6 +2,7 @@ import type { EventBus } from '../engine/EventBus';
 import type { GameState } from '../state/GameState';
 import { upgradeCost } from '../utils/math';
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
+import { getMutationEffects } from './MutationSystem';
 
 export const SOLDIER_COST_FOOD = 5;
 export const SOLDIER_TRAIN_TIME = 75; // 5x pacing nerf (was 15)
@@ -122,17 +123,17 @@ export class SoldierSystem {
 }
 
 export function getSoldierStrength(state: GameState): number {
-  return 1 + state.equipment.weapon;
+  return 1 + state.equipment.weapon + getMutationEffects(state).strength;
 }
 
 export function getSoldierDefense(state: GameState): number {
   return 1 + state.equipment.armor;
 }
 
-export function getSoldierSpeed(_state: GameState): number {
-  return 5;
+export function getSoldierSpeed(state: GameState): number {
+  return 5 + getMutationEffects(state).speed;
 }
 
 export function getSoldierMaxHp(state: GameState): number {
-  return 10 + state.equipment.armor * 2;
+  return 10 + state.equipment.armor * 2 + getMutationEffects(state).maxHp;
 }

@@ -282,6 +282,17 @@ function migrateV11toV12(data: SaveData): SaveData {
   return { ...data, version: 12, gameState };
 }
 
+/** v12 → v13: adds colony mutations array */
+function migrateV12toV13(data: SaveData): SaveData {
+  const gameState = data.gameState as GameState & {
+    mutations?: { id: string; purchased: boolean }[];
+  };
+
+  gameState.mutations = gameState.mutations ?? [];
+
+  return { ...data, version: 13, gameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -295,6 +306,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   9: migrateV9toV10,
   10: migrateV10toV11,
   11: migrateV11toV12,
+  12: migrateV12toV13,
 };
 
 /**

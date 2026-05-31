@@ -58,6 +58,7 @@ const PHASE_PANELS: Record<string, string[]> = {
     'soldier_panel',
     'battle_panel',
     'combat_log',
+    'mutation_panel',
   ],
   [Phase.EXPANSION]: [
     'click_button',
@@ -72,6 +73,7 @@ const PHASE_PANELS: Record<string, string[]> = {
     'map_panel',
     'building_panel',
     'expedition_panel',
+    'mutation_panel',
   ],
   [Phase.SPACE]: [
     'click_button',
@@ -92,6 +94,7 @@ const PHASE_PANELS: Record<string, string[]> = {
     'starmap_panel',
     'resource_converter_panel',
     'research_panel',
+    'mutation_panel',
   ],
   [Phase.TRANSCENDENCE]: [
     'click_button',
@@ -117,6 +120,7 @@ const PHASE_PANELS: Record<string, string[]> = {
     'prestige_panel',
     'prestige_tree_panel',
     'research_panel',
+    'mutation_panel',
   ],
 };
 
