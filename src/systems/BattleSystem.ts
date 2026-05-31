@@ -7,6 +7,7 @@ import {
   getSoldierSpeed,
   getSoldierMaxHp,
 } from './SoldierSystem';
+import { getPoisonDamagePerTick, consumeVenom } from './VenomSystem';
 
 export interface BattleResult {
   victory: boolean;
@@ -18,6 +19,7 @@ export interface BattleResult {
     silk: number;
     venom: number;
   };
+  poisonDamageDealt: number;
   narrative: string;
 }
 
@@ -48,6 +50,7 @@ export class BattleSystem {
           enemyType: 'none',
           foodGained: 0,
           specialLoot: { chitin: 0, silk: 0, venom: 0 },
+          poisonDamageDealt: 0,
           narrative: 'No soldiers available for battle.',
         },
       };
@@ -57,21 +60,36 @@ export class BattleSystem {
     const baseEnemy = getRandomEnemy(state.battlesWon);
     const enemy = scaleEnemy(baseEnemy, state.battlesWon);
 
-    // Player stats
-    const soldierStrength = getSoldierStrength(state);
-    const soldierDefense = getSoldierDefense(state);
-    const soldierSpeed = getSoldierSpeed(state);
-    const soldierMaxHp = getSoldierMaxHp(state);
+    // Poison DoT: activate if Venom Lab Lv.1+ and venom in stock
+    const poisonDamagePerRound = getPoisonDamagePerTick(state);
+    let workingState = poisonDamagePerRound > 0 ? consumeVenom(state) : state;
 
-    const totalSoldierStrength = state.combatSoldiers * soldierStrength;
-    let playerHp = state.combatSoldiers * soldierMaxHp;
+    // Player stats
+    const soldierStrength = getSoldierStrength(workingState);
+    const soldierDefense = getSoldierDefense(workingState);
+    const soldierSpeed = getSoldierSpeed(workingState);
+    const soldierMaxHp = getSoldierMaxHp(workingState);
+
+    const totalSoldierStrength = workingState.combatSoldiers * soldierStrength;
+    let playerHp = workingState.combatSoldiers * soldierMaxHp;
     let enemyHp = enemy.hp;
+    let poisonDamageDealt = 0;
 
     // Determine attack order: faster side goes first
     const playerFirst = soldierSpeed >= enemy.speed;
 
     let round = 0;
     for (round = 0; round < MAX_ROUNDS; round++) {
+      // Poison damage applies each round before regular attacks
+      if (poisonDamagePerRound > 0 && enemyHp > 0) {
+        const actualPoison = Math.min(poisonDamagePerRound, enemyHp);
+        enemyHp -= actualPoison;
+        poisonDamageDealt += actualPoison;
+      }
+
+      // Check if poison killed target
+      if (enemyHp <= 0 || playerHp <= 0) break;
+
       // First attacker
       if (playerFirst) {
         const damage = (totalSoldierStrength / enemy.defense) * rng(0.85, 1.15);
@@ -103,15 +121,15 @@ export class BattleSystem {
     // Calculate soldiers lost
     let soldiersLost: number;
     if (defeat) {
-      soldiersLost = state.combatSoldiers;
+      soldiersLost = workingState.combatSoldiers;
     } else {
       soldiersLost = Math.round(
         (enemy.strength / Math.max(soldierDefense, 0.1)) * rng(0.7, 1.3),
       );
-      soldiersLost = Math.max(0, Math.min(soldiersLost, state.combatSoldiers));
+      soldiersLost = Math.max(0, Math.min(soldiersLost, workingState.combatSoldiers));
     }
 
-    const survivingSoldiers = state.combatSoldiers - soldiersLost;
+    const survivingSoldiers = workingState.combatSoldiers - soldiersLost;
 
     // Loot (only on victory)
     let foodGained = 0;
@@ -139,7 +157,10 @@ export class BattleSystem {
     // Build narrative
     let narrative: string;
     if (victory) {
-      narrative = `⚔️ ${state.combatSoldiers} soldiers defeated a ${enemy.name}. ${soldiersLost} fell. +${foodGained} food.`;
+      narrative = `⚔️ ${workingState.combatSoldiers} soldiers defeated a ${enemy.name}. ${soldiersLost} fell. +${foodGained} food.`;
+      if (poisonDamageDealt > 0) {
+        narrative += ` Venom contributed ${poisonDamageDealt.toFixed(1)} poison damage.`;
+      }
       const specialParts: string[] = [];
       if (chitinGained > 0) specialParts.push(`${chitinGained} chitin`);
       if (silkGained > 0) specialParts.push(`${silkGained} silk`);
@@ -148,7 +169,7 @@ export class BattleSystem {
         narrative += ` The colony salvages ${specialParts.join(', ')} from the ${enemy.name} carcass.`;
       }
     } else if (defeat) {
-      narrative = `💀 ${state.combatSoldiers} soldiers were slaughtered by a ${enemy.name}. None survived.`;
+      narrative = `💀 ${workingState.combatSoldiers} soldiers were slaughtered by a ${enemy.name}. None survived.`;
     } else {
       // Draw: max rounds exceeded, enemy flees
       narrative = `⚔️ After a long skirmish, the ${enemy.name} fled. ${soldiersLost} soldiers fell.`;
@@ -160,24 +181,25 @@ export class BattleSystem {
       enemyType: enemy.type,
       foodGained,
       specialLoot: { chitin: chitinGained, silk: silkGained, venom: venomGained },
+      poisonDamageDealt,
       narrative,
     };
 
     // Apply to state
     const newState: GameState = {
-      ...state,
+      ...workingState,
       resources: {
-        ...state.resources,
-        food: state.resources.food + foodGained,
+        ...workingState.resources,
+        food: workingState.resources.food + foodGained,
       },
       combatSoldiers: survivingSoldiers,
       combatResources: {
-        chitin: state.combatResources.chitin + chitinGained,
-        silk: state.combatResources.silk + silkGained,
-        venom: state.combatResources.venom + venomGained,
+        chitin: workingState.combatResources.chitin + chitinGained,
+        silk: workingState.combatResources.silk + silkGained,
+        venom: workingState.combatResources.venom + venomGained,
       },
-      battlesWon: state.battlesWon + (victory ? 1 : 0),
-      battlesLost: state.battlesLost + (defeat ? 1 : 0),
+      battlesWon: workingState.battlesWon + (victory ? 1 : 0),
+      battlesLost: workingState.battlesLost + (defeat ? 1 : 0),
       lastBattle: {
         enemyType: enemy.type,
         result: victory ? 'victory' : defeat ? 'defeat' : 'pending',

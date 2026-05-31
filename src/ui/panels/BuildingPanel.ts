@@ -69,9 +69,10 @@ const BUILDINGS: BuildingDef[] = [
     type: 'venom_lab',
     label: 'Venom Lab',
     icon: '💉',
-    tooltip: 'Extract venom for future combat enhancements.',
+    tooltip: 'Extract venom to coat weapons with poison — deals damage over time in battle.',
     effectLabel: (level: number) => {
-      return level >= 1 ? `Venom lab (effects in future updates)` : 'Locked';
+      if (level >= 1) return `Poison: ${level * 2} damage/battle round`;
+      return 'Locked';
     },
   },
 ];
