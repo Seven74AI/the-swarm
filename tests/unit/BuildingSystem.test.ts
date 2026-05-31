@@ -167,16 +167,16 @@ describe('BuildingSystem', () => {
       const lv5 = getEffects('walls', 5);
       expect(lv5.defenseBonus).toBeCloseTo(0.25, 4);
 
-      // Level 6 walls: raw = 6*0.05 = 0.30, cap = 0.30/(1+0.15*1) = 0.2609
+      // Level 6 walls: raw = 6*0.05 = 0.30, cap = 0.30/(1+0.08*1) = 0.27778
       const lv6 = getEffects('walls', 6);
       expect(lv6.defenseBonus).toBeLessThan(0.30); // less than raw
-      expect(lv6.defenseBonus).toBeCloseTo(0.26087, 4);
+      expect(lv6.defenseBonus).toBeCloseTo(0.27778, 4);
       // Should still be >= level 5 (monotonic)
       expect(lv6.defenseBonus).toBeGreaterThanOrEqual(lv5.defenseBonus);
     });
 
     it('applies diminishing returns after level 5 (warehouse capacity)', () => {
-      // Level 10 warehouse: raw = 10*25 = 250, cap = 250/(1+0.15*5) = 250/1.75 = 142.857
+      // Level 10 warehouse: raw = 10*25 = 250, cap = 250/(1+0.08*5) = 250/1.40 = 178.571
       const lv10 = getEffects('warehouse', 10);
       expect(lv10.nestCapacity).toBeGreaterThan(0);
       expect(lv10.nestCapacity).toBeLessThan(250); // less than raw
