@@ -30,6 +30,7 @@ import { PrestigePanel } from './panels/PrestigePanel';
 import { PrestigeTreePanel } from './panels/PrestigeTreePanel';
 import { TranscendencePanel } from './panels/TranscendencePanel';
 import { ResearchPanel } from './panels/ResearchPanel';
+import { MutationPanel } from './panels/MutationPanel';
 import { FoodDisplay } from './panels/FoodDisplay';
 import type { DecisionEvent } from '../systems/DecisionSystem';
 import { DecisionPopup } from './components/DecisionPopup';
@@ -127,6 +128,9 @@ export class UIRoot {
     ).getElement());
     this.panelRegistry.set('combat_log', () => new CombatLogPanel().getElement());
     this.panelRegistry.set('building_panel', () => new BuildingPanel(
+      this.bus, this.getState, this.setState,
+    ).getElement());
+    this.panelRegistry.set('mutation_panel', () => new MutationPanel(
       this.bus, this.getState, this.setState,
     ).getElement());
     this.panelRegistry.set('expedition_panel', () => new ExpeditionPanel(

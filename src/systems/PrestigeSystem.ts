@@ -168,6 +168,7 @@ export function prestige(state: GameState): GameState {
       totalFoodProduced: state.prestige.totalFoodProduced,
     },
     prestigeTree: state.prestigeTree,
+    mutations: state.mutations,
     equipment: {
       weapon: 0,
       armor: 0,

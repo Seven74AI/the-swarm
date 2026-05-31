@@ -25,6 +25,13 @@ export interface Pipeline {
   progress: number;
 }
 
+/** A colony mutation — a one-time permanent bonus purchased with combat resources. */
+export interface Mutation {
+  id: string;
+  /** Whether this mutation has been purchased. */
+  purchased: boolean;
+}
+
 export interface GameState {
   phase: string;
   /** Whether the game is paused. Paused games stop all systems but save normally. */
@@ -196,6 +203,8 @@ export interface GameState {
     /** IDs of purchased prestige upgrades (never reset). */
     purchased: string[];
   };
+  /** Colony mutations — one-time permanent bonuses purchased with combat resources. Survives prestige. */
+  mutations: Mutation[];
 }
 
 export type ResearchProjectId = 'voidCrystalSynthesis' | 'antimatterContainment' | 'darkMatterDetection';
@@ -351,5 +360,13 @@ export function createInitialState(): GameState {
     prestigeTree: {
       purchased: [],
     },
+    mutations: [
+      { id: 'efficient_gatherers', purchased: false },
+      { id: 'swift_soldiers', purchased: false },
+      { id: 'accelerated_hatching', purchased: false },
+      { id: 'tough_shells', purchased: false },
+      { id: 'potent_venom', purchased: false },
+      { id: 'reinforced_mandibles', purchased: false },
+    ],
   };
 }
