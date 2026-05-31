@@ -165,6 +165,10 @@ export function prestige(state: GameState): GameState {
       totalFoodProduced: state.prestige.totalFoodProduced,
     },
     prestigeTree: state.prestigeTree,
+    equipment: {
+      weapon: 0,
+      armor: 0,
+    },
   };
 }
 
