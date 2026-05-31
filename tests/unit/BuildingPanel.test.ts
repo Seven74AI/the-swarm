@@ -53,4 +53,21 @@ describe('BuildingPanel', () => {
     expect(text).toContain('🪵');
     expect(text).toContain('🪨');
   });
+
+  it('sets descriptive tooltip on each building row', () => {
+    const el = panel.getElement();
+    const barracksRow = el.querySelector('[data-building="barracks"]');
+    const wallsRow = el.querySelector('[data-building="walls"]');
+    const warehouseRow = el.querySelector('[data-building="warehouse"]');
+    expect(barracksRow?.getAttribute('data-tooltip')).toContain('scouts');
+    expect(wallsRow?.getAttribute('data-tooltip')).toContain('defense');
+    expect(warehouseRow?.getAttribute('data-tooltip')).toContain('capacity');
+  });
+
+  it('disabled build buttons keep cost tooltip', () => {
+    // Fresh state with 0 resources — all buttons disabled
+    const el = panel.getElement();
+    const buttons = el.querySelectorAll('button[data-tooltip]');
+    expect(buttons.length).toBeGreaterThanOrEqual(3);
+  });
 });

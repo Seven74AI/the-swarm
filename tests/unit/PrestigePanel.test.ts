@@ -168,4 +168,11 @@ describe('PrestigePanel', () => {
 
     expect(prestigeEvent).toBeNull();
   });
+
+  it('sets data-tooltip on the panel explaining prestige mechanic', () => {
+    const el = panel.getElement();
+    const tooltip = el.getAttribute('data-tooltip');
+    expect(tooltip).toContain('Reset');
+    expect(tooltip).toContain('Legacy');
+  });
 });

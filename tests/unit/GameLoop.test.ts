@@ -94,4 +94,31 @@ describe('GameLoop', () => {
       expect(loop.getWorkerEfficiency(state)).toBeLessThan(1.0);
     });
   });
+
+  // ── Pause / Resume delegation ──
+  describe('pause and resume delegation', () => {
+    it('pause delegates to ticker.pause()', () => {
+      const loop = new GameLoop(ticker);
+      const pauseSpy = vi.spyOn(ticker, 'pause');
+
+      loop.pause();
+      expect(pauseSpy).toHaveBeenCalled();
+    });
+
+    it('resume delegates to ticker.resume()', () => {
+      const loop = new GameLoop(ticker);
+      const resumeSpy = vi.spyOn(ticker, 'resume');
+
+      loop.resume();
+      expect(resumeSpy).toHaveBeenCalled();
+    });
+
+    it('isPaused delegates to ticker.isPaused()', () => {
+      const loop = new GameLoop(ticker);
+      ticker.start();
+      ticker.pause();
+
+      expect(loop.isPaused()).toBe(true);
+    });
+  });
 });

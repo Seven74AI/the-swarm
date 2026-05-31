@@ -71,6 +71,7 @@ export class ExpeditionPanel {
     for (const dest of DESTINATIONS) {
       const card = document.createElement('div');
       card.className = 'expedition-card';
+      card.setAttribute('data-tooltip', `Send an expedition to ${dest.name}. Scouts reduce risk, warriors increase loot.`);
       card.innerHTML = `<div class="expedition-card-icon">${dest.icon}</div>
         <div class="expedition-card-name">${dest.name}</div>
         <div class="expedition-card-loot">${dest.loot}</div>`;

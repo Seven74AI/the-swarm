@@ -17,11 +17,14 @@ import { MapSystem } from '../../src/systems/MapSystem';
 import { TerritorySystem } from '../../src/systems/TerritorySystem';
 import { createInitialState } from '../../src/state/GameState';
 import type { GameState } from '../../src/state/GameState';
+import { Ticker } from '../../src/engine/Ticker';
+import { GameLoop } from '../../src/engine/GameLoop';
 
 describe('UIRoot — Phase-Based Panel Reveal', () => {
   let bus: EventBus;
   let container: HTMLElement;
   let ui: UIRoot;
+  let loop: GameLoop;
 
   beforeEach(() => {
     bus = new EventBus();
@@ -35,6 +38,8 @@ describe('UIRoot — Phase-Based Panel Reveal', () => {
     const saveManager = new SaveManager();
     const mapSystem = new MapSystem();
     const territorySystem = new TerritorySystem();
+    const ticker = new Ticker();
+    loop = new GameLoop(ticker);
     let state = createInitialState();
 
     ui = new UIRoot({
@@ -47,6 +52,7 @@ describe('UIRoot — Phase-Based Panel Reveal', () => {
       territorySystem,
       getState: () => state,
       setState: (s: GameState) => { state = s; },
+      loop,
     });
   });
 

@@ -34,6 +34,12 @@ const PHASE_DISPLAY: Record<string, { emoji: string; title: string; className: s
   },
 };
 
+/** Descriptive tooltips for unlock-level phases — only Space and Transcendence. */
+const PHASE_TOOLTIPS: Record<string, string> = {
+  [Phase.SPACE]: 'Space Age: Build spaceships, explore planets, mine void crystals and antimatter.',
+  [Phase.TRANSCENDENCE]: 'Transcendence: Victory! The colony achieves cosmic singularity.',
+};
+
 /**
  * Displays the current game phase with themed styling.
  * Subscribes to 'phase_changed' events and transitions smoothly.
@@ -66,6 +72,14 @@ export class PhaseIndicator {
     this.textEl.textContent = `${display.emoji} ${display.title}`;
     // Update class: remove all phase- classes, then add current
     this.container.className = `phase-indicator ${display.className}`.trim();
+
+    // Set or clear phase unlock tooltip
+    const tooltip = PHASE_TOOLTIPS[phase];
+    if (tooltip) {
+      this.container.setAttribute('data-tooltip', tooltip);
+    } else {
+      this.container.removeAttribute('data-tooltip');
+    }
   }
 
   getElement(): HTMLDivElement {

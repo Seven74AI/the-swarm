@@ -10,6 +10,8 @@ interface BuildingDef {
   label: string;
   icon: string;
   effectLabel: (level: number) => string;
+  /** Descriptive tooltip shown on hover to explain what this building does. */
+  tooltip: string;
 }
 
 const BUILDINGS: BuildingDef[] = [
@@ -17,6 +19,7 @@ const BUILDINGS: BuildingDef[] = [
     type: 'barracks',
     label: 'Barracks',
     icon: '🏰',
+    tooltip: 'Train scouts and warriors for expeditions and battles.',
     effectLabel: (level: number) => {
       const e = getEffects('barracks', level);
       return e.warriorsCap! > 0
@@ -28,6 +31,7 @@ const BUILDINGS: BuildingDef[] = [
     type: 'walls',
     label: 'Walls',
     icon: '🧱',
+    tooltip: 'Increase colony defense against enemy attacks.',
     effectLabel: (level: number) => {
       const e = getEffects('walls', level);
       return `Defense: +${Math.round(((e.defenseBonus ?? 0) * 100))}%`;
@@ -37,6 +41,7 @@ const BUILDINGS: BuildingDef[] = [
     type: 'warehouse',
     label: 'Warehouse',
     icon: '🏪',
+    tooltip: 'Expand nest capacity to support more workers.',
     effectLabel: (level: number) => {
       const e = getEffects('warehouse', level);
       return `Capacity: +${e.nestCapacity ?? 0}`;
@@ -104,6 +109,7 @@ export class BuildingPanel {
     const row = document.createElement('div');
     row.className = 'stat-row';
     row.setAttribute('data-building', def.type);
+    row.setAttribute('data-tooltip', def.tooltip);
 
     const label = document.createElement('span');
     label.className = 'stat-label';

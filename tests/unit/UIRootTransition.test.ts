@@ -13,6 +13,8 @@ import { MapSystem } from '../../src/systems/MapSystem';
 import { TerritorySystem } from '../../src/systems/TerritorySystem';
 import { createInitialState } from '../../src/state/GameState';
 import type { GameState } from '../../src/state/GameState';
+import { Ticker } from '../../src/engine/Ticker';
+import { GameLoop } from '../../src/engine/GameLoop';
 
 describe('UIRoot — phase transition overlay', () => {
   let bus: EventBus;
@@ -36,6 +38,8 @@ describe('UIRoot — phase transition overlay', () => {
     const saveManager = new SaveManager();
     const mapSystem = new MapSystem();
     const territorySystem = new TerritorySystem();
+    const ticker = new Ticker();
+    const loop = new GameLoop(ticker);
     let state = createInitialState();
 
     return new UIRoot({
@@ -48,6 +52,7 @@ describe('UIRoot — phase transition overlay', () => {
       territorySystem,
       getState: () => state,
       setState: (s: GameState) => { state = s; },
+      loop,
     });
   }
 
