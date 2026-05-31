@@ -51,6 +51,7 @@ const BUILDINGS: BuildingDef[] = [
     type: 'silk_weaving',
     label: 'Silk Weaving',
     icon: '🕸️',
+    tooltip: 'Produce silk threads to craft and upgrade armor for soldiers.',
     effectLabel: (level: number) => {
       return level >= 1 ? 'Unlocks Armor upgrades' : 'Locked';
     },
@@ -59,6 +60,7 @@ const BUILDINGS: BuildingDef[] = [
     type: 'chitin_armory',
     label: 'Chitin Armory',
     icon: '🦴',
+    tooltip: 'Forge chitin plates to craft and upgrade weapons for soldiers.',
     effectLabel: (level: number) => {
       return level >= 1 ? 'Unlocks Weapon upgrades' : 'Locked';
     },
@@ -67,6 +69,7 @@ const BUILDINGS: BuildingDef[] = [
     type: 'venom_lab',
     label: 'Venom Lab',
     icon: '💉',
+    tooltip: 'Extract venom for future combat enhancements.',
     effectLabel: (level: number) => {
       return level >= 1 ? `Venom lab (effects in future updates)` : 'Locked';
     },
