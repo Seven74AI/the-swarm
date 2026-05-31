@@ -6,6 +6,7 @@ import { PLANETS } from '../../data/planets';
 
 export class StarmapPanel {
   private container: HTMLDivElement;
+  private lastHash: string = '';
 
   constructor(
     private bus: EventBus,
@@ -30,16 +31,30 @@ export class StarmapPanel {
   refresh(): void { this.render(); }
 
   private render(): void {
-    this.container.innerHTML = '';
     const state = this.getState();
+
+    // Compute hash of starmap state to skip re-render when unchanged
+    const hasShip = state.spaceship.level > 0;
+    const planetsHash = state.discoveredPlanets.join(',');
+    const shipsHash = state.spaceships
+      .filter((s) => s.status === 'exploring' || s.status === 'returning')
+      .map((s) => `${s.id}:${s.status}:${s.destinationName}:${s.missionTicksRemaining}:${s.type}:${s.level}`)
+      .join(',');
+    const probesHash = state.spaceProbes
+      .map((p) => `${p.destination}:${p.scouts}:${p.ticksRemaining}`)
+      .join(',');
+
+    const hash = `hasShip:${hasShip}|planets:${planetsHash}|ships:${shipsHash}|probes:${probesHash}`;
+    if (hash === this.lastHash) return;
+    this.lastHash = hash;
+
+    this.container.innerHTML = '';
 
     // Header
     const header = document.createElement('div');
     header.className = 'panel-header';
     header.innerHTML = '<span class="panel-title">🌟 Star Map</span>';
     this.container.appendChild(header);
-
-    const hasShip = state.spaceship.level > 0;
 
     // --- Planet Star Map ---
     const planetSection = document.createElement('div');
