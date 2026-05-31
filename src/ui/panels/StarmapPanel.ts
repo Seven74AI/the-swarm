@@ -2,11 +2,14 @@ import { effect } from '@preact/signals-core';
 import { gameState } from '../../state/gameSignal';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
-import { PLANETS } from '../../data/planets';
+import { PLANETS, type PlanetDef } from '../../data/planets';
 
 export class StarmapPanel {
   private container: HTMLDivElement;
   private lastHash: string = '';
+
+  /** Called when the user clicks a planet card. Receives the planet definition and whether it's discovered. */
+  onPlanetClick: ((planet: PlanetDef, discovered: boolean) => void) | null = null;
 
   constructor(
     private bus: EventBus,
@@ -75,6 +78,20 @@ export class StarmapPanel {
         <div class="expedition-card-name">${planet.name}</div>
         <div class="expedition-card-type">${planet.type.charAt(0).toUpperCase() + planet.type.slice(1)}</div>
         <div class="expedition-card-loot">${discovered ? planet.yields : '???'}</div>`;
+
+      // Add tooltip
+      if (discovered) {
+        card.setAttribute('data-tooltip', `Discovered: ${planet.name} — ${planet.yields}`);
+      } else {
+        card.setAttribute('data-tooltip', `Undiscovered: ${planet.name} — ${planet.requirement}`);
+      }
+
+      // Add click handler following MapPanel pattern
+      card.addEventListener('click', () => {
+        if (this.onPlanetClick) {
+          this.onPlanetClick(planet, discovered);
+        }
+      });
 
       if (!discovered) {
         const badge = document.createElement('span');

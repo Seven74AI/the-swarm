@@ -31,5 +31,20 @@ Rate-based O(1) processing: `eggPipeline`, `larvaPipeline`, `soldierPipeline`. E
 ### Prestige
 Reset loop: sacrifice all progress for Legacy Points. LP give +2% production each (additive). Prestige tree has 8 upgrades costing 57 LP total. Requires all buildings Lv.5 + 100K food lifetime.
 
+### Combat Resources
+Dropped by enemies in the COMBAT phase. Used for crafting, equipment upgrades, and colony mutations.
+- **Silk**: spider drop. Used for armor (soldier defense) and Silk Weaving building.
+- **Chitin**: beetle/scorpion drop. Used for weapon (soldier strength) and Chitin Armory building.
+- **Venom**: scorpion drop. Used for poison damage (combat DoT) and Venom Lab building.
+
+### Equipment
+Soldier upgrades purchased with combat resources. `weapon` (chitin) → strength, `armor` (silk) → defense + HP. Upgraded via dedicated buildings.
+
+### Colony Mutations
+One-time permanent bonuses purchased with combat resources. Stacking upgrades (e.g. +10% gather, +1 soldier speed, faster larvae hatching).
+
+### Expeditions
+Send scouts to map tiles (EXPANSION phase) to harvest resources. Tiles yield: Forest → wood + silk, Mountain → stone + chitin, Meadow → food + venom. Enemy Nests require combat first, then loot.
+
 ### Resources
 Integers only (`Math.floor()`). Food, wood, stone, nectar (phases 1-4). Void crystals, antimatter, dark matter (phase 5+).

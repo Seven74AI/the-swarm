@@ -148,9 +148,27 @@ export class UIRoot {
     this.panelRegistry.set('exploration_panel', () => new ExplorationPanel(
       this.bus, this.getState, this.setState,
     ).getElement());
-    this.panelRegistry.set('starmap_panel', () => new StarmapPanel(
-      this.bus, this.getState, this.setState,
-    ).getElement());
+    this.panelRegistry.set('starmap_panel', () => {
+      const starmapPanel = new StarmapPanel(this.bus, this.getState, this.setState);
+      starmapPanel.onPlanetClick = (planet, discovered) => {
+        if (discovered) {
+          this.bus.emit('planet_clicked', {
+            name: planet.name,
+            type: planet.type,
+            yields: planet.yields,
+            accessibility: planet.accessibility,
+          });
+        } else {
+          this.bus.emit('planet_clicked', {
+            name: planet.name,
+            type: planet.type,
+            requirement: planet.requirement,
+            discovered: false,
+          });
+        }
+      };
+      return starmapPanel.getElement();
+    });
     this.panelRegistry.set('resource_converter_panel', () => new ResourceConverterPanel(
       this.bus, this.getState, this.setState,
     ).getElement());
