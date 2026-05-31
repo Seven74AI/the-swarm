@@ -181,11 +181,11 @@ test.describe('Golden Path — Full Progression', () => {
     await expect(mapPanel).toBeVisible();
   });
 
-  test('building panel shows three building rows', async ({ page }) => {
+  test('building panel shows six building rows', async ({ page }) => {
     const buildingPanel = page.locator('#building-panel');
     await expect(buildingPanel).toBeVisible();
 
-    // All three building rows should be present
+    // Original three building rows
     const barracksRow = buildingPanel.locator('[data-building="barracks"]');
     await expect(barracksRow).toBeVisible();
     const wallsRow = buildingPanel.locator('[data-building="walls"]');
@@ -193,9 +193,17 @@ test.describe('Golden Path — Full Progression', () => {
     const warehouseRow = buildingPanel.locator('[data-building="warehouse"]');
     await expect(warehouseRow).toBeVisible();
 
+    // Three new combat-resource buildings
+    const silkRow = buildingPanel.locator('[data-building="silk_weaving"]');
+    await expect(silkRow).toBeVisible();
+    const chitinRow = buildingPanel.locator('[data-building="chitin_armory"]');
+    await expect(chitinRow).toBeVisible();
+    const venomRow = buildingPanel.locator('[data-building="venom_lab"]');
+    await expect(venomRow).toBeVisible();
+
     // Each row should show "Build" button
     const buildBtns = buildingPanel.locator('button').filter({ hasText: 'Build' });
-    await expect(buildBtns).toHaveCount(3);
+    await expect(buildBtns).toHaveCount(6);
   });
 
   test('expedition panel shows launch form', async ({ page }) => {

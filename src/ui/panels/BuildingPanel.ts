@@ -47,6 +47,33 @@ const BUILDINGS: BuildingDef[] = [
       return `Capacity: +${e.nestCapacity ?? 0}`;
     },
   },
+  {
+    type: 'silk_weaving',
+    label: 'Silk Weaving',
+    icon: '🕸️',
+    tooltip: 'Produce silk threads to craft and upgrade armor for soldiers.',
+    effectLabel: (level: number) => {
+      return level >= 1 ? 'Unlocks Armor upgrades' : 'Locked';
+    },
+  },
+  {
+    type: 'chitin_armory',
+    label: 'Chitin Armory',
+    icon: '🦴',
+    tooltip: 'Forge chitin plates to craft and upgrade weapons for soldiers.',
+    effectLabel: (level: number) => {
+      return level >= 1 ? 'Unlocks Weapon upgrades' : 'Locked';
+    },
+  },
+  {
+    type: 'venom_lab',
+    label: 'Venom Lab',
+    icon: '💉',
+    tooltip: 'Extract venom for future combat enhancements.',
+    effectLabel: (level: number) => {
+      return level >= 1 ? `Venom lab (effects in future updates)` : 'Locked';
+    },
+  },
 ];
 
 /**
@@ -134,6 +161,9 @@ export class BuildingPanel {
     if (cost.wood > 0) parts.push(`🪵${cost.wood}`);
     if (cost.stone > 0) parts.push(`🪨${cost.stone}`);
     if (cost.nectar > 0) parts.push(`🍯${cost.nectar}`);
+    if (cost.chitin > 0) parts.push(`🦴${cost.chitin}`);
+    if (cost.silk > 0) parts.push(`🕸️${cost.silk}`);
+    if (cost.venom > 0) parts.push(`💉${cost.venom}`);
     return parts.join(' ');
   }
 
@@ -145,6 +175,9 @@ export class BuildingPanel {
     if (cost.wood > 0 && state.resources.wood < cost.wood) missing.push(`🪵${cost.wood - state.resources.wood} wood`);
     if (cost.stone > 0 && state.resources.stone < cost.stone) missing.push(`🪨${cost.stone - state.resources.stone} stone`);
     if (cost.nectar > 0 && state.resources.nectar < cost.nectar) missing.push(`🍯${cost.nectar - state.resources.nectar} nectar`);
+    if (cost.chitin > 0 && state.combatResources.chitin < cost.chitin) missing.push(`🦴${cost.chitin - state.combatResources.chitin} chitin`);
+    if (cost.silk > 0 && state.combatResources.silk < cost.silk) missing.push(`🕸️${cost.silk - state.combatResources.silk} silk`);
+    if (cost.venom > 0 && state.combatResources.venom < cost.venom) missing.push(`💉${cost.venom - state.combatResources.venom} venom`);
     if (missing.length > 0) return `Need: ${missing.join(', ')}`;
     return 'Cannot build';
   }

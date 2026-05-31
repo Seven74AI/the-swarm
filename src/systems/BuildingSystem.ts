@@ -1,19 +1,25 @@
 import type { GameState } from '../state/GameState';
 import { buildingUpgradeCost, softCapEffectiveness } from '../engine/ProgressionCurve';
 
-export type BuildingType = 'barracks' | 'walls' | 'warehouse';
+export type BuildingType = 'barracks' | 'walls' | 'warehouse' | 'silk_weaving' | 'chitin_armory' | 'venom_lab';
 
 interface Cost {
   food: number;
   wood: number;
   stone: number;
   nectar: number;
+  chitin: number;
+  silk: number;
+  venom: number;
 }
 
 const BUILDING_BASE_COSTS: Record<BuildingType, Cost> = {
-  barracks: { food: 100, wood: 50, stone: 0, nectar: 0 },
-  walls: { food: 0, wood: 0, stone: 200, nectar: 0 },
-  warehouse: { food: 0, wood: 150, stone: 100, nectar: 0 },
+  barracks: { food: 100, wood: 50, stone: 0, nectar: 0, chitin: 0, silk: 0, venom: 0 },
+  walls: { food: 0, wood: 0, stone: 200, nectar: 0, chitin: 0, silk: 0, venom: 0 },
+  warehouse: { food: 0, wood: 150, stone: 100, nectar: 0, chitin: 0, silk: 0, venom: 0 },
+  silk_weaving: { food: 0, wood: 40, stone: 0, nectar: 0, chitin: 0, silk: 4, venom: 0 },
+  chitin_armory: { food: 0, wood: 0, stone: 40, nectar: 0, chitin: 4, silk: 0, venom: 0 },
+  venom_lab: { food: 0, wood: 0, stone: 0, nectar: 40, chitin: 0, silk: 0, venom: 2 },
 };
 
 export function getBuildCost(building: BuildingType, level: number): Cost {
@@ -23,6 +29,9 @@ export function getBuildCost(building: BuildingType, level: number): Cost {
     wood: buildingUpgradeCost(base.wood, level),
     stone: buildingUpgradeCost(base.stone, level),
     nectar: buildingUpgradeCost(base.nectar, level),
+    chitin: buildingUpgradeCost(base.chitin, level),
+    silk: buildingUpgradeCost(base.silk, level),
+    venom: buildingUpgradeCost(base.venom, level),
   };
 }
 
@@ -32,7 +41,10 @@ export function canBuild(building: BuildingType, state: GameState): boolean {
     state.resources.food >= cost.food &&
     state.resources.wood >= cost.wood &&
     state.resources.stone >= cost.stone &&
-    state.resources.nectar >= cost.nectar
+    state.resources.nectar >= cost.nectar &&
+    state.combatResources.chitin >= cost.chitin &&
+    state.combatResources.silk >= cost.silk &&
+    state.combatResources.venom >= cost.venom
   );
 }
 
@@ -44,7 +56,10 @@ export function build(building: BuildingType, state: GameState): GameState {
     state.resources.food < cost.food ||
     state.resources.wood < cost.wood ||
     state.resources.stone < cost.stone ||
-    state.resources.nectar < cost.nectar
+    state.resources.nectar < cost.nectar ||
+    state.combatResources.chitin < cost.chitin ||
+    state.combatResources.silk < cost.silk ||
+    state.combatResources.venom < cost.venom
   ) {
     return state;
   }
@@ -57,6 +72,12 @@ export function build(building: BuildingType, state: GameState): GameState {
       wood: state.resources.wood - cost.wood,
       stone: state.resources.stone - cost.stone,
       nectar: state.resources.nectar - cost.nectar,
+    },
+    combatResources: {
+      ...state.combatResources,
+      chitin: state.combatResources.chitin - cost.chitin,
+      silk: state.combatResources.silk - cost.silk,
+      venom: state.combatResources.venom - cost.venom,
     },
     buildings: {
       ...state.buildings,
@@ -95,5 +116,11 @@ function getRawEffects(
       return { defenseBonus: level * 0.05 };
     case 'warehouse':
       return { nestCapacity: level * 25 };
+    case 'silk_weaving':
+      return { armorUnlocked: level >= 1 ? 1 : 0 };
+    case 'chitin_armory':
+      return { weaponUnlocked: level >= 1 ? 1 : 0 };
+    case 'venom_lab':
+      return { venomLabLevel: level };
   }
 }

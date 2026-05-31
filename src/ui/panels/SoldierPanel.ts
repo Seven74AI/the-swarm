@@ -227,6 +227,8 @@ export class SoldierPanel {
       void s.resources.food;
       void s.equipment;
       void s.workersAssigned;
+      void s.combatResources;
+      void s.buildings;
       this.refresh();
     });
 
@@ -286,21 +288,35 @@ export class SoldierPanel {
     }
 
     // Weapon cost
-    const weaponCost = weapon >= MAX_EQUIPMENT_LEVEL ? 0 : upgradeCost(10, 1.20, weapon);
-    const weaponCostText = weapon >= MAX_EQUIPMENT_LEVEL ? '' : ` ${formatNumber(weaponCost)} food`;
+    const weaponCostNum = weapon >= MAX_EQUIPMENT_LEVEL ? 0 : upgradeCost(10, 1.20, weapon);
+    const chitin = state.combatResources.chitin;
+    const hasChitinArmory = (state.buildings.chitin_armory?.level ?? 0) >= 1;
+    const weaponCostText = weapon >= MAX_EQUIPMENT_LEVEL ? '' : ` ${formatNumber(weaponCostNum)} chitin`;
     if (weaponCostText !== prev.weaponCost) {
       this.weaponCostDisplay.textContent = weaponCostText;
       prev.weaponCost = weaponCostText;
     }
 
     // Weapon button state
-    const weaponDisabled = food < weaponCost || weapon >= MAX_EQUIPMENT_LEVEL;
+    let weaponDisabled: boolean;
+    let weaponBtnText: string;
+    if (weapon >= MAX_EQUIPMENT_LEVEL) {
+      weaponDisabled = true;
+      weaponBtnText = 'Max';
+    } else if (!hasChitinArmory) {
+      weaponDisabled = true;
+      weaponBtnText = 'Needs Chitin Armory';
+    } else if (chitin < weaponCostNum) {
+      weaponDisabled = true;
+      weaponBtnText = 'Upgrade';
+    } else {
+      weaponDisabled = false;
+      weaponBtnText = 'Upgrade';
+    }
     if (weaponDisabled !== prev.weaponDisabled) {
       this.weaponBtn.disabled = weaponDisabled;
       prev.weaponDisabled = weaponDisabled;
     }
-
-    const weaponBtnText = weapon >= MAX_EQUIPMENT_LEVEL ? 'Max' : 'Upgrade';
     if (weaponBtnText !== prev.weaponBtnText) {
       this.weaponBtn.textContent = weaponBtnText;
       prev.weaponBtnText = weaponBtnText;
@@ -314,21 +330,35 @@ export class SoldierPanel {
     }
 
     // Armor cost
-    const armorCost = armor >= MAX_EQUIPMENT_LEVEL ? 0 : upgradeCost(10, 1.20, armor);
-    const armorCostText = armor >= MAX_EQUIPMENT_LEVEL ? '' : ` ${formatNumber(armorCost)} food`;
+    const armorCostNum = armor >= MAX_EQUIPMENT_LEVEL ? 0 : upgradeCost(10, 1.20, armor);
+    const silk = state.combatResources.silk;
+    const hasSilkWeaving = (state.buildings.silk_weaving?.level ?? 0) >= 1;
+    const armorCostText = armor >= MAX_EQUIPMENT_LEVEL ? '' : ` ${formatNumber(armorCostNum)} silk`;
     if (armorCostText !== prev.armorCost) {
       this.armorCostDisplay.textContent = armorCostText;
       prev.armorCost = armorCostText;
     }
 
     // Armor button state
-    const armorDisabled = food < armorCost || armor >= MAX_EQUIPMENT_LEVEL;
+    let armorDisabled: boolean;
+    let armorBtnText: string;
+    if (armor >= MAX_EQUIPMENT_LEVEL) {
+      armorDisabled = true;
+      armorBtnText = 'Max';
+    } else if (!hasSilkWeaving) {
+      armorDisabled = true;
+      armorBtnText = 'Needs Silk Weaving';
+    } else if (silk < armorCostNum) {
+      armorDisabled = true;
+      armorBtnText = 'Upgrade';
+    } else {
+      armorDisabled = false;
+      armorBtnText = 'Upgrade';
+    }
     if (armorDisabled !== prev.armorDisabled) {
       this.armorBtn.disabled = armorDisabled;
       prev.armorDisabled = armorDisabled;
     }
-
-    const armorBtnText = armor >= MAX_EQUIPMENT_LEVEL ? 'Max' : 'Upgrade';
     if (armorBtnText !== prev.armorBtnText) {
       this.armorBtn.textContent = armorBtnText;
       prev.armorBtnText = armorBtnText;

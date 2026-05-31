@@ -78,12 +78,18 @@ export class SoldierSystem {
     const weapon = state.equipment.weapon;
     if (weapon >= MAX_EQUIPMENT_LEVEL) return state;
 
+    // Gate: requires Chitin Armory
+    if ((state.buildings.chitin_armory?.level ?? 0) < 1) return state;
+
     const cost = upgradeCost(10, 1.2, weapon);
-    if (state.resources.food < cost) return state;
+    if (state.combatResources.chitin < cost) return state;
 
     const result: GameState = {
       ...state,
-      resources: { ...state.resources, food: state.resources.food - cost },
+      combatResources: {
+        ...state.combatResources,
+        chitin: state.combatResources.chitin - cost,
+      },
       equipment: { ...state.equipment, weapon: weapon + 1 },
     };
 
@@ -95,12 +101,18 @@ export class SoldierSystem {
     const armor = state.equipment.armor;
     if (armor >= MAX_EQUIPMENT_LEVEL) return state;
 
+    // Gate: requires Silk Weaving
+    if ((state.buildings.silk_weaving?.level ?? 0) < 1) return state;
+
     const cost = upgradeCost(10, 1.2, armor);
-    if (state.resources.food < cost) return state;
+    if (state.combatResources.silk < cost) return state;
 
     const result: GameState = {
       ...state,
-      resources: { ...state.resources, food: state.resources.food - cost },
+      combatResources: {
+        ...state.combatResources,
+        silk: state.combatResources.silk - cost,
+      },
       equipment: { ...state.equipment, armor: armor + 1 },
     };
 
