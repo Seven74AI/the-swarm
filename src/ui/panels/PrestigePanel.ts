@@ -37,6 +37,8 @@ export class PrestigePanel {
     this.container = document.createElement('div');
     this.container.id = 'prestige-panel';
     this.container.className = 'panel prestige-panel';
+    this.container.setAttribute('data-tooltip',
+      'Legacy Prestige: Reset your colony to earn Legacy Points. Each Legacy Point gives +2% production. Buildings, phases, and food produced determine your legacy.');
 
     this.render();
 

@@ -59,4 +59,17 @@ describe('ExpeditionPanel', () => {
     expect(text).toContain('45');
     expect(text).toContain('30');
   });
+
+  it('sets data-tooltip on expedition cards describing the mechanic', () => {
+    currentState = {
+      ...currentState,
+      soldiers: { scouts: 2, warriors: 1, totalKilled: 0 },
+    };
+    panel.refresh();
+    const el = panel.getElement();
+    const cards = el.querySelectorAll('.expedition-card');
+    expect(cards.length).toBeGreaterThanOrEqual(3);
+    const firstCard = cards[0];
+    expect(firstCard.getAttribute('data-tooltip')).toContain('expedition');
+  });
 });
