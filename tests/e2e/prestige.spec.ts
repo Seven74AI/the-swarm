@@ -576,9 +576,7 @@ test.describe('Prestige System — Prestige Tree Bonuses', () => {
     expect(resources.eggs).toBe(0); // eggs resource is still 0 (only pipeline has eggs)
   });
 
-  // TODO: getPrestigeBonuses() does not detect phase_skip from post-prestige state
-  // (game logic bug — see issue #144). Skip until fixed.
-  test.skip('phase skip bonus: Ancestral Memory starts at Phase 2 (colony)', async ({ page }) => {
+  test('phase skip bonus: Ancestral Memory starts at Phase 2 (colony)', async ({ page }) => {
     const state = makeGameState({
       prestige: { count: 0, legacyPoints: 20, totalFoodProduced: 200_000 },
       prestigeTree: { purchased: ['phase_skip'] },
@@ -597,9 +595,7 @@ test.describe('Prestige System — Prestige Tree Bonuses', () => {
     await expect(page.locator('#worker-assignment')).toBeAttached({ timeout: 10000 });
   });
 
-  // TODO: getPrestigeBonuses() does not detect phase_skip from post-prestige state
-  // (game logic bug — see issue #144). Skip until fixed.
-  test.skip('combined bonuses: starting resources + phase skip', async ({ page }) => {
+  test('combined bonuses: starting resources + phase skip', async ({ page }) => {
     const state = makeGameState({
       prestige: { count: 0, legacyPoints: 30, totalFoodProduced: 200_000 },
       prestigeTree: { purchased: ['starting_resources', 'phase_skip'] },
