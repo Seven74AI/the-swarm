@@ -296,8 +296,8 @@ test.describe('Buildings', () => {
     const woodAfter = await readGameState(page, 'resources.wood') as number;
     expect(woodAfter).toBeLessThanOrEqual(5000 - 125); // 5000 - 125 = 4875
 
-    // Activity log should show building event
-    await expect(page.locator('#activity-log')).toContainText('upgraded to level 1', { timeout: 3000 });
+    // Activity log should show construction event (first unlock)
+    await expect(page.locator('#activity-log')).toContainText('constructed', { timeout: 3000 });
   });
 
   test('build Walls — verify defense bonus displayed', async ({ page }) => {
