@@ -65,7 +65,7 @@ describe('TranscendencePanel', () => {
   it('shows prestige count value after prestiging', () => {
     currentState = {
       ...currentState,
-      prestige: { count: 3, legacyPoints: 15, totalFoodProduced: 1_000_000 },
+      prestige: { count: 3, legacyPoints: 15, totalFoodProduced: 1_000_000, totalWoodProduced: 0, totalStoneProduced: 0, totalNectarProduced: 0 },
     };
     panel.refresh();
     const el = panel.getElement();
@@ -90,7 +90,7 @@ describe('TranscendencePanel', () => {
     currentState = {
       ...currentState,
       victoryAchieved: true,
-      prestige: { count: 1, legacyPoints: 10, totalFoodProduced: 500_000 },
+      prestige: { count: 1, legacyPoints: 10, totalFoodProduced: 500_000, totalWoodProduced: 0, totalStoneProduced: 0, totalNectarProduced: 0 },
     };
     panel.refresh();
     const el = panel.getElement();

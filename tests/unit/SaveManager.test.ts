@@ -186,7 +186,7 @@ describe('SaveManager', () => {
       vi.useRealTimers();
     });
 
-    it('offline data caps at 8 hours with 50% efficiency', () => {
+    it('offline data caps at 4 hours with 50% efficiency', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
 
@@ -200,8 +200,8 @@ describe('SaveManager', () => {
       const loaded = saveManager.load();
       expect(loaded).not.toBeNull();
       expect(loaded!.offline!.elapsedMs).toBe(24 * 3_600_000);
-      expect(loaded!.offline!.effectiveMs).toBe(8 * 3_600_000);
-      expect(loaded!.offline!.offlineTicks).toBe(288000);
+      expect(loaded!.offline!.effectiveMs).toBe(4 * 3_600_000);
+      expect(loaded!.offline!.offlineTicks).toBe(144000);
 
       vi.useRealTimers();
     });

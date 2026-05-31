@@ -73,6 +73,17 @@ function makeTranscendenceSave(overrides?: Record<string, unknown>) {
       entropy: 0,
       entropyDampener: { level: 0 },
       prestigeTree: { purchased: [] },
+      prestige: {
+        count: 0,
+        legacyPoints: 0,
+        totalFoodProduced: 500000,
+        totalWoodProduced: 0,
+        totalStoneProduced: 0,
+        totalNectarProduced: 0,
+      },
+      research: {
+        projects: {},
+      },
       nextIds: { expedition: 1, exploration: 1, spaceship: 1 },
       ...overrides,
     },
