@@ -24,7 +24,7 @@ const BUILDING_BASE_COSTS: Record<BuildingType, Cost> = {
 
 export function getBuildCost(building: BuildingType, level: number): Cost {
   const base = BUILDING_BASE_COSTS[building];
-  return {
+  const cost: Cost = {
     food: buildingUpgradeCost(base.food, level),
     wood: buildingUpgradeCost(base.wood, level),
     stone: buildingUpgradeCost(base.stone, level),
@@ -33,6 +33,20 @@ export function getBuildCost(building: BuildingType, level: number): Cost {
     silk: buildingUpgradeCost(base.silk, level),
     venom: buildingUpgradeCost(base.venom, level),
   };
+
+  // Advanced building costs (Lv.5+): combat resources as resource sink
+  if (level >= 5) {
+    if (building === 'barracks') {
+      cost.chitin += buildingUpgradeCost(1, level);
+    } else if (building === 'walls') {
+      cost.silk += buildingUpgradeCost(1, level);
+    } else if (building === 'warehouse') {
+      cost.silk += buildingUpgradeCost(1, level);
+      cost.chitin += buildingUpgradeCost(1, level);
+    }
+  }
+
+  return cost;
 }
 
 export function canBuild(building: BuildingType, state: GameState): boolean {

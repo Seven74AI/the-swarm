@@ -70,6 +70,9 @@ export class UIRoot {
   /** Container div (#panels) where all panels are appended. */
   private panelsContainer: HTMLElement | null = null;
 
+  /** Pause button reference for icon update on keyboard toggle. */
+  private pauseBtnEl: HTMLButtonElement | null = null;
+
   /** Registry mapping panelId → factory function. Populated in constructor. */
   private panelRegistry: Map<string, () => HTMLElement> = new Map();
 
@@ -206,6 +209,26 @@ export class UIRoot {
     ).getElement());
   }
 
+  /**
+   * Toggle pause state — used by both button click and Space keyboard shortcut.
+   * Reads current state, calls loop.pause()/resume(), updates signal + UI.
+   */
+  private togglePause(): void {
+    const btn = this.pauseBtnEl;
+    const state = this.getState();
+    if (state.paused) {
+      this.loop.resume();
+      this.setState({ ...state, paused: false });
+      document.body.classList.remove('game-paused');
+      if (btn) btn.textContent = '⏸';
+    } else {
+      this.loop.pause();
+      this.setState({ ...state, paused: true });
+      document.body.classList.add('game-paused');
+      if (btn) btn.textContent = '▶';
+    }
+  }
+
   mount(container: HTMLElement): void {
     container.innerHTML = '';
 
@@ -222,22 +245,19 @@ export class UIRoot {
     pauseBtn.className = 'pause-btn';
     pauseBtn.setAttribute('aria-label', 'Pause game');
     pauseBtn.textContent = '⏸';
-    pauseBtn.addEventListener('click', () => {
-      const state = this.getState();
-      if (state.paused) {
-        this.loop.resume();
-        this.setState({ ...state, paused: false });
-        // Restore body class and icon immediately (before next signal tick)
-        document.body.classList.remove('game-paused');
-        pauseBtn.textContent = '⏸';
-      } else {
-        this.loop.pause();
-        this.setState({ ...state, paused: true });
-        document.body.classList.add('game-paused');
-        pauseBtn.textContent = '▶';
-      }
-    });
+    pauseBtn.addEventListener('click', () => this.togglePause());
+    this.pauseBtnEl = pauseBtn;
     topBar.appendChild(pauseBtn);
+
+    // Keyboard shortcut: Space toggles pause
+    document.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key !== ' ') return;
+      // Ignore when focus is on an input or textarea
+      const tag = (document.activeElement?.tagName ?? '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea') return;
+      e.preventDefault();
+      this.togglePause();
+    });
 
     const phaseLabel = document.createElement('span');
     phaseLabel.className = 'game-phase';
