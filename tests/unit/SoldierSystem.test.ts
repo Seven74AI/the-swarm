@@ -6,6 +6,7 @@ import { createInitialState, type GameState } from '../../src/state/GameState';
 /**
  * SoldierSystem tests — behavior-focused.
  * No hardcoded formula outputs. Tests invariants, edge cases, and direction of change.
+ * Updated: weapon uses chitin, armor uses silk, building gates added.
  */
 describe('SoldierSystem — pipeline-based', () => {
   let bus: EventBus;
@@ -125,6 +126,90 @@ describe('SoldierSystem — pipeline-based', () => {
     });
   });
 
+  describe('upgradeWeapon', () => {
+    it('costs chitin, not food', () => {
+      state.buildings.chitin_armory = { level: 1 };
+      state.combatResources.chitin = 50;
+      const chitinBefore = state.combatResources.chitin;
+      const foodBefore = state.resources.food;
+      const result = system.upgradeWeapon(state);
+      expect(result.combatResources.chitin).toBeLessThan(chitinBefore);
+      expect(result.resources.food).toBe(foodBefore); // food unchanged
+      expect(result.equipment.weapon).toBeGreaterThan(state.equipment.weapon);
+    });
+
+    it('returns unchanged when chitin insufficient', () => {
+      state.buildings.chitin_armory = { level: 1 };
+      state.combatResources.chitin = 0;
+      const result = system.upgradeWeapon(state);
+      expect(result).toBe(state);
+    });
+
+    it('returns unchanged when no chitin armory built', () => {
+      state.combatResources.chitin = 100;
+      // chitin_armory is level 0 by default
+      const result = system.upgradeWeapon(state);
+      expect(result).toBe(state);
+    });
+
+    it('returns unchanged when chitin armory level is 0', () => {
+      state.buildings.chitin_armory = { level: 0 };
+      state.combatResources.chitin = 100;
+      const result = system.upgradeWeapon(state);
+      expect(result).toBe(state);
+    });
+
+    it('returns unchanged at max equipment level', () => {
+      state.buildings.chitin_armory = { level: 1 };
+      state.combatResources.chitin = 100;
+      state.equipment.weapon = 5; // MAX_EQUIPMENT_LEVEL
+      const result = system.upgradeWeapon(state);
+      expect(result).toBe(state);
+    });
+  });
+
+  describe('upgradeArmor', () => {
+    it('costs silk, not food', () => {
+      state.buildings.silk_weaving = { level: 1 };
+      state.combatResources.silk = 50;
+      const silkBefore = state.combatResources.silk;
+      const foodBefore = state.resources.food;
+      const result = system.upgradeArmor(state);
+      expect(result.combatResources.silk).toBeLessThan(silkBefore);
+      expect(result.resources.food).toBe(foodBefore); // food unchanged
+      expect(result.equipment.armor).toBeGreaterThan(state.equipment.armor);
+    });
+
+    it('returns unchanged when silk insufficient', () => {
+      state.buildings.silk_weaving = { level: 1 };
+      state.combatResources.silk = 0;
+      const result = system.upgradeArmor(state);
+      expect(result).toBe(state);
+    });
+
+    it('returns unchanged when no silk weaving built', () => {
+      state.combatResources.silk = 100;
+      // silk_weaving is level 0 by default
+      const result = system.upgradeArmor(state);
+      expect(result).toBe(state);
+    });
+
+    it('returns unchanged when silk weaving level is 0', () => {
+      state.buildings.silk_weaving = { level: 0 };
+      state.combatResources.silk = 100;
+      const result = system.upgradeArmor(state);
+      expect(result).toBe(state);
+    });
+
+    it('returns unchanged at max equipment level', () => {
+      state.buildings.silk_weaving = { level: 1 };
+      state.combatResources.silk = 100;
+      state.equipment.armor = 5; // MAX_EQUIPMENT_LEVEL
+      const result = system.upgradeArmor(state);
+      expect(result).toBe(state);
+    });
+  });
+
   describe('events', () => {
     it('emits soldiers_changed when training completes', () => {
       let count = -1;
@@ -140,6 +225,24 @@ describe('SoldierSystem — pipeline-based', () => {
       state.soldierPipeline = { count: 0, progress: 0 };
       system.tick(state, 1);
       expect(emitted).toBe(false);
+    });
+
+    it('emits weapon_upgraded on success', () => {
+      state.buildings.chitin_armory = { level: 1 };
+      state.combatResources.chitin = 50;
+      let level = -1;
+      bus.subscribe('weapon_upgraded', (p) => { level = (p as { level: number }).level; });
+      system.upgradeWeapon(state);
+      expect(level).toBeGreaterThan(-1);
+    });
+
+    it('emits armor_upgraded on success', () => {
+      state.buildings.silk_weaving = { level: 1 };
+      state.combatResources.silk = 50;
+      let level = -1;
+      bus.subscribe('armor_upgraded', (p) => { level = (p as { level: number }).level; });
+      system.upgradeArmor(state);
+      expect(level).toBeGreaterThan(-1);
     });
   });
 });
