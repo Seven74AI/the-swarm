@@ -16,10 +16,12 @@ export class Ticker {
   private accumulator = 0;
   private lastTime = 0;
   private running = false;
+  private _paused = false;
 
   start(): void {
     if (this.running) return;
     this.running = true;
+    this._paused = false;
     this.lastTime = performance.now();
     this.accumulator = 0;
     this.rafId = requestAnimationFrame(this.loop);
@@ -27,10 +29,47 @@ export class Ticker {
 
   stop(): void {
     this.running = false;
+    this._paused = false;
     if (this.rafId !== null) {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;
     }
+  }
+
+  /**
+   * Pause the ticker without resetting the delta-time accumulator.
+   * Callbacks stop firing immediately; resume() picks up where pause() left off.
+   * Idempotent — calling pause() when already paused is a no-op.
+   */
+  pause(): void {
+    if (!this.running) return;
+    this.running = false;
+    this._paused = true;
+    if (this.rafId !== null) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+  }
+
+  /**
+   * Resume from a paused state. Restarts the rAF loop WITHOUT resetting the
+   * delta-time accumulator, so no game time is lost during the pause.
+   * Idempotent — calling resume() when not paused is a no-op.
+   */
+  resume(): void {
+    if (!this._paused) return;
+    this._paused = false;
+    this.running = true;
+    this.lastTime = performance.now();
+    this.rafId = requestAnimationFrame(this.loop);
+  }
+
+  /**
+   * Returns true when the ticker is explicitly paused (not just stopped or
+   * not-yet-started). A stopped ticker that was never paused returns false.
+   */
+  isPaused(): boolean {
+    return this._paused;
   }
 
   /** Public for offline catch-up: pre-fill accumulator with elapsed wall-clock time */

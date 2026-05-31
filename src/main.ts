@@ -151,6 +151,9 @@ export function bootstrap(): {
 
   // Wire resource ticking into the game loop (dtSec = 0.05 for 50ms ticks)
   ticker.onTick((dtSec: number) => {
+    // ── Pause guard: skip all tick processing when paused ──
+    if (gameState.value.paused) return;
+
     const state = gameState.value;
 
     // Generate map if tiles are all empty (first tick)
@@ -352,6 +355,7 @@ export function bootstrap(): {
     getState: () => gameState.value,
     setState: (state: GameState) => { gameState.value = state; },
     audio,
+    loop,
   });
   if (app) {
     ui.mount(app);
@@ -435,6 +439,12 @@ export function bootstrap(): {
   bus.subscribe('prestige_upgrade_purchased', actionSave);
   bus.subscribe('expedition_return', actionSave);
   bus.subscribe('exploration_return', actionSave);
+
+  // Force unpause on load — game always starts running
+  const unpausedState = gameState.value;
+  if (unpausedState.paused) {
+    gameState.value = { ...unpausedState, paused: false };
+  }
 
   loop.start();
 

@@ -27,6 +27,8 @@ export interface Pipeline {
 
 export interface GameState {
   phase: string;
+  /** Whether the game is paused. Paused games stop all systems but save normally. */
+  paused: boolean;
   resources: {
     eggs: number;
     larvae: number;
@@ -226,6 +228,7 @@ export function createEmptyMap(): Tile[] {
 export function createInitialState(): GameState {
   return {
     phase: 'egg_laying',
+    paused: false,
     resources: {
       eggs: 0,
       larvae: 0,
