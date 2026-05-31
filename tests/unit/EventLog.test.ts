@@ -94,44 +94,34 @@ describe('EventLog', () => {
     });
   });
 
-  describe('append-only DOM (no full rebuild)', () => {
-    it('preserves existing DOM nodes when new entries are added', () => {
-      // Get initial DOM entry node
-      const initialEntries = log.getElement().querySelectorAll('.log-entry');
-      expect(initialEntries.length).toBeGreaterThanOrEqual(1);
-      const firstNode = initialEntries[0];
-
-      // Add another entry
-      bus.emit('expedition_launch', { scouts: 1, warriors: 1, destination: 'GARDEN' });
-
-      // First node should still be the same DOM element (not recreated)
-      const afterEntries = log.getElement().querySelectorAll('.log-entry');
-      expect(afterEntries[afterEntries.length - 1]).toBe(firstNode); // oldest entry preserved
-
-      // Should have exactly one new entry (not all rebuilt)
-      expect(afterEntries.length).toBe(initialEntries.length + 1);
-    });
-
-    it('does not recreate DOM nodes when MAX_ENTRIES not exceeded', () => {
-      const nodesBefore: Element[] = [];
-      // Capture references to first 3 entries
-      for (let i = 0; i < 3; i++) {
+  describe('virtual scrolling (render window of ~15 entries)', () => {
+    it('limits DOM entries to RENDER_WINDOW_SIZE when entries exceed window', () => {
+      // Add 20 entries — DOM should keep ~15 visible max (virtual scrolling)
+      for (let i = 0; i < 20; i++) {
         bus.emit('soldier_recruited', { type: 'soldier', count: i + 1 });
       }
-      const allEntries = log.getElement().querySelectorAll('.log-entry');
-      allEntries.forEach((e) => nodesBefore.push(e));
+      const entries = log.getElement().querySelectorAll('.log-entry');
+      // RENDER_WINDOW_SIZE=15, scrollTop=0 → renderStart=0, renderEnd=15
+      expect(entries.length).toBeLessThanOrEqual(15);
+    });
 
-      // Add one more entry
-      bus.emit('building_complete', { building: 'nest', level: 2 });
-
-      // All previous nodes should still be in DOM and identical
-      const afterEntries = log.getElement().querySelectorAll('.log-entry');
-      for (let i = 0; i < nodesBefore.length; i++) {
-        // Old nodes shift down by 1 (new entry prepended)
-        expect(afterEntries[i + 1]).toBe(nodesBefore[i]);
+    it('renders most recent entries at top when scrolled to top', () => {
+      for (let i = 0; i < 5; i++) {
+        bus.emit('soldier_recruited', { type: 'soldier', count: i + 1 });
       }
-      // One new node added at top
-      expect(afterEntries.length).toBe(nodesBefore.length + 1);
+      const entries = getEntries();
+      // scrollTop=0 in jsdom → renderStart=0, newest entries first
+      expect(entries[0]).toContain('5 soldiers');
+      expect(entries[1]).toContain('4 soldiers');
+    });
+
+    it('renders all entries when total is under RENDER_WINDOW_SIZE', () => {
+      for (let i = 0; i < 3; i++) {
+        bus.emit('building_complete', { building: 'nest', level: i + 1 });
+      }
+      const entries = log.getElement().querySelectorAll('.log-entry');
+      // 3 new + 1 initial = 4 total, all under RENDER_WINDOW_SIZE=15
+      expect(entries.length).toBe(4);
     });
   });
 });
