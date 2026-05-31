@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { gameState } from '../../src/state/gameSignal';
 import { StarmapPanel } from '../../src/ui/panels/StarmapPanel';
 import { EventBus } from '../../src/engine/EventBus';
 import { createInitialState, type GameState } from '../../src/state/GameState';
+import type { PlanetDef } from '../../src/data/planets';
 
 describe('StarmapPanel', () => {
   let bus: EventBus;
@@ -169,5 +170,74 @@ describe('StarmapPanel', () => {
     const text = el.textContent || '';
     expect(text).not.toContain('Active Probes');
     expect(text).not.toContain('Spaceships on Mission');
+  });
+
+  // ── New: onClick and tooltip tests ──
+
+  it('data-tooltip on discovered planet card shows yields', () => {
+    currentState = {
+      ...currentState,
+      discoveredPlanets: ['MARS'],
+      spaceship: { level: 1, fuel: 50, maxFuel: 100 },
+    };
+    panel.refresh();
+    const el = panel.getElement();
+    const marsCard = el.querySelector('.expedition-card:not(.undiscovered)');
+    expect(marsCard).not.toBeNull();
+    const tooltip = marsCard!.getAttribute('data-tooltip');
+    expect(tooltip).toContain('Discovered');
+    expect(tooltip).toContain('MARS');
+    expect(tooltip).toContain('Antimatter');
+  });
+
+  it('data-tooltip on undiscovered planet card shows requirement', () => {
+    const el = panel.getElement();
+    const undisCards = el.querySelectorAll('.expedition-card.undiscovered');
+    expect(undisCards.length).toBeGreaterThan(0);
+    const tooltip = undisCards[0].getAttribute('data-tooltip');
+    expect(tooltip).toContain('Undiscovered');
+    expect(tooltip).toContain('spaceship');
+  });
+
+  it('onPlanetClick fires with planet data when clicking discovered planet', () => {
+    currentState = {
+      ...currentState,
+      discoveredPlanets: ['MARS'],
+      spaceship: { level: 1, fuel: 50, maxFuel: 100 },
+    };
+    panel.refresh();
+
+    const callback = vi.fn();
+    panel.onPlanetClick = callback;
+
+    const el = panel.getElement();
+    const marsCard = el.querySelector('.expedition-card:not(.undiscovered)') as HTMLElement;
+    marsCard.click();
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    const planet: PlanetDef = callback.mock.calls[0][0];
+    expect(planet.name).toBe('MARS');
+    expect(callback.mock.calls[0][1]).toBe(true); // discovered
+  });
+
+  it('onPlanetClick fires with planet data when clicking undiscovered planet', () => {
+    const callback = vi.fn();
+    panel.onPlanetClick = callback;
+
+    const el = panel.getElement();
+    const undisCard = el.querySelector('.expedition-card.undiscovered') as HTMLElement;
+    undisCard.click();
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    const planet: PlanetDef = callback.mock.calls[0][0];
+    expect(planet.name).toBeTruthy();
+    expect(callback.mock.calls[0][1]).toBe(false); // undiscovered
+  });
+
+  it('does not throw when clicking and no callback is set', () => {
+    panel.onPlanetClick = null;
+    const el = panel.getElement();
+    const card = el.querySelector('.expedition-card') as HTMLElement;
+    expect(() => card.click()).not.toThrow();
   });
 });
