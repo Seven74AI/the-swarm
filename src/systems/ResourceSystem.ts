@@ -5,6 +5,7 @@ import { upgradeCost } from '../utils/math';
 import { getEffects } from './BuildingSystem';
 import { productionMultiplier, workerEfficiency } from '../engine/ProgressionCurve';
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
+import { getMutationEffects } from './MutationSystem';
 
 /**
  * Per-second deterministic resource rates computed from game state.
@@ -35,6 +36,7 @@ export function computeResourceRates(
   territoryBonuses?: TerritoryBonuses,
 ): ResourceRates {
   const prestigeBonuses = getPrestigeBonuses(state);
+  const mutationEffects = getMutationEffects(state);
   const workers = state.resources.workers;
   const assigned = state.workersAssigned;
   const gatherCount = assigned.gather;
@@ -46,6 +48,7 @@ export function computeResourceRates(
   const foodProducedPerSec = (
     (gatherCount * 2 + Math.max(0, unassignedCount) * 1)
     * prodMult * workerEff * prestigeBonuses.food * prestigeBonuses.workerEfficiency
+    * (1 + mutationEffects.gatherRate)
   );
   const foodConsumedPerSec = workers / 2;
 
@@ -140,12 +143,14 @@ export class ResourceSystem {
 
     // Prestige tree production bonuses
     const prestigeBonuses = getPrestigeBonuses(state);
+    const mutationEffects = getMutationEffects(state);
 
     // Egg pipeline rate
     const eggPipe = state.eggPipeline;
     const tendCount = state.workersAssigned.tend;
     const hatchRate = eggPipe.count > 0
-      ? (eggPipe.count / EGG_HATCH_TIME) * (1 + tendCount * TEND_MULTIPLIER) * prestigeBonuses.eggLaying
+      ? (eggPipe.count / EGG_HATCH_TIME) * (1 + tendCount * TEND_MULTIPLIER)
+        * prestigeBonuses.eggLaying * (1 + mutationEffects.hatchRate)
       : 0;
 
     // Larva pipeline rate

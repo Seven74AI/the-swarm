@@ -60,12 +60,12 @@ describe('GameLoop', () => {
       const loop = new GameLoop(ticker);
       const state: GameState = {
         ...createInitialState(),
-        prestige: { count: 1, legacyPoints: 3, totalFoodProduced: 100000 },
+        prestige: { count: 1, legacyPoints: 3, totalFoodProduced: 100000, totalWoodProduced: 0, totalStoneProduced: 0, totalNectarProduced: 0 },
       };
 
-      // 1.12 * (1 + 3*0.5) = 1.12 * 2.5 = 2.8
+      // 1.12 * (1 + 3*0.15) = 1.12 * 1.45 = 1.624
       const mult = loop.getProductionMultiplier(state);
-      expect(mult).toBeCloseTo(2.8, 4);
+      expect(mult).toBeCloseTo(1.624, 4);
     });
   });
 

@@ -2,6 +2,7 @@ import { effect } from '@preact/signals-core';
 import { gameState } from '../../state/gameSignal';
 import type { EventBus } from '../../engine/EventBus';
 import type { ResourceSystem } from '../../systems/ResourceSystem';
+import { computeResourceRates } from '../../systems/ResourceSystem';
 import type { GameState } from '../../state/GameState';
 import { getEffects } from '../../systems/BuildingSystem';
 
@@ -11,24 +12,14 @@ interface RoleDef {
   label: string;
   icon: string;
   desc: string;
-  /** Hover tooltip explaining what this worker role does. */
-  tooltip: string;
 }
 
 const ROLE_DISPLAY: Record<Role, RoleDef> = {
-  gather: { label: 'Gather', icon: '🌾', desc: '+2 food/tick',
-    tooltip: 'Assign workers to gather food. Each gatherer produces +2 food/tick.' },
-  tend:   { label: 'Tend',   icon: '🥚', desc: '+25% hatch rate each',
-    tooltip: 'Assign workers to tend eggs. Each tender boosts hatch rate by +25%.' },
-  dig:    { label: 'Dig',    icon: '⛏️', desc: 'Each Dig worker adds +1 capacity per second.',
-    tooltip: 'Each Dig worker adds +1 nest capacity per second.' },
-  guard:  { label: 'Guard',  icon: '🛡️', desc: 'defense + unlocks combat phase',
-    tooltip: 'Assign guards to defend the colony. Unlocks the combat phase at 50 workers.' },
+  gather: { label: 'Gather', icon: '🌾', desc: '+2 food/sec' },
+  tend:   { label: 'Tend',   icon: '🥚', desc: '+25% hatch rate each' },
+  dig:    { label: 'Dig',    icon: '⛏️', desc: 'Each Dig worker adds +1 capacity per second.' },
+  guard:  { label: 'Guard',  icon: '🛡️', desc: 'defense + unlocks combat phase' },
 };
-
-const FOOD_PER_GATHER = 2;
-const FOOD_PER_UNASSIGNED = 1;
-const FOOD_CONSUMED_PER_2_WORKERS = 1; // 1 food per 2 workers
 
 export class WorkerAssignment {
   private container: HTMLDivElement;
@@ -52,7 +43,7 @@ export class WorkerAssignment {
 
     const hint = document.createElement('div');
     hint.className = 'worker-hint';
-    hint.textContent = 'Each worker costs −0.5 food/tick';
+    hint.textContent = 'Each worker costs −0.5 food/sec';
     this.container.appendChild(hint);
 
     const roles: Role[] = ['gather', 'tend', 'dig', 'guard'];
@@ -154,8 +145,10 @@ export class WorkerAssignment {
 
     row.setAttribute('data-role', role);
 
-    // Set hover tooltip from role definition
-    row.setAttribute('data-tooltip', ROLE_DISPLAY[role].tooltip);
+    // Add tooltip for Dig role
+    if (role === 'dig') {
+      row.setAttribute('data-tooltip', 'Each Dig worker adds +1 capacity per second.');
+    }
 
     return row;
   }
@@ -176,18 +169,13 @@ export class WorkerAssignment {
   }
 
   private refreshSummary(state: GameState): void {
-    const w = state.resources.workers;
-    const a = state.workersAssigned;
-    const assigned = a.gather + a.tend + a.dig + a.guard;
-    const unassigned = Math.max(0, w - assigned);
-    const produced = a.gather * FOOD_PER_GATHER + unassigned * FOOD_PER_UNASSIGNED;
-    const consumed = Math.floor(w / 2) * FOOD_CONSUMED_PER_2_WORKERS;
-    const net = produced - consumed;
+    const rates = computeResourceRates(state);
+    const net = rates.foodProducedPerSec - rates.foodConsumedPerSec;
 
-    const newText = net >= 0 ? `+${net}/tick` : `${net}/tick`;
-    const newClass = net >= 0 ? 'worker-summary-value food-positive' : 'worker-summary-value food-negative';
+    const netInt = Math.floor(net);
+    const newText = netInt >= 0 ? `+${netInt}/sec` : `${netInt}/sec`;
+    const newClass = netInt >= 0 ? 'worker-summary-value food-positive' : 'worker-summary-value food-negative';
 
-    // Dirty-check: only update DOM if value or class changed
     if (this.summaryEl.textContent !== newText) {
       this.summaryEl.textContent = newText;
     }

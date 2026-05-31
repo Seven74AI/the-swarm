@@ -25,6 +25,13 @@ export interface Pipeline {
   progress: number;
 }
 
+/** A colony mutation — a one-time permanent bonus purchased with combat resources. */
+export interface Mutation {
+  id: string;
+  /** Whether this mutation has been purchased. */
+  purchased: boolean;
+}
+
 export interface GameState {
   phase: string;
   /** Whether the game is paused. Paused games stop all systems but save normally. */
@@ -168,6 +175,12 @@ export interface GameState {
     legacyPoints: number;
     /** Lifetime total food produced (never reset). */
     totalFoodProduced: number;
+    /** Lifetime total wood produced (never reset). */
+    totalWoodProduced: number;
+    /** Lifetime total stone produced (never reset). */
+    totalStoneProduced: number;
+    /** Lifetime total nectar produced (never reset). */
+    totalNectarProduced: number;
   };
   /** Automation system — research tree, buildings, auto-production (GM-3). */
   autoProduction: {
@@ -196,6 +209,8 @@ export interface GameState {
     /** IDs of purchased prestige upgrades (never reset). */
     purchased: string[];
   };
+  /** Colony mutations — one-time permanent bonuses purchased with combat resources. Survives prestige. */
+  mutations: Mutation[];
 }
 
 export type ResearchProjectId = 'voidCrystalSynthesis' | 'antimatterContainment' | 'darkMatterDetection';
@@ -324,6 +339,9 @@ export function createInitialState(): GameState {
       count: 0,
       legacyPoints: 0,
       totalFoodProduced: 0,
+      totalWoodProduced: 0,
+      totalStoneProduced: 0,
+      totalNectarProduced: 0,
     },
     autoProduction: {
       enabled: false,
@@ -351,5 +369,13 @@ export function createInitialState(): GameState {
     prestigeTree: {
       purchased: [],
     },
+    mutations: [
+      { id: 'efficient_gatherers', purchased: false },
+      { id: 'swift_soldiers', purchased: false },
+      { id: 'accelerated_hatching', purchased: false },
+      { id: 'tough_shells', purchased: false },
+      { id: 'potent_venom', purchased: false },
+      { id: 'reinforced_mandibles', purchased: false },
+    ],
   };
 }

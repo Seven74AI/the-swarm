@@ -368,4 +368,45 @@ describe('migrateSave', () => {
     expect(v12Data.gameState.resources.surveyData).toBe(0);
     expect(v12Data.timestamp).toBe(1234567890);
   });
+
+  it('migrates v12 to v13 adding mutations array', () => {
+    const preV13State = createInitialState();
+    // Remove mutations to simulate pre-v13 state
+    const { mutations, ...withoutMutations } = preV13State as GameState & { mutations?: unknown };
+    const v12Data: SaveData = {
+      version: 12,
+      timestamp: 1234567890,
+      playTimeMs: 5000,
+      gameState: withoutMutations as GameState,
+    };
+
+    const v13Data = migrateSave(v12Data, 12, 13);
+    expect(v13Data.version).toBe(13);
+    const migratedState = v13Data.gameState as GameState & { mutations: unknown[] };
+    expect(Array.isArray(migratedState.mutations)).toBe(true);
+    expect(migratedState.mutations).toEqual([]);
+    expect(v13Data.timestamp).toBe(1234567890);
+  });
+
+  it('migrates v12 to v13 preserving existing state fields', () => {
+    const state = createInitialState();
+    state.resources.eggs = 42;
+    state.resources.food = 100;
+    state.combatResources.chitin = 15;
+    const { mutations, ...withoutMutations } = state as GameState & { mutations?: unknown };
+    const v12Data: SaveData = {
+      version: 12,
+      timestamp: 9999,
+      playTimeMs: 1111,
+      gameState: withoutMutations as GameState,
+    };
+
+    const v13Data = migrateSave(v12Data, 12, 13);
+    expect(v13Data.version).toBe(13);
+    expect(v13Data.gameState.resources.eggs).toBe(42);
+    expect(v13Data.gameState.resources.food).toBe(100);
+    expect(v13Data.gameState.combatResources.chitin).toBe(15);
+    const migratedState = v13Data.gameState as GameState & { mutations: unknown[] };
+    expect(Array.isArray(migratedState.mutations)).toBe(true);
+  });
 });

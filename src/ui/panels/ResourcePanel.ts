@@ -1,7 +1,7 @@
 import { effect } from '@preact/signals-core';
 import { gameState } from '../../state/gameSignal';
 import { Phase, PHASE_ORDER } from '../../phases/phases';
-import { EGG_HATCH_TIME, LARVA_MATURE_TIME } from '../../systems/ResourceSystem';
+import { EGG_HATCH_TIME, LARVA_MATURE_TIME, computeResourceRates } from '../../systems/ResourceSystem';
 import { getConversionDefs, getConversionRate } from '../../systems/ResourceConversionSystem';
 import type { ConversionId } from '../../systems/ResourceConversionSystem';
 import type { ResourceSystem } from '../../systems/ResourceSystem';
@@ -75,8 +75,10 @@ export class ResourcePanel {
   // Rate indicator spans (updated by effect)
   private eggRateEl: HTMLSpanElement;
   private larvaRateEl: HTMLSpanElement;
+  private foodRateEl: HTMLSpanElement;
   private lastEggRateText: string = '';
   private lastLarvaRateText: string = '';
+  private lastFoodRateText: string = '';
 
   // Critical bar dirty-checking cache — avoids DOM writes when unchanged
   private lastEggsValue: string = '';
@@ -124,8 +126,10 @@ export class ResourcePanel {
     rateRow.className = 'critical-rates';
     this.eggRateEl = this.makeRateEl();
     this.larvaRateEl = this.makeRateEl();
+    this.foodRateEl = this.makeRateEl();
     rateRow.appendChild(this.eggRateEl);
     rateRow.appendChild(this.larvaRateEl);
+    rateRow.appendChild(this.foodRateEl);
     this.container.appendChild(rateRow);
 
     // ── Colony Resources Section ──────────────────────────────
@@ -195,6 +199,15 @@ export class ResourcePanel {
       if (larvaText !== this.lastLarvaRateText) {
         this.larvaRateEl.textContent = larvaText;
         this.lastLarvaRateText = larvaText;
+      }
+
+      // Food rate: net food per second from computeResourceRates
+      const foodRates = computeResourceRates(s);
+      const foodNet = foodRates.foodProducedPerSec - foodRates.foodConsumedPerSec;
+      const foodText = `→ ${formatRate(foodNet)}/s · ${formatRate(foodNet * 60)}/min`;
+      if (foodText !== this.lastFoodRateText) {
+        this.foodRateEl.textContent = foodText;
+        this.lastFoodRateText = foodText;
       }
 
       // Update progress bar with effective capacity and color states

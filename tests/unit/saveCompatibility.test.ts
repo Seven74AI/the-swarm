@@ -44,8 +44,8 @@ function loadAndMigrate(version: number): { saveData: SaveData; gameState: GameS
   const raw = fs.readFileSync(snapshotPath, 'utf-8');
   const saveData: SaveData = JSON.parse(raw);
 
-  // Migrate from version to current (12)
-  const migrated = migrateSave(saveData, version, 12);
+  // Migrate from version to current (13)
+  const migrated = migrateSave(saveData, version, 13);
 
   // Deep-merge with createInitialState() — same as SaveManager.applyDefaults
   const defaults = createInitialState();
