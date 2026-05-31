@@ -7,6 +7,7 @@ import type { ConversionId } from '../../systems/ResourceConversionSystem';
 import type { ResourceSystem } from '../../systems/ResourceSystem';
 import { formatNumber, formatRate } from '../../utils/format';
 import { ProgressBar } from '../components/ProgressBar';
+import { getEffects } from '../../systems/BuildingSystem';
 
 const TEND_MULTIPLIER = 0.25;
 
@@ -197,7 +198,7 @@ export class ResourcePanel {
       }
 
       // Update progress bar with effective capacity and color states
-      const effectiveCap = this.resourceSystem.getEffectiveNestCapacity(s);
+      const effectiveCap = s.resources.nestCapacity + (getEffects('warehouse', s.buildings.warehouse.level).nestCapacity ?? 0);
       const pct = effectiveCap > 0 ? (s.resources.workers / effectiveCap) * 100 : 0;
       let colorClass: string | undefined;
       if (pct >= 100) {
