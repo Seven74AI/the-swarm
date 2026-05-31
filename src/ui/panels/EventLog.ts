@@ -6,9 +6,15 @@ interface LogEntry {
 }
 
 const MAX_ENTRIES = 100;
+/** Number of entries to render in the DOM at once (visible + overscan). */
+const RENDER_WINDOW_SIZE = 15;
+/** Estimated height of a single log-entry in pixels (0.85rem × 1.6 line-height + padding + border). */
+const ENTRY_HEIGHT_PX = 26;
 
 /**
  * Scrolling activity log. Listens for game events and shows milestone-based narrative messages.
+ * Uses virtual scrolling: maintains 100 entries in memory but only renders ~15 DOM elements
+ * based on scroll position, reducing DOM operations by ~85%.
  * Newest entry at top, max 100 entries.
  */
 export class EventLog {
@@ -29,6 +35,8 @@ export class EventLog {
 
   /** Stored callback references for unsubscribe. */
   private unsubscribeHandles: Array<() => void> = [];
+  /** Bound scroll handler for virtual scrolling (stored for removeEventListener). */
+  private boundScrollHandler: (() => void) | null = null;
 
   constructor(private bus: EventBus) {
     this.container = document.createElement('div');
@@ -42,6 +50,10 @@ export class EventLog {
     this.logEl = document.createElement('div');
     this.logEl.className = 'event-log-entries';
     this.container.appendChild(this.logEl);
+
+    // Bind scroll handler for virtual scrolling
+    this.boundScrollHandler = this.onScroll.bind(this);
+    this.logEl.addEventListener('scroll', this.boundScrollHandler, { passive: true });
 
     // Initial message
     this.addEntry('You are an ant queen. Your purpose is clear.');
@@ -174,6 +186,10 @@ export class EventLog {
       unsub();
     }
     this.unsubscribeHandles = [];
+    if (this.boundScrollHandler) {
+      this.logEl.removeEventListener('scroll', this.boundScrollHandler);
+      this.boundScrollHandler = null;
+    }
   }
 
   private addEntry(message: string): void {
@@ -185,13 +201,50 @@ export class EventLog {
   }
 
   private render(): void {
+    // Save scroll position — textContent='' resets scrollTop to 0
+    const savedScrollTop = this.logEl.scrollTop || 0;
+
+    // Compute which entries are in/near the viewport
+    const visibleStart = Math.floor(savedScrollTop / ENTRY_HEIGHT_PX);
+    const renderStart = Math.max(0, visibleStart - Math.floor(RENDER_WINDOW_SIZE / 3));
+    const renderEnd = Math.min(this.entries.length, renderStart + RENDER_WINDOW_SIZE);
+
+    // Clear and rebuild only the visible window + spacers
     this.logEl.textContent = '';
-    for (const entry of this.entries) {
+
+    // Top spacer: entries above the render window
+    if (renderStart > 0) {
+      const topSpacer = document.createElement('div');
+      topSpacer.className = 'log-spacer';
+      topSpacer.style.height = `${renderStart * ENTRY_HEIGHT_PX}px`;
+      this.logEl.appendChild(topSpacer);
+    }
+
+    // Visible entries
+    for (let i = renderStart; i < renderEnd; i++) {
+      const entry = this.entries[i];
       const div = document.createElement('div');
       div.className = 'log-entry';
       div.textContent = entry.message;
       this.logEl.appendChild(div);
     }
+
+    // Bottom spacer: entries below the render window
+    const afterCount = this.entries.length - renderEnd;
+    if (afterCount > 0) {
+      const bottomSpacer = document.createElement('div');
+      bottomSpacer.className = 'log-spacer';
+      bottomSpacer.style.height = `${afterCount * ENTRY_HEIGHT_PX}px`;
+      this.logEl.appendChild(bottomSpacer);
+    }
+
+    // Restore scroll position (after all content is in place)
+    this.logEl.scrollTop = savedScrollTop;
+  }
+
+  /** Re-render on scroll to update the visible window. */
+  private onScroll(): void {
+    this.render();
   }
 
   private onClick(): void {
