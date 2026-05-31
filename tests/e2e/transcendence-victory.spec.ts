@@ -3,8 +3,8 @@ import { test, expect, type Page } from '@playwright/test';
 /**
  * E2E: Transcendence Victory — Phase Transition, Overlay & Post-Victory.
  *
- * Seeds a colony in SPACE phase with voidCrystals≥2000, antimatter≥400,
- * darkMatter≥200 (matching the SPACE→TRANSCENDENCE guard in transitions.ts).
+ * Seeds a colony in SPACE phase with voidCrystals≥500, antimatter≥100,
+ * darkMatter≥50 (matching the SPACE→TRANSCENDENCE guard in transitions.ts).
  * Waits for transition, then verifies the victory achievement, transcendence
  * overlay/panel, post-victory game state, and TranscendencePanel stats.
  *
@@ -30,8 +30,8 @@ function makeSaveData(overrides?: Record<string, unknown>) {
       resources: {
         eggs: 5, larvae: 3, workers: 100, food: 10000,
         nestCapacity: 100, wood: 500, stone: 500, nectar: 300,
-        // Exactly at transcendence guard thresholds: VC≥2000, AM≥400, DM≥200
-        voidCrystals: 2000, antimatter: 400, darkMatter: 200,
+        // Exactly at transcendence guard thresholds: VC≥500, AM≥100, DM≥50
+        voidCrystals: 500, antimatter: 100, darkMatter: 50,
       },
       eggPipeline: { count: 0, progress: 0 },
       larvaPipeline: { count: 0, progress: 0 },
@@ -116,7 +116,7 @@ async function seedAndWaitForTranscendence(page: Page, overrides?: Record<string
   await page.waitForSelector('#panels', { timeout: 10000 });
 
   // Advance time: game tick (50ms) checks transitions.
-  // The guard (VC≥2000, AM≥400, DM≥200) is met immediately.
+  // The guard (VC≥500, AM≥100, DM≥50) is met immediately.
   // A few ticks should trigger the transition.
   await page.clock.runFor(500);
 
@@ -149,7 +149,7 @@ test.describe('Transcendence Victory — Phase Transition & Overlay', () => {
       resources: {
         eggs: 5, larvae: 3, workers: 100, food: 10000,
         nestCapacity: 100, wood: 500, stone: 500, nectar: 300,
-        voidCrystals: 1999, antimatter: 399, darkMatter: 199,
+        voidCrystals: 499, antimatter: 99, darkMatter: 49,
       },
       phase: 'space',
     });
