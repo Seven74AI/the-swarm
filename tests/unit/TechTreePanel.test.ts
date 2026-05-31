@@ -61,8 +61,8 @@ describe('TechTreePanel', () => {
     const lines = el.querySelectorAll('.tech-tree-line');
     // Each node that has prerequisites generates connection lines to its parents
     // Nodes with prerequisites: soldier_training_bonus, worker_efficiency_bonus,
-    // auto_egg_laying, starting_resources, phase_skip (has 2 parents = 2 lines)
-    // Total: 1 + 1 + 1 + 1 + 2 = 6 lines
+    // auto_egg_laying, starting_resources, phase_skip (has 1 parent = 1 line)
+    // Total: 1 + 1 + 1 + 1 + 1 = 5 lines
     expect(lines.length).toBeGreaterThanOrEqual(5);
   });
 

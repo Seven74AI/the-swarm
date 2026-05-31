@@ -143,10 +143,24 @@ export function getRandomEnemy(battlesWon: number): EnemyDef {
   return getEnemyDef(type);
 }
 
+/**
+ * Scale enemy stats based on battles won using a diminishing-returns curve.
+ * Uses pow(battlesWon, 0.6) instead of linear to prevent the combat scaling wall
+ * where enemies outscale the soldier equipment cap (max Lv.5).
+ *
+ * At exponent 0.6:
+ *   battle 10: pow(10, 0.6) ≈ 4.0   (similar to linear 10 with adjusted coeffs)
+ *   battle 100: pow(100, 0.6) ≈ 15.8  (was 100 linear — 6x reduction)
+ *   battle 500: pow(500, 0.6) ≈ 41.7  (was 500 linear — 12x reduction)
+ *
+ * This keeps early battles challenging while preventing late-game runaway.
+ */
 export function scaleEnemy(enemy: EnemyDef, battlesWon: number): EnemyDef {
+  const SCALING_EXPONENT = 0.6;
+  const scale = Math.pow(battlesWon, SCALING_EXPONENT);
   return {
     ...enemy,
-    strength: enemy.strength + enemy.scaling.strengthPerBattle * battlesWon,
-    hp: enemy.hp + enemy.scaling.hpPerBattle * battlesWon,
+    strength: enemy.strength + enemy.scaling.strengthPerBattle * scale,
+    hp: enemy.hp + enemy.scaling.hpPerBattle * scale,
   };
 }

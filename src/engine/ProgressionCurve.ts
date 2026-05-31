@@ -52,14 +52,14 @@ export function productionMultiplier(
  * Apply soft-cap diminishing returns to building effectiveness.
  *
  * Levels 0-5: full base effectiveness.
- * Level 6+: effectiveness = base / (1 + 0.15 * (level - 5))
+ * Level 6+: effectiveness = base / (1 + 0.08 * (level - 5))
  *
  * @param base   Base effectiveness at level ≤5
  * @param level  Current building level
  */
 export function softCapEffectiveness(base: number, level: number): number {
   if (level <= 5) return base;
-  return base / (1 + 0.15 * (level - 5));
+  return base / (1 + 0.08 * (level - 5));
 }
 
 /**

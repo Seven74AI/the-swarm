@@ -128,13 +128,13 @@ describe('ProgressionCurve', () => {
     });
 
     it('applies diminishing returns at level 6', () => {
-      // base=10, level=6 → 10 * (1 / (1 + 0.15 * (6-5))) = 10/1.15 = 8.69565
-      expect(softCapEffectiveness(10, 6)).toBeCloseTo(8.69565, 4);
+      // base=10, level=6 → 10 * (1 / (1 + 0.08 * (6-5))) = 10/1.08 = 9.25926
+      expect(softCapEffectiveness(10, 6)).toBeCloseTo(9.25926, 4);
     });
 
     it('applies stronger diminishing returns at higher levels', () => {
-      // base=10, level=10 → 10 * (1 / (1 + 0.15 * 5)) = 10/1.75 = 5.71429
-      expect(softCapEffectiveness(10, 10)).toBeCloseTo(5.71429, 4);
+      // base=10, level=10 → 10 * (1 / (1 + 0.08 * 5)) = 10/1.40 = 7.14286
+      expect(softCapEffectiveness(10, 10)).toBeCloseTo(7.14286, 4);
     });
 
     it('asymptotically approaches 0 but never reaches it', () => {

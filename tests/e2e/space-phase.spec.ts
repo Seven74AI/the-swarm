@@ -182,10 +182,6 @@ test.describe('Space Phase — Neon Theme & Panels', () => {
   });
 
   test('spaceship upgrade button available when resources sufficient', async ({ page }) => {
-    // SKIP: Design conflict — upgrade needs darkMatter≥4 (SHIP_COSTS[1]),
-    // but transcendence guard fires at darkMatter≥5 (transitions.ts).
-    // Cannot have both affordable upgrade AND non-transcendence state simultaneously.
-    test.skip(true, 'Upgrade cost triggers transcendence — design conflict');
     await seedAndWaitForSpace(page, {
       spaceship: { level: 1, fuel: 80, maxFuel: 100 },
       resources: {

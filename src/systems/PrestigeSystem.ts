@@ -230,16 +230,6 @@ export function buyChronoSynchronization(state: GameState): GameState | null {
 }
 
 /**
- * Get the production multiplier from Legacy Points.
- * Each point gives +2% additive bonus.
- *
- * Returns a multiplier (e.g., 1.0 for 0 points, 1.10 for 5 points).
- */
-export function getProductionBonus(legacyPoints: number): number {
-  return 1.0 + legacyPoints * 0.02;
-}
-
-/**
  * Check if a prestige tree upgrade can be purchased.
  *
  * Requirements:

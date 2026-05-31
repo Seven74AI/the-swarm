@@ -185,12 +185,23 @@ export class EventLog {
   }
 
   private render(): void {
-    this.logEl.textContent = '';
-    for (const entry of this.entries) {
-      const div = document.createElement('div');
-      div.className = 'log-entry';
-      div.textContent = entry.message;
+    // Append-only: create DOM element only for the newest entry (index 0)
+    // instead of clearing and rebuilding all MAX_ENTRIES entries.
+    const entry = this.entries[0];
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+    div.textContent = entry.message;
+
+    // Prepend to keep newest at top
+    if (this.logEl.firstChild) {
+      this.logEl.insertBefore(div, this.logEl.firstChild);
+    } else {
       this.logEl.appendChild(div);
+    }
+
+    // Remove oldest entries if over MAX_ENTRIES
+    while (this.logEl.children.length > MAX_ENTRIES) {
+      this.logEl.lastChild?.remove();
     }
   }
 
