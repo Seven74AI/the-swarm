@@ -30,6 +30,9 @@ export class EventLog {
   /** Stored callback references for unsubscribe. */
   private unsubscribeHandles: Array<() => void> = [];
 
+  /** Re-entrancy guard: prevents recursive render() calls. */
+  private _rendering = false;
+
   constructor(private bus: EventBus) {
     this.container = document.createElement('div');
     this.container.className = 'panel event-log';
@@ -185,23 +188,32 @@ export class EventLog {
   }
 
   private render(): void {
-    // Append-only: create DOM element only for the newest entry (index 0)
-    // instead of clearing and rebuilding all MAX_ENTRIES entries.
-    const entry = this.entries[0];
-    const div = document.createElement('div');
-    div.className = 'log-entry';
-    div.textContent = entry.message;
+    // Re-entrancy guard: prevent recursive calls.
+    // In real browsers, DOM manipulation (insertBefore, remove) can trigger
+    // scroll events which may re-invoke render() via onScroll handlers.
+    if (this._rendering) return;
+    this._rendering = true;
+    try {
+      // Append-only: create DOM element only for the newest entry (index 0)
+      // instead of clearing and rebuilding all MAX_ENTRIES entries.
+      const entry = this.entries[0];
+      const div = document.createElement('div');
+      div.className = 'log-entry';
+      div.textContent = entry.message;
 
-    // Prepend to keep newest at top
-    if (this.logEl.firstChild) {
-      this.logEl.insertBefore(div, this.logEl.firstChild);
-    } else {
-      this.logEl.appendChild(div);
-    }
+      // Prepend to keep newest at top
+      if (this.logEl.firstChild) {
+        this.logEl.insertBefore(div, this.logEl.firstChild);
+      } else {
+        this.logEl.appendChild(div);
+      }
 
-    // Remove oldest entries if over MAX_ENTRIES
-    while (this.logEl.children.length > MAX_ENTRIES) {
-      this.logEl.lastChild?.remove();
+      // Remove oldest entries if over MAX_ENTRIES
+      while (this.logEl.children.length > MAX_ENTRIES) {
+        this.logEl.lastChild?.remove();
+      }
+    } finally {
+      this._rendering = false;
     }
   }
 
