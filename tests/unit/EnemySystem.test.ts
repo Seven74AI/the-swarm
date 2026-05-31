@@ -4,7 +4,30 @@ import {
   getEnemyDefs,
   getRandomEnemy,
   scaleEnemy,
+  type EnemyDef,
 } from '../../src/systems/EnemySystem';
+
+/** Helper: a minimal EnemyDef for scaleEnemy invariant testing. */
+function makeEnemy(overrides: {
+  baseStrength?: number;
+  baseHp?: number;
+  strengthPerBattle?: number;
+  hpPerBattle?: number;
+}): EnemyDef {
+  return {
+    type: 'test_dummy',
+    name: 'Test Dummy',
+    strength: overrides.baseStrength ?? 0,
+    defense: 1,
+    speed: 5,
+    hp: overrides.baseHp ?? 0,
+    loot: { foodMin: 0, foodMax: 0 },
+    scaling: {
+      strengthPerBattle: overrides.strengthPerBattle ?? 1,
+      hpPerBattle: overrides.hpPerBattle ?? 5,
+    },
+  };
+}
 
 describe('EnemySystem', () => {
   describe('getEnemyDef', () => {
@@ -66,7 +89,6 @@ describe('EnemySystem', () => {
       expect(def.hp).toBe(80);
       expect(def.loot.foodMin).toBe(60);
       expect(def.loot.foodMax).toBe(100);
-      // Scorpion gives both venom and chitin as special loot
       expect(def.loot.specialResource).toEqual({ type: 'venom', min: 3, max: 8 });
     });
 
@@ -124,7 +146,6 @@ describe('EnemySystem', () => {
         const enemy = getRandomEnemy(0);
         counts[enemy.type] = (counts[enemy.type] || 0) + 1;
       }
-      // Red Ant should be most common
       const redAntCount = counts['red_ant'] || 0;
       expect(redAntCount).toBeGreaterThan(counts['termite'] || 0);
       expect(redAntCount).toBeGreaterThan(counts['spider'] || 0);
@@ -133,37 +154,72 @@ describe('EnemySystem', () => {
     });
   });
 
-  describe('scaleEnemy', () => {
-    it('returns unmodified enemy at battlesWon=0', () => {
-      const base = getEnemyDef('red_ant');
-      const scaled = scaleEnemy(base, 0);
-      expect(scaled.strength).toBe(base.strength);
-      expect(scaled.hp).toBe(base.hp);
+  describe('scaleEnemy — sub-linear scaling (pow 0.6)', () => {
+    it('returns base stats at 0 battles', () => {
+      const enemy = makeEnemy({ baseStrength: 20, baseHp: 80 });
+      const result = scaleEnemy(enemy, 0);
+      expect(result.strength).toBe(20);
+      expect(result.hp).toBe(80);
     });
 
-    it('increases strength and hp with battlesWon', () => {
-      const base = getEnemyDef('red_ant');
-      // Red Ant scaling: strengthPerBattle=0.5, hpPerBattle=2
-      const scaled = scaleEnemy(base, 4);
-      expect(scaled.strength).toBe(base.strength + 2); // 3 + 0.5*4 = 5
-      expect(scaled.hp).toBe(base.hp + 8); // 15 + 2*4 = 23
+    it('scales up as battles increase', () => {
+      const enemy = makeEnemy({ baseStrength: 20, baseHp: 80, strengthPerBattle: 1, hpPerBattle: 5 });
+      const at10 = scaleEnemy(enemy, 10);
+      const at100 = scaleEnemy(enemy, 100);
+      expect(at100.strength).toBeGreaterThan(at10.strength);
+      expect(at100.hp).toBeGreaterThan(at10.hp);
     });
 
-    it('does not modify the original enemy def (immutable)', () => {
-      const base = getEnemyDef('red_ant');
-      const originalStrength = base.strength;
-      const originalHp = base.hp;
-      scaleEnemy(base, 5);
-      expect(base.strength).toBe(originalStrength);
-      expect(base.hp).toBe(originalHp);
+    it('growth is sub-linear (diminishing returns)', () => {
+      const enemy = makeEnemy({ baseStrength: 0, strengthPerBattle: 1 });
+      const at10 = scaleEnemy(enemy, 10);
+      const at100 = scaleEnemy(enemy, 100);
+      const growthRatio = at100.strength / at10.strength;
+      expect(growthRatio).toBeLessThan(10);
+      expect(growthRatio).toBeGreaterThan(1.5);
     });
 
-    it('scales Scorpion correctly', () => {
-      const base = getEnemyDef('scorpion');
-      // Scorpion: strengthPerBattle=1, hpPerBattle=5 (boss scales faster)
-      const scaled = scaleEnemy(base, 3);
-      expect(scaled.strength).toBe(base.strength + 3); // 20 + 1*3
-      expect(scaled.hp).toBe(base.hp + 15); // 80 + 5*3
+    it('growth rate decelerates from 10→100 vs 100→200', () => {
+      const enemy = makeEnemy({ baseStrength: 0, strengthPerBattle: 1 });
+      const at10 = scaleEnemy(enemy, 10);
+      const at100 = scaleEnemy(enemy, 100);
+      const at200 = scaleEnemy(enemy, 200);
+
+      const growth10to100 = at100.strength - at10.strength;
+      const growth100to200 = at200.strength - at100.strength;
+
+      expect(growth100to200).toBeLessThan(growth10to100);
+    });
+
+    it('does not mutate the original enemy definition', () => {
+      const enemy = makeEnemy({ baseStrength: 20, baseHp: 80 });
+      const originalStr = enemy.strength;
+      const originalHp = enemy.hp;
+      scaleEnemy(enemy, 100);
+      expect(enemy.strength).toBe(originalStr);
+      expect(enemy.hp).toBe(originalHp);
+    });
+
+    it('preserves all non-scaled properties', () => {
+      const enemy = makeEnemy({ baseStrength: 20, baseHp: 80 });
+      const result = scaleEnemy(enemy, 50);
+      expect(result.type).toBe('test_dummy');
+      expect(result.name).toBe('Test Dummy');
+      expect(result.defense).toBe(1);
+      expect(result.speed).toBe(5);
+      expect(result.loot).toEqual(enemy.loot);
+    });
+
+    it('handles large battle counts without exploding', () => {
+      const enemy = makeEnemy({ baseStrength: 20, baseHp: 80, strengthPerBattle: 1, hpPerBattle: 5 });
+      const result = scaleEnemy(enemy, 10000);
+      expect(Number.isFinite(result.strength)).toBe(true);
+      expect(Number.isFinite(result.hp)).toBe(true);
+      expect(result.strength).toBeGreaterThan(0);
+      expect(result.hp).toBeGreaterThan(0);
+      // sub-linear at 10000: pow=251.2, str≈271, hp≈1336 — far below linear (10020/50080)
+      expect(result.strength).toBeLessThan(1000);
+      expect(result.hp).toBeLessThan(2500);
     });
   });
 });
