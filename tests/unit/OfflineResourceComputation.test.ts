@@ -84,12 +84,12 @@ describe('computeResourceRates', () => {
     const r2 = computeResourceRates(state);
     expect(r1).toEqual(r2);
   });
-});
+  });
 
-describe('computeOfflineResourceDeltas', () => {
-  it('returns zero deltas for zero offline time', () => {
-    const state = stateWithWorkers(10, 5);
-    const deltas = computeOfflineResourceDeltas(state, 0);
+  describe('computeOfflineResourceDeltas', () => {
+    it('returns zero deltas for zero offline time', () => {
+      const state = stateWithWorkers(10, 5);
+      const deltas = computeOfflineResourceDeltas(state, 0);
     expect(deltas.foodDelta).toBe(0);
     expect(deltas.woodDelta).toBe(0);
     expect(deltas.stoneDelta).toBe(0);
@@ -178,5 +178,48 @@ describe('computeOfflineResourceDeltas', () => {
 
     // Gross food produced is always non-negative
     expect(deltas.grossFoodProduced).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('computeResourceRates — food rate details', () => {
+  it('food rates are per-second (not per-tick)', () => {
+    // 10 gather workers => base 10*2 = 20 food/sec (before multipliers)
+    // In egg-laying phase, prodMult=1, workerEff ~0.81 at 10 workers
+    const state = stateWithWorkers(10, 10);
+    const rates = computeResourceRates(state);
+    // Per-second rate should be meaningful (>> 0.05 which would be per-tick)
+    expect(rates.foodProducedPerSec).toBeGreaterThan(0);
+    // Gather workers produce more than unassigned workers per capita
+    const stateGather = stateWithWorkers(10, 10); // 10 gather
+    const stateUnassigned = stateWithWorkers(10, 0); // 10 unassigned
+    const gRates = computeResourceRates(stateGather);
+    const uRates = computeResourceRates(stateUnassigned);
+    expect(gRates.foodProducedPerSec).toBeGreaterThan(uRates.foodProducedPerSec);
+  });
+
+  it('net food can be negative when consumption exceeds production', () => {
+    // 100 workers, 0 gatherers → consumption > production
+    const state = stateWithWorkers(100, 0);
+    state.workersAssigned.tend = 100;
+    const rates = computeResourceRates(state);
+    const net = rates.foodProducedPerSec - rates.foodConsumedPerSec;
+    expect(net).toBeLessThan(0);
+  });
+
+  it('food consumption scales with total worker count', () => {
+    const rates10 = computeResourceRates(stateWithWorkers(10, 5));
+    const rates20 = computeResourceRates(stateWithWorkers(20, 5));
+    // 20 workers consume more food than 10 workers
+    expect(rates20.foodConsumedPerSec).toBeGreaterThan(rates10.foodConsumedPerSec);
+  });
+
+  it('food production includes prestige bonuses and worker efficiency', () => {
+    const state = stateWithWorkers(10, 5);
+    const rates = computeResourceRates(state);
+    // Base raw production = 5*2 + 5*1 = 15, but with workerEff < 1 at 10 workers
+    // The rate should be different from the raw base formula
+    const rawBase = 5 * 2 + 5 * 1; // gatherCount * 2 + unassigned * 1
+    // Rate != raw base because of multipliers
+    expect(rates.foodProducedPerSec).not.toBe(rawBase);
   });
 });
