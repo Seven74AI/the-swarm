@@ -4,6 +4,7 @@ import type { EventBus } from '../../engine/EventBus';
 import type { ResourceSystem } from '../../systems/ResourceSystem';
 import { computeResourceRates } from '../../systems/ResourceSystem';
 import type { GameState } from '../../state/GameState';
+import { getEffects } from '../../systems/BuildingSystem';
 
 type Role = 'gather' | 'tend' | 'dig' | 'guard';
 
@@ -58,7 +59,7 @@ export class WorkerAssignment {
     // Reactive: update capacity display
     effect(() => {
       const s = gameState.value;
-      const effectiveCap = this.resourceSystem.getEffectiveNestCapacity(s);
+      const effectiveCap = s.resources.nestCapacity + (getEffects('warehouse', s.buildings.warehouse.level).nestCapacity ?? 0);
       const baseCap = s.resources.nestCapacity;
       const warehouseBonus = effectiveCap - baseCap;
       capacityLine.textContent = warehouseBonus > 0

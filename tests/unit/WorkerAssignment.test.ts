@@ -51,21 +51,21 @@ describe('WorkerAssignment', () => {
     expect(digRow?.getAttribute('data-tooltip')).toContain('capacity');
   });
 
-  it('sets data-tooltip on gather role row with food description', () => {
+  it('does not set data-tooltip on gather role row (desc is self-explanatory)', () => {
     const el = panel.getElement();
     const gatherRow = el.querySelector('[data-role="gather"]');
-    expect(gatherRow?.getAttribute('data-tooltip')).toContain('food');
+    expect(gatherRow?.getAttribute('data-tooltip')).toBeNull();
   });
 
-  it('sets data-tooltip on tend role row with hatch description', () => {
+  it('does not set data-tooltip on tend role row (desc is self-explanatory)', () => {
     const el = panel.getElement();
     const tendRow = el.querySelector('[data-role="tend"]');
-    expect(tendRow?.getAttribute('data-tooltip')).toContain('hatch');
+    expect(tendRow?.getAttribute('data-tooltip')).toBeNull();
   });
 
-  it('sets data-tooltip on guard role row with defense description', () => {
+  it('does not set data-tooltip on guard role row (desc is self-explanatory)', () => {
     const el = panel.getElement();
     const guardRow = el.querySelector('[data-role="guard"]');
-    expect(guardRow?.getAttribute('data-tooltip')).toContain('defend');
+    expect(guardRow?.getAttribute('data-tooltip')).toBeNull();
   });
 });
