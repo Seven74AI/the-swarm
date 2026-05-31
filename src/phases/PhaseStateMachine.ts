@@ -40,4 +40,12 @@ export class PhaseStateMachine {
   getCurrent(): Phase {
     return this.current;
   }
+
+  /**
+   * Set the current phase — used to sync with external phase changes
+   * (e.g., prestige reset) before the next tick evaluates transitions.
+   */
+  setPhase(phase: Phase): void {
+    this.current = phase;
+  }
 }
