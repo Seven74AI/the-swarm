@@ -190,7 +190,7 @@ export class ResourceSystem {
         };
       }
     }
-    const effectiveNestCapacity = this.getEffectiveNestCapacity(state);
+    const effectiveNestCapacity = state.resources.nestCapacity + (getEffects('warehouse', state.buildings.warehouse.level).nestCapacity ?? 0);
 
     // Egg pipeline progress
     let newEggCount = eggPipe.count;
@@ -332,9 +332,4 @@ export class ResourceSystem {
     return result;
   }
 
-  getEffectiveNestCapacity(state: GameState): number {
-    const base = state.resources.nestCapacity;
-    const effects = getEffects('warehouse', state.buildings.warehouse.level);
-    return base + (effects.nestCapacity ?? 0);
-  }
 }
