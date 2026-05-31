@@ -881,6 +881,21 @@ html, body {
   margin-bottom: 0.2rem;
 }
 
+/* Expedition cards are clickable for planet info */
+.expedition-card {
+  cursor: pointer;
+}
+
+/* Undiscovered (red) planet cards — inaccessible */
+.expedition-card.undiscovered {
+  border-color: #8b0000;
+  background: rgba(80, 20, 20, 0.4);
+}
+
+.expedition-card.undiscovered .expedition-card-loot {
+  color: #999;
+}
+
 .expedition-row {
   background: rgba(26, 22, 20, 0.5);
   padding: 0.3rem 0.5rem;

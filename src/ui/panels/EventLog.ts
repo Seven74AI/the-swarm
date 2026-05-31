@@ -166,6 +166,20 @@ export class EventLog {
     };
     bus.subscribe('panel_revealed', onPanelCb);
     this.unsubscribeHandles.push(() => bus.unsubscribe('panel_revealed', onPanelCb));
+
+    const onPlanetClickCb = (payload: unknown) => {
+      const p = payload as {
+        name: string; type: string; yields?: string;
+        accessibility?: string; requirement?: string; discovered?: boolean;
+      };
+      if (p.discovered === false) {
+        this.addEntry(`Planet ${p.name}: undiscovered. ${p.requirement || 'Requires further exploration.'}`);
+      } else {
+        this.addEntry(`Planet ${p.name} (${p.type}): ${p.yields}. ${p.accessibility || ''}`);
+      }
+    };
+    bus.subscribe('planet_clicked', onPlanetClickCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('planet_clicked', onPlanetClickCb));
   }
 
   /** Unsubscribe from all events. Call before discarding this EventLog. */
