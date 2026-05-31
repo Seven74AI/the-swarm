@@ -441,11 +441,12 @@ html, body {
 
 /* ── Event Log ── */
 .event-log {
-  max-height: 200px;
-  overflow-y: auto;
+  /* max-height and overflow-y moved to .event-log-entries for virtual scrolling */
 }
 
 .event-log-entries {
+  max-height: calc(200px - 1.6rem);
+  overflow-y: auto;
   font-size: 0.85rem;
   color: var(--text-secondary);
   line-height: 1.6;
