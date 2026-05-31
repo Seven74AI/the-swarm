@@ -36,6 +36,7 @@ export class BattlePanel {
   private resultSoldiersLost: HTMLDivElement;
   private resultFood: HTMLDivElement;
   private resultLoot: HTMLDivElement;
+  private resultPoison: HTMLDivElement;
   private resultNarrative: HTMLDivElement;
 
   private scoutedEnemy: EnemyDef | null = null;
@@ -181,6 +182,10 @@ export class BattlePanel {
     this.resultLoot = document.createElement('div');
     this.resultArea.appendChild(this.resultLoot);
 
+    this.resultPoison = document.createElement('div');
+    this.resultPoison.className = 'result-poison';
+    this.resultArea.appendChild(this.resultPoison);
+
     this.resultNarrative = document.createElement('div');
     this.resultNarrative.className = 'result-narrative';
     this.resultArea.appendChild(this.resultNarrative);
@@ -322,6 +327,10 @@ export class BattlePanel {
     if (this.battleResult.specialLoot.silk > 0) parts.push(`${this.battleResult.specialLoot.silk} Silk`);
     if (this.battleResult.specialLoot.venom > 0) parts.push(`${this.battleResult.specialLoot.venom} Venom`);
     this.resultLoot.textContent = parts.length > 0 ? `Special Loot: ${parts.join(', ')}` : '';
+
+    this.resultPoison.textContent = this.battleResult.poisonDamageDealt > 0
+      ? `💉 Poison: -${this.battleResult.poisonDamageDealt.toFixed(1)} damage`
+      : '';
 
     this.resultNarrative.textContent = this.battleResult.narrative;
 
