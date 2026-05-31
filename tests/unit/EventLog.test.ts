@@ -228,36 +228,37 @@ describe('EventLog', () => {
     });
   });
 
-  // ── Append-only DOM (unchanged, but updated to avoid soldier_recruited) ──
-  describe('append-only DOM (no full rebuild)', () => {
-    it('preserves existing DOM nodes when new entries are added', () => {
-      const initialEntries = log.getElement().querySelectorAll('.log-entry');
-      expect(initialEntries.length).toBeGreaterThanOrEqual(1);
-      const firstNode = initialEntries[0];
-
-      bus.emit('expedition_launch', { scouts: 1, warriors: 1, destination: 'GARDEN' });
-
-      const afterEntries = log.getElement().querySelectorAll('.log-entry');
-      expect(afterEntries[afterEntries.length - 1]).toBe(firstNode); // oldest entry preserved
-      expect(afterEntries.length).toBe(initialEntries.length + 1);
+  // ── Virtual scrolling (from PR #168, adapted to avoid soldier_recruited) ──
+  describe('virtual scrolling (render window of ~15 entries)', () => {
+    it('limits DOM entries to RENDER_WINDOW_SIZE when entries exceed window', () => {
+      // Add 20 entries using building_complete (soldier_recruited handler removed)
+      for (let i = 0; i < 20; i++) {
+        bus.emit('building_complete', { building: 'nest', level: i + 1 });
+      }
+      const entries = log.getElement().querySelectorAll('.log-entry');
+      // RENDER_WINDOW_SIZE=15, scrollTop=0 → renderStart=0, renderEnd=15
+      expect(entries.length).toBeLessThanOrEqual(15);
     });
 
-    it('does not recreate DOM nodes when MAX_ENTRIES not exceeded', () => {
-      const nodesBefore: Element[] = [];
-      // Use building_complete instead of removed soldier_recruited
+    it('renders most recent entries at top when scrolled to top', () => {
+      // Use building_complete with distinct levels to verify ordering
+      bus.emit('building_complete', { building: 'nest', level: 5 });
+      bus.emit('building_complete', { building: 'hatchery', level: 4 });
+      bus.emit('building_complete', { building: 'barracks', level: 3 });
+      const entries = getEntries();
+      // scrollTop=0 in jsdom → renderStart=0, newest entries first
+      expect(entries[0]).toContain('Barracks upgraded to level 3');
+      expect(entries[1]).toContain('Hatchery upgraded to level 4');
+      expect(entries[2]).toContain('Nest upgraded to level 5');
+    });
+
+    it('renders all entries when total is under RENDER_WINDOW_SIZE', () => {
       for (let i = 0; i < 3; i++) {
         bus.emit('building_complete', { building: 'nest', level: i + 1 });
       }
-      const allEntries = log.getElement().querySelectorAll('.log-entry');
-      allEntries.forEach((e) => nodesBefore.push(e));
-
-      bus.emit('building_complete', { building: 'hatchery', level: 1 });
-
-      const afterEntries = log.getElement().querySelectorAll('.log-entry');
-      for (let i = 0; i < nodesBefore.length; i++) {
-        expect(afterEntries[i + 1]).toBe(nodesBefore[i]);
-      }
-      expect(afterEntries.length).toBe(nodesBefore.length + 1);
+      const entries = log.getElement().querySelectorAll('.log-entry');
+      // 3 new + 1 initial = 4 total, all under RENDER_WINDOW_SIZE=15
+      expect(entries.length).toBe(4);
     });
   });
 });
