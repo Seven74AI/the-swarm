@@ -139,19 +139,14 @@ export class EventLog {
     const onBuildingCb = (payload: unknown) => {
       const p = payload as { building: string; level: number };
       const label = p.building.charAt(0).toUpperCase() + p.building.slice(1);
-      this.addEntry(`${label} upgraded to level ${p.level}. The colony grows stronger.`);
+      if (p.level === 1) {
+        this.addEntry(`${label} constructed — a new building rises in the colony.`);
+      } else {
+        this.addEntry(`${label} upgraded to level ${p.level}. The colony grows stronger.`);
+      }
     };
     bus.subscribe('building_complete', onBuildingCb);
     this.unsubscribeHandles.push(() => bus.unsubscribe('building_complete', onBuildingCb));
-
-    const onRecruitCb = (payload: unknown) => {
-      const p = payload as { type: string; count: number };
-      if (p.count > 0) {
-        this.addEntry(`${p.count} soldier${p.count > 1 ? 's' : ''} completed training and joined the swarm.`);
-      }
-    };
-    bus.subscribe('soldier_recruited', onRecruitCb);
-    this.unsubscribeHandles.push(() => bus.unsubscribe('soldier_recruited', onRecruitCb));
 
     const onPhaseCb = (payload: unknown) => {
       const p = payload as { phase: string };
@@ -159,6 +154,36 @@ export class EventLog {
     };
     bus.subscribe('phase_changed', onPhaseCb);
     this.unsubscribeHandles.push(() => bus.unsubscribe('phase_changed', onPhaseCb));
+
+    const onExplorationReturnCb = (payload: unknown) => {
+      const p = payload as { destination: string; result: string; voidCrystals: number; antimatter: number; darkMatter: number };
+      const resources: string[] = [];
+      if (p.voidCrystals > 0) resources.push(`${p.voidCrystals} void crystals`);
+      if (p.antimatter > 0) resources.push(`${p.antimatter} antimatter`);
+      if (p.darkMatter > 0) resources.push(`${p.darkMatter} dark matter`);
+      const resStr = resources.length > 0 ? ` with ${resources.join(', ')}` : '';
+      if (p.result === 'success' || p.result === 'partial') {
+        this.addEntry(`Scouts return from ${p.destination}${resStr}.`);
+      } else {
+        this.addEntry(`Scouts return from ${p.destination} — the mission yielded nothing.`);
+      }
+    };
+    bus.subscribe('exploration_return', onExplorationReturnCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('exploration_return', onExplorationReturnCb));
+
+    const onProbeLaunchCb = (payload: unknown) => {
+      const p = payload as { destination: string };
+      this.addEntry(`Probe launched toward ${p.destination}.`);
+    };
+    bus.subscribe('probe_launch', onProbeLaunchCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('probe_launch', onProbeLaunchCb));
+
+    const onNarrativeCb = (payload: unknown) => {
+      const p = payload as { message: string };
+      this.addEntry(p.message);
+    };
+    bus.subscribe('narrative', onNarrativeCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('narrative', onNarrativeCb));
 
     const onPanelCb = (payload: unknown) => {
       const p = payload as { panelId: string };
