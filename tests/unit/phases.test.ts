@@ -295,35 +295,35 @@ describe('Transition SPACE → TRANSCENDENCE', () => {
     expect(SPACE_TO_TRANSCENDENCE.to).toBe(Phase.TRANSCENDENCE);
   });
 
-  it('guard returns true when voidCrystals >= 500, antimatter >= 100, darkMatter >= 50', () => {
+  it('guard returns true when voidCrystals >= 2000, antimatter >= 400, darkMatter >= 200', () => {
     const state = createInitialState();
-    state.resources.voidCrystals = 500;
-    state.resources.antimatter = 100;
-    state.resources.darkMatter = 50;
+    state.resources.voidCrystals = 2000;
+    state.resources.antimatter = 400;
+    state.resources.darkMatter = 200;
     expect(SPACE_TO_TRANSCENDENCE.guard(state)).toBe(true);
   });
 
-  it('guard returns false when voidCrystals < 500', () => {
+  it('guard returns false when voidCrystals < 2000', () => {
     const state = createInitialState();
-    state.resources.voidCrystals = 499;
-    state.resources.antimatter = 100;
-    state.resources.darkMatter = 50;
+    state.resources.voidCrystals = 1999;
+    state.resources.antimatter = 400;
+    state.resources.darkMatter = 200;
     expect(SPACE_TO_TRANSCENDENCE.guard(state)).toBe(false);
   });
 
-  it('guard returns false when antimatter < 100', () => {
+  it('guard returns false when antimatter < 400', () => {
     const state = createInitialState();
-    state.resources.voidCrystals = 500;
-    state.resources.antimatter = 99;
-    state.resources.darkMatter = 50;
+    state.resources.voidCrystals = 2000;
+    state.resources.antimatter = 399;
+    state.resources.darkMatter = 200;
     expect(SPACE_TO_TRANSCENDENCE.guard(state)).toBe(false);
   });
 
-  it('guard returns false when darkMatter < 50', () => {
+  it('guard returns false when darkMatter < 200', () => {
     const state = createInitialState();
-    state.resources.voidCrystals = 500;
-    state.resources.antimatter = 100;
-    state.resources.darkMatter = 49;
+    state.resources.voidCrystals = 2000;
+    state.resources.antimatter = 400;
+    state.resources.darkMatter = 199;
     expect(SPACE_TO_TRANSCENDENCE.guard(state)).toBe(false);
   });
 

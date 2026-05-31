@@ -38,7 +38,7 @@ const BUILD_BASE_COSTS: Record<SpaceshipType, Cost> = {
     wood: 200,
     stone: 200,
     nectar: 100,
-    voidCrystals: 50,
+    voidCrystals: 15,
     antimatter: 10,
     darkMatter: 5,
   },
