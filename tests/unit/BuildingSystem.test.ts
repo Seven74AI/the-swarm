@@ -93,6 +93,66 @@ describe('BuildingSystem', () => {
       expect(cost.food).toBe(0);
       expect(cost.wood).toBe(0);
     });
+
+    // Combat resource costs added at Lv.5+ for original buildings
+    describe('advanced combat resource costs (Lv.5+)', () => {
+      it('barracks Lv.4 has no chitin cost', () => {
+        const cost = getBuildCost('barracks', 4);
+        expect(cost.chitin).toBe(0);
+      });
+
+      it('barracks Lv.5 requires chitin', () => {
+        const cost = getBuildCost('barracks', 5);
+        expect(cost.chitin).toBeGreaterThan(0);
+      });
+
+      it('barracks chitin cost scales with level (Lv.6 > Lv.5)', () => {
+        const lv5 = getBuildCost('barracks', 5);
+        const lv6 = getBuildCost('barracks', 6);
+        expect(lv6.chitin).toBeGreaterThan(lv5.chitin);
+      });
+
+      it('walls Lv.4 has no silk cost', () => {
+        const cost = getBuildCost('walls', 4);
+        expect(cost.silk).toBe(0);
+      });
+
+      it('walls Lv.5 requires silk', () => {
+        const cost = getBuildCost('walls', 5);
+        expect(cost.silk).toBeGreaterThan(0);
+      });
+
+      it('walls silk cost scales with level (Lv.6 > Lv.5)', () => {
+        const lv5 = getBuildCost('walls', 5);
+        const lv6 = getBuildCost('walls', 6);
+        expect(lv6.silk).toBeGreaterThan(lv5.silk);
+      });
+
+      it('warehouse Lv.4 has no silk or chitin cost', () => {
+        const cost = getBuildCost('warehouse', 4);
+        expect(cost.silk).toBe(0);
+        expect(cost.chitin).toBe(0);
+      });
+
+      it('warehouse Lv.5 requires silk and chitin', () => {
+        const cost = getBuildCost('warehouse', 5);
+        expect(cost.silk).toBeGreaterThan(0);
+        expect(cost.chitin).toBeGreaterThan(0);
+      });
+
+      it('warehouse silk and chitin costs scale with level', () => {
+        const lv5 = getBuildCost('warehouse', 5);
+        const lv6 = getBuildCost('warehouse', 6);
+        expect(lv6.silk).toBeGreaterThan(lv5.silk);
+        expect(lv6.chitin).toBeGreaterThan(lv5.chitin);
+      });
+
+      it('combat resource costs do not replace standard costs', () => {
+        const lv5 = getBuildCost('barracks', 5);
+        expect(lv5.food).toBeGreaterThan(0);
+        expect(lv5.wood).toBeGreaterThan(0);
+      });
+    });
   });
 
   describe('canBuild', () => {
@@ -158,6 +218,54 @@ describe('BuildingSystem', () => {
       state.resources.nectar = 1000;
       state.combatResources.venom = 10;
       expect(canBuild('venom_lab', state)).toBe(true);
+    });
+
+    it('cannot build barracks Lv.5 without chitin', () => {
+      state.buildings.barracks.level = 4;
+      state.resources.food = 100000;
+      state.resources.wood = 100000;
+      state.combatResources.chitin = 0;
+      expect(canBuild('barracks', state)).toBe(false);
+    });
+
+    it('can build barracks Lv.5 with chitin and base resources', () => {
+      state.buildings.barracks.level = 4;
+      state.resources.food = 100000;
+      state.resources.wood = 100000;
+      state.combatResources.chitin = 10000;
+      expect(canBuild('barracks', state)).toBe(true);
+    });
+
+    it('cannot build walls Lv.5 without silk', () => {
+      state.buildings.walls.level = 4;
+      state.resources.stone = 100000;
+      state.combatResources.silk = 0;
+      expect(canBuild('walls', state)).toBe(false);
+    });
+
+    it('can build walls Lv.5 with silk and stone', () => {
+      state.buildings.walls.level = 4;
+      state.resources.stone = 100000;
+      state.combatResources.silk = 10000;
+      expect(canBuild('walls', state)).toBe(true);
+    });
+
+    it('cannot build warehouse Lv.5 without silk and chitin', () => {
+      state.buildings.warehouse.level = 4;
+      state.resources.wood = 100000;
+      state.resources.stone = 100000;
+      state.combatResources.silk = 10000;
+      state.combatResources.chitin = 0;
+      expect(canBuild('warehouse', state)).toBe(false);
+    });
+
+    it('can build warehouse Lv.5 with both silk and chitin', () => {
+      state.buildings.warehouse.level = 4;
+      state.resources.wood = 100000;
+      state.resources.stone = 100000;
+      state.combatResources.silk = 10000;
+      state.combatResources.chitin = 10000;
+      expect(canBuild('warehouse', state)).toBe(true);
     });
   });
 
