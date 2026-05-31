@@ -474,11 +474,12 @@ html, body {
 
 /* ── Event Log ── */
 .event-log {
-  max-height: 200px;
-  overflow-y: auto;
+  /* max-height and overflow-y moved to .event-log-entries for virtual scrolling */
 }
 
 .event-log-entries {
+  max-height: calc(200px - 1.6rem);
+  overflow-y: auto;
   font-size: 0.85rem;
   color: var(--text-secondary);
   line-height: 1.6;
@@ -912,6 +913,21 @@ html, body {
   font-size: 0.65rem;
   color: var(--accent-glow);
   margin-bottom: 0.2rem;
+}
+
+/* Expedition cards are clickable for planet info */
+.expedition-card {
+  cursor: pointer;
+}
+
+/* Undiscovered (red) planet cards — inaccessible */
+.expedition-card.undiscovered {
+  border-color: #8b0000;
+  background: rgba(80, 20, 20, 0.4);
+}
+
+.expedition-card.undiscovered .expedition-card-loot {
+  color: #999;
 }
 
 .expedition-row {
