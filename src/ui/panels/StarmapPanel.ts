@@ -6,6 +6,7 @@ import { PLANETS } from '../../data/planets';
 
 export class StarmapPanel {
   private container: HTMLDivElement;
+  private lastHash: string = '';
 
   constructor(
     private bus: EventBus,
@@ -30,8 +31,22 @@ export class StarmapPanel {
   refresh(): void { this.render(); }
 
   private render(): void {
-    this.container.innerHTML = '';
     const state = this.getState();
+
+    // Compute hash of starmap state to skip re-render when unchanged
+    const shipHash = state.spaceships.map(s =>
+      `${s.type}:${s.status}:${s.destinationName ?? ''}:${s.missionTicksRemaining}:${s.level}`
+    ).join(',');
+    const probeHash = state.spaceProbes.map(p =>
+      `${p.destination}:${p.scouts}:${p.ticksRemaining}`
+    ).join(',');
+    const planetHash = state.discoveredPlanets.join(',');
+    const hash = `ship:${state.spaceship.level}|ships:${shipHash}|probes:${probeHash}|planets:${planetHash}`;
+
+    if (hash === this.lastHash) return;
+    this.lastHash = hash;
+
+    this.container.innerHTML = '';
 
     // Header
     const header = document.createElement('div');
