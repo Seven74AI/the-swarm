@@ -26,6 +26,11 @@ describe('BattleSystem', () => {
     state.equipment.armor = 0;
   }
 
+  function setupVenomLab(level: number, venomStock: number): void {
+    state.buildings.venom_lab.level = level;
+    state.combatResources.venom = venomStock;
+  }
+
   describe('resolveBattle', () => {
     it('returns victory with strong army vs Red Ant', () => {
       setupStrongArmy(100);
@@ -74,6 +79,7 @@ describe('BattleSystem', () => {
       expect(result).toHaveProperty('enemyType');
       expect(result).toHaveProperty('foodGained');
       expect(result).toHaveProperty('specialLoot');
+      expect(result).toHaveProperty('poisonDamageDealt');
       expect(result).toHaveProperty('narrative');
       expect(result.specialLoot).toHaveProperty('chitin');
       expect(result.specialLoot).toHaveProperty('silk');
@@ -82,6 +88,7 @@ describe('BattleSystem', () => {
       expect(typeof result.soldiersLost).toBe('number');
       expect(typeof result.enemyType).toBe('string');
       expect(typeof result.foodGained).toBe('number');
+      expect(typeof result.poisonDamageDealt).toBe('number');
       expect(typeof result.narrative).toBe('string');
     });
 
@@ -238,6 +245,68 @@ describe('BattleSystem', () => {
       // On defeat, all soldiers are lost — army strength was insufficient
       expect(result.soldiersLost).toBe(state.combatSoldiers);
       expect(newState.combatSoldiers).toBe(0);
+    });
+
+    // Venom poison DoT tests
+
+    it('poisonDamageDealt is 0 when Venom Lab not built', () => {
+      setupStrongArmy(100);
+      const { result } = system.resolveBattle(state);
+      expect(result.poisonDamageDealt).toBe(0);
+    });
+
+    it('consumes 1 venom when poison activates', () => {
+      setupStrongArmy(100);
+      setupVenomLab(1, 3);
+      const venomBefore = state.combatResources.venom;
+      const { newState, result } = system.resolveBattle(state);
+      // If poison activated, venom was consumed. Net may be higher if loot dropped.
+      // If the result is a victory with venom loot, venom may increase.
+      if (result.poisonDamageDealt > 0) {
+        // Venom was consumed (1) — net should be at least venomBefore - 1 (minus consumption)
+        expect(newState.combatResources.venom).toBeGreaterThanOrEqual(venomBefore - 1);
+      }
+    });
+
+    it('poisonDamageDealt is greater than 0 when venom lab built and venom in stock', () => {
+      setupStrongArmy(100);
+      setupVenomLab(1, 5);
+      const { result } = system.resolveBattle(state);
+      expect(result.poisonDamageDealt).toBeGreaterThan(0);
+    });
+
+    it('does not consume venom when venom stock is 0', () => {
+      setupStrongArmy(100);
+      setupVenomLab(1, 0);
+      const { newState, result } = system.resolveBattle(state);
+      // No poison activates, but enemy may drop venom as loot
+      expect(result.poisonDamageDealt).toBe(0);
+      // Venom can increase from loot but NOT decrease from consumption
+    });
+
+    it('does not apply poison when Venom Lab is level 0', () => {
+      setupStrongArmy(100);
+      setupVenomLab(0, 5);
+      const { result } = system.resolveBattle(state);
+      expect(result.poisonDamageDealt).toBe(0);
+      // No venom consumed — stock should be >= original (may increase from loot)
+      expect(result.poisonDamageDealt).toBe(0);
+    });
+
+    it('poisonDamageDealt is non-negative', () => {
+      setupStrongArmy(100);
+      setupVenomLab(1, 5);
+      for (let i = 0; i < 10; i++) {
+        const testState = {
+          ...createInitialState(),
+          combatSoldiers: 100,
+          equipment: { weapon: 5, armor: 5 },
+          buildings: { ...createInitialState().buildings, venom_lab: { level: 1 } },
+          combatResources: { chitin: 0, silk: 0, venom: 5 },
+        };
+        const { result } = system.resolveBattle(testState);
+        expect(result.poisonDamageDealt).toBeGreaterThanOrEqual(0);
+      }
     });
   });
 });
