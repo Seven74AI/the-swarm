@@ -88,6 +88,9 @@ describe('PrestigePanel', () => {
         barracks: { level: 5, count: 0 },
         walls: { level: 5 },
         warehouse: { level: 5 },
+        silk_weaving: { level: 0 },
+        chitin_armory: { level: 0 },
+        venom_lab: { level: 0 },
       },
       prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 100_000 },
     };
@@ -115,6 +118,9 @@ describe('PrestigePanel', () => {
         barracks: { level: 5, count: 0 },
         walls: { level: 5 },
         warehouse: { level: 5 },
+        silk_weaving: { level: 0 },
+        chitin_armory: { level: 0 },
+        venom_lab: { level: 0 },
       },
       prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 1_000_000_000 },
     };
@@ -132,6 +138,9 @@ describe('PrestigePanel', () => {
         barracks: { level: 5, count: 0 },
         walls: { level: 5 },
         warehouse: { level: 5 },
+        silk_weaving: { level: 0 },
+        chitin_armory: { level: 0 },
+        venom_lab: { level: 0 },
       },
       prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 100_000 },
     };

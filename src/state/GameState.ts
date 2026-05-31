@@ -69,6 +69,9 @@ export interface GameState {
     barracks: { level: number; count: number };
     walls: { level: number };
     warehouse: { level: number };
+    silk_weaving: { level: number };
+    chitin_armory: { level: number };
+    venom_lab: { level: number };
   };
   territory: {
     ownedTiles: number;
@@ -261,6 +264,9 @@ export function createInitialState(): GameState {
       barracks: { level: 0, count: 0 },
       walls: { level: 0 },
       warehouse: { level: 0 },
+      silk_weaving: { level: 0 },
+      chitin_armory: { level: 0 },
+      venom_lab: { level: 0 },
     },
     territory: {
       ownedTiles: 0,

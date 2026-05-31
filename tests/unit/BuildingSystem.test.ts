@@ -6,6 +6,7 @@ import { canBuild, build, getBuildCost, getEffects, type BuildingType } from '..
  * BuildingSystem tests — behavior-focused.
  * Tests cost/effect direction, resource deduction, invariants,
  * exponential cost scaling (×2.5), and soft-cap diminishing returns.
+ * Added: combat resource building types and combat resource cost checks.
  */
 describe('BuildingSystem', () => {
   let state: GameState;
@@ -16,10 +17,10 @@ describe('BuildingSystem', () => {
 
   describe('getBuildCost', () => {
     it('returns positive costs for all building types', () => {
-      const types: BuildingType[] = ['barracks', 'walls', 'warehouse'];
+      const types: BuildingType[] = ['barracks', 'walls', 'warehouse', 'silk_weaving', 'chitin_armory', 'venom_lab'];
       for (const type of types) {
         const cost = getBuildCost(type, 1);
-        expect(cost.food + cost.wood + cost.stone + cost.nectar).toBeGreaterThan(0);
+        expect(cost.food + cost.wood + cost.stone + cost.nectar + cost.chitin + cost.silk + cost.venom).toBeGreaterThan(0);
       }
     });
 
@@ -65,6 +66,33 @@ describe('BuildingSystem', () => {
       expect(getBuildCost('warehouse', 1).wood).toBe(375);  // 150 * 2.5
       expect(getBuildCost('warehouse', 1).stone).toBe(250); // 100 * 2.5
     });
+
+    it('silk_weaving costs silk and wood', () => {
+      // silk base=4 → Lv1 = 10, wood base=40 → Lv1 = 100
+      const cost = getBuildCost('silk_weaving', 1);
+      expect(cost.silk).toBe(10);
+      expect(cost.wood).toBe(100);
+      expect(cost.food).toBe(0);
+      expect(cost.stone).toBe(0);
+    });
+
+    it('chitin_armory costs chitin and stone', () => {
+      // chitin base=4 → Lv1 = 10, stone base=40 → Lv1 = 100
+      const cost = getBuildCost('chitin_armory', 1);
+      expect(cost.chitin).toBe(10);
+      expect(cost.stone).toBe(100);
+      expect(cost.food).toBe(0);
+      expect(cost.wood).toBe(0);
+    });
+
+    it('venom_lab costs venom and nectar', () => {
+      // venom base=2 → Lv1 = 5, nectar base=40 → Lv1 = 100
+      const cost = getBuildCost('venom_lab', 1);
+      expect(cost.venom).toBe(5);
+      expect(cost.nectar).toBe(100);
+      expect(cost.food).toBe(0);
+      expect(cost.wood).toBe(0);
+    });
   });
 
   describe('canBuild', () => {
@@ -94,6 +122,42 @@ describe('BuildingSystem', () => {
       state.resources.nectar = 100000;
       // Should be able to build level 5 (huge cost)
       expect(canBuild('barracks', state)).toBe(true);
+    });
+
+    it('cannot build silk_weaving without silk', () => {
+      state.resources.wood = 1000;
+      state.combatResources.silk = 0;
+      expect(canBuild('silk_weaving', state)).toBe(false);
+    });
+
+    it('can build silk_weaving with enough silk and wood', () => {
+      state.resources.wood = 1000;
+      state.combatResources.silk = 20;
+      expect(canBuild('silk_weaving', state)).toBe(true);
+    });
+
+    it('cannot build chitin_armory without chitin', () => {
+      state.resources.stone = 1000;
+      state.combatResources.chitin = 0;
+      expect(canBuild('chitin_armory', state)).toBe(false);
+    });
+
+    it('can build chitin_armory with enough chitin and stone', () => {
+      state.resources.stone = 1000;
+      state.combatResources.chitin = 20;
+      expect(canBuild('chitin_armory', state)).toBe(true);
+    });
+
+    it('cannot build venom_lab without venom', () => {
+      state.resources.nectar = 1000;
+      state.combatResources.venom = 0;
+      expect(canBuild('venom_lab', state)).toBe(false);
+    });
+
+    it('can build venom_lab with enough venom and nectar', () => {
+      state.resources.nectar = 1000;
+      state.combatResources.venom = 10;
+      expect(canBuild('venom_lab', state)).toBe(true);
     });
   });
 
@@ -133,11 +197,42 @@ describe('BuildingSystem', () => {
       expect(result.resources.stone).toBeGreaterThanOrEqual(0);
       expect(result.resources.nectar).toBeGreaterThanOrEqual(0);
     });
+
+    it('deducts silk when building silk_weaving', () => {
+      state.resources.wood = 1000;
+      state.combatResources.silk = 20;
+      const result = build('silk_weaving', state);
+      expect(result.combatResources.silk).toBeLessThan(state.combatResources.silk);
+      expect(result.buildings.silk_weaving.level).toBeGreaterThan(state.buildings.silk_weaving.level);
+    });
+
+    it('deducts chitin when building chitin_armory', () => {
+      state.resources.stone = 1000;
+      state.combatResources.chitin = 20;
+      const result = build('chitin_armory', state);
+      expect(result.combatResources.chitin).toBeLessThan(state.combatResources.chitin);
+      expect(result.buildings.chitin_armory.level).toBeGreaterThan(state.buildings.chitin_armory.level);
+    });
+
+    it('deducts venom when building venom_lab', () => {
+      state.resources.nectar = 1000;
+      state.combatResources.venom = 10;
+      const result = build('venom_lab', state);
+      expect(result.combatResources.venom).toBeLessThan(state.combatResources.venom);
+      expect(result.buildings.venom_lab.level).toBeGreaterThan(state.buildings.venom_lab.level);
+    });
+
+    it('returns unchanged state if insufficient combat resources', () => {
+      state.resources.wood = 1000;
+      state.combatResources.silk = 0;
+      const result = build('silk_weaving', state);
+      expect(result).toBe(state);
+    });
   });
 
   describe('getEffects', () => {
     it('returns positive effects for each building', () => {
-      const types: BuildingType[] = ['barracks', 'walls', 'warehouse'];
+      const types: BuildingType[] = ['barracks', 'walls', 'warehouse', 'silk_weaving', 'chitin_armory'];
       for (const type of types) {
         const effects = getEffects(type, 1);
         const total = Object.values(effects).reduce((a, b) => a + b, 0);
@@ -159,6 +254,26 @@ describe('BuildingSystem', () => {
       const total = Object.values(effects).reduce((a, b) => a + b, 0);
       // Level 0 should not give substantial bonuses
       expect(total).toBeLessThanOrEqual(0);
+    });
+
+    it('silk_weaving level 1 unlocks armor', () => {
+      const effects = getEffects('silk_weaving', 1);
+      expect(effects.armorUnlocked).toBe(1);
+    });
+
+    it('silk_weaving level 0 does not unlock armor', () => {
+      const effects = getEffects('silk_weaving', 0);
+      expect(effects.armorUnlocked).toBe(0);
+    });
+
+    it('chitin_armory level 1 unlocks weapon', () => {
+      const effects = getEffects('chitin_armory', 1);
+      expect(effects.weaponUnlocked).toBe(1);
+    });
+
+    it('chitin_armory level 0 does not unlock weapon', () => {
+      const effects = getEffects('chitin_armory', 0);
+      expect(effects.weaponUnlocked).toBe(0);
     });
 
     // GM-5: Soft cap diminishing returns after level 5
