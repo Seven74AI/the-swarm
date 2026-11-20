@@ -46,6 +46,26 @@ If `pnpm install` cannot reach the registry (network access off), no tests can r
 - **Domain docs:** single-context repo — `CONTEXT.md` and `docs/decisions/` (ADRs, created lazily). See `docs/agents/domain.md`.
   Read the ADRs before proposing a new primitive, and record new primitives as an ADR.
 
+## Planning with BMAD
+
+BMAD Method v6 is installed (`_bmad/`, skills in `.claude/skills/`): core method (`bmad-*`) plus Game Dev Studio (`gds-*`).
+Not sure which skill to use? Run `bmad-help`. **Plan in BMAD, build through GitHub issues:**
+
+1. **Plan:** use the `gds-*` skills for game work (`gds-create-game-brief`, `gds-gdd`, `gds-game-architecture`,
+   `gds-create-epics-and-stories`) and `bmad-*` for anything else. Artifacts go in `_bmad-output/planning-artifacts/`
+   and are committed through a normal PR, so the plan is versioned with the code.
+2. **Hand off:** each story becomes one GitHub issue. Title = story title; body = the acceptance criteria, testable as
+   invariants, plus a link to the story file. Label it `needs-triage`. The owner promotes it to `ready-for-agent`.
+3. **Build:** the nightly sweep implements `ready-for-agent` issues as usual and treats the linked story file as the spec.
+   Don't run `gds-dev-story` / `gds-quick-dev` / `bmad-build` unattended. They don't follow the issue → PR → CI flow.
+4. **Status lives in GitHub, not BMAD.** Don't maintain BMAD's sprint-status files. Open/closed issues are the truth.
+   If a plan changes, update the artifact in a PR (`gds-correct-course`) and edit the affected issues.
+
+Repo rules win over BMAD defaults: TDD, invariant tests, integer resources, `transitions.ts` as the only guard source,
+and this file as the project context (don't generate a separate `project-context.md`). Update BMAD with
+`npx bmad-method install --action quick-update`. The Game Dev module must be pinned (`--pin gds=<tag>`) where the
+GitHub API is unreachable.
+
 ## Architecture gotchas
 
 - **Signals track the signal, not object paths.** `gameState` (`src/state/gameSignal.ts`) is one
