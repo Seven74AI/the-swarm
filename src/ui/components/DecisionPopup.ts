@@ -24,37 +24,44 @@ export class DecisionPopup {
   show(event: DecisionEvent): void {
     this.clearTimer();
 
-    this.el.innerHTML = `
-      <div class="decision-popup-inner">
-        <div class="decision-popup-title">${event.title}</div>
-        <div class="decision-popup-desc">${event.description}</div>
-        <div class="decision-popup-choices">
-          ${event.choices
-            .map(
-              (c) =>
-                `<button class="decision-choice-btn" data-choice="${c.label}">
-                  <span class="decision-choice-label">${c.label}</span>
-                  <span class="decision-choice-desc">${c.description}</span>
-                </button>`,
-            )
-            .join('')}
-        </div>
-      </div>
-    `;
+    // Built with createElement/textContent so event text is never parsed as HTML.
+    const inner = document.createElement('div');
+    inner.className = 'decision-popup-inner';
 
-    // Wire button clicks
-    this.el.querySelectorAll('button').forEach((btn) => {
+    const title = document.createElement('div');
+    title.className = 'decision-popup-title';
+    title.textContent = event.title;
+
+    const desc = document.createElement('div');
+    desc.className = 'decision-popup-desc';
+    desc.textContent = event.description;
+
+    const choices = document.createElement('div');
+    choices.className = 'decision-popup-choices';
+
+    for (const c of event.choices) {
+      const btn = document.createElement('button');
+      btn.className = 'decision-choice-btn';
+      btn.dataset.choice = c.label;
+
+      const label = document.createElement('span');
+      label.className = 'decision-choice-label';
+      label.textContent = c.label;
+
+      const choiceDesc = document.createElement('span');
+      choiceDesc.className = 'decision-choice-desc';
+      choiceDesc.textContent = c.description;
+
+      btn.append(label, choiceDesc);
       btn.addEventListener('click', () => {
-        const choice = btn.getAttribute('data-choice');
-        if (choice) {
-          this.bus.emit('decision_chosen', {
-            type: event.type,
-            choice,
-          });
-          this.hide();
-        }
+        this.bus.emit('decision_chosen', { type: event.type, choice: c.label });
+        this.hide();
       });
-    });
+      choices.appendChild(btn);
+    }
+
+    inner.append(title, desc, choices);
+    this.el.replaceChildren(inner);
 
     this.el.style.display = '';
 

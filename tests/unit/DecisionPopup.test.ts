@@ -164,4 +164,37 @@ describe('DecisionPopup', () => {
     // Should not have a blocking overlay (pointer-events: none on background would block)
     expect(style.pointerEvents).not.toBe('none');
   });
+
+  it('renders HTML-like and quoted event text literally and still resolves the clicked choice (#189)', () => {
+    let chosen: any = null;
+    bus.subscribe('decision_chosen', (p) => (chosen = p));
+
+    const hostile: DecisionEvent = {
+      type: 'beetle',
+      title: '<b>x</b> "Title"',
+      description: '<img src=x onerror="alert(1)"> desc',
+      choices: [
+        { label: 'Say "hi" <b>x</b>', description: '<i>first</i>' },
+        { label: 'Plain', description: 'second' },
+      ],
+    };
+
+    const popup = new DecisionPopup(bus);
+    popup.show(hostile);
+    container.appendChild(popup.getElement());
+    const el = popup.getElement();
+
+    expect(el.querySelector('b')).toBeNull();
+    expect(el.querySelector('i')).toBeNull();
+    expect(el.querySelector('img')).toBeNull();
+    expect(el.querySelector('.decision-popup-title')?.textContent).toBe(hostile.title);
+    expect(el.querySelector('.decision-popup-desc')?.textContent).toBe(hostile.description);
+
+    const buttons = el.querySelectorAll('button');
+    expect(buttons).toHaveLength(2);
+    expect(buttons[0].querySelector('.decision-choice-label')?.textContent).toBe(hostile.choices[0].label);
+
+    buttons[0].click();
+    expect(chosen).toEqual({ type: 'beetle', choice: hostile.choices[0].label });
+  });
 });
