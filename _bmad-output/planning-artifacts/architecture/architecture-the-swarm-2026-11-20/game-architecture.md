@@ -4,7 +4,7 @@ project: 'the-swarm'
 date: '2026-11-20'
 author: 'Seven74'
 version: '1.0'
-stepsCompleted: [1, 2]
+stepsCompleted: [1, 2, 3]
 status: 'in-progress'
 baseline_code: 'Seven74AI/the-swarm main @ a332d82'
 
@@ -24,7 +24,7 @@ ux:
 
 This architecture document is being created through the GDS Architecture Workflow.
 
-**Steps Completed:** 2 of 9 (Initialize, Project Context)
+**Steps Completed:** 3 of 9 (Initialize, Project Context, Engine & Framework)
 
 ---
 
@@ -118,3 +118,97 @@ test files, 24 E2E specs, save v13) is reshaped for a mobile-first MVP (Phases 1
 - `package.json` pins **Vite ^8.3.8 and Vitest ^5.1.1**; the handoff says Vite 5.4.
 - Three time caps exist, not two: 4 h (`OfflineProgression.ts:97`), 8 h (`GameLoop.ts:42`
   accumulator) and a 1 s frame cap (`Ticker.ts:83`) that silently drops hidden time.
+
+## Engine & Framework
+
+### Selected Stack
+
+No game engine. A web stack:
+
+| Layer | Choice | Version policy |
+|---|---|---|
+| Language | TypeScript (strict) | as pinned in `package.json` |
+| Build / dev server | Vite 8 | current 8.x |
+| Game state | `@preact/signals-core` (single `gameState` signal) | current 1.x |
+| UI components | Preact 11 + `@preact/signals` | current 11.x / 2.x; must resolve to the same `signals-core` instance as the game state |
+| Scenes | Inline SVG (nest, map, star map); Canvas 2D only for the nest dot cloud if SVG profiling fails | n/a |
+| Unit / component tests | Vitest 5 + jsdom + Preact Testing Library | current |
+| E2E | Playwright (Chromium in CI) | current |
+| Package manager | pnpm 11 | pinned via `packageManager` |
+
+Exact versions come from `package.json` at install time. This document names major lines only.
+
+**Rationale:**
+- The game is mostly HTML text (strip, meters, cards, sheets) plus an ambient vector scene. A
+  DOM-first stack gives accessibility (live regions, focus, reflow) for free; a canvas engine
+  would have to rebuild it.
+- Keeps the prototype's simulation, ~1,330 unit tests, 24 E2E specs and the v1→v13 save chain.
+- Preact is maintained alongside the signals library already in use. Components subscribe to
+  signal slices directly, which removes hand-written dirty-checking (#186) and boilerplate in
+  the 5-tab shell.
+- Agent-friendly: TypeScript + Vitest + Playwright fit the issue → PR → CI-gated TDD loop.
+
+**Rejected:**
+- *Godot / Unity web export:* WebAssembly payloads of tens of MB break the 3 s first-load target,
+  web exports run much worse than native on phones, and accessibility is weak. It would need a full rewrite.
+- *Phaser 4 / PixiJS 8 as the main renderer:* built for canvas-first games. PixiJS is kept as a
+  fallback for the nest scene only, if SVG can't hold the frame budget at large colony sizes.
+- *Stay on vanilla DOM (no UI library):* viable, but every agent hand-rolls components, and
+  drift between panels is already visible in the prototype.
+
+**Note on the size budget (owner, 2026-11-21):** the GDD's 2 MB download limit is not treated
+as a hard constraint. The 3 s first-interactive target still applies.
+
+### Distribution
+
+**Web first:** an installable PWA on GitHub Pages (the current host). **Store later, optional:**
+wrap the same build with Capacitor (8.x at the time of writing) for iOS and Android. Nothing in the
+architecture may depend on the native wrapper, and nothing may rule it out: platform services sit
+behind interfaces so that web and native implementations can be swapped (see Architectural Decisions).
+
+### Project Initialization
+
+Brownfield; no starter template. Adoption steps (each is a story):
+
+1. Add `preact` and `@preact/signals`; configure JSX in `tsconfig.json`
+   (`"jsx": "react-jsx"`, `"jsxImportSource": "preact"`). Use Vite's built-in JSX transform;
+   add `@preact/preset-vite` only if its peer range covers Vite 8 (verify at install).
+2. Add a check that exactly one `@preact/signals-core` version is installed (`pnpm why`).
+3. Mount one Preact root per tab container; migrate panels one at a time, each keeping its
+   `data-*` / `id` selectors so existing E2E specs keep passing.
+
+### Stack-Provided Architecture
+
+| Component | Solution | Notes |
+|---|---|---|
+| Rendering (UI) | Preact virtual DOM | Real DOM text; accessible by default |
+| Rendering (scenes) | Inline SVG via Preact components | HTML overlays for labels (DESIGN.md) |
+| Reactivity | Signals (`computed` slices) | Components subscribe to slices, never to the whole state |
+| Physics | None needed | Combat is auto-resolved arithmetic |
+| Audio | Web Audio API (existing `AudioSystem`) | Behind a platform-service interface |
+| Input | DOM pointer and keyboard events | Hold-to-repeat and confirm are app-level primitives |
+| Scene management | 5-tab shell + segments + sheet controller | App-level, not provided by Preact |
+| Build | Vite 8 (Rolldown) | Static output to GitHub Pages |
+
+### AI Tooling
+
+- **Context7** (upstash/context7, MCP docs lookup) is recommended so agents check current
+  Vite 8, Preact 11 and Vitest 5 docs instead of relying on training data. Owner to confirm.
+  No engine-specific MCP applies (no engine).
+
+### Remaining Architectural Decisions
+
+1. Simulation clock and time model (tick rate, visible-only run, resume, single offline cap).
+2. Offline catch-up algorithm within the 500 ms budget.
+3. State shape changes and the slice-selector pattern; the fate of `GameStatePool`,
+   `StateManager` and `Store`.
+4. Phase FSM split (evaluate / commit), the CONTINUE latch, per-condition guards.
+5. Save schema: the v14+ plan, what lives outside the save (settings, intro flag), load status,
+   export/import, the prestige-wipe migration.
+6. UI shell: tab/segment registry, sheet controller and priority, phase reveal.
+7. Decision-event engine (game-time timers, ignore policies, persistence).
+8. Platform services (audio, haptics, notifications, storage) behind interfaces for PWA vs Capacitor.
+9. PWA details: service worker, update strategy, offline asset caching.
+10. Scene rendering budget and the SVG → Canvas/PixiJS fallback trigger.
+11. Pacing harness: simulated player, reachability check, local telemetry.
+12. Dependency hygiene (73 Dependabot alerts on `main` at the time of writing).
