@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>THE SWARM — first-launch cinematic, full vector scene</title>
+<style>
+/* Phase 1 phosphor: amber #ffb000 on #0d0a04. Soil = amber at 7% + grain dots 35%; tunnel/chamber walls = amber 55%. */
+body{margin:0;background:#161616;font-family:system-ui,sans-serif;color:#ddd;padding:20px;display:flex;gap:28px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+.phone{--a:#ffb000;--bg:#0d0a04;width:360px;height:720px;background:var(--bg);color:var(--a);font:14px/1.15 ui-monospace,"SF Mono",Menlo,Consolas,monospace;border:7px solid #000;border-radius:30px;position:relative;overflow:hidden;cursor:pointer;user-select:none;text-shadow:0 0 6px color-mix(in srgb,var(--a) 55%,transparent)}
+.phone::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px)}
+svg{position:absolute;inset:0;width:360px;height:720px;filter:drop-shadow(0 0 3px color-mix(in srgb,#ffb000 55%,transparent))}
+pre{position:absolute;left:0;top:0;margin:0;padding:64px 0 0 14px;font:inherit;white-space:pre;pointer-events:none}
+.cnt{position:absolute;left:18px;top:30px;font-weight:700;opacity:0;transition:opacity .3s}
+.cap{position:absolute;left:0;right:0;top:600px;text-align:center;letter-spacing:.18em;font-weight:700;transition:opacity .4s}
+.tag{position:absolute;left:0;right:0;top:330px;text-align:center;font-size:13px;opacity:0;transition:opacity .5s}
+.tap{position:absolute;left:14px;right:14px;bottom:64px;text-align:center;border:1.5px solid var(--a);padding:15px 0;font-weight:700;letter-spacing:.06em;opacity:0;transition:opacity .4s}
+.tap.on{opacity:1;animation:blink 1.4s steps(1) infinite}@keyframes blink{50%{border-color:transparent}}
+.side{max-width:380px}.side p{font-size:13px;color:#aaa;line-height:1.45}
+button{background:#222;color:#ddd;border:1px solid #444;padding:8px 14px;border-radius:6px;font:13px system-ui;cursor:pointer}
+</style></head><body>
+<div class="phone" id="ph">
+  <svg viewBox="0 0 360 720" id="sv">
+    <defs>
+      <pattern id="grain" width="14" height="12" patternUnits="userSpaceOnUse">
+        <circle cx="2" cy="3" r=".8" fill="#ffb000" opacity=".35"/><circle cx="9" cy="8" r=".6" fill="#ffb000" opacity=".25"/><circle cx="12" cy="2" r=".5" fill="#ffb000" opacity=".2"/><circle cx="5" cy="10" r=".7" fill="#ffb000" opacity=".3"/>
+      </pattern>
+    </defs>
+    <g id="soil"></g><g id="dig"></g><g id="life"></g>
+  </svg>
+  <pre id="pre"></pre><div class="cnt" id="cnt"></div><div class="tag" id="tag">ONE EGG. ONE QUEEN. ONE SWARM.</div><div class="cap" id="cap"></div><div class="tap" id="tap">[ TAP TO WAKE THE QUEEN ]</div>
+</div>
+<div class="side"><h3>Full vector scene · about 11 s</h3>
+<p>Same story and timing as the current cinematic, but <b>the soil, tunnels and chambers are vector as well</b>: grainy strata, pebbles and grass tufts, a tunnel that carves itself behind the queen, and chambers that open with soft outlined walls. Only the text (captions, counter, logo, button) stays terminal monospace.</p>
+<p>Compare it with <code>title-cinematic.html</code>, which keeps the soil and tunnels as ASCII characters. Tap the phone to skip.</p>
+<button onclick="start()">↻ Replay</button></div>
+<script>
+const NS='http://www.w3.org/2000/svg',$=id=>document.getElementById(id);
+const SOIL=$('soil'),DIG=$('dig'),LIFE=$('life'),PRE=$('pre'),CAP=$('cap'),TAP=$('tap'),CNT=$('cnt'),TAG=$('tag');
+const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);(p||DIG).appendChild(e);return e};
+let s0=7;const rnd=()=>{s0=(s0*16807)%2147483647;return s0/2147483647};
+const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
+const A='#ffb000',BG='#0d0a04',TOP=150,BOT=590;
+// ---- static soil ----
+function buildSoil(){SOIL.innerHTML='';s0=7;
+  el('rect',{x:0,y:TOP,width:360,height:BOT-TOP,fill:A,'fill-opacity':.07},SOIL);
+  el('rect',{x:0,y:TOP,width:360,height:BOT-TOP,fill:'url(#grain)'},SOIL);
+  for(let i=0;i<7;i++){const y=TOP+40+i*58;let d=`M0 ${y}`;for(let x=0;x<=360;x+=30)d+=` Q${x+15} ${y+(rnd()-.5)*14} ${x+30} ${y+(rnd()-.5)*6}`;el('path',{d,fill:'none',stroke:A,'stroke-opacity':.13,'stroke-width':1},SOIL)}
+  for(let i=0;i<22;i++){const x=rnd()*360,y=TOP+20+rnd()*(BOT-TOP-30),r=2+rnd()*5;el('ellipse',{cx:x,cy:y,rx:r,ry:r*.7,fill:A,'fill-opacity':.08,stroke:A,'stroke-opacity':.3},SOIL)}
+  let g='M0 '+TOP;for(let x=0;x<=360;x+=6){g+=` L${x} ${TOP-(x%18==0?7:x%12==0?4:1)} L${x+3} ${TOP}`}el('path',{d:g,fill:'none',stroke:A,'stroke-opacity':.75,'stroke-width':1.1},SOIL);
+  el('line',{x1:0,y1:TOP,x2:360,y2:TOP,stroke:A,'stroke-opacity':.5},SOIL)}
+// ---- dig geometry ----
+const TUN='M178 150 C176 200 150 236 142 280 C138 300 134 316 128 330';
+const CH=[[124,348,62,24],[246,394,46,19],[62,428,42,17],[262,266,38,15],[176,468,46,16]];
+const LINKS=['M150 352 C190 360 215 380 236 390','M100 356 C86 380 74 400 68 420','M150 248 C190 250 230 258 248 264','M140 368 C150 400 165 440 172 460'];
+let tunO,tunC,tunLen,chEls=[],linkEls=[];
+function buildDig(){DIG.innerHTML='';
+  tunO=el('path',{d:TUN,fill:'none',stroke:A,'stroke-opacity':.55,'stroke-width':17,'stroke-linecap':'round'});
+  tunC=el('path',{d:TUN,fill:'none',stroke:BG,'stroke-width':14,'stroke-linecap':'round'});
+  tunLen=tunO.getTotalLength();[tunO,tunC].forEach(p=>{p.style.strokeDasharray=tunLen;p.style.strokeDashoffset=tunLen});
+  linkEls=LINKS.map(d=>{const o=el('path',{d,fill:'none',stroke:A,'stroke-opacity':.55,'stroke-width':13,'stroke-linecap':'round'}),c=el('path',{d,fill:'none',stroke:BG,'stroke-width':10,'stroke-linecap':'round'});const L=o.getTotalLength();[o,c].forEach(p=>{p.style.strokeDasharray=L;p.style.strokeDashoffset=L});return[o,c,L]});
+  chEls=CH.map(([x,y,rx,ry])=>{const g=el('g',{transform:`translate(${x} ${y}) scale(0)`});el('ellipse',{rx:rx+1.5,ry:ry+1.5,fill:BG,stroke:A,'stroke-opacity':.55,'stroke-width':2},g);el('ellipse',{rx:rx-4,ry:ry-3,fill:'none',stroke:A,'stroke-opacity':.12,'stroke-dasharray':'2 4'},g);return g})}
+// ---- creatures ----
+const VQ=(cx,cy,rot,sc)=>`<g transform="translate(${cx.toFixed(1)} ${cy.toFixed(1)}) rotate(${rot.toFixed(0)}) scale(${sc})" fill="${A}" stroke="${A}" stroke-linecap="round"><ellipse cx="-17" rx="13" ry="7.5"/><ellipse cx="-2" rx="5" ry="3.6"/><circle cx="8" r="4.2"/><path d="M11 -2 q6 -7 11 -6 M11 2 q6 7 11 6" fill="none" stroke-width="1.3"/><path d="M-4 -3 l-5 -8 l-6 -3 M-1 -3 l1 -9 l4 -4 M2 -3 l6 -7 l6 0 M-4 3 l-5 8 l-6 3 M-1 3 l1 9 l4 4 M2 3 l6 7 l6 0" fill="none" stroke-width="1.2"/><path d="M-24 -5 q4 2 0 9 M-19 -6 q4 3 0 12 M-14 -6 q4 3 0 12" fill="none" stroke="${BG}" stroke-width=".9" stroke-opacity=".6"/></g>`;
+const VA=(cx,cy,rot)=>`<g transform="translate(${cx.toFixed(1)} ${cy.toFixed(1)}) rotate(${(rot|0)})" fill="${A}" stroke="${A}" stroke-width=".8" stroke-linecap="round"><ellipse cx="-3.6" rx="2.6" ry="1.7"/><ellipse rx="1.3" ry="1"/><circle cx="2.4" r="1.3"/><path d="M-1 -1 l-1.5 -2.5 M0 -1 l0 -3 M1 -1 l1.5 -2.5 M-1 1 l-1.5 2.5 M0 1 l0 3 M1 1 l1.5 2.5 M3.4 -.6 l2 -1.6 M3.4 .6 l2 1.6" fill="none"/></g>`;
+const VE=(cx,cy)=>`<ellipse cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" rx="3" ry="2.1" fill="none" stroke="${A}" stroke-width="1.1"/>`;
+const VL=(cx,cy)=>`<path d="M${(cx-3).toFixed(1)} ${(cy+1).toFixed(1)} q3 -6 6 0" fill="none" stroke="${A}" stroke-width="1.8" stroke-linecap="round"/>`;
+// colony slots inside chambers (+ a few in tunnels), excluding queen spot
+s0=99;const slots=[];CH.forEach(([x,y,rx,ry],ci)=>{const n=ci==0?70:40;for(let i=0;i<n;i++){const a=rnd()*6.283,r=Math.sqrt(rnd())*.82;const sx=x+Math.cos(a)*r*(rx-6),sy=y+Math.sin(a)*r*(ry-5);if(ci==0&&Math.abs(sx-104)<24&&Math.abs(sy-348)<10)continue;slots.push([sx,sy,ci,rnd()])}});
+slots.sort((a,b)=>(a[2]-b[2])*.6+(a[3]-b[3]));
+// logo in pre grid
+const L={S:[" ████","█    "," ███ ","    █","████ "],W:["█   █","█   █","█ █ █","█ █ █"," █ █ "],A:[" ███ ","█   █","█████","█   █","█   █"],R:["████ ","█   █","████ ","█  █ ","█   █"],M:["█   █","██ ██","█ █ █","█   █","█   █"]};
+const LOGO=[0,1,2,3,4].map(r=>"SWARM".split('').map(c=>L[c][r]).join(' '));const LX=3,LY=9,W=36,H=26;
+let CW=8.4,LH=16.1;{const m=document.createElement('span');m.textContent='M'.repeat(36);m.style.cssText='position:absolute;visibility:hidden;white-space:pre';PRE.appendChild(m);CW=m.getBoundingClientRect().width/36;LH=parseFloat(getComputedStyle(PRE).lineHeight)||16.1;m.remove()}
+const cellPx=(x,y)=>[14+(x+.5)*CW,64+(y+.5)*LH];
+const logoCells=[];LOGO.forEach((row,r)=>[...row].forEach((c,i)=>{if(c=='█')logoCells.push([LX+i,LY+r])}));
+const fmt=n=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+function preDraw(cells,the,march,ms){const g=Array.from({length:H},()=>Array(W).fill(' '));cells.forEach(([x,y])=>g[y][x]='█');if(the)'T  H  E'.split('').forEach((c,i)=>g[7][14+i]=c);PRE.textContent=g.map(r=>r.join('')).join('\n')}
+function cap(t){CAP.textContent=t;CAP.style.opacity=t?1:0}
+let t0=0,done=false,raf=0;
+function scene(ms){let life='';
+  const tun=Math.min(1,Math.max(0,(ms-2000)/2200));
+  [tunO,tunC].forEach(p=>p.style.strokeDashoffset=tunLen*(1-tun));
+  const chOpen=i=>i==0?Math.min(1,Math.max(0,(ms-3700)/600)):Math.min(1,Math.max(0,(ms-5600-i*260)/700));
+  chEls.forEach((g,i)=>{const k=ease(chOpen(i));const[x,y]=CH[i];g.setAttribute('transform',`translate(${x} ${y}) scale(${k.toFixed(3)})`)});
+  linkEls.forEach(([o,c,Lg],i)=>{const k=Math.min(1,Math.max(0,(ms-5500-i*260)/500));[o,c].forEach(p=>p.style.strokeDashoffset=Lg*(1-k))});
+  const fade=ms<8600?1:Math.max(0,1-(ms-8600)/1400);SOIL.style.opacity=fade;DIG.style.opacity=fade;
+  if(ms<2000){if(ms>500){const d=Math.min(1,(ms-500)/700);life+=VQ(178,TOP-60+d*52,0,1)}cap('')}
+  else if(ms<4200){const p=tun;const L=tunLen*Math.max(.02,p);const pt=tunO.getPointAtLength(L),pr=tunO.getPointAtLength(Math.max(0,L-2));
+    life+=VQ(pt.x,pt.y,Math.atan2(pt.y-pr.y,pt.x-pr.x)*180/Math.PI,.75);cap('')}
+  else if(ms<8600){life+=VQ(104,348,0,1);
+    if(ms>4500){const pulse=Math.floor(ms/300)%2;life+=VE(140,350);if(ms<5600&&pulse)life+=`<ellipse cx="140" cy="350" rx="7" ry="5" fill="none" stroke="${A}" stroke-opacity=".4"/>`}
+    if(ms>=5600){const p=(ms-5600)/3000;const n=Math.floor(Math.pow(p,1.3)*slots.length);
+      for(let i=0;i<n;i++){const[x,y,ci]=slots[i];if(chOpen(ci)<.6)continue;const j=Math.sin(ms/420+i)*2.2;life+=i%11==0?VE(x,y):i%7==0?VL(x,y):VA(x+j,y,(i*47+ms/25*(i%3?1:-1))%360)}
+      CNT.style.opacity=1;CNT.textContent='WRK '+fmt(Math.max(1,Math.floor(Math.pow(88200,Math.min(1,p*1.1)))));cap(p>.35?'ONE QUEEN.':'ONE EGG.')}else cap(ms>4500?'ONE EGG.':'')}
+  else if(ms<11000){const p=ease(Math.min(1,(ms-8600)/2200));CNT.style.opacity=0;cap('');const arrived=[];
+    logoCells.forEach(([lx,ly],i)=>{const[sx,sy]=slots[i%slots.length];const d=Math.min(1,Math.max(0,p*1.4-(i%17)*.02));const[tx,ty]=cellPx(lx,ly);
+      if(d>=1)arrived.push([lx,ly]);else{const x=sx+(tx-sx)*d,y=sy+(ty-sy)*d;life+=VA(x,y,Math.atan2(ty-sy,tx-sx)*180/Math.PI)}});
+    preDraw(arrived,p>.85)}
+  else{finalF(ms);return}
+  LIFE.innerHTML=life}
+function finalF(ms){SOIL.style.opacity=0;DIG.style.opacity=0;CNT.style.opacity=0;cap('');preDraw(logoCells,true);TAG.style.opacity=1;
+  let h=`<path d="M0 ${64+19.9*LH} H360" stroke="${A}" stroke-opacity=".5"/>`;let gr='';for(let x=0;x<=360;x+=6)gr+=` M${x} ${64+19.9*LH} l1.5 ${-(x%18==0?6:x%12==0?3:1)}`;h+=`<path d="${gr}" stroke="${A}" stroke-opacity=".7" fill="none"/>`;
+  const off=((ms||0)/30)%420;for(let i=0;i<12;i++){const x=((i*35+off)%420)-30;h+=VA(x,64+19.4*LH,0)}
+  LIFE.innerHTML=h;TAP.classList.add('on')}
+function loop(now){if(!t0)t0=now;scene(done?11000+(now-t0):now-t0);raf=requestAnimationFrame(loop)}
+function start(){cancelAnimationFrame(raf);t0=0;done=false;TAP.classList.remove('on');TAG.style.opacity=0;PRE.textContent='';SOIL.style.opacity=1;DIG.style.opacity=1;buildSoil();buildDig();
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){finalF(0);return}raf=requestAnimationFrame(loop)}
+$('ph').addEventListener('click',()=>{if(!done){done=true;t0=0}});
+start();
+</script></body></html>

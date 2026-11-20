@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>THE SWARM — first-launch cinematic</title>
+<style>
+/* Accents: amber #ffb000 (nest) → leaf #7dffb0 (map) → cyan #7ad7ff (planet) → white #e8f0ff (stars) → amber logo. Background #0d0a04. */
+body{margin:0;background:#161616;font-family:system-ui,sans-serif;color:#ddd;padding:20px}
+header{max-width:900px;margin:0 auto 14px}header h1{font-size:20px;margin:0 0 6px}header p{color:#aaa;font-size:13.5px;line-height:1.45;margin:4px 0}
+.row{display:flex;gap:28px;flex-wrap:wrap;justify-content:center}
+figure{margin:0}figcaption{font-size:14px;margin:0 0 8px 4px}figcaption small{display:block;color:#999;font-size:12px;margin-top:2px;max-width:370px}
+.phone{--a:#ffb000;--bg:#0d0a04;width:360px;height:720px;background:var(--bg);color:var(--a);font:14px/1.15 ui-monospace,"SF Mono",Menlo,Consolas,monospace;border:7px solid #000;border-radius:30px;position:relative;overflow:hidden;text-shadow:0 0 6px color-mix(in srgb,var(--a) 55%,transparent);cursor:pointer;user-select:none}
+.phone::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.2) 0 1px,transparent 1px 3px)}
+pre{margin:0;padding:64px 0 0 14px;font:inherit;white-space:pre}
+svg.e{position:absolute;left:0;top:0;width:360px;height:720px;pointer-events:none;filter:drop-shadow(0 0 3px color-mix(in srgb,var(--a) 70%,transparent))}
+svg.v{position:absolute;left:0;top:40px;width:360px;height:470px;opacity:0;transition:opacity .25s;filter:drop-shadow(0 0 4px color-mix(in srgb,var(--a) 60%,transparent))}
+.cap{position:absolute;left:0;right:0;top:530px;text-align:center;letter-spacing:.18em;font-weight:700;transition:opacity .4s}
+.tap{position:absolute;left:14px;right:14px;bottom:64px;text-align:center;border:1.5px solid var(--a);padding:15px 0;font-weight:700;letter-spacing:.06em;opacity:0;transition:opacity .4s}
+.tap.on{opacity:1;animation:blink 1.4s steps(1) infinite}@keyframes blink{50%{border-color:transparent}}
+.ctl{text-align:center;margin:18px 0}button{background:#222;color:#ddd;border:1px solid #444;padding:8px 14px;border-radius:6px;font:13px system-ui;cursor:pointer}
+</style></head><body>
+<header><h1>First-launch cinematic · about 11 s</h1>
+<p><b>Soil (0–2 s):</b> the queen lands on the surface. <b>Dig (2–4 s):</b> she tunnels down and carves the first chamber. <b>ONE EGG. (4–5.5 s)</b> <b>Swarm (5.5–8.5 s):</b> new chambers open, eggs become larvae and then workers, and the counter climbs. Caption: ONE QUEEN. <b>Logo (8.5–11 s):</b> the soil clears and the ants march up and lock into THE SWARM; ants patrol underneath; [ TAP TO WAKE THE QUEEN ].</p>
+<p>No zoom-out and no later-phase colours, so nothing is spoiled. Tap to skip. Plays on first launch only; with reduced motion it opens on the logo. Settings has "replay intro".</p></header>
+<div class="row"><figure><figcaption>Vector creatures · ASCII world<small>The queen, ants, eggs and larvae are vector; soil, tunnels, text and the logo are ASCII. Phase 1 amber only: nothing from later phases appears.</small></figcaption><div class="phone" id="C"></div></figure>
+</div>
+<div class="ctl"><button onclick="startAll()">↻ Replay</button></div>
+<script>
+const W=36,H=26,SURF=4,NS='http://www.w3.org/2000/svg';
+const mk=(seed0)=>{let s=seed0;return()=>{s=(s*16807)%2147483647;return s/2147483647}};
+// ---------- shared precompute ----------
+let rnd=mk(7);
+const soil=[];for(let y=0;y<H;y++){soil.push([]);for(let x=0;x<W;x++){let c=' ';if(y==SURF)c=",.'`,"[Math.floor(rnd()*5)];else if(y>SURF){const r=rnd();c=r<.55?'·':r<.75?':':r<.85?'░':r<.88?'▒':' '}soil[y].push(c)}}
+const tunnel=[];{let px=-1,py=-1;for(let i=0;i<=60;i++){const t=i/60;const x=Math.round(18-5*Math.sin(t*Math.PI/2)+Math.sin(t*9)*.8),y=Math.round(SURF+1+t*11);if(x!=px||y!=py){tunnel.push([x,y]);px=x;py=y}}}
+const chambers=[[14,17,7,1.7],[27,21,5,1.3],[7,22,5,1.3],[28,12,4,1.1],[19,24,5,1]];
+const links=[[[14,17],[27,21]],[[14,17],[7,22]],[[17,10],[28,12]],[[14,17],[19,24]]];
+const carve=(c,[cx,cy,rx,ry])=>{for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(((x-cx)/rx)**2+((y-cy)/ry)**2<=1)c.push([x,y])};
+const lineC=(c,[x0,y0],[x1,y1])=>{const n=Math.max(Math.abs(x1-x0),Math.abs(y1-y0));for(let i=0;i<=n;i++)c.push([Math.round(x0+(x1-x0)*i/n),Math.round(y0+(y1-y0)*i/n)])};
+const ch1=[];carve(ch1,chambers[0]);
+const later=[];for(let i=1;i<chambers.length;i++){const c=[];lineC(c,...links[i-1]);carve(c,chambers[i]);later.push(c)}
+rnd=mk(99);const shuffled=[...tunnel,...ch1,...later.flat()].filter(([x,y])=>y>SURF+2&&!(y>=16&&y<=18&&x>=9&&x<=19)).sort(()=>rnd()-.5);
+// Queen sprite (9 wide x 3 tall): antennae, head, thorax, big abdomen, legs
+const QUEEN=[" \\ /     "," (o)=(###)"," /|\\ /|\\ "];
+const QUEEN_DIG=["  \\ /","  (o)","  /|\\"]; // head-first, compact, while tunnelling
+const L={S:[" ████","█    "," ███ ","    █","████ "],W:["█   █","█   █","█ █ █","█ █ █"," █ █ "],A:[" ███ ","█   █","█████","█   █","█   █"],R:["████ ","█   █","████ ","█  █ ","█   █"],M:["█   █","██ ██","█ █ █","█   █","█   █"]};
+const LOGO=[0,1,2,3,4].map(r=>"SWARM".split('').map(c=>L[c][r]).join(' '));const LX=3,LY=9;
+const logoCells=[];LOGO.forEach((row,r)=>[...row].forEach((c,i)=>{if(c=='█')logoCells.push([LX+i,LY+r])}));
+rnd=mk(3);const stars=Array.from({length:120},()=>[Math.floor(rnd()*W),Math.floor(rnd()*H),rnd()]);
+const fmt=n=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
+// Map layout (8x8): ^ forest, " meadow, /\ rock, ~ water, <> enemy nest, @ home
+const MAPT=['^^','""','/\\','~~','""','^^','""','<>'];
+const mapCell=(r,c)=>(r==3&&c==4)?'@':MAPT[(r*5+c*3+(r*c)%3)%8];
+// ---------- one cinematic instance ----------
+function Cine(root,mode){
+  root.innerHTML='<pre></pre><svg class="v" viewBox="0 0 360 470"></svg><svg class="e" viewBox="0 0 360 720"></svg><div class="cap"></div><div class="tap">[ TAP TO WAKE THE QUEEN ]</div>';
+  const S=root.querySelector('pre'),V=root.querySelector('svg'),CAP=root.querySelector('.cap'),TAP=root.querySelector('.tap');
+  const E=root.querySelector('svg.e');let CW=8.4,LH=16.1;
+  {const m=document.createElement('span');m.textContent='M'.repeat(36);m.style.cssText='position:absolute;visibility:hidden;white-space:pre';S.appendChild(m);CW=m.getBoundingClientRect().width/36;LH=parseFloat(getComputedStyle(S).lineHeight)||16.1;m.remove()}
+  const px=(x,y)=>[14+(x+.5)*CW,64+(y+.5)*LH];
+  const VQ=(cx,cy,rot,sc)=>`<g transform="translate(${cx} ${cy}) rotate(${rot}) scale(${sc})" fill="var(--a)" stroke="var(--a)" stroke-linecap="round"><ellipse cx="-17" cy="0" rx="13" ry="7.5"/><ellipse cx="-2" cy="0" rx="5" ry="3.6"/><circle cx="8" cy="0" r="4.2"/><path d="M11 -2 q6 -7 11 -6 M11 2 q6 7 11 6" fill="none" stroke-width="1.3"/><path d="M-4 -3 l-5 -8 l-6 -3 M-1 -3 l1 -9 l4 -4 M2 -3 l6 -7 l6 0 M-4 3 l-5 8 l-6 3 M-1 3 l1 9 l4 4 M2 3 l6 7 l6 0" fill="none" stroke-width="1.2"/><path d="M-26 -1 h-1 M-24 -5 q4 2 0 9 M-19 -6 q4 3 0 12 M-14 -6 q4 3 0 12" fill="none" stroke="var(--bg)" stroke-width=".9" stroke-opacity=".6"/></g>`;
+  const VA=(cx,cy,rot)=>`<g transform="translate(${cx.toFixed(1)} ${cy.toFixed(1)}) rotate(${rot|0})" fill="var(--a)" stroke="var(--a)" stroke-width=".8" stroke-linecap="round"><ellipse cx="-3.6" rx="2.6" ry="1.7"/><ellipse rx="1.3" ry="1"/><circle cx="2.4" r="1.3"/><path d="M-1 -1 l-1.5 -2.5 M0 -1 l0 -3 M1 -1 l1.5 -2.5 M-1 1 l-1.5 2.5 M0 1 l0 3 M1 1 l1.5 2.5 M3.4 -.6 l2 -1.6 M3.4 .6 l2 1.6" fill="none"/></g>`;
+  const VE=(cx,cy)=>`<ellipse cx="${cx}" cy="${cy}" rx="3" ry="2.1" fill="none" stroke="var(--a)" stroke-width="1.1"/>`;
+  const VL=(cx,cy)=>`<path d="M${cx-3} ${cy+1} q3 -6 6 0" fill="none" stroke="var(--a)" stroke-width="1.8" stroke-linecap="round"/>`;
+  let els='';
+  let t0=0,done=false,raf=0;
+  const g0=()=>Array.from({length:H},()=>Array(W).fill(' '));
+  const put=(g,s,x,y)=>{if(y<0||y>=H)return;[...s].forEach((c,i)=>{if(c!==' '&&x+i>=0&&x+i<W)g[y][x+i]=c})};
+  const sprite=(g,spr,x,y)=>spr.forEach((row,i)=>[...row].forEach((c,j)=>{if(c!==" "&&x+j>=0&&x+j<W&&y+i>=0&&y+i<H)g[y+i][x+j]=c}));
+  const setA=c=>root.style.setProperty('--a',c);
+  const cap=s=>{CAP.textContent=s;CAP.style.opacity=s?1:0};
+  const soilTo=g=>{for(let y=0;y<H;y++)for(let x=0;x<W;x++)g[y][x]=soil[y][x]};
+  const svg=h=>{V.innerHTML=h;V.style.opacity=h?1:0};
+  function nestBase(g,p){soilTo(g);const n=Math.min(tunnel.length,Math.floor(tunnel.length*p));for(let i=0;i<n;i++){const[x,y]=tunnel[i];for(let dx=-1;dx<=1;dx++)if(x+dx>=0&&x+dx<W)g[y][x+dx]=' '}return n}
+  // ASCII world frames
+  function asciiMap(g,ms){const blink=Math.floor(ms/220)%2;
+    put(g,'┌'+'──┬'.repeat(7)+'──┐',1,3);
+    for(let r=0;r<8;r++){let row='│';for(let c=0;c<8;c++){let t=mapCell(r,c);if(t=='@')t=blink?'[]':'@@';row+=t+'│'}put(g,row,1,4+r*2);put(g,r<7?'├'+'──┼'.repeat(7)+'──┤':'└'+'──┴'.repeat(7)+'──┘',1,5+r*2)}
+    put(g,'^^ forest  "" meadow  /\\ rock',2,21);put(g,'~~ water   <> rival   @@ us',2,22)}
+  function asciiPlanet(g,ms){const ramp=" .:-=+*#%@";const blink=Math.floor(ms/220)%2;
+    for(let y=0;y<H-3;y++)for(let x=0;x<W;x++){const dx=(x-17.5)/2.05,dy=(y-11);const d2=dx*dx+dy*dy,R=9.5;if(d2<R*R){const nz=Math.sqrt(R*R-d2);const lx=-.55,ly=-.45,lz=.7;let l=(dx*lx+dy*ly+nz*lz)/R;l=Math.max(0,l);let k=Math.floor(l*9.99);
+      const band=Math.sin((dy/R)*6+dx*.3)>.6?1:0;g[y][x]=ramp[Math.min(9,k+band)]}}
+    // orbit ring
+    for(let a=0;a<6.283;a+=.05){const x=Math.round(17.5+Math.cos(a)*16),y=Math.round(11+Math.sin(a)*3.2);if(y>=0&&y<H&&g[y][x]==' '&&!(Math.sin(a)<0&&Math.abs(x-17.5)<9))g[y][x]='·'}
+    g[7][21]=blink?'@':'%';put(g,'· HOME ·',14,22)}
+  function asciiStars(g,ms){stars.forEach(([x,y,b],i)=>{const tw=(Math.sin(ms/300+i)*.5+.5);g[y][x]=b>.92?(tw>.5?'*':'+'):b>.7?(tw>.6?'+':'.'):'.'});const blink=Math.floor(ms/220)%2;g[11][18]=blink?'@':' ';put(g,'· · ·',16,22)}
+  // Vector world frames
+  function vMap(ms){const blink=Math.floor(ms/220)%2;let h='';const sz=38,ox=24,oy=30;
+    const sym={'^^':'M-7 6 L0 -7 L7 6Z','""':'M-7 3 h5 M2 -2 h5 M-2 -5 h4','/\\':'M-9 7 L-3 -5 L1 1 L4 -3 L9 7Z','~~':'M-9 0 q4.5 -5 9 0 q4.5 5 9 0','<>':'M-7 7 Q0 -11 7 7Z'};
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++){const t=mapCell(r,c),x=ox+c*(sz+1),y=oy+r*(sz+1),home=t=='@';
+      h+=`<rect x="${x}" y="${y}" width="${sz}" height="${sz}" fill="var(--a)" fill-opacity="${home?.35:.05}" stroke="var(--a)" stroke-opacity="${home?1:.3}"/>`;
+      if(home)h+=`<circle cx="${x+sz/2}" cy="${y+sz/2}" r="${blink?7:5}" fill="var(--a)"/><circle cx="${x+sz/2}" cy="${y+sz/2}" r="${12+(ms%800)/50}" fill="none" stroke="var(--a)" stroke-opacity="${1-(ms%800)/800}"/>`;
+      else h+=`<path transform="translate(${x+sz/2} ${y+sz/2})" d="${sym[t]}" fill="${t=='<>'?'#ff9a6b':'none'}" stroke="${t=='<>'?'#ff9a6b':'var(--a)'}" stroke-width="1.4" stroke-opacity=".8"/>`}
+    h+=`<text x="180" y="365" text-anchor="middle" fill="var(--a)" font-size="12" font-family="ui-monospace,monospace">SURFACE</text>`;svg(h)}
+  function vPlanet(ms){const blink=Math.floor(ms/220)%2,cx=180,cy=190,R=120;
+    let h=`<defs><radialGradient id="pg${mode}" cx="35%" cy="32%" r="75%"><stop offset="0" stop-color="var(--a)" stop-opacity=".55"/><stop offset=".6" stop-color="var(--a)" stop-opacity=".12"/><stop offset="1" stop-color="var(--a)" stop-opacity="0"/></radialGradient><clipPath id="pc${mode}"><circle cx="${cx}" cy="${cy}" r="${R}"/></clipPath></defs>`;
+    h+=`<ellipse cx="${cx}" cy="${cy}" rx="170" ry="34" fill="none" stroke="var(--a)" stroke-opacity=".35" stroke-dasharray="2 5"/>`;
+    h+=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#pg${mode})" stroke="var(--a)" stroke-width="1.5"/>`;
+    h+=`<g clip-path="url(#pc${mode})" stroke="var(--a)" stroke-opacity=".25" fill="none">`;for(let i=-3;i<=3;i++)h+=`<ellipse cx="${cx}" cy="${cy+i*34}" rx="${Math.sqrt(R*R-(i*34)**2)}" ry="8"/>`;const rot=(ms/40)%60;for(let i=0;i<6;i++)h+=`<ellipse cx="${cx}" cy="${cy}" rx="${Math.abs(Math.cos((i*30+rot)*Math.PI/180))*R}" ry="${R}"/>`;h+=`</g>`;
+    h+=`<path d="M${cx+30} ${cy-R} A ${R} ${R} 0 0 1 ${cx+30} ${cy+R} A 70 ${R} 0 0 0 ${cx+30} ${cy-R}Z" fill="#000" fill-opacity=".45"/>`;
+    h+=`<circle cx="${cx+40}" cy="${cy-48}" r="${blink?5:3.5}" fill="#fff"/><circle cx="${cx+40}" cy="${cy-48}" r="${10+(ms%800)/40}" fill="none" stroke="#fff" stroke-opacity="${1-(ms%800)/800}"/>`;
+    h+=`<text x="180" y="365" text-anchor="middle" fill="var(--a)" font-size="12" font-family="ui-monospace,monospace">· HOME ·</text>`;svg(h)}
+  function vStars(ms,conv){let h='';const blink=Math.floor(ms/220)%2;
+    stars.forEach(([x,y,b],i)=>{let px=14+x*9.3+4,py=24+y*16.1-40;
+      if(conv!=null&&i<logoCells.length){const[lx,ly]=logoCells[i];const tx=14+lx*9.3+4,ty=24+ly*16.1-40;px+= (tx-px)*conv;py+=(ty-py)*conv}
+      const tw=Math.sin(ms/300+i)*.5+.5;h+=`<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${(b>.9?1.8:.9)+tw*.5}" fill="var(--a)" opacity="${.35+b*.6}"/>`});
+    if(conv==null){h+=`<circle cx="${14+18*9.3+4}" cy="${24+11*16.1-40}" r="${blink?3.5:2}" fill="#fff"/>`;h+=`<text x="180" y="365" text-anchor="middle" fill="var(--a)" font-size="12" font-family="ui-monospace,monospace">· · ·</text>`}
+    svg(h)}
+  function finalFrame(g,ms){setA('#ffb000');svg('');E.innerHTML='';
+    if(mode=='C'){let h='';const off=((ms||0)/40)%360;for(let i=0;i<14;i++){const x=((i*29+off)%400)-20;h+=VA(x,64+19.5*LH,0)}E.innerHTML=h}LOGO.forEach((row,r)=>put(g,row,LX,LY+r));put(g,'T  H  E',14,7);
+    const off=Math.floor((ms||0)/140)%10;const ants=' \\(o)=  ¥  ¥ ';let row='';for(let i=0;i<W+20;i++)row+=' ¥  ¥ ¥   '[(i+10-off)%10];if(mode!='C')put(g,row.slice(0,W),0,19);
+    let sr='';for(let i=0;i<W;i++)sr+="▓▒░▒▓░▒▓▒░"[(i*7)%10];put(g,sr,0,20);put(g,mode=='C'?'    ONE EGG. ONE QUEEN. ONE SWARM.':'ONE EGG. ONE QUEEN. ONE UNIVERSE.',1,16);
+    cap('');TAP.classList.add('on');S.textContent=g.map(r=>r.join('')).join('\n')}
+  function scene(ms){const g=g0();let a='#ffb000';
+    els='';const queen=(spr,x,y,rot)=>{if(mode=='C'){const[cx,cy]=px(x+4,y+1);els+=VQ(cx,cy,rot,1.0)}else sprite(g,spr,x,y)};
+    if(ms<2000){soilTo(g);if(ms>500){const drop=Math.min(1,(ms-500)/700);queen(QUEEN,13,Math.round(-3+drop*(SURF-1)),0)}cap('');svg('')}
+    else if(ms<4200){const p=(ms-2000)/2200;const n=nestBase(g,p);const[hx,hy]=tunnel[Math.max(0,n-1)];
+      if(p>.8){const q=(p-.8)/.2;ch1.forEach(([x,y],i)=>{if(i/ch1.length<q)g[y][x]=' '})}
+      if(mode=='C'){const[cx,cy]=px(hx,hy);const[nx,ny]=tunnel[Math.min(tunnel.length-1,n)];els+=VQ(cx,cy-6,Math.atan2(ny-hy,(nx-hx)*.55)*180/Math.PI||90,.8)}else sprite(g,QUEEN_DIG,hx-3,hy-2);cap('');svg('')}
+    else if(ms<5600){nestBase(g,1);ch1.forEach(([x,y])=>g[y][x]=' ');queen(QUEEN,8,16,0);if(ms>4500){if(mode=='C'){const[cx,cy]=px(18,17);els+=VE(cx,cy)+(Math.floor(ms/300)%2?`<ellipse cx="${cx}" cy="${cy}" rx="6" ry="4.5" fill="none" stroke="var(--a)" stroke-opacity=".4"/>`:'')}else g[17][18]=Math.floor(ms/300)%2?'o':'0';cap('ONE EGG.')}else cap('');svg('')}
+    else if(ms<8600){const p=(ms-5600)/3000;nestBase(g,1);ch1.forEach(([x,y])=>g[y][x]=' ');
+      later.forEach((c,i)=>{const q=Math.min(1,Math.max(0,(p-i*.08)*3));c.forEach(([x,y],j)=>{if(j/c.length<q)g[y][x]=' '})});
+      const n=Math.floor(Math.pow(p,1.4)*shuffled.length);for(let i=0;i<n;i++){const[x,y]=shuffled[i];if(g[y][x]==' '){if(mode=='C'){const[cx,cy]=px(x,y);const j=Math.sin(ms/400+i)*2;els+=i%11==0?VE(cx,cy):i%7==0?VL(cx,cy):VA(cx+j,cy,(i*47+ms/30*(i%3?1:-1))%360)}else g[y][x]=i%11==0?'o':i%7==0?'~':'¥'}}
+      queen(QUEEN,8,16,0);const pop=Math.max(1,Math.floor(Math.pow(88200,Math.min(1,p*1.1))));put(g,'WRK '+fmt(pop),1,1);cap(p>.35?'ONE QUEEN.':'ONE EGG.');svg('')}
+    else if(mode=='C'&&ms<11000){const p=ease(Math.min(1,(ms-8600)/2200));
+      soilTo(g);const fadeRows=Math.floor(p*H*1.2);for(let y=0;y<Math.min(H,fadeRows);y++)for(let x=0;x<W;x++)g[y][x]=' ';
+      const src=shuffled.slice(0,Math.max(logoCells.length,1));
+      logoCells.forEach(([lx,ly],i)=>{const[sx,sy]=src[i%src.length];const d=Math.min(1,Math.max(0,p*1.4-(i%17)*.02));
+        if(d>=1){g[ly][lx]='█'}else{const x=sx+(lx-sx)*d,y=sy+(ly-sy)*d;const[cx,cy]=px(x,y);els+=VA(cx,cy,Math.atan2(ly-sy,(lx-sx)*.55)*180/Math.PI)}});
+      if(p>.85)put(g,'T  H  E',14,7);cap('')}
+    else if(mode=='C'){finalFrame(g,ms+2000);return}
+    else if(ms<11000){const p=(ms-8600)/2400;
+      if(p<.34){a='#7dffb0';if(mode=='A'){asciiMap(g,ms);svg('')}else vMap(ms)}
+      else if(p<.67){a='#7ad7ff';if(mode=='A'){asciiPlanet(g,ms);svg('')}else vPlanet(ms)}
+      else{a='#e8f0ff';if(mode=='A'){asciiStars(g,ms);svg('')}else vStars(ms,null)}
+      cap('ONE UNIVERSE.')}
+    else if(ms<13000){const p=ease((ms-11000)/2000);a=p>.6?'#ffb000':'#e8f0ff';
+      if(mode=='A'){logoCells.forEach(([lx,ly],i)=>{const[sx,sy]=stars[i];const x=Math.round(sx+(lx-sx)*p),y=Math.round(sy+(ly-sy)*p);if(y>=0&&y<H&&x>=0&&x<W)g[y][x]=p>.9?'█':(p>.55?'▓':p>.25?'*':'.')});
+        stars.forEach(([x,y],i)=>{if(i>=logoCells.length&&((i*37)%100)/100>p)g[y][x]='.'});svg('')}
+      else{if(p<.85)vStars(ms,p);else{svg('');LOGO.forEach((row,r)=>put(g,row,LX,LY+r))}}
+      if(p>.9)put(g,'T  H  E',14,7);cap('')}
+    else{finalFrame(g,ms);return}
+    E.innerHTML=els;setA(a);S.textContent=g.map(r=>r.join('')).join('\n')}
+  function loop(now){if(!t0)t0=now;scene(done?(mode=='C'?11000:13000)+(now-t0):now-t0);raf=requestAnimationFrame(loop)}
+  this.start=()=>{cancelAnimationFrame(raf);t0=0;done=false;TAP.classList.remove('on');
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches){finalFrame(g0(),0);return}raf=requestAnimationFrame(loop)};
+  root.addEventListener('click',()=>{if(!done){done=true;t0=0}});
+}
+const C=new Cine(document.getElementById('C'),'C');
+function startAll(){C.start()}startAll();
+</script></body></html>

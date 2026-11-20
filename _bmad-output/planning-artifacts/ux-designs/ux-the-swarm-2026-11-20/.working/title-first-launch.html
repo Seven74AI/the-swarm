@@ -1,0 +1,29 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>THE SWARM — first-launch title</title><style>
+/* Phase 1 phosphor: amber #ffb000 on #0d0a04. Dim = 62% mix. */
+body{margin:0;background:#161616;font-family:system-ui,sans-serif;color:#ddd;padding:20px;display:flex;gap:28px;flex-wrap:wrap;justify-content:center}
+.wrap{max-width:380px}.wrap p{font-size:13px;color:#aaa;line-height:1.45}
+.phone{--a:#ffb000;--bg:#0d0a04;width:360px;height:720px;background:var(--bg);color:var(--a);font:14px/1.3 ui-monospace,"SF Mono",Menlo,Consolas,monospace;border:7px solid #000;border-radius:30px;position:relative;overflow:hidden;text-shadow:0 0 6px color-mix(in srgb,var(--a) 50%,transparent)}
+.phone::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.2) 0 1px,transparent 1px 3px)}
+.scr{padding:58px 14px 0;white-space:pre}
+.ln{opacity:0;animation:on .01s forwards}.ln:not(.logo):not(.the){color:color-mix(in srgb,var(--a) 62%,var(--bg))}
+.logo{font-size:13px;line-height:1.05;font-weight:700;text-shadow:0 0 10px var(--a)}.the{margin-top:34px;letter-spacing:.1em;color:var(--a)!important}
+.sub{margin-top:14px;font-size:12px}
+@keyframes on{to{opacity:1}}
+.ants{position:absolute;left:0;right:0;bottom:178px;white-space:pre;font-size:13px;overflow:hidden;opacity:0;animation:on .01s 4.4s forwards}
+.ants span{display:inline-block;animation:march 9s linear infinite}@keyframes march{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+.soil{position:absolute;left:0;right:0;bottom:150px;color:color-mix(in srgb,var(--a) 35%,var(--bg));font-size:13px;white-space:pre;overflow:hidden;opacity:0;animation:on .01s 4.4s forwards}
+.tap{position:absolute;left:14px;right:14px;bottom:60px;text-align:center;border:1.5px solid var(--a);padding:15px 0;font-weight:700;letter-spacing:.06em;opacity:0;animation:on .01s 5.2s forwards,blink 1.4s steps(1) 5.2s infinite}
+@keyframes blink{50%{border-color:transparent}}
+.ver{position:absolute;bottom:22px;left:0;right:0;text-align:center;font-size:11px;color:color-mix(in srgb,var(--a) 45%,var(--bg))}
+.replay{font-size:12px;color:#888}
+</style></head><body>
+<div class="phone"><div class="scr"><div class="ln" style="animation-delay:0.0s">&gt; HIVE/OS 0.1 · COLD START</div><div class="ln" style="animation-delay:0.5s">&gt; SCANNING SOIL ........... OK</div><div class="ln" style="animation-delay:0.9s">&gt; BROOD CHAMBER ........... OK</div><div class="ln" style="animation-delay:1.4s">&gt; QUEENS FOUND ............ 1</div><div class="ln" style="animation-delay:1.8s">&gt; WORKERS ................. 0</div><div class="ln the" style="animation-delay:2.5s">            T  H  E</div><div class="ln logo" style="animation-delay:2.8s">   ████ █   █  ███  ████  █   █</div><div class="ln logo" style="animation-delay:2.9s">  █     █   █ █   █ █   █ ██ ██</div><div class="ln logo" style="animation-delay:3.0s">   ███  █ █ █ █████ ████  █ █ █</div><div class="ln logo" style="animation-delay:3.2s">      █ █ █ █ █   █ █  █  █   █</div><div class="ln logo" style="animation-delay:3.3s">  ████   █ █  █   █ █   █ █   █</div><div class="ln sub" style="animation-delay:3.8s">  ONE EGG. ONE QUEEN. ONE UNIVERSE.</div></div>
+<div class="ants"><span>  ¥ ¥   ¥  ¥ ¥    ¥   ¥ ¥    ¥ ¥   ¥  ¥ ¥    ¥   ¥ ¥    ¥ ¥   ¥  ¥ ¥    ¥   ¥ ¥    ¥ ¥   ¥  ¥ ¥    ¥   ¥ ¥    ¥ ¥   ¥  ¥ ¥    ¥   ¥ ¥    ¥ ¥   ¥  ¥ ¥    ¥   ¥ ¥  </span></div>
+<div class="soil">▓▒░▒▓▓░▒░▓▒▒░▓░▒▓▒░░▓▒▓░▒▒▓░░▒▓▒░▓▒▓░▒▓▒░▒▓▓░▒░▓▒▒░▓░▒▓▒░░▓▒▓░▒▒▓░░▒▓▒░▓▒▓░▒</div>
+<div class="tap">[ TAP TO WAKE THE QUEEN ]</div><div class="ver">v0.1 · press any key on desktop</div></div>
+<div class="wrap"><h3>First-launch title · Phase 1 amber</h3>
+<p><b>Plays once, on the very first launch.</b> The boot lines type in, then T H E and the SWARM block letters appear, then a line of ants starts marching across the soil. Reload the page to replay it.</p>
+<p>Tapping goes to black, then <code>A QUEEN, ALONE.</code>, then the brood chamber, then the coach mark on LAY EGG.</p>
+<p>Later launches skip the title and open on NEST, with the offline summary if you were away. Settings would have a "replay intro" option.</p>
+<p>Everything fits the 36-column grid: the logo is 29 columns, so it stays legible at 360 px. With reduced motion on, all lines appear at once and the ants stand still.</p></div>
+</body></html>
