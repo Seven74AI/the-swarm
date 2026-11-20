@@ -4,7 +4,7 @@ project: 'the-swarm'
 date: '2026-11-20'
 author: 'Seven74'
 version: '1.0'
-stepsCompleted: [1, 2, 3]
+stepsCompleted: [1, 2, 3, 4]
 status: 'in-progress'
 baseline_code: 'Seven74AI/the-swarm main @ a332d82'
 
@@ -24,7 +24,7 @@ ux:
 
 This architecture document is being created through the GDS Architecture Workflow.
 
-**Steps Completed:** 3 of 9 (Initialize, Project Context, Engine & Framework)
+**Steps Completed:** 4 of 9 (Initialize, Project Context, Engine & Framework, Architectural Decisions)
 
 ---
 
@@ -212,3 +212,167 @@ Brownfield; no starter template. Adoption steps (each is a story):
 10. Scene rendering budget and the SVG → Canvas/PixiJS fallback trigger.
 11. Pacing harness: simulated player, reachability check, local telemetry.
 12. Dependency hygiene (73 Dependabot alerts on `main` at the time of writing).
+
+## Architectural Decisions
+
+### Decision Summary
+
+| # | Category | Decision | Version | Rationale |
+|---|---|---|---|---|
+| D1 | Time model | 20 Hz fixed tick while visible; save and stop on hide; one `resume(elapsedMs)` for cold start and return; gaps < 60 s at full efficiency | n/a | Browsers suspend hidden tabs; one path is testable; no penalty for glancing away (owner) |
+| D2 | Offline catch-up | Macro-steps through the same `processTick` | n/a | Fits 12–24 h in < 500 ms with one simulation code path |
+| D3 | Phase flow | Conditions declared in `transitions.ts`; pure `evaluate()` + `commit()` on CONTINUE; latched goal | n/a | UX GOAL MET / CONTINUE; UI never restates thresholds |
+| D4 | Persistence | localStorage behind `SaveStore`; load status; persistent-storage request; settings outside the save | n/a | Works today, swappable for Capacitor, never fails silently |
+| D5 | State | Single signal, one spread write per tick, `computed` selectors; delete `StateManager`, `Store`, `GameStatePool` | signals-core 1.x | Fixes #186 at the root; removes primitives agents copy |
+| D6 | Randomness | Seeded PRNG, state stored in game state | n/a | Reproducible simulations and bug replays (owner) |
+| D7 | UI shell | Tab registry + single `SheetController` + overlay layer | Preact 11.x | 23 panels → 5 tabs; sheets never stack |
+| D8 | Decision events | Session foreground clock; data-declared ignore policy; open event persisted | n/a | Fixes spawn-on-load; closing the app is no escape |
+| D9 | Platform services | `src/platform/` interfaces, web implementations now, Capacitor later; no notifications on web | Capacitor 8.x (later) | Store build stays possible; the web cannot detect events while closed (owner) |
+| D10 | Distribution / PWA | vite-plugin-pwa, precache everything, update on next cold start, `display: standalone` | vite-plugin-pwa ≥ 1.3 | Offline play, home-screen storage exemption, no mid-session reloads |
+| D11 | Scene rendering | SVG, ≤ 50 animated ants, dot cloud as one path, own rAF loop with ≤ 4 Hz slice reads | n/a | Frame budget on low-end phones, with a measured fallback |
+| D12 | Pacing harness | Headless `src/sim/`; reachability gates CI; duration targets are a report only | n/a | Soft-lock rule enforced; no balance numbers in tests |
+| D13 | Dependency hygiene | Policy set in Cross-cutting Concerns | n/a | 73 Dependabot alerts on `main` (2026-11-20) |
+
+Versions verified on 2026-11-21: Vite 8.3.x, Preact 11.x (11.0 released October 2026),
+`@preact/signals` 2.x, `@preact/signals-core` 1.x, vite-plugin-pwa ≥ 1.3.0 (first release with Vite 8
+support), Capacitor 8.x. Exact pins come from `package.json`.
+
+Owner decisions in this step (2026-11-21): Q1 gaps under 60 s run at full efficiency; Q2 no
+notifications in the web build (store build later); Q3 seeded PRNG; D1–D3 accepted explicitly;
+D4–D13 accepted as recommended.
+
+### Time Model (D1)
+
+- **Visible:** `Ticker` runs a 50 ms fixed step (20 Hz) on rAF. Outcomes depend on ticks, never on frames.
+- **Hidden** (`visibilitychange` → hidden, or `pagehide`): force a save with a `lastSeenAt` wall-clock
+  timestamp, then stop the ticker. `beforeunload` stays as a fallback only.
+- **Return or cold start:** `resume(elapsedMs)` is the only entry point.
+  - `elapsedMs ≤ 0` (clock skew) → 0.
+  - `elapsedMs < 60 s` → simulated at full efficiency; no summary sheet; strip deltas flash.
+  - `elapsedMs ≥ 60 s` → offline catch-up (D2) at the current offline efficiency, then the offline summary.
+- **One cap:** `getOfflineCapMs(state)` (12 h base, raised to 24 h by Legacy upgrades). It replaces the
+  4 h cap (`OfflineProgression.ts`), the 8 h cap (`GameLoop.ts`) and the frame cap that drops hidden time.
+- **Clocks:** wall clock (`Date.now`) only for gaps; game time (tick count) for everything simulated.
+  A session clock (foreground ticks since this launch) drives decision-event spawning (D8).
+
+### Offline Catch-up (D2)
+
+- Runs the same `processTick` systems with a macro-step `dt` (initial value 10 s; tuned by the perf test).
+- Systems must be correct for any step length: rates × `dt`, integer flooring where amounts are spent
+  or displayed, every pipeline exit feeding the next pipeline (existing rule).
+- Offline-only rules apply inside catch-up: the efficiency multiplier, the starvation floor (workers never
+  below 50% of the pre-absence count), no decision events, no phase commits (the latch may set).
+- **Tests:** a property test compares macro-step with fine-step results within a tolerance on random
+  seeded states and checks the invariants (integers, never above capped production, starvation floor).
+  A perf test enforces the 500 ms budget on a 24 h absence.
+
+### Phase Flow (D3)
+
+- `Transition` gains `conditions: { id, label, current(s), target(s) }[]`; `guard` is derived as
+  all-met. `transitions.ts` stays the only source of thresholds.
+- `PhaseStateMachine` splits into `evaluate(state) → Transition | null` (pure, every tick) and
+  `commit(transition, state, bus)` (runs `onEnter`, emits `phase_changed`), called only from CONTINUE.
+- **Latch:** when `evaluate` first returns a transition, `state.phaseGoal = { phase, latched: true }`
+  is written. It survives dips and saves and is cleared by `commit` and by prestige.
+- Order: remove `COLONY_TO_EXPANSION` → add conditions → split the FSM → migrate the E2E seeds to
+  tap CONTINUE (`data-action="continue"`).
+
+### Data Persistence (D4)
+
+- **Store:** a `SaveStore` interface; the web implementation uses localStorage (the current key and
+  2-slot rotating backup). A Capacitor implementation can replace it without touching game code.
+- **Load:** `load() → { status: 'ok' | 'recoveredFromBackup' | 'unreadable' | 'empty', state? }`,
+  which drives the corrupt-save sheet. Never a silent reset.
+- **Durability:** call `navigator.storage.persist()` after the first meaningful play; show a one-time
+  "add to home screen" hint (home-screen web apps are exempt from Safari's 7-day storage cap);
+  export/import is the player's backup.
+- **Inside the save:** game state, the `phaseGoal` latch, the open decision event with its remaining
+  time, the event log (last 100 lines), `lifetime.revealsSeen`, the PRNG state.
+- **Outside the save** (own keys; survive prestige and import; not exported): settings, intro flag.
+- **Migrations:** one numbered step per schema change, in order; two branches claiming the same
+  version merge into one function (existing rule). The E5 prestige wipe is a normal step.
+
+### State Management (D5)
+
+- One `signal<GameState>`; one spread-based write per tick; user actions write between ticks.
+- `src/state/selectors.ts` exports `computed` slices. Components and effects read only selectors,
+  never `gameState.value` directly.
+- Delete `StateManager`, `Store` (dead outside their own tests) and `GameStatePool` (allocates
+  normally today; recycling would break selector reference equality).
+
+### Randomness (D6)
+
+- A small seeded PRNG (for example a 32-bit generator) with its state in `GameState`. Systems take it
+  as input and return the advanced state; no `Math.random` in `src/systems` or `src/sim`.
+- UI-only randomness (particles, wandering ants) may use `Math.random`.
+- Tests keep asserting invariants (`Victory | Defeat`), but a seed can now reproduce a reported bug.
+
+### UI Shell (D7)
+
+- **Tab registry** (data, not code): `{ panelId → tab, segment?, unlockPhase }`. It replaces
+  `PHASE_PANELS` in `PhaseContent.ts`. A test asserts that no phase shows a sixth tab.
+- **SheetController:** one signal holding the open sheet and a queue. Priority: offline summary >
+  decision event > battle summary > other modal > peek. Modal sheets never stack; opening a modal
+  closes any peek.
+- **Overlay layer:** phase reveal, title cinematic and Transcendence ending. Overlays block input,
+  and decision events wait until they end.
+- **Desktop:** the same components, laid out in columns by CSS from 1024 px.
+
+### Decision Events (D8)
+
+- Events are data: `{ id, phases, ignorePolicy: 'free' | 'costly' | 'unavoidable', timerMs?,
+  ignoreLine, choices[], ignore? }`.
+- Spawning uses the session clock (≥ 2 min of foreground play since launch); never during an overlay
+  or before the offline summary is dismissed; at most one open.
+- The countdown runs on game time, so it pauses when hidden or paused. An open event is saved with
+  its remaining time and reopens on resume.
+- Choices and timeouts go through one pure `applyChoice(state, event, choice | 'ignore')`.
+
+### Platform Services (D9)
+
+- `src/platform/` interfaces: `Audio`, `Haptics`, `Notifications`, `Storage`, `Lifecycle`.
+  Web implementations now; Capacitor implementations only when a store build is started.
+- Haptics: `navigator.vibrate` where available, otherwise a no-op; never the only feedback.
+- Notifications: **none in the web build** (owner). The interface exists so that a store build can
+  schedule local notifications at predicted times. The settings toggle is hidden on web.
+
+### Distribution and PWA (D10)
+
+- Static build to GitHub Pages; vite-plugin-pwa generates the manifest and the service worker.
+- Precache all assets (glyphs are inline SVG, audio is synthesized, no lazy loading).
+- A new version activates on the next cold start; never reload during a session.
+- Manifest `display: "standalone"`, portrait orientation.
+
+### Scene Rendering (D11)
+
+- Nest, map and star map are Preact SVG components; labels are HTML overlays (DESIGN.md).
+- At most 50 individually animated ants; the rest is a dot cloud drawn as one SVG path.
+- Scene animation runs in its own rAF loop, reads slices at most 4 times per second, and stops under
+  reduced motion.
+- **Fallback trigger:** if p95 frame time on the reference device exceeds 16 ms in the perf test,
+  move the dot cloud to Canvas 2D; consider PixiJS only if Canvas is not enough.
+
+### Pacing Harness (D12)
+
+- `src/sim/`: headless and DOM-free; drives the real systems with a scripted check-in schedule and a
+  simple player policy (allocate, buy the next-action item, CONTINUE).
+- **CI-gating:** guard reachability for every phase from that phase's own production (soft-lock rule).
+- **Report only** (`pnpm sim`, not in CI): phase durations against the GDD targets. Hard-coding them
+  in tests would violate "test invariants, never balance numbers".
+- **Telemetry:** a local ring buffer (time per phase, check-in length, decisions per check-in),
+  exportable from settings; no network.
+
+### Architecture Decision Records
+
+Recorded as ADRs in `docs/decisions/` (created in the same PR as this document):
+
+1. ADR-0001 Single game-state signal with `computed` selectors; delete the legacy state primitives (D5, #186).
+2. ADR-0002 Visible-only simulation and the single resume path (D1, D2).
+3. ADR-0003 Phase conditions, evaluate/commit and the latched goal (D3).
+4. ADR-0004 Preact for the UI layer, web-first PWA, optional Capacitor (Engine & Framework, D9, D10).
+5. ADR-0005 Seeded PRNG in game state (D6).
+
+### Follow-ups for other planning artifacts
+
+- GDD/UX: notifications are removed from the web build (Q2). Update the E2 notification story and
+  EXPERIENCE.md Settings through `gds-correct-course` when the stories are written.
