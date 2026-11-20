@@ -25,7 +25,7 @@ Companion to `gdd.md`. High-level stories only; `gds-create-epics-and-stories` t
 **Delivers:** Offline progress decision (12 h cap); the check-in loop.
 
 - Replace the two baseline caps (4 h and 8 h) with one 12 h cap, upgradable to 24 h. (P1)
-- Efficiency chain 50% → 75% → 100%, with the first step reachable in Phases 2–3. (P3)
+- Efficiency chain: 50% → 75% via Phase 2–3 research (per run); 75% → 100% and 12 h → 24 h cap via Legacy upgrades. Replaces Temporal Resonance / Chrono Synchronization and migrates saves that own them. (P3)
 - Return summary sheet: elapsed time, gains, events waiting, one suggested next action. (P3)
 - Offline starvation floor (workers never below 50% of their pre-absence count). (P4)
 - Opt-in local notifications: nest full, cap reached. (check-in loop)
