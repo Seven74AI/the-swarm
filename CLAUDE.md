@@ -37,8 +37,10 @@ If `pnpm install` cannot reach the registry (network access off), no tests can r
 - **Issues:** GitHub Issues on `Seven74AI/the-swarm`. See `docs/agents/issue-tracker.md`.
 - **Triage labels:** `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
   Implement only `ready-for-agent` issues unattended. Stop on the other labels.
-- **PR flow:** branch → PR → enable auto-merge (squash) → it merges itself once CI is green. No approving review is
-  required (owner decision, 2026-11-20), so CI is the only gate: never weaken a check to get a PR through.
+- **PR flow:** branch → PR → it merges itself (squash) once CI is green. `.github/workflows/auto-merge.yml` arms
+  auto-merge on every non-draft, non-Dependabot, non-fork PR, so don't arm it by hand; it needs the `AUTOMERGE_TOKEN`
+  secret. No approving review is required (owner decision, 2026-11-20), so CI is the only gate: never weaken a check
+  to get a PR through. CI runs on every PR, docs-only included, because its checks are required.
   No direct pushes to `main`. If CI fails, fix the cause; don't retry-until-green.
 - **Branch protection** requires the checks `typecheck`, `vitest`, `playwright-gate`. These are the
   job keys in `.github/workflows/ci.yml`: renaming a job (or giving it a job-level `name:`) silently breaks merging.

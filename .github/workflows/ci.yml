@@ -4,9 +4,10 @@ on:
   push:
     branches: [main]
     paths-ignore: ['**.md', '**.txt']
+  # No paths-ignore on PRs: typecheck / vitest / playwright-gate are required
+  # checks, so a docs-only PR that skipped CI could never merge.
   pull_request:
     branches: [main]
-    paths-ignore: ['**.md', '**.txt']
   workflow_dispatch:
 
 concurrency:
