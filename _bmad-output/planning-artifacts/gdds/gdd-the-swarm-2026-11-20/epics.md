@@ -21,7 +21,7 @@ Companion to `gdd.md`. High-level stories only; `gds-create-epics-and-stories` t
 
 ## E2: Offline and check-in (MVP)
 
-**Goal:** coming back to the game is the best moment of a session.
+**Goal:** every return shows a summary with at least one actionable decision.
 **Delivers:** Offline progress decision (12 h cap); the check-in loop.
 
 - Replace the two baseline caps (4 h and 8 h) with one 12 h cap, upgradable to 24 h. (P1)
@@ -70,9 +70,13 @@ Companion to `gdd.md`. High-level stories only; `gds-create-epics-and-stories` t
 - Save migration for existing saves that hold space resources across prestige. (technical)
 - `phase_skip` cannot skip a never-completed phase. (P2)
 
-**Done when:** a second run starts with zero resources and LP bonuses applied, and migrated saves load.
+**Done when:** a second run starts with zero resources except those granted by Legacy upgrades, LP bonuses apply, and migrated saves load.
 
 ## E6: Phases 4–5 on mobile, with depth (post-MVP)
+
+**Goal:** Expansion and Space meet the depth bar on a phone.
+**Done when:** both phases pass the depth-bar checklist and the Week 2–3 targets in a simulated run.
+
 
 - 8×8 map and star map usable in portrait. (P2)
 - Depth bar for Expansion and Space. (P2, P4)
@@ -81,11 +85,19 @@ Companion to `gdd.md`. High-level stories only; `gds-create-epics-and-stories` t
 
 ## E7: Transcendence and ending (post-MVP)
 
+**Goal:** the first run ends in a real, satisfying victory.
+**Done when:** reaching Transcendence plays the ending and offers prestige as the replay path.
+
+
 - Ending sequence and narrative close. (P2)
-- Victory record and replay hook into prestige. (meta loop)
+- Ending sequence triggers on Transcendence and offers prestige as the replay path. (meta loop)
 - Legacy tree balance against the "second run in at most 50% of the time" target. (meta loop)
 
 ## E8: Art and audio pass (partly MVP)
+
+**Goal:** each phase looks and sounds distinct and readable on a phone.
+**Done when:** every phase has its palette, the icon set covers all resources and buildings, and the MVP sound effects ship.
+
 
 - Direction from `gds-ux`; icon set for about 20 resources and 6 buildings. (P1)
 - Palette per phase, applied on phase entry. (P2)

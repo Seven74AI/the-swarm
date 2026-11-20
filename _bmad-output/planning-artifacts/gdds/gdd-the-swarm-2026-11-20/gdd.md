@@ -26,6 +26,10 @@ baseline_code: "Seven74AI/the-swarm main @ 0b0b364"
 
 You are the queen whose single egg becomes a swarm big enough to swallow the universe. THE SWARM is a mobile-first incremental game. Each of its six phases (nest, colony, battlefield, territory, space, transcendence) changes *what* the player manages, not only how big the numbers get. Every resource is a countable integer, growth always has a physical cost, and the arc ends: Transcendence is a real victory, and prestige makes replays faster.
 
+**Intended feel:** the "how did it get this big?" vertigo of a good incremental, plus pride in a colony shaped by the player's own choices about who gathers, who digs, who fights and what to risk. [ASSUMPTION: from brief, not yet stated by owner]
+
+**Tone:** terse. Story arrives in short beats and a running event log, never in long scripted scenes (A Dark Room, not a visual novel).
+
 ### Target Audience
 
 - **Primary:** mobile idle players who check in for 30–90 seconds several times a day, one-handed in portrait. They expect offline progress and sessions they can drop at any moment. [ASSUMPTION: session shape, carried from brief]
@@ -43,7 +47,7 @@ You are the queen whose single egg becomes a swarm big enough to swallow the uni
 
 ### Project Goals
 
-1. Ship a phone-playable MVP covering Phases 1–3 (Egg Laying → Colony → Combat) in which check-in play is satisfying on its own.
+1. Ship a phone-playable MVP covering Phases 1–3 (Egg Laying → Colony → Combat) in which every check-in offers at least one decision (see *Gameplay Metrics*).
 2. Make every existing phase feel complete (enough decisions, events, upgrades and pacing polish) before any content is added after Transcendence.
 3. Reach a full first victory that a mobile player can finish in a bounded, intentional time (see *Difficulty Curve*).
 4. Keep the design fun-first. Monetization and retention metrics are out of scope.
@@ -51,6 +55,18 @@ You are the queen whose single egg becomes a swarm big enough to swallow the uni
 ### Background and Rationale
 
 A desktop-shaped prototype of the full six-phase arc exists: about 23 panels, around 1,300 unit tests and 24 E2E specs. It proves the arc and the systems hang together. It was tuned with "pacing nerfs" and no playtest data, and it was laid out for desktop. The owner treats it as evidence, not as a commitment. This GDD keeps the pillars the prototype demonstrates, re-targets pacing for phone check-ins, and decides open design questions (prestige carry-over, offline cap). The question of whether to keep the stack goes to `gds-game-architecture`.
+
+**References (take / leave):**
+
+| Title | Take | Leave |
+|---|---|---|
+| Universal Paperclips | Scale shifts that change the game, cosmic endgame, rate-based production | Text-only austerity |
+| A Dark Room (mobile) | UI revealed a phase at a time, terse narrative, a mobile incremental with an ending | Heavy scripted story |
+| Kittens Game | Population allocation as the core skill | Spreadsheet sprawl |
+| Idle Ants / Pocket Ants | Proof the ant theme works on mobile | Ad- and gacha-driven loops, no ending |
+| Cookie Clicker | Tap to bootstrap, prestige upgrades | Endless tapping as a core verb |
+
+**Team and stakes:** solo owner working with AI coding agents (GitHub issue → PR → CI). Passion project: no launch date, revenue target or publisher.
 
 ---
 
@@ -69,7 +85,7 @@ Every feature must serve at least one pillar. A feature that serves none is cut 
 
 | Loop | Duration | Player actions | Reward |
 |---|---|---|---|
-| **Check-in** | 30–90 s | Collect the offline summary → reassign workers → answer a pending decision → queue one upgrade or building | Visible growth since last visit, one meaningful choice |
+| **Check-in** | 30–90 s | Collect the offline summary → reassign workers → answer a pending decision → buy one upgrade or building | Visible growth since last visit, one meaningful choice |
 | **Mid loop** | Hours (across check-ins) | Build and upgrade buildings, turn combat drops into equipment and mutations, claim map tiles, run research chains | New capability: a building level, a mutation, territory |
 | **Outer loop** | Days (per phase) | Meet a phase guard → phase transition | New scale of play: new verbs, narrative beat, new look |
 | **Meta loop** | Per run | Prestige → spend Legacy Points on permanent upgrades | Faster later runs, new starting options |
@@ -90,20 +106,20 @@ Each check-in must offer **at least one decision worth making** (an allocation c
 
 | Mechanic | Player capability | Baseline values | Pillar |
 |---|---|---|---|
-| **Lay egg** | Tap the queen to lay eggs | 1 egg per tap + 1 per `click_power` level (cost 10, ×1.15 per level) | 3 (bootstrap only) |
+| **Lay egg** | Tap the queen to lay eggs | 1 egg per tap + 1 per Click Power level (cost 10 food, ×1.15 per level) | 3 (bootstrap only) |
 | **Population pipeline** | Eggs hatch into larvae, larvae mature into workers | Hatch 50 ticks, mature 50 ticks, at 20 ticks/s [NOTE FOR DESIGNER: code comment says "1 s per tick"; at 20 Hz, 50 ticks = 2.5 s. Confirm the intended unit in the pacing pass] | 1 |
 | **Worker roles** | Assign workers to Gather, Tend, Dig, Guard, Research | Gather: 2 food. Tend: +25% hatch rate each. Unassigned: half gather rate. Upkeep: workers / 2 food | 1, 3 |
 | **Nest capacity** | Dig and Warehouse raise the population ceiling | Capacity = base + Warehouse effect | 1, 4 |
 | **Scale penalty** | Efficiency drops above 500 workers | `1 / (1 + 0.0005 × (workers − 500))` | 4 |
 | **Buildings** | Build and upgrade 6 buildings | Cost `floor(base × 2.5^level)`. Soft cap above Lv.5: `effect / (1 + 0.08 × (level − 5))` | 1, 4 |
-| **Combat soldiers** | Train soldiers that auto-battle escalating enemies | 5 food + 1 worker, 75-tick train. Weapons/armor to Lv.5. Enemies scale with `battlesWon^0.6`; max 20 rounds per battle | 2, 4 |
-| **Scouts and warriors** | Recruit an expedition force | Requires Barracks Lv.2. Caps: 3 scouts, 2 warriors. Partial-success losses split proportionally | 2, 4 |
+| **Combat soldiers** | Train soldiers that auto-battle escalating enemies | 5 food + 1 worker, 75-tick train. Weapons/armor to Lv.5. Enemies scale with battles won^0.6; max 20 rounds per battle | 2, 4 |
+| **Scouts and warriors** | Recruit an expedition force | Barracks Lv.1: up to 2 scouts. Lv.2: up to 3 scouts and 2 warriors. Partial-success losses split proportionally | 2, 4 |
 | **Decision events** | Answer timed choice pop-ups | Every 2–3 min while active. Baseline set: Beetle Sighting, Overcrowding!, Scout Report | 2, 4 |
 | **Mutations** | Spend combat drops on permanent colony traits | 6: Efficient Gatherers, Swift Soldiers, Accelerated Hatching, Tough Shells, Potent Venom, Reinforced Mandibles | 2 |
-| **Territory** | Discover and claim 8×8 map tiles | Forest 25%, Meadow 20%, Mountain 15%, Empty 30%, Enemy Nest 10%. Claimed tile: 0.5 per tick per worker of its type. Max 3 active expeditions | 2, 1 |
+| **Territory** | Discover and claim 8×8 map tiles | Forest 25%, Meadow 20%, Mountain 15%, Empty 30%, Enemy Nest 10%. Claimed tile: 0.5 per tick per worker of its type (unit to confirm, see note). Max 3 active expeditions | 2, 1 |
 | **Research** | Run research chains with refundable cancellation | Two trees (automation, space). Cancel refunds 50% | 3 |
 | **Spaceships and planets** | Build ships, explore 4 planets for space resources | Scout ship 15 VC (+ basic resources), cruiser 200 VC, capital ship 800 VC. Planets: Mars (antimatter), Saturn (dark matter), Europa (void crystals), Kepler-442b (food + VC). Max 3 active explorations | 2 |
-| **Entropy** | Dark matter accelerates entropy, which erodes production | Entropy 0–100. +0.1 per dark matter. Dampener: 10 VC + 50 stone. Entropy also feeds the prestige bonus | 4 |
+| **Entropy** | Dark matter accelerates entropy, which erodes production | Entropy 0–100. +0.1 per dark matter (per tick; unit to confirm). Dampener: 10 VC + 50 stone. Entropy also feeds the prestige bonus | 4 |
 
 [NOTE FOR DESIGNER: research cost `darkMatterDetection: { antimatter: 0.1 }` breaks Pillar 1 (integer resources). Change it to an integer cost in the pacing pass.]
 
@@ -126,17 +142,17 @@ Each check-in must offer **at least one decision worth making** (an allocation c
 
 - Tapping lays eggs and matters only in Phase 1 (Pillar 3). Target: tapping supplies at least 80% of eggs in the first 2 minutes and under 10% once the player reaches Colony. [ASSUMPTION: targets]
 - Satisfaction comes from the egg visibly entering the pipeline, not from the count going up. Each tap gives immediate visual and haptic feedback (haptics on mobile where available).
-- `click_power` is the only tap upgrade. After Phase 1 there is no tap-scaling upgrade path. The Legacy upgrade `auto_egg_laying` removes tapping from later runs entirely.
+- Click Power is the only tap upgrade. After Phase 1 there is no tap-scaling upgrade path. The Legacy upgrade Auto Egg Laying removes tapping from later runs entirely.
 
 ### Upgrade Trees
 
 | Tree | Unlocks in | Currency | Contents (baseline) |
 |---|---|---|---|
-| Click | Phase 1 | Eggs/food | `click_power` |
-| Buildings | Phase 2 | Food, wood, stone, nectar, combat drops | Barracks, Walls, Warehouse, Silk Weaving, Chitin Armory, Venom Lab |
+| Click | Phase 1 | Food | Click Power |
+| Buildings | Phase 2 (combat buildings in Phase 3) | Food, wood, stone, nectar, combat drops | Barracks, Walls, Warehouse, Silk Weaving, Chitin Armory, Venom Lab |
 | Equipment | Phase 3 | Food, combat drops | Weapons and armor, Lv.1–5 |
 | Mutations | Phase 3 | Silk, chitin, venom | 6 mutations |
-| Automation research | Phase 2+ | Food, workers, stone, VC | Basic Incubation, Queen's Pheromones, Thermal Regulation, Genetic Optimization |
+| Automation research | Phase 2+ | Food, wood, workers, stone, VC | Basic Incubation, Queen's Pheromones, Thermal Regulation, Genetic Optimization |
 | Space research | Phase 4–5 | Stone, nectar, VC, antimatter | Void Crystal Synthesis, Antimatter Containment, Dark Matter Detection |
 | Legacy (prestige) | After first prestige | Legacy Points | 8 nodes (see *Meta-Progression*) |
 
@@ -147,40 +163,42 @@ Each check-in must offer **at least one decision worth making** (an allocation c
 
 ### Automation Systems
 
-- Automation replaces a verb the player has already performed by hand (Pillar 3). Order: egg laying (Legacy `auto_egg_laying`) → hatching (Basic Incubation, Thermal Regulation) → recruitment and soldier training → expeditions and explorations.
+- Automation replaces a verb the player has already performed by hand (Pillar 3). Order: egg laying (Legacy Auto Egg Laying) → hatching (Basic Incubation, Thermal Regulation) → recruitment and soldier training → expeditions and explorations.
 - **Unlock rule:** a verb can be automated once the player has performed it manually at least N times or reached the phase after the one that introduced it. [ASSUMPTION: N = 10; tune in pacing pass]
 - Automation is never all-or-nothing. Each automated verb has a player-set target (for example "keep 20 soldiers in training"), so allocation stays the skill.
 - Offline progress simulates the same automation the player configured. It never makes decisions on their behalf. Decision events wait for the player.
 
 ### Prestige and Reset Mechanics
 
-- **Unlock:** all colony buildings at Lv.5 and 100,000 lifetime food (baseline).
-- **Currency:** Legacy Points (LP) = `floor(log10(totalFoodProduced) × phaseScore / 10)` + entropy bonus. phaseScore is the sum of phase indices reached (Space = 1+2+3+4+5 = 15).
+- **Unlock:** Barracks, Walls and Warehouse at Lv.5; lifetime production of 100,000 food, 50,000 wood, 50,000 stone and 25,000 nectar (baseline).
+- **Currency:** Legacy Points (LP) = `floor(log10(totalFoodProduced) × phaseScore / 10)` + entropy bonus (baseline: floor(entropy × 2), only at entropy 100, otherwise 0). phaseScore is the sum of phase indices reached (Space = 1+2+3+4+5 = 15).
 - **Bonus:** +15% production per LP held, plus spendable LP for the Legacy tree.
 - **Decision (resolves #192): a prestige wipes everything except:**
   - LP and purchased Legacy upgrades
   - lifetime statistics (total food, eggs laid, clicks, battles)
-  - the victory record. `victoryAchieved` is kept as a permanent record and achievement. It does not skip, unlock or shortcut anything.
-- **Wiped:** all resources, including void crystals, antimatter, dark matter and survey data; buildings; research; mutations; equipment; territory; ships; phase. This is a change from the baseline, which keeps space resources. A migration must handle existing saves (Epic 5).
+  - the victory record, kept as a permanent record and achievement. It does not skip, unlock or shortcut anything.
+- **Wiped:** all resources, including void crystals, antimatter, dark matter and survey data; buildings; research; mutations; equipment; territory; ships; phase (reset to Egg Laying, or to Colony with the Phase Skip upgrade). This is a change from the baseline, which keeps space resources. A migration must handle existing saves (Epic 5).
 - **Why:** each run is clean and revisits every scale (Pillar 2). Faster replays come from LP, which is legible, rather than from leftover resources, which skip Phase 5's decisions.
 - **Target:** a second run reaches the first run's furthest phase in at most 50% of the time. [ASSUMPTION: target]
 
 ### Number Balancing
 
-- **Integers only.** Every resource and cost uses `floor()`. Non-integer intermediate values (pipeline progress, rates) are allowed internally but are never shown or spent.
-- **Growth shapes (baseline):** building costs are exponential (×2.5 per level), building effects are soft-capped above Lv.5, worker efficiency decays linearly above 500, enemy strength grows sub-linearly (`battlesWon^0.6`), and LP grows logarithmically with lifetime food.
+- **Integers only.** Every resource and cost uses `floor()`. Entropy is a 0–100 meter, not a resource; fractional values are internal and displayed rounded. Non-integer intermediate values (pipeline progress, rates) are allowed internally but are never shown or spent.
+- **Growth shapes (baseline):** building costs are exponential (×2.5 per level), building effects are soft-capped above Lv.5, worker efficiency decays linearly above 500, enemy strength grows sub-linearly (battles won^0.6), and LP grows logarithmically with lifetime food.
 - **Display:** numbers up to 999,999 are shown in full. Above that, short-scale suffixes (1.2M, 3.4B). No scientific notation before Transcendence. [ASSUMPTION: display rule; prototype has break_infinity support]
+- **Walls and wall-breakers:** phase guards are the time gates; Legacy upgrades are the wall-breakers.
 - **Pacing guards:** every phase guard must be reachable from that phase's own production, with no prestige, within the target duration (see *Difficulty Curve*).
 
 ### Meta-Progression
 
 - **Legacy tree (baseline, 8 nodes):** egg-laying bonus (3 LP), hatching bonus (3), food bonus (3), soldier-training bonus (5), worker-efficiency bonus (5), starting resources (8), auto egg laying (10), phase skip (12).
 - **Offline efficiency chain (decided):**
-  - **Step 1, 50% → 75%: run research**, available in Phase 2–3 and paid in that phase's currencies, so the first run benefits. It is wiped on prestige like other research, and is re-bought cheaply each run. [ASSUMPTION: research rather than building; cost tuned in pacing pass]
+  - **Step 1, 50% → 75%: run research**, available in Phase 2–3 and paid in that phase's currencies, so the first run benefits. It is wiped on prestige like other research, and is re-bought cheaply each run. [ASSUMPTION: research cost tuned in pacing pass]
   - **Step 2, 75% → 100%: Legacy upgrade** (replaces the baseline Temporal Resonance / Chrono Synchronization pair). It survives prestige.
   - **Cap raises (12 h → 24 h):** Legacy upgrades, which survive prestige.
   - Baseline note: today Temporal Resonance (10 LP) requires Transcendence, so a first run stays at 50% throughout. Epic 2 replaces this.
-- **Phase skip review:** `phase_skip` must not skip a phase the player has never completed. [ASSUMPTION: rule, in line with Pillar 2]
+- **Phase skip review:** Phase Skip must not skip a phase the player has never completed. [ASSUMPTION: rule, in line with Pillar 2]
+- **Achievements:** victory record only in v1.0. Challenge runs and further prestige layers are parked.
 - **Post-Transcendence:** parked. No new meta layer until phases 1–5 meet the depth bar.
 
 ---
@@ -189,7 +207,7 @@ Each check-in must offer **at least one decision worth making** (an allocation c
 
 ### Player Progression
 
-Progression is gated by phase. Guards at baseline, from `src/phases/transitions.ts`:
+Progression is gated by phase. Guards at baseline:
 
 | Transition | Guard |
 |---|---|
@@ -210,10 +228,10 @@ Phase duration targets in real time, for a player who checks in about 6 times a 
 |---|---|---|
 | 1 Egg Laying | 3–5 min | First session |
 | 2 Colony | 20–40 min | Day 1 |
-| 3 Combat | — | Days 2–3 |
-| 4 Expansion | — | Days 4–7 |
-| 5 Space | — | Weeks 2–3 |
-| 6 Transcendence | — | End of week 3 (first victory around 3 weeks) |
+| 3 Combat | [ASSUMPTION: TBD from E3 telemetry] | Days 2–3 |
+| 4 Expansion | [ASSUMPTION: TBD from E3 telemetry] | Days 4–7 |
+| 5 Space | [ASSUMPTION: TBD from E3 telemetry] | Weeks 2–3 |
+| 6 Transcendence | Ending sequence ≤ 5 min [ASSUMPTION] | Reached at about 3 weeks (the victory) |
 
 The curve is a staircase: each phase opens with a burst of new options, then slows until the guard is in sight. A check-in where the next affordable thing is more than one check-in interval away (about 4 h) is a pacing defect.
 
@@ -288,7 +306,7 @@ The game's "levels" are its six phases. Each defines a scale, a new decision typ
 ### Performance Requirements
 
 - First interactive screen in under 3 s on a mid-range phone (about 2022 Android) over 4G. [ASSUMPTION: device class]
-- Interface responds to a tap within 100 ms. Scrolling and transitions hold 60 FPS. Game logic runs at a fixed 20 updates per second.
+- Interface responds to a tap within 100 ms. Scrolling and transitions hold 60 FPS. Game outcomes are independent of frame rate and device speed (tick rate is an architecture decision).
 - Offline catch-up for a 12 h absence completes in under 500 ms on resume.
 - No processing while the app is backgrounded (progress is computed on return), so the game costs no battery while closed.
 
@@ -345,7 +363,7 @@ Passion project: these are quality signals from playtests, not business KPIs.
 ## Out of Scope
 
 - **Cut for v1.0:** monetization, ads, gacha and energy systems; accounts and cloud saves; multiplayer and leaderboards; music.
-- **Parked (post-launch):** a peaceful path that skips or replaces Combat (needs a non-combat source of silk, chitin and venom); content after Transcendence; new phases; additional planets or ship classes before phases 1–5 meet the depth bar.
+- **Parked (post-launch):** a peaceful path that skips or replaces Combat (needs a non-combat source of silk, chitin and venom); content after Transcendence; challenge runs and additional prestige layers; new phases; additional planets or ship classes before phases 1–5 meet the depth bar.
 - **Decided elsewhere:** stack, distribution channel and engine (architecture); detailed information architecture and visual design (UX).
 
 ---
@@ -364,13 +382,15 @@ Passion project: these are quality signals from playtests, not business KPIs.
 7. Automation unlock after 10 manual performances.
 8. Offline: 24 h ceiling, 50% starvation floor, opt-in notifications.
 9. Number display rule (full to 999,999, then suffixes).
-10. `phase_skip` cannot skip a never-completed phase.
+10. Phase Skip cannot skip a never-completed phase.
 11. Second run reaches the furthest phase in at most 50% of the time.
 12. Depth bar values (3 events, 4 upgrades, 2 beats per phase); 3 enemy types in Combat.
 13. No art budget; music out of scope; 2 MB download; reference device class; desktop shortcuts.
+14. Offline-efficiency research cost.
+15. Phase 3–5 active-play minutes and ending-sequence length.
 
 **Notes for the designer (open):**
-- Tick-unit mismatch in the hatch and mature time comments.
+- Tick-unit mismatch in hatch, mature and train times, and in the per-tick territory and entropy rates.
 - Non-integer research cost (`antimatter: 0.1`).
 - Two offline caps in the baseline (4 h and 8 h).
 - Name collision with Swarm Simulator: is renaming in scope?
