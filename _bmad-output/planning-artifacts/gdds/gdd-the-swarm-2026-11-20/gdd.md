@@ -175,8 +175,11 @@ Each check-in must offer **at least one decision worth making** (an allocation c
 ### Meta-Progression
 
 - **Legacy tree (baseline, 8 nodes):** egg-laying bonus (3 LP), hatching bonus (3), food bonus (3), soldier-training bonus (5), worker-efficiency bonus (5), starting resources (8), auto egg laying (10), phase skip (12).
-- **Offline upgrades:** Temporal Resonance (10 LP) and Chrono Synchronization (5 VC) raise offline efficiency 0.5 → 0.75 → 1.0 at baseline. Under the new offline model they also raise the cap (see *Economy and Resources*). Both count as Legacy upgrades and survive prestige.
-  - [NOTE FOR DESIGNER: at baseline, Temporal Resonance requires reaching Transcendence, so mobile players stay at 50% offline efficiency for the whole first run. For check-in play, consider moving the first offline upgrade into Phase 2–3 research.]
+- **Offline efficiency chain (decided):**
+  - **Step 1, 50% → 75%: run research**, available in Phase 2–3 and paid in that phase's currencies, so the first run benefits. It is wiped on prestige like other research, and is re-bought cheaply each run. [ASSUMPTION: research rather than building; cost tuned in pacing pass]
+  - **Step 2, 75% → 100%: Legacy upgrade** (replaces the baseline Temporal Resonance / Chrono Synchronization pair). It survives prestige.
+  - **Cap raises (12 h → 24 h):** Legacy upgrades, which survive prestige.
+  - Baseline note: today Temporal Resonance (10 LP) requires Transcendence, so a first run stays at 50% throughout. Epic 2 replaces this.
 - **Phase skip review:** `phase_skip` must not skip a phase the player has never completed. [ASSUMPTION: rule, in line with Pillar 2]
 - **Post-Transcendence:** parked. No new meta layer until phases 1–5 meet the depth bar.
 
@@ -225,7 +228,7 @@ The curve is a staircase: each phase opens with a burst of new options, then slo
 
 **Offline progress (decision):**
 - **Cap 12 h** (baseline 4 h). Upgrades can raise it to 24 h. [ASSUMPTION: 24 h ceiling]
-- **Efficiency:** base 50%, raised by the existing upgrade chain to 75% and then 100%.
+- **Efficiency:** base 50%; Phase 2–3 research raises it to 75%; a Legacy upgrade raises it to 100% (see *Meta-Progression*).
 - On return, the player sees a summary sheet: elapsed time, resources gained, events waiting, and the one most useful next action. Starvation offline cannot drop workers below 50% of their pre-absence count. [ASSUMPTION: floor]
 - Optional local notifications: "nest is full" and "offline cap reached". Off by default. [ASSUMPTION: opt-in]
 

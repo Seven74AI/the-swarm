@@ -9,9 +9,10 @@
 | 5 | 2026-11-20 | Offline: 12 h cap, upgradable (baseline 4 h). Ceiling 24 h is an assumption. | owner | decided |
 | 6 | 2026-11-20 | Prestige (#192): wipe everything except LP, Legacy upgrades, lifetime stats and the victory record (record only, no gameplay effect). Space resources no longer carry over. | owner | decided |
 | 7 | 2026-11-20 | MVP: Phases 1–3 on phone (portrait, offline). | owner | decided |
-| 8 | 2026-11-20 | Offline efficiency upgrades count as Legacy upgrades (survive prestige). | drafting inference | ASSUMPTION |
+| 8 | 2026-11-20 | Offline efficiency upgrades count as Legacy upgrades (survive prestige). | drafting inference | superseded by #14 |
 | 9 | 2026-11-20 | Code discrepancies found: two offline caps (4 h OfflineProgression vs 8 h GameLoop catch-up); non-integer research cost antimatter: 0.1; tick-unit comment (50 ticks at 20 Hz = 2.5 s, comment says 1 s/tick); Temporal Resonance gated behind Transcendence. Logged as NOTE FOR DESIGNER. | code read | open |
 | 10 | 2026-11-20 | v0.1 draft of gdd.md and epics.md written (Express). Next: Finalize. | gds-gdd | logged |
 | 11 | 2026-11-20 | Colony → Expansion alternate route (40 workers + 1000 food) is a leftover: remove it; Combat is mandatory. A peaceful path is parked as a possible later addition (would need a non-combat source of silk, chitin and venom). | owner | decided |
 | 12 | 2026-11-20 | Combat must stay interesting in any case: added a Combat interest bar (pre-battle decisions, ≥3 enemy types with visible traits, readable result, no dominant strategy). Enemy-type count is an assumption. | owner + drafting | decided / ASSUMPTION |
 | 13 | 2026-11-20 | First victory target: about 3 weeks of real time at about 6 check-ins a day. Per-phase split stays an assumption until playtest. | owner | decided |
+| 14 | 2026-11-20 | Offline efficiency: 50→75% via Phase 2–3 research (per run, wiped on prestige); 75→100% and cap raises via Legacy upgrades (persist). Replaces the Transcendence-gated Temporal Resonance. | owner (option A) | decided |
