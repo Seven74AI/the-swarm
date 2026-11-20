@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<!--
+  UX Design Validation Report — skeleton template.
+
+  This file is a starter the synthesis pass fills in directly. There is no
+  substitution engine. The LLM:
+    1. Reads {doc_workspace}/review-rubric.md and every review-{slug}.md from
+       additional reviewers.
+    2. Copies this skeleton.
+    3. Replaces the placeholder content (everything between TEMPLATE markers)
+       with the consolidated review, preserving the structure and CSS.
+    4. Writes the result to {doc_workspace}/validation-report.html.
+    5. Writes a markdown twin to {doc_workspace}/validation-report.md.
+
+  Visual rules the LLM must preserve:
+    - The container width, the color tokens, the typography.
+    - One dimension = one collapsible <section class="dimension">.
+    - Verdict pill uses the verdict-* class matching its judgment.
+    - Severity badge uses the badge-sev-* class matching its level.
+    - Each extra reviewer (accessibility, adversarial, etc.) gets its own
+      collapsible section below the rubric dimensions.
+    - The footer always shows the artifact paths and timestamp.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UX Design Validation: THE SWARM</title>
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: #e7e5e4;
+    --text: #1c1917;
+    --muted: #78716c;
+
+    --verdict-strong: #16a34a;
+    --verdict-adequate: #65a30d;
+    --verdict-thin: #d97706;
+    --verdict-broken: #dc2626;
+
+    --sev-low: #64748b;
+    --sev-medium: #ca8a04;
+    --sev-high: #ea580c;
+    --sev-critical: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+
+  header.report-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .title h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .title .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+  .synthesis {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--muted);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    font-size: 15.5px;
+  }
+  .synthesis p { margin: 0 0 10px; }
+  .synthesis p:last-child { margin-bottom: 0; }
+
+  .dimension-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .dim-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .dim-card .dim-name { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .dim-card .dim-verdict { font-size: 14px; font-weight: 600; }
+
+  section.dimension, section.reviewer-section { margin-bottom: 14px; }
+  section.dimension details, section.reviewer-section details {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  section summary {
+    padding: 14px 20px;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  section summary::-webkit-details-marker { display: none; }
+  section summary::before {
+    content: "▸";
+    display: inline-block;
+    color: var(--muted);
+    transition: transform 0.15s ease;
+  }
+  section details[open] summary::before { transform: rotate(90deg); }
+  section summary h2 {
+    display: inline;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    flex: 1;
+  }
+  .verdict-pill {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: white;
+  }
+  .verdict-strong { background: var(--verdict-strong); }
+  .verdict-adequate { background: var(--verdict-adequate); }
+  .verdict-thin { background: var(--verdict-thin); }
+  .verdict-broken { background: var(--verdict-broken); }
+
+  .dim-body { padding: 4px 20px 18px; }
+  .dim-judgment { color: var(--text); font-size: 14.5px; }
+  .dim-judgment p { margin: 0 0 10px; }
+
+  .findings-list { padding: 0 20px 4px; }
+  article.finding {
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+  }
+  article.finding:first-child { border-top: none; }
+  article.finding header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .badge {
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+  }
+  .badge-sev-low { background: rgba(100, 116, 139, 0.12); color: var(--sev-low); }
+  .badge-sev-medium { background: rgba(202, 138, 4, 0.14); color: var(--sev-medium); }
+  .badge-sev-high { background: rgba(234, 88, 12, 0.14); color: var(--sev-high); }
+  .badge-sev-critical { background: rgba(220, 38, 38, 0.14); color: var(--sev-critical); }
+  .finding-title { margin: 0; font-size: 15px; font-weight: 500; flex: 1; min-width: 200px; }
+  .finding-location { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; color: var(--muted); }
+  .finding-note, .finding-fix { margin-top: 6px; font-size: 14px; }
+  .finding-fix strong { color: var(--muted); font-weight: 500; }
+
+  .reviewer-source {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  .mechanical {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 24px;
+    font-size: 14px;
+  }
+  .mechanical h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .mechanical ul { margin: 0; padding-left: 20px; }
+  .mechanical li { margin-bottom: 4px; color: var(--text); }
+
+  footer.report-footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  footer .meta { display: flex; gap: 24px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <header class="report-header">
+      <div class="title">
+        <h1>THE SWARM — UX Design Validation Report</h1>
+        <div class="subtitle">_bmad-output/planning-artifacts/ux-designs/ux-the-swarm-2026-11-20/DESIGN.md · _bmad-output/planning-artifacts/ux-designs/ux-the-swarm-2026-11-20/EXPERIENCE.md</div>
+      </div>
+    </header>
+
+    <div class="synthesis">
+      <p>Adequate. Usable as a contract once a short list of fixes lands; it does not yet source-extract cleanly (rubric walker). The shape is right, the voice and tone are consistent, every text-contrast claim checks out when recomputed, and the owner decisions (CONTINUE, instant allocation, ignore policy, first-launch cinematic, glyph + label) carry through both spines. What blocks clean extraction: the spines and frontmatter disagree on the sheet background; the NEST primary-action priority hangs on undefined terms ("critical", "critical path"); several components named in EXPERIENCE have no visual spec, and automation targets and research progress have no spec at all; Click Power has no home in Phase 1; and phase-invariant <code>warn</code>/<code>highlight</code> contradict identity rule 1. The rubric raised no critical findings.</p>
+      <p>The three extra reviewers move the picture from "adequate with fixes" to "needs one revision pass before hand-off", without calling for a redesign. Each adds one critical: accessibility finds a seizure-safety contradiction (hold-repeat inverts the full-width primary button at about 8 Hz); mobile legibility finds that the 36-column grid, 5-cell strip and vertical stack are tuned to exactly 360x640 at 100 % text, overflowing at 110 % text, at viewports under about 352 px, and in the real 510-560 px browser viewport, while the spec promises 200 % text with no reflow rule (accessibility independently flags the same reflow gap); code feasibility finds CONTINUE semantics undefined (latched or live, re-checked on tap, and Colony still has two exits in <code>transitions.ts</code>). Two reviewers independently show that scanlines and glow push <code>dim</code> text below AA, even though the token contrast table is accurate as written. Code feasibility also finds the check-in loop (Flow 2) unbuildable today: there is no resume-from-background path. Accessibility adds a missing focus model and screen-reader semantics for the terminal-text idiom. After de-duplication across all four reviews: 3 critical, 22 high, 41 medium, 26 low.</p>
+    </div>
+
+    <div class="dimension-summary">
+      <div class="dim-card">
+        <div class="dim-name">Flow coverage</div>
+        <div class="dim-verdict" style="color: var(--verdict-adequate)">adequate</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Token completeness</div>
+        <div class="dim-verdict" style="color: var(--verdict-adequate)">adequate</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Component coverage</div>
+        <div class="dim-verdict" style="color: var(--verdict-thin)">thin</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">State coverage</div>
+        <div class="dim-verdict" style="color: var(--verdict-adequate)">adequate</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Visual reference coverage</div>
+        <div class="dim-verdict" style="color: var(--verdict-adequate)">adequate</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Bloat &amp; overspecification</div>
+        <div class="dim-verdict" style="color: var(--verdict-strong)">strong</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Inheritance discipline</div>
+        <div class="dim-verdict" style="color: var(--verdict-adequate)">adequate</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Shape fit</div>
+        <div class="dim-verdict" style="color: var(--verdict-strong)">strong</div>
+      </div>
+    </div>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Flow coverage</h2>
+          <span class="verdict-pill verdict-adequate">adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Extracted journeys: first session and P1→P2 (Flow 1), check-in loop and P2→P3 (Flow 2), combat loss and counterplay (Flow 3), decision events (Flow 4), prestige (Flow 5), desktop session (Flow 6). No flow for automation targets (E4, MVP), research start and cancel, Expansion map play, Space and entropy, or the Transcendence conversion and ending. Flows 1, 2 and 4 have a protagonist, numbered steps and a bold climax; Flows 1 and 2 have a failure path.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">Click Power has no home</h3>
+              <span class="finding-location">EXPERIENCE → IA (L38), Primary action (L32), State Patterns (L126)</span>
+            </header>
+            <div class="finding-note">The GDD's Click tree unlocks in Phase 1 and costs food, but Phase 1 has no tab bar and the only NEST action is &gt; LAY EGG. A story-dev agent cannot place the purchase.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Say where Click Power is bought in Phase 1 (a card under the primary action, or priority (3) of the primary-action rule) and add the step to Flow 1.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">No flow or pattern for setting a player-set automation target</h3>
+              <span class="finding-location">EXPERIENCE → IA (L33)</span>
+            </header>
+            <div class="finding-note">An MVP story in E4 ("keep N in training") is mentioned once, on WRKR, with no flow and no component pattern.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a short flow ("Dev sets keep 20 soldiers in training") or at least a component pattern with the step-by-step.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Flow 4 has no failure or timeout path</h3>
+              <span class="finding-location">EXPERIENCE → Key Flows, Flow 4 (L245–250)</span>
+            </header>
+            <div class="finding-note">The flow that carries the ignore-policy decision never walks the costly-ignore timeout, backgrounding mid-timer, or an unavoidable sheet arriving while another is open. <em>Merged in the Markdown twin with code feasibility H-4 (decision-event lifecycle).</em></div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a failure path: lock at 12 s, resume at 18 s, let it run out, <code>THE BEETLES TOOK 3 FORAGERS.</code> types into the log.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Phases 4–6 have surfaces but no journeys</h3>
+              <span class="finding-location">EXPERIENCE → Key Flows, Flow 5 step 1 (L254)</span>
+            </header>
+            <div class="finding-note">Scout → claim → expedition result, ship → launch → explore → entropy, and Transcendence conversion → ending → LEGACY are unwalked.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add three short flows, or state in Key Flows that they are deferred to the E6/E7 UX pass.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Flow 5 misplaces the LEGACY unlock and has no exit from the ending</h3>
+              <span class="finding-location">EXPERIENCE → Flow 5 (L255); DESIGN → Transcendence ending (L306)</span>
+            </header>
+            <div class="finding-note">The flow implies LEGACY appears after the ending, but the GDD unlocks prestige by condition (Barracks, Walls, Warehouse Lv.5 plus lifetime production), which can be met earlier. No input leaves the ending's empty screen.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Align with the GDD unlock rule and state what input leaves the ending screen and where it lands.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Minor flow gaps in Flows 2, 3, 5 and 6</h3>
+              <span class="finding-location">EXPERIENCE → Key Flows (L261)</span>
+            </header>
+            <div class="finding-note">Flow 2 names Dev without a context sentence; Flow 6 is unnumbered prose with no climax; Flows 3 and 5 have no failure path (Mandibles unaffordable; &gt; PRESTIGE hold released early).</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add one line each.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">No journey covers research</h3>
+              <span class="finding-location">EXPERIENCE → Interaction Primitives (L144)</span>
+            </header>
+            <div class="finding-note">Starting a chain, the progress readout, and hold-to-confirm cancel for the 50 % refund are unwalked.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Fold it into an automation flow or a BUILD flow.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Token completeness</h2>
+          <span class="verdict-pill verdict-adequate">adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Every <code>{path.to.token}</code> in prose and components resolves to a frontmatter key, and every colour token is a hex or an alias. Contrast claims recomputed with WCAG 2.x all hold (minimums: accent/bg 7.74, accent/raised 7.09, dim/bg 5.03, dim/raised 4.61, warn/raised 8.00, on-accent 7.74).</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">The sheet background contradicts itself</h3>
+              <span class="finding-location">DESIGN → Colors (L213), components.bottom-sheet (L158), Elevation (L275), Components (L299)</span>
+            </header>
+            <div class="finding-note">Colors says <code>raised</code> is the sheet background; the component token, Elevation and Components say <code>bg</code>. The contrast table measures <code>dim</code> on <code>raised</code>. <code>card</code> has no selected-state token.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Set <code>bottom-sheet.background: '{colors.raised}'</code>, update Elevation and Components, and add a <code>card-selected</code> token.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">Phase-invariant warn and highlight contradict Brand rule 1</h3>
+              <span class="finding-location">DESIGN → Brand &amp; Style (L190, L195), Do/Don't row 4 (L315)</span>
+            </header>
+            <div class="finding-note"><code>warn</code> (#ff9a6b) is close to <code>combat-accent</code> and appears from Phase 1; <code>highlight</code> is the Transcendence accent and appears from Phase 1. A lint-minded consumer cannot tell which rule wins.</div>
+            <div class="finding-fix"><strong>Fix:</strong> State that <code>warn</code> and <code>highlight</code> are functional colours exempt from rule 1, or derive per-phase variants within each hue family.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">The top-level vector: group is outside the design.md schema</h3>
+              <span class="finding-location">DESIGN → frontmatter vector:</span>
+            </header>
+            <div class="finding-note">A spec-conformant resolver may drop it, silently breaking <code>{vector.glyph-grid}</code>, <code>{vector.soil-fill-opacity}</code>, <code>{vector.wall-opacity}</code>. <code>glow</code> uses a bare <code>accent</code> and a range; <code>scanlines</code> is a sentence.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Move values into the components that use them (new <code>glyph</code>, <code>nest-scene</code>, <code>map-tile</code>) with CSS-valid strings, or declare <code>vector:</code> as an extension group and clean the values.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Compound component values do not flatten to CSS</h3>
+              <span class="finding-location">DESIGN → components (nest-scene, borders, map-tile, title-cinematic)</span>
+            </header>
+            <div class="finding-note">Values like <code>'{colors.accent} @ {vector.soil-fill-opacity}'</code>, <code>'1.5px {colors.accent}'</code> and <code>title-cinematic.palette: Phase 1 only</code> are not usable values.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Split into <code>color</code> + <code>opacity</code> + <code>width</code> keys; set <code>title-cinematic</code> to <code>{colors.egg-bg}</code> / <code>{colors.egg-accent}</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Component states described in prose have no tokens</h3>
+              <span class="finding-location">DESIGN → Components (L293, L297, L298); EXPERIENCE (L165)</span>
+            </header>
+            <div class="finding-note">Primary disabled (40 %), pressed (accent invert, needs <code>on-accent</code>), card newly affordable, strip capped, meter warn fill above 75 %, tab <code>•</code>.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add <code>disabled</code>, <code>pressed</code> and <code>highlighted</code> sub-tokens to <code>button-primary</code>, <code>card</code>, <code>resource-strip</code> and <code>meter</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">spacing: holds non-dimensions; rounded.phone tokenizes an OS corner</h3>
+              <span class="finding-location">DESIGN → frontmatter spacing, rounded (L284)</span>
+            </header>
+            <div class="finding-note"><code>grid-columns: 36</code> is a count and <code>thumb-zone: 40vh</code> a viewport fraction.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Move them to a layout note or prose; drop <code>rounded.phone</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Non-text contrast is not stated</h3>
+              <span class="finding-location">DESIGN → Colors; Components → Map tile, Meter</span>
+            </header>
+            <div class="finding-note"><code>line</code> on <code>bg</code> is 1.48–2.03:1; the unclaimed map-tile stroke (accent @ 0.3) is interactive and WCAG 1.4.11 asks 3:1. <em>Also raised by accessibility (M9) and mobile legibility (20); merged in the Markdown twin at medium.</em></div>
+            <div class="finding-fix"><strong>Fix:</strong> State non-text targets; confirm the tile stroke reaches 3:1 or rely explicitly on the terrain glyph.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">11 px label conflicts with the 12 px interactive-text floor</h3>
+              <span class="finding-location">DESIGN → Typography (L232, L236); EXPERIENCE (L98)</span>
+            </header>
+            <div class="finding-note"><code>label</code> is "non-interactive", but the strip as a whole is a tap target. <em>Also raised by mobile legibility (9); merged in the Markdown twin at medium.</em></div>
+            <div class="finding-fix"><strong>Fix:</strong> Clarify that the cell is the target and the label decoration, or raise <code>label</code> to 12 px.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details open>
+        <summary>
+          <h2>Component coverage</h2>
+          <span class="verdict-pill verdict-thin">thin</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>DESIGN lists 17 components and EXPERIENCE 18 patterns, but they do not line up one-to-one, the most load-bearing behaviour rule depends on undefined terms, and two MVP features have no spec on either side.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">NEST primary-action priority relies on undefined terms</h3>
+              <span class="finding-location">EXPERIENCE → Component Patterns, Primary action (L100), Offline summary (L106)</span>
+            </header>
+            <div class="finding-note">Rule (2) "if food or capacity is critical" and rule (3) "an affordable upgrade on the critical path" have no threshold or definition, and there is no fallback when nothing matches. Two implementers would build two different games. <em>Also raised by code feasibility (L-7, status row 16).</em></div>
+            <div class="finding-fix"><strong>Fix:</strong> Define "critical" (e.g. food runs out within N minutes, or capacity ≥ 95 %), define "critical path" (an upgrade that raises a guard-condition rate, or a named list), and state the fallback.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">Components named in EXPERIENCE have no DESIGN visual spec</h3>
+              <span class="finding-location">EXPERIENCE → L35, L39, L48, L73, L98, L101, L111–115, L144, L153, L174, L196</span>
+            </header>
+            <div class="finding-note">Toast, coach mark, FRONT segment row, condensed guard meter, resource sheet with gear, tile/planet/chamber sheets, offline- and battle-summary layouts, hold-to-confirm ring, upkeep readout, strip <code>•</code> marker, floating <code>+N</code>, desktop left rail and dialog.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a DESIGN row for each, or one line saying "X is a Bottom sheet with …" / "X uses Card".</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">Automation target and research progress have no spec at all</h3>
+              <span class="finding-location">EXPERIENCE → IA (L33), Interaction Primitives (L144)</span>
+            </header>
+            <div class="finding-note">Two MVP features have neither a visual nor a behavioural spec.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add rows to both Components tables: control anatomy, progress readout, cancel affordance, states.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Settings gear and hold-to-confirm ring are non-text graphics</h3>
+              <span class="finding-location">DESIGN → Do/Don't (L313, L314), Glyphs (L291)</span>
+            </header>
+            <div class="finding-note">They conflict with "glyphs only inside text" and "no vector buttons"; the 20-glyph inventory has no gear.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Make settings a text control (<code>[ SETTINGS ]</code>) or add a gear glyph with a stated exception; draw the ring as a text meter filling over 1 s.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Recruitment, soldier training and expedition result are unspecified</h3>
+              <span class="finding-location">EXPERIENCE → IA (MAP / ExpeditionPanel), Flow 3 step 5</span>
+            </header>
+            <div class="finding-note">Scouts/warriors recruitment (a separate system from combat soldiers) and the expedition-result sheet (failed, partial, proportional losses) have no pattern.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add patterns for recruitment, training (control and queue) and expedition result.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Component names differ across spines; the ending has no behaviour row</h3>
+              <span class="finding-location">DESIGN → Primary button, Phase reveal, Transcendence ending (L306)</span>
+            </header>
+            <div class="finding-note">"Primary button" vs "Primary action"; "Phase reveal" vs "Phase change". The ending has no duration, skip, input-blocking or what-follows rule.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Use one name per component across both spines; add a Transcendence ending row to Component Patterns.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>State coverage</h2>
+          <span class="verdict-pill verdict-adequate">adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>App states (first launch, later launch, resume ≥ 1 min and &lt; 1 min, corrupt save), NEST (Phase 1 empty, starving, at capacity, guard met, large colony), pending sheets and phase reveal are covered well. FRONT and BUILD each have one state.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">NEST is missing Phase 6, post-ending and no-candidate states</h3>
+              <span class="finding-location">EXPERIENCE → State Patterns</span>
+            </header>
+            <div class="finding-note">Nothing for the Transcendence conversion (before and after the guard), after the ending, or when no primary-action candidate matches. <em>Code feasibility (L-5) adds that "Transcendence conversion" matches nothing in code or GDD.</em></div>
+            <div class="finding-fix"><strong>Fix:</strong> Add rows.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Decision-event edge states are not covered</h3>
+              <span class="finding-location">EXPERIENCE → State Patterns (L136)</span>
+            </header>
+            <div class="finding-note">No feedback rule when a costly-ignore timeout applies; nothing for an event firing during a phase reveal, the cinematic or the ending. <em>Merged in the Markdown twin with code feasibility H-4.</em></div>
+            <div class="finding-fix"><strong>Fix:</strong> Add two rows.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Persistence failure states are missing</h3>
+              <span class="finding-location">EXPERIENCE → State Patterns (L138)</span>
+            </header>
+            <div class="finding-note">Save write failure or storage full, invalid import file, successful import (overwrites the run). Export/import is still [ASSUMPTION]. <em>Also raised by code feasibility (M-5).</em></div>
+            <div class="finding-fix"><strong>Fix:</strong> Add rows; if export/import stays, give it error copy in Voice and Tone.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">FRONT and BUILD surfaces have one state or none</h3>
+              <span class="finding-location">EXPERIENCE → State Patterns</span>
+            </header>
+            <div class="finding-note">WAR: no soldiers, training, no enemy. MAP: first visit, expedition returned. STARS: no ship, entropy high. BUILD: research running, max level, combat buildings on Phase 3 entry. WRKR: role reveals, upkeep exceeding income.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add one row per state.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Cold load, offline, notification-denied and empty-LOG states are missing</h3>
+              <span class="finding-location">EXPERIENCE → State Patterns</span>
+            </header>
+            <div class="finding-note">What renders before the vector scene is ready (GDD: first interactive &lt; 3 s) is unspecified; offline as the normal case is unstated.</div>
+            <div class="finding-fix"><strong>Fix:</strong> One row each.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Settings row omits hold-to-confirm duration and silent mode</h3>
+              <span class="finding-location">EXPERIENCE → State Patterns, Settings (L138), Accessibility Floor (L185)</span>
+            </header>
+            <div class="finding-note">The Accessibility Floor says hold duration is adjustable; the GDD asks to respect device silent mode. <em>Merged in the Markdown twin with code feasibility M-7 and accessibility L7.</em></div>
+            <div class="finding-fix"><strong>Fix:</strong> Add both to the Settings row.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Visual reference coverage</h2>
+          <span class="verdict-pill verdict-adequate">adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>All three mockups are linked from the spines, there are no orphans, and "spine wins on conflict" is stated in both DESIGN and EXPERIENCE.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">terminal-variants.html is linked only generically</h3>
+              <span class="finding-location">DESIGN → Mockups (L288), Nest scene (L301), Map tile (L302), Star map (L303)</span>
+            </header>
+            <div class="finding-note">DESIGN does not say variant 2 (ASCII nest) and the inline tile panel are superseded (only EXPERIENCE L277 does), and the file is not linked where a consumer would look.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Link it at the three component rows and copy the superseded note into DESIGN.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Mockups carry off-palette values</h3>
+              <span class="finding-location">mockups/ (all three)</span>
+            </header>
+            <div class="finding-note"><code>#ff6b4a</code>, <code>#7da35c</code>, <code>#2a3a1c</code> are in no phase set; the glyphs strip mock labels workers <code>WRK</code>. <em>Also raised by accessibility (L3) and mobile legibility (16).</em></div>
+            <div class="finding-fix"><strong>Fix:</strong> Add one line under Mockups: "Hex values in mocks are pre-final; use DESIGN frontmatter."</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">"Spine wins" is stated twice; mocks are not linked inline</h3>
+              <span class="finding-location">DESIGN L288; EXPERIENCE L274</span>
+            </header>
+            <div class="finding-note">EXPERIENCE references the mocks only in its closing section.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Keep one canonical statement with a pointer from DESIGN; add inline links at Flow 1 and Map tile.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Bloat &amp; overspecification</h2>
+          <span class="verdict-pill verdict-strong">strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Both spines are compact (DESIGN 320 lines with about 175 of frontmatter, EXPERIENCE 278), mostly tables, and mostly decisions rather than prose.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Brand &amp; Style retells Discovery history</h3>
+              <span class="finding-location">DESIGN → Brand &amp; Style (L186)</span>
+            </header>
+            <div class="finding-note">The terminal-direction history belongs in <code>.decision-log.md</code>.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Cut to one sentence or drop it.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Implementation notes are time-bound</h3>
+              <span class="finding-location">EXPERIENCE → Implementation notes from Discovery (L263–270)</span>
+            </header>
+            <div class="finding-note">Pinned to <code>main @ 24da5b1</code>; input for architecture and stories, not UX contract.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Label it non-normative, or move it to the architecture input.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Flow copy may read as content commitments</h3>
+              <span class="finding-location">EXPERIENCE → Key Flows</span>
+            </header>
+            <div class="finding-note">Exact copy ("+12 CHITIN ◇"), strip-delta flash and glyph pixel sizes per context edge into overspecification.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Mark copy in flows as illustrative where it is E4 content.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Inheritance discipline</h2>
+          <span class="verdict-pill verdict-adequate">adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Sources resolve; tab names match across spines; guard values match the GDD; the title tagline matches the final decision (ONE SWARM).</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">The resource-label glossary drifts</h3>
+              <span class="finding-location">DESIGN → skeleton (L246), Glyphs (L290); EXPERIENCE (L98)</span>
+            </header>
+            <div class="finding-note"><code>⌘WRK</code> vs <code>WRKR</code>; <code>VC</code> is 2 letters against the 4-letter rule; Unicode stand-ins (◊ vs ◇) look like the glyphs; <code>WRKR</code> is both a tab and a resource label. <em>Also raised by code feasibility (L-1).</em></div>
+            <div class="finding-fix"><strong>Fix:</strong> Publish one resource table (label, full name, glyph) in DESIGN → Glyphs, fix <code>WRK</code>, decide on <code>VC</code>, and say the Unicode marks are stand-ins.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Map terrain names are not the GDD's</h3>
+              <span class="finding-location">DESIGN → Map tile (L302)</span>
+            </header>
+            <div class="finding-note">DESIGN lists rock ridge, water wave, rival nest; the GDD has Forest, Meadow, Mountain, Empty, Enemy Nest. Water does not exist; Empty is missing.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Use the GDD names and give Empty a glyph or a plain tile.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">"Guard" means two things</h3>
+              <span class="finding-location">EXPERIENCE (L84); DESIGN (L232)</span>
+            </header>
+            <div class="finding-note">Phase guard and the GUARD worker role appear in one readout: <code>COMBAT AT 50 WORKERS + 1 GUARD</code>.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Keep "guard" for the role; rename the meter (e.g. "next-phase meter"); label the row <code>GUARD 0/1</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Rules contradict each other on naming the next phase</h3>
+              <span class="finding-location">EXPERIENCE (L84, L107, L208)</span>
+            </header>
+            <div class="finding-note">The guard meter names the next phase while Phase change says nothing about it shows before the tap. <em>Also raised by code feasibility (M-3).</em></div>
+            <div class="finding-fix"><strong>Fix:</strong> State that the next phase's name is the one allowed preview; its colour and layout are not.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">OVERCROWDING! breaks the no-exclamation rule</h3>
+              <span class="finding-location">EXPERIENCE → Flow 4 step 3 (L249), Voice and Tone (L78)</span>
+            </header>
+            <div class="finding-note">Inherited from the GDD's baseline event list.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Render <code>OVERCROWDING.</code> and note the rename for E4.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Dismantling, the Space generalisation and a missing source</h3>
+              <span class="finding-location">EXPERIENCE → Interaction Primitives (L144, L146)</span>
+            </header>
+            <div class="finding-note">Dismantling is not a GDD mechanic; Space generalises the GDD's "Space lays an egg"; the GDD decision log is read but not in <code>sources</code>.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Drop dismantling or tag it [ASSUMPTION]; note the Space generalisation as deliberate; add the GDD decision log to <code>sources</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Decision log has no superseded mark on the staged-edits assumption</h3>
+              <span class="finding-location">.decision-log.md (L15)</span>
+            </header>
+            <div class="finding-note">"Staged role edits with Apply" was superseded by Q5; the spines are correct but the log line is unmarked. <em>Code feasibility (L-8) flags the same for the ONE UNIVERSE tagline line.</em></div>
+            <div class="finding-fix"><strong>Fix:</strong> Annotate the log line.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Shape fit</h2>
+          <span class="verdict-pill verdict-strong">strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>DESIGN has all 8 canonical sections in order. EXPERIENCE has every required default plus the game-example sections; input schemes are folded into Interaction Primitives, which suits a touch-first game.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Implementation notes and Mockups sit after Key Flows</h3>
+              <span class="finding-location">EXPERIENCE → end</span>
+            </header>
+            <div class="finding-note">Both example shapes end on Key Flows.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Move both above Key Flows, or into an appendix heading.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Frontmatter carries extra metadata keys</h3>
+              <span class="finding-location">DESIGN → frontmatter</span>
+            </header>
+            <div class="finding-note"><code>title</code>, <code>status</code>, <code>created</code>, <code>updated</code>, <code>sources</code> beyond <code>name</code>/<code>description</code>, plus the <code>vector</code> group.</div>
+            <div class="finding-fix"><strong>Fix:</strong> None beyond the vector fix; optionally note they are BMAD metadata.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="reviewer-section">
+      <details>
+        <summary>
+          <h2>Accessibility review</h2>
+          <span class="reviewer-source">review-accessibility.md</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Verdict: not ready to hand off as-is. Needs one revision pass, no redesign. Baseline WCAG 2.2 AA, GAG, XAG. The base beats most idle games (no colour-only meaning, timers can be turned off, unavoidable events are untimed, sound off by default, reduced motion honoured, ×MAX for every hold-repeat). The gaps: a seizure-safety contradiction, no keyboard/focus/screen-reader semantics for the terminal idiom, blinking that never stops, single-key shortcuts, a hold-only confirm, and <code>dim</code> text so close to 4.5:1 that the spec's own scanlines push it under. Counts: 1 critical, 7 high, 12 medium, 8 low.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-critical">critical</span>
+              <h3 class="finding-title">C1. Hold-repeat makes the primary button flash 8+ times a second</h3>
+              <span class="finding-location">EXPERIENCE → Game Feel &amp; Juice; Interaction Primitives; Accessibility Floor</span>
+            </header>
+            <div class="finding-note">Holding BUY inverts a full-width 50 px button between <code>bg</code> and <code>accent</code> at ≥ 8 Hz: a 7.7–21:1 luminance swing, and in Combat a saturated red flash. WCAG 2.3.1. This contradicts the spec's own "nothing flashes faster than the 1 s cursor blink". A seizure-safety issue, not polish.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Invert once on press and hold until release; show repeats only through the value and throttled <code>+N</code>; add a DESIGN rule "no element changes luminance more than 3 times in any 1 s"; border-thicken under reduced motion; add a test counting class toggles during a 2 s hold.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">H1. dim margin is too thin and scanlines push it below AA</h3>
+              <span class="finding-location">DESIGN → colors.*-dim, Elevation &amp; Depth</span>
+            </header>
+            <div class="finding-note"><code>dim</code>/<code>raised</code> is 4.61–4.69; with the scanline overlay the effective ratio is 4.22–4.31, about 3.4 on darkened rows, on 11–12 px text.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Retune <code>dim</code> to ≥ 5.3:1 on <code>raised</code> and ≥ 5.8:1 on <code>bg</code>, or keep scanlines off text panels; restate the claim with method; add a contrast unit test.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">H2. Blinking never stops</h3>
+              <span class="finding-location">DESIGN → Primary button, Do/Don't; EXPERIENCE → Flow 1 step 2, Reduced motion; mockups</span>
+            </header>
+            <div class="finding-note">The cursor blinks forever on every screen; neither reduced motion nor the CRT toggle covers it. WCAG 2.2.2.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add cursor and prompt blink to both toggles (steady <code>█</code>), or stop blinking after 5 s of no input.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">H3. No focus model</h3>
+              <span class="finding-location">EXPERIENCE → Accessibility Floor, Desktop; DESIGN → Components</span>
+            </header>
+            <div class="finding-note">No focus style, order, sheet trap or return; pinned bars can obscure focus (2.4.11); decision sheets must never become a keyboard trap.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a Focus subsection and token: 2 px <code>highlight</code> outline, defined DOM order, <code>role="dialog"</code> sheets with trap and return, no Esc on decisions, <code>scroll-padding-bottom</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">H4. Single-key desktop shortcuts have no off switch</h3>
+              <span class="finding-location">EXPERIENCE → Interaction Primitives → Desktop</span>
+            </header>
+            <div class="finding-note">Space and 1–5 fire on dictation and stray keys; Space also collides with activating the focused control. WCAG 2.1.4.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a shortcuts on/off and remap setting; Space fires the primary action only when focus is on <code>body</code> or the primary button.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">H5. Hold-to-confirm has no non-hold alternative</h3>
+              <span class="finding-location">EXPERIENCE → Interaction Primitives, Accessibility Floor; title-cinematic.html</span>
+            </header>
+            <div class="finding-note">An adjustable duration doesn't help voice or switch users; the cinematic skip and TAP TO WAKE are pointer-only <code>div</code>s.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add "hold / two taps" confirm setting; Enter/Space hold fills the ring; make skip and wake real buttons; announce the ring.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">H6. The terminal-text idiom will be read out literally</h3>
+              <span class="finding-location">DESIGN → Meter, Primary button, Event line, Shapes, Stepper</span>
+            </header>
+            <div class="finding-note">Screen readers will read "left bracket full block … middle dot", "greater than buy warehouse", and runs of box drawing; typing effects announce letter by letter.</div>
+            <div class="finding-fix"><strong>Fix:</strong> <code>aria-hidden</code> all decorative characters; meters as <code>progressbar</code> with <code>aria-valuetext</code>; labelled stepper buttons; set full strings at once in the accessible node; real table/list markup.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">H7. The 36-column grid conflicts with 200 % text and 320 px reflow</h3>
+              <span class="finding-location">DESIGN → Typography, Layout &amp; Spacing; EXPERIENCE → Accessibility Floor</span>
+            </header>
+            <div class="finding-note">At 200 % only about 19 columns fit a 360 px viewport; reflow is tested at 320 px; px text ignores iOS Dynamic Type.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Set the floor at 320 px, use <code>rem</code>, never disable zoom, define a narrow-layout rule, add a 320 px / 200 % Playwright check, verify 1.4.12.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M1. All-caps monospace and 4-letter abbreviations</h3>
+              <span class="finding-location">DESIGN → Typography; EXPERIENCE → Voice and Tone, Resource strip</span>
+            </header>
+            <div class="finding-note">All caps removes word shape (dyslexia); <code>WRKR</code>, <code>STON</code>, <code>LV.3</code> will be spelled out by screen readers.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Author in sentence case with a CSS upper-case class; add a "Readable text" setting; give abbreviations accessible full names; test on VoiceOver and TalkBack.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M2. The primary action's target changes under the thumb</h3>
+              <span class="finding-location">EXPERIENCE → Primary action</span>
+            </header>
+            <div class="finding-note">At 20 Hz the label can switch between reading and tapping; a hold could switch from ASSIGN to BUY.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Limit label changes to once per 2 s, ignore taps within 400 ms of a change, lock a hold to its starting target.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M3. The live-region policy is too narrow</h3>
+              <span class="finding-location">EXPERIENCE → Accessibility Floor</span>
+            </header>
+            <div class="finding-note">Decisions, battle results, phase reveals, CONTINUE, offline summary, toasts, new tabs and buy outcomes are silent.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a polite/throttled/dialog/timer announcement table; LOG uses <code>role="log"</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M4. The nest scene is one image with tappable chambers</h3>
+              <span class="finding-location">EXPERIENCE → Accessibility Floor, Nest scene</span>
+            </header>
+            <div class="finding-note">A <code>role="img"</code> cannot contain reachable interactive children.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Keep the image label and add an adjacent chamber-button list; update the label on thresholds only.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M5. Several targets are under 24 px or unsized</h3>
+              <span class="finding-location">EXPERIENCE → Event line, Accessibility Floor; DESIGN → Stepper, segment row, gear</span>
+            </header>
+            <div class="finding-note">Event lines are about 16 px tall; tiles break the spec's own 8 px spacing and 44 pt floor; multiplier, segment row, chambers and gear are unsized.</div>
+            <div class="finding-fix"><strong>Fix:</strong> 44 px minimum for tappable lines and controls; restate tiles as the one deliberate exception; offer a Large targets map.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M6. Players can't find the decision-timer setting when it matters</h3>
+              <span class="finding-location">EXPERIENCE → Decision event, Navigation rules, Flow 6</span>
+            </header>
+            <div class="finding-note">The first costly timeout arrives before players know the setting exists; visible-but-unattended desktop tabs are not paused.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add <code>MORE TIME (+30s)</code>; a one-time hint line; make the first costly event untimed; pause after 60 s without input.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M7. Reduced motion misses several animations</h3>
+              <span class="finding-location">EXPERIENCE → Game Feel → Reduced motion; DESIGN → Transcendence ending</span>
+            </header>
+            <div class="finding-note">Not listed: Transcendence break-apart (the worst vestibular trigger), <code>+N</code>, hatch walk-off, affordable glow, invert, typed headlines, strip flash, racing counter. The CRT toggle ignores <code>prefers-contrast</code>.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Extend the list; default CRT off under <code>prefers-contrast: more</code> or <code>forced-colors</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M8. The selected tile differs from claimed tiles only by stroke width</h3>
+              <span class="finding-location">DESIGN → Colors (highlight), Map tile</span>
+            </header>
+            <div class="finding-note"><code>highlight</code> vs <code>accent</code> is 1.00–1.25:1 in several phases.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Mark selection by shape (corner brackets or inverted fill) plus <code>aria-selected</code>; give "new" a text marker.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M9. Some non-text UI falls below 3:1</h3>
+              <span class="finding-location">DESIGN → Map tile, Meter, Star map</span>
+            </header>
+            <div class="finding-note">Tile stroke 1.66–2.46, empty meter cells in <code>line</code> 1.48–2.03, locked planets 2.36.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Tile stroke ≥ 45–50 %; empty cells in <code>dim</code>; locked planets in <code>dim</code> with a LOCKED label.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M10. Map panning needs a non-drag alternative</h3>
+              <span class="finding-location">DESIGN → Layout; EXPERIENCE → Map tile, Star map, Interaction Primitives</span>
+            </header>
+            <div class="finding-note">WCAG 2.5.7 and 2.5.2: panning is drag-only; buys may fire on pointer-down.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add pan buttons, arrow keys and centre-on-home; commit taps on <code>pointerup</code>; keep a visible CLOSE.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M11. Phase 1 demands many repeated inputs</h3>
+              <span class="finding-location">EXPERIENCE → Accessibility Floor, Tabs, Interaction Primitives</span>
+            </header>
+            <div class="finding-note">Phase 1 is where repeated tapping is allowed, yet LAY EGG has no stated ×MAX.</div>
+            <div class="finding-fix"><strong>Fix:</strong> State a LAY EGG ×MAX / LAY 10 option, or a lay-continuously toggle.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M12. Glow on text lowers legibility</h3>
+              <span class="finding-location">DESIGN → Elevation &amp; Depth; mockups</span>
+            </header>
+            <div class="finding-note">The halo raises local background luminance and blurs 11–12 px edges; Combat accent vs halo is 4.65:1.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Glow only on <code>value</code>, <code>title</code>, <code>display</code> (≥ 15 px), under the CRT toggle.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L1. Contrast claims are slightly wrong or razor-thin</h3>
+              <span class="finding-location">DESIGN → Colors → Contrast</span>
+            </header>
+            <div class="finding-note">Accent/raised is 7.09 in Combat, not ≥ 7.1; warn/Colony-raised is 8.0012; dim/raised 4.606.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Restate as ≥ 7.0 and ≥ 7.9, leave ≥ 0.3 headroom, add a recompute test.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L2. Disabled controls use 40 % opacity</h3>
+              <span class="finding-location">DESIGN → Primary button</span>
+            </header>
+            <div class="finding-note">2.11–3.66:1; exempt, but players still need to read the label.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Disabled labels in <code>dim</code> with a dashed <code>line</code> border and <code>aria-disabled</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L3. Mockups sit below the spec floor in places</h3>
+              <span class="finding-location">terminal-variants.html, glyphs.html, title-cinematic.html</span>
+            </header>
+            <div class="finding-note">62 % accent mix at 3.54:1 in Combat; 10.5 px text; click-only skip; blinking <code>.tap</code>.</div>
+            <div class="finding-fix"><strong>Fix:</strong> One line under Mockups: mock colours and sizes are illustrative; frontmatter is normative.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L4. Large text leaves the strip icons-only</h3>
+              <span class="finding-location">DESIGN → Typography, Glyphs</span>
+            </header>
+            <div class="finding-note">Labels drop first; glyph alt text can duplicate visible labels; FOOD and VNOM are both drop-shaped.</div>
+            <div class="finding-fix"><strong>Fix:</strong> <code>aria-hidden</code> glyphs when labelled; wrap the strip at 200 %; fix VNOM before E8.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L5. Landscape must not be blocked</h3>
+              <span class="finding-location">EXPERIENCE → Responsive &amp; Platform</span>
+            </header>
+            <div class="finding-note">WCAG 1.3.4: risk of a rotate prompt or overflowing sheets at about 360 px height.</div>
+            <div class="finding-fix"><strong>Fix:</strong> No orientation lock; un-pin the primary action under 480 px of height.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L6. Coach-mark dismiss tap may pass through</h3>
+              <span class="finding-location">EXPERIENCE → Coach mark, Bottom sheet</span>
+            </header>
+            <div class="finding-note">Tapping anywhere must not also trigger the control underneath.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Consume the dismiss tap; announce coach marks; add a focusable "Got it".</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L7. Haptics and hover need clarifications</h3>
+              <span class="finding-location">EXPERIENCE → Game Feel, Desktop hover</span>
+            </header>
+            <div class="finding-note">No Vibration API in iOS Safari; hover content must meet 1.4.13.</div>
+            <div class="finding-fix"><strong>Fix:</strong> "Haptics are an enhancement, never the only feedback"; add the 1.4.13 rule; consider split volume controls.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L8. Combat accent and warn are 1.23:1 apart</h3>
+              <span class="finding-location">DESIGN → Colors, Resource strip</span>
+            </header>
+            <div class="finding-note">In the strip a negative delta's only non-colour cue is a 12 px minus.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Prefix negatives with <code>▼</code>; use U+2212; lint that every <code>warn</code> element carries a symbol or word.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="reviewer-section">
+      <details>
+        <summary>
+          <h2>Mobile legibility review</h2>
+          <span class="reviewer-source">review-mobile-legibility.md</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Verdict: fits at 100 % text on a 360 px viewport with almost no headroom, and breaks under real-world conditions the spec explicitly promises to support. Measured from font metrics and headless renders: the grid overflows at 110 % OS text or below about 352 px; the strip overflows at about 130 % and immediately with the spec's own <code>999 999</code> format; 640 px is a device height, but the usable browser viewport is about 510–560 px. The only large-text rule ("labels drop first") does not free the width that is short. Counts: 1 critical, 6 high, 8 medium, 6 low.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-critical">critical</span>
+              <h3 class="finding-title">1. The 36-column grid has no headroom and no reflow rule for 200 % text</h3>
+              <span class="finding-location">DESIGN → Typography, Do/Don't; EXPERIENCE → Accessibility Floor</span>
+            </header>
+            <div class="finding-note">At 360 px, 36 columns fit with 29 px slack at 100 %; at 110 % they need 333.6 px of 332 (measured). At 320 px they fail at 100 %. At 200 % about 20 columns fit, so every box panel, 24-cell meter and aligned table overflows. Android applies OS font size as text scale or page zoom; either way fewer than 36 columns.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Make column count an output: <code>cols = floor(contentWidth / (0.6 × bodySize))</code>, 36 as target, 28 as box-drawing floor; add a reflow table (≥ 36 / 28–35 / &lt; 28); allow 8 px margins below 360 px; the grid is never a reason to clip text.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">2. The strip overflows with the spec's own number format</h3>
+              <span class="finding-location">DESIGN → Resource strip, Typography; EXPERIENCE → Resource strip</span>
+            </header>
+            <div class="finding-note">Five <code>999 999</code> values need 316 px plus gaps at 100 %; the binding width is the value, not the label; mockups already print <code>12.4K</code>; the strip renders 69 px tall against a 56 px token.</div>
+            <div class="finding-fix"><strong>Fix:</strong> ≤ 5-char values (suffix at 10 000), ≤ 5-char deltas (drop <code>/s</code>), five equal cells, 3 cells + <code>+2 ▸</code> above 125 %, <code>min-content</code> height.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">3. The vertical budget assumes a 640 px viewport</h3>
+              <span class="finding-location">EXPERIENCE → Foundation, form_factor; DESIGN → Layout &amp; Spacing; mockups</span>
+            </header>
+            <div class="finding-note">NEST needs about 580–593 px; a 360×640 Android in Chrome gives about 512, iPhone SE Safari about 548. At 512 the tab bar is pushed off-screen. FRONT → MAP is already 764 px in a 720 px frame.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Restate the minimum as a 360×512 viewport; flexible scene height with <code>clamp()</code>; 1 event line under 560 px; 64 px pinned primary; <code>100dvh</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">4. Scanlines and glow drop dim text below AA; CRT default unspecified</h3>
+              <span class="finding-location">DESIGN → Elevation &amp; Depth, vector.scanlines, vector.glow; EXPERIENCE → Settings; mockups</span>
+            </header>
+            <div class="finding-note">On scanline rows dim/bg falls to 3.6–4.0:1; fractional DPRs produce moiré; mockups give dim text an accent halo brighter than the glyph (3.2–3.75:1).</div>
+            <div class="finding-fix"><strong>Fix:</strong> Tri-state CRT: SCENE (default) / FULL / OFF; scanlines over the vector scene only; glow ≤ 2 px on accent text ≥ 14 px; device-pixel scanlines; auto-OFF on <code>prefers-contrast</code> or &gt; 130 % text; measure contrast with effects on.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">5. The platform monospace stack can't guarantee the grid glyphs</h3>
+              <span class="finding-location">DESIGN → Typography, Meter, Shapes, Colors</span>
+            </header>
+            <div class="finding-note"><code>ui-monospace</code> resolves only in Safari; Android gets Droid Sans Mono; Liberation Mono lacks ✓/✗ and the fallback is 47 % wider per glyph, so any row with a check mark falls off the grid.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Ship one 15–25 KB subset mono web font; or restrict grid rows to ASCII plus box/block glyphs and render ✓ ✗ ▲ ▼ as 1ch inline SVG with a device width test.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">6. The bottom-40 % reach rule can't hold on WRKR or BUILD</h3>
+              <span class="finding-location">EXPERIENCE → Accessibility Floor; DESIGN → spacing.thumb-zone</span>
+            </header>
+            <div class="finding-note">On a 512 px viewport the bottom 40 % is 205 px; tab bar and pinned primary leave about 64 px, one row. Written as an E1 done-when, it becomes a failing acceptance test.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Reword to cover the primary action, tab bar and active sheet actions; pad scroll content so any row can reach the zone; bottom-anchor WRKR with GATHER nearest the thumb.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">7. Map tiles: 40 px with 1 px gaps mis-tap, and the sheet hides the map</h3>
+              <span class="finding-location">DESIGN → Map tile; EXPERIENCE → Map tile, Accessibility Floor</span>
+            </header>
+            <div class="finding-note">Estimated miss rate 6–20 % on a 6.4 mm target; at 320 px tiles shrink to 35 px unspecified; a 200–250 px sheet covers rows 5–8 so a mis-selection is invisible.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Non-modal ≤ 160 px peek sheet that retargets on tap; auto-scroll the selected tile; 2 px gaps; stroke ≥ 45 %; pan rather than shrink below 352 px; hide the pinned FRONT primary while the sheet is open.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">8. 15 px values can't share a grid row with 14 px body</h3>
+              <span class="finding-location">DESIGN → Typography, Role row, Stepper, Card</span>
+            </header>
+            <div class="finding-note">A 15 px character is 9.0 px against an 8.4 px cell; columns drift across rows.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Render grid-row values at 14 px bold, or in fixed slots; keep 15 px off-grid.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">9. 11 px dim labels and 12 px dim meta are below comfortable reading size</h3>
+              <span class="finding-location">DESIGN → Typography, Resource strip, Event line, Card cost line</span>
+            </header>
+            <div class="finding-note">An 11 px cap subtends about 7.5′ at arm's length against a 12′ critical print size; the 12 px cost line carries the shortfall the player must act on.</div>
+            <div class="finding-fix"><strong>Fix:</strong> <code>label</code> to 12 px; no <code>dim</code> below 12 px, no sentence case below 13 px; cost line 13 px with the shortfall in <code>warn</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">10. The 9 px worker reads as a dash; eggs and larvae are hard to tell apart</h3>
+              <span class="finding-location">DESIGN → Nest scene; Brand rule 3</span>
+            </header>
+            <div class="finding-note">Workers render as 9 × 3 px pills; eggs and larvae at 5–6 px, yet telling them apart is the Phase 1 loop.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a scene camera scale (2× in Phase 1, pulling back as chambers are dug); 12 px floor for an individual worker.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">11. The 300-per-chamber cloud threshold is too high</h3>
+              <span class="finding-location">DESIGN → Nest scene; EXPERIENCE → Nest scene</span>
+            </header>
+            <div class="finding-note">Ants overlap into mush at about 150–180 in the largest chamber; small chambers saturate at a few dozen; 300 animated groups with drop-shadow is a jank risk.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Switch to the cloud by density (&gt; ~15 % coverage); keep 30–50 animated ants on top; cap about 150 individuals scene-wide.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">12. Scene count labels are SVG text</h3>
+              <span class="finding-location">DESIGN → Brand rule 3, Do's; terminal-variants.html</span>
+            </header>
+            <div class="finding-note">11 px viewBox text at 62 % opacity becomes about 9.7 px at 320 px, ignores OS text size, and is crossed by tunnel strokes.</div>
+            <div class="finding-fix"><strong>Fix:</strong> HTML labels overlaid from chamber anchors in <code>meta</code>/<code>dim</code> with a <code>bg</code> plate; never smaller than <code>meta</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">13. The tab bar overflows at about 148 % text</h3>
+              <span class="finding-location">DESIGN → Tab bar</span>
+            </header>
+            <div class="finding-note">Active <code>[FRONT]</code> is 50 px of a 72 px cell at 100 % and needs 101 px at 200 %.</div>
+            <div class="finding-fix"><strong>Fix:</strong> 4-letter names always (<code>NEST WRKR BLDG FRNT LOG</code>); inverse fill for active; grow to two lines above 150 %.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">14. Primary-button labels have no wrap rule</h3>
+              <span class="finding-location">DESIGN → Primary button; EXPERIENCE → Primary action</span>
+            </header>
+            <div class="finding-note">22-character labels wrap at about 145 %; at 200 % only about 16 characters fit.</div>
+            <div class="finding-fix"><strong>Fix:</strong> At most 2 lines; drop the qualifier first, then the target, never the verb; cap generated labels at 24 characters.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">15. "Text scales with the OS" is false on iOS with px sizes</h3>
+              <span class="finding-location">DESIGN → Typography; EXPERIENCE → Accessibility Floor, Settings</span>
+            </header>
+            <div class="finding-note">Safari px sizes ignore Dynamic Type; Android may apply page zoom, which shrinks the CSS viewport and moves breakpoints.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Tokens in <code>rem</code>; root size from <code>-apple-system-body</code> clamped 14–28 px; E1 device test matrix at 100/130/200 % and 360/320 px.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">16. Mockups don't use the DESIGN tokens</h3>
+              <span class="finding-location">terminal-variants.html, glyphs.html</span>
+            </header>
+            <div class="finding-note">62 % dim mix (Combat 3.54:1), off-token Combat accent, 11/13/12.5 px sizes, <code>WRK</code>, a 720 px frame, glow on all text.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Regenerate mocks from frontmatter tokens at 360×512 and 360×640 plus one 200 % frame.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">17. Strip values jitter as they change width</h3>
+              <span class="finding-location">DESIGN → Resource strip</span>
+            </header>
+            <div class="finding-note"><code>space-between</code> with content-sized cells reflows every cell when a value or delta changes width.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Equal fixed cells, centred values, reserved delta line.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">18. display text at 200 % overflows</h3>
+              <span class="finding-location">DESIGN → Typography, Phase reveal</span>
+            </header>
+            <div class="finding-note"><code>TRANSCENDENCE</code> is 218 px at 100 % and 437 px at 200 % against 332.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Fit-to-width (down to 70 %, then wrap); reduce tracking below 28 columns.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">19. In Phase 1 settings are reachable only from the top</h3>
+              <span class="finding-location">EXPERIENCE → Tabs</span>
+            </header>
+            <div class="finding-note">Reduced motion and CRT effects sit behind the hardest one-handed reach during the first minutes.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Long-press the phase line, or a dim SETTINGS action under the Phase 1 primary, or a one-time CRT line after the cinematic.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">20. Tile strokes and unknown tiles are below the non-text floor</h3>
+              <span class="finding-location">DESIGN → Map tile; mockup</span>
+            </header>
+            <div class="finding-note">Stroke 1.66–2.32:1; <code>?</code> at 45 % is 2.4–3.9:1; locked planets at 35 % too.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Stroke ≥ 0.45; <code>?</code> in <code>dim</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">21. Glow filters on an animated SVG scene risk frame drops</h3>
+              <span class="finding-location">DESIGN → vector.glow; EXPERIENCE → Game Feel</span>
+            </header>
+            <div class="finding-note"><code>drop-shadow</code> on hundreds of moving nodes re-rasterises every frame on low-end Android.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Canvas with a pre-blurred glow layer, or filter static walls only; record the constraint for architecture.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="reviewer-section">
+      <details>
+        <summary>
+          <h2>Code feasibility review</h2>
+          <span class="reviewer-source">review-code-feasibility.md</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Verdict: feasible with changes, checked against <code>main @ 24da5b1</code>. Nothing is impossible in the stack and nothing breaks the repo rules if stories are written as suggested. The spec is more aligned with the GDD than with the code; most conflicts are pre-GDD baseline behaviour still in code. Three decisions are needed before stories are cut: CONTINUE semantics, the check-in resume path, and the decision-event lifecycle. The "Implementation notes from Discovery" table is accurate but understates the work. Status of 37 spec items: 2 already implemented, 15 small change, 12 significant change, 8 conflicts. Findings: 1 critical, 5 high, 9 medium, 8 low.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-critical">critical</span>
+              <h3 class="finding-title">C-1. CONTINUE semantics are undefined, and Colony has two exits</h3>
+              <span class="finding-location">EXPERIENCE → Phase change; src/phases/PhaseStateMachine.ts:26-38, transitions.ts:31,71</span>
+            </header>
+            <div class="finding-note">The FSM fires and commits in one step. Guards can stop holding after being met (starvation, unassigned guard, spent VC); the spec doesn't say whether CONTINUE is latched or live or what happens if the guard fails before the tap. Colony has two outgoing transitions, so "the" CONTINUE target is ambiguous.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Spec: CONTINUE is offered while the guard holds, re-evaluated every tick and re-checked on tap; on failure the button reverts to the meter showing the failing row. Stories: remove COLONY_TO_EXPANSION and migrate its E2E seeds; split the FSM into pure <code>evaluate()</code> and <code>commit()</code> called only from CONTINUE; seeds click a <code>data-action="continue"</code> selector.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">H-1. No resume-from-background path; Flow 2 can't happen</h3>
+              <span class="finding-location">EXPERIENCE → State Patterns (L123); src/core/Ticker.ts:83, main.ts:76-147</span>
+            </header>
+            <div class="finding-note">Background time is dropped by the 1 s dt cap and catch-up runs only at bootstrap. On a phone most check-ins are resumes.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Resume = <code>visibilitychange</code> → visible, running the same catch-up as cold load behind one shared function; say so in the spec.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">H-2. The guard meter needs guards decomposed inside transitions.ts</h3>
+              <span class="finding-location">EXPERIENCE → guard meter; transitions.ts:20-114</span>
+            </header>
+            <div class="finding-note">Per-condition rows need numbers that exist only inside opaque lambdas; a UI that restates them breaks the only-guard-source rule.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add <code>conditions[]</code> (label, current, target) to <code>Transition</code>, derive <code>guard</code>, generate meter text from it.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">H-3. BUILD in Phase 2 and the P2 strip depend on content the code doesn't have</h3>
+              <span class="finding-location">EXPERIENCE → Tabs, strip sets; PhaseContent.ts:74, ResourceSystem.ts:61-63</span>
+            </header>
+            <div class="finding-note">Buildings unlock in Expansion and wood/stone/nectar come only from territory, so BUILD in Phase 2 is a catch-22 and the P2 strip shows three frozen zeros.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Tag both as depending on the GDD role yields; ship BUILD with what is affordable in Phase 2 or after the yield story.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">H-4. The decision-event lifecycle has gaps and a spawn bug</h3>
+              <span class="finding-location">EXPERIENCE → Decision event; DecisionSystem.ts:141, DecisionPopup.ts:22-25</span>
+            </header>
+            <div class="finding-note">Spawn time is absolute against cumulative play time, so an event fires on the first tick after every load, on top of the offline summary. No sheet queue. No rule for an open costly/unavoidable event when the app closes, so closing the tab escapes it.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Spec: an event open at close is discarded; next spawn ≥ 2 min of foreground play; the ignore timer starts when the sheet opens. Stories: session-relative spawn, phase eligibility, one sheet controller.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">H-5. Map tiles commit on tap today</h3>
+              <span class="finding-location">EXPERIENCE (L183); UIRoot.ts:143-150</span>
+            </header>
+            <div class="finding-note">Tile click claims immediately, contradicting "a mis-tap only selects and never commits".</div>
+            <div class="finding-fix"><strong>Fix:</strong> Tap sets a selected tile and opens the tile sheet; CLAIM lives in the sheet; keep the explicit <code>onTileClick</code> wiring and the spread after <code>claimTile</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M-1. The decision data model doesn't fit the three-policy model</h3>
+              <span class="finding-location">DecisionSystem.ts:9-14, 33, 42-44, 54</span>
+            </header>
+            <div class="finding-note">No policy, timer or ignore consequence; Overcrowding has a "Wait" choice; "Ignore" is a button; consequence amounts are restated in free text.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add <code>ignorePolicy</code>, <code>timerMs?</code>, <code>ignoreLine</code>, <code>ignore</code>, and a structured <code>cost</code> per choice; retire Ignore/Wait buttons.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M-2. The number-format rule contradicts itself and the code</h3>
+              <span class="finding-location">DESIGN (L235); src/ui/format.ts:59-87</span>
+            </header>
+            <div class="finding-note">"Full to 999 999" but <code>88.2K</code> as an example; code uses commas, prints "1.00M", goes scientific at 1e12 in any phase, rounds fractional eggs.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Drop <code>88.2K</code> from the spec, state the suffix ladder past T; the formatter floors rather than rounds.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M-3. The guard meter names the next phase</h3>
+              <span class="finding-location">EXPERIENCE (L84, L107, L208)</span>
+            </header>
+            <div class="finding-note">Conflicts with "nothing about the next phase shows before the tap".</div>
+            <div class="finding-fix"><strong>Fix:</strong> Allow the name explicitly, or use a neutral "NEXT AT …" label.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M-4. Phase-reveal reuse has three defects</h3>
+              <span class="finding-location">main.css:1252, UIRoot.ts:474, PhaseContent.ts:181</span>
+            </header>
+            <div class="finding-note">The overlay doesn't block input so its click-skip can't fire; skip keys on <code>prestigeCount</code>; "seen once" needs a lifetime seen-set.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add <code>revealsSeen</code>; if in the save, coordinate one SAVE_VERSION 14 step; or store beside the onboarding key.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M-5. Corrupt saves are recovered silently</h3>
+              <span class="finding-location">SaveManager.ts:114-135, 197-228; main.ts:76</span>
+            </header>
+            <div class="finding-note">Fallback to backups is silent and total failure starts fresh with no message.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Spec: say whether a usable backup auto-loads with a notice or waits for the player; <code>load()</code> returns a status.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M-6. The event log lives only in component memory</h3>
+              <span class="finding-location">EventLog.ts:8, 22</span>
+            </header>
+            <div class="finding-note">NEST's newest 3 and LOG's full log need a shared store; the log is lost on reload.</div>
+            <div class="finding-fix"><strong>Fix:</strong> State whether LOG persists; if so it is a save field and migration.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M-7. No settings exist today</h3>
+              <span class="finding-location">AudioSystem.ts:14; main.css</span>
+            </header>
+            <div class="finding-note">Audio defaults to on, no reduced-motion CSS, no Vibration API on iOS Safari, notifications need a service worker; GDD mutes on mobile only while the spec mutes everywhere.</div>
+            <div class="finding-fix"><strong>Fix:</strong> "Haptics where supported"; settings live outside the save; say whether export includes settings; pick one sound default.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M-8. The first-launch cinematic will hit E2E tests</h3>
+              <span class="finding-location">main.ts:364-368, OnboardingManager.ts</span>
+            </header>
+            <div class="finding-note">Keyed only on an intro flag, every unseeded or flagless E2E run gets an 11 s blocker.</div>
+            <div class="finding-fix"><strong>Fix:</strong> First launch = no save in any slot and intro flag unset; add a test helper.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M-9. Space is bound to pause; the spec has no pause</h3>
+              <span class="finding-location">UIRoot.ts:242-259; tests/e2e/pause.spec.ts</span>
+            </header>
+            <div class="finding-note">The spec makes Space the primary action (GDD: lay an egg).</div>
+            <div class="finding-fix"><strong>Fix:</strong> Say whether pause is removed or moved to settings; if kept, decision timers pause with it.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L-1. Labels aren't all four letters</h3>
+              <span class="finding-location">EXPERIENCE (L98); DESIGN (L246)</span>
+            </header>
+            <div class="finding-note"><code>EGG</code> and <code>WRK</code> break the rule.</div>
+            <div class="finding-fix"><strong>Fix:</strong> "≤ 4-letter label"; align the skeleton with <code>WRKR</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L-2. Offline sheet threshold and cap copy</h3>
+              <span class="finding-location">main.ts:131; OfflineProgression.ts:97</span>
+            </header>
+            <div class="finding-note">30 s in code vs 1 min in spec; cap is 4 h in code vs 12–24 h per GDD.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Cap copy reads the live cap; no literal <code>12H</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L-3. The strip's 4 Hz rule needs a throttle</h3>
+              <span class="finding-location">ResourcePanel.ts:150; TranscendencePanel.ts:31-35</span>
+            </header>
+            <div class="finding-note">Both update on every 20 Hz write (#186 pattern).</div>
+            <div class="finding-fix"><strong>Fix:</strong> Throttle or use <code>computed</code> slices; fix TranscendencePanel when it moves.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L-4. Battles can draw; the summary has no DRAW</h3>
+              <span class="finding-location">BattleSystem.ts:174</span>
+            </header>
+            <div class="finding-note">Only VICTORY and DEFEAT are specified.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a DRAW line ("THEY RETREATED.").</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L-5. "Transcendence conversion" matches nothing</h3>
+              <span class="finding-location">EXPERIENCE (L32)</span>
+            </header>
+            <div class="finding-note">Not in code or GDD.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Name it, or drop it in favour of "the ending".</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L-6. A Research row can over-assign</h3>
+              <span class="finding-location">ResourceSystem.ts:315</span>
+            </header>
+            <div class="finding-note"><code>assignWorker</code>'s total ignores <code>researchers</code>, so ×MAX over-assigns.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Include <code>researchers</code> in the total.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L-7. The per-phase critical path isn't defined</h3>
+              <span class="finding-location">EXPERIENCE (L100)</span>
+            </header>
+            <div class="finding-note">The <code>getNextAction</code> selector has no data source.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Point it at an E4 content table.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L-8. Tagline mismatch in the decision log</h3>
+              <span class="finding-location">.decision-log.md (L28)</span>
+            </header>
+            <div class="finding-note">The log reads ONE UNIVERSE; the spec reads ONE SWARM.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Confirm which is final.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <div class="mechanical">
+      <h3>Mechanical notes</h3>
+      <ul>
+        <li>Contrast recomputed independently by the rubric walker, accessibility and mobile legibility (WCAG 2.x relative luminance). All three agree on the token values: accent/bg 7.74–21.00, dim/bg 5.03–5.49, dim/raised 4.61–4.69, on-accent ≥ 7.74. The rubric counts every DESIGN claim as holding; accessibility notes accent/raised in Combat is 7.094, so the "≥ 7.1:1" claim misses by 0.01 (still AAA), and warn/Colony-raised passes 8.0 by 0.001.</li>
+        <li>Map fit: 8 × 40 px + 7 × 1 px = 327 px, plus 2 × 14 px margins = 355 px ≤ 360 px. Fits at 360 px; at 320 px the SVG scales tiles to 35.2 px (measured).</li>
+        <li>Token references: every <code>{…}</code> resolves to a frontmatter key; non-resolvable values are the compound strings in Token completeness and the bare <code>accent</code> inside <code>vector.glow</code>.</li>
+        <li>Mockups: 3 files, 0 orphans; <code>.working/</code> holds 8 superseded explorations, correctly unlinked. Mock values are off-token (see the merged mockup finding).</li>
+        <li>Glyph inventory: 14 resources + 6 buildings in <code>mockups/glyphs.html</code>, matching DESIGN L291. No glyph for nest capacity, Legacy Points or the settings gear.</li>
+        <li>Open <code>[ASSUMPTION]</code> tags in EXPERIENCE: per-phase strip sets, WRKR primary action, 1 min offline threshold, save export, hold acceleration, shortcut set, no tablet layout, no landscape. Strip sets and WRKR primary action are load-bearing for E1.</li>
+        <li>Code-feasibility status table (37 spec items vs <code>main @ 24da5b1</code>): 2 already implemented, 15 small change, 12 significant change, 8 conflicts with code or GDD.</li>
+        <li>Counts: the rubric header states 6 high / 20 medium / 18 low, but its sections itemise 16 low findings; this report uses the itemised count. Raw totals across the four reviews: 3 critical, 24 high, 49 medium, 38 low (114). After de-duplication: 3 critical, 22 high, 41 medium, 26 low (92).</li>
+      </ul>
+    </div>
+
+    <footer class="report-footer">
+      <div class="meta">
+        <span>Rubric: _bmad-output/planning-artifacts/ux-designs/ux-the-swarm-2026-11-20/review-rubric.md</span>
+        <span>Reviewers: review-accessibility.md · review-mobile-legibility.md · review-code-feasibility.md</span>
+        <span>DESIGN: _bmad-output/planning-artifacts/ux-designs/ux-the-swarm-2026-11-20/DESIGN.md</span>
+        <span>EXPERIENCE: _bmad-output/planning-artifacts/ux-designs/ux-the-swarm-2026-11-20/EXPERIENCE.md</span>
+        <span>Generated: 2026-11-20</span>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>
