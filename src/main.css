@@ -168,10 +168,6 @@ html, body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
-[data-tooltip]:hover::after {
-  opacity: 1;
-}
-
 /* Keep tooltip visible when button is the hover target */
 [data-tooltip]:hover::after,
 [data-tooltip]:focus-visible::after {

@@ -9,7 +9,6 @@ import {
   tickConversions,
   type ConversionDef,
 } from '../../systems/ResourceConversionSystem';
-import { formatNumber } from '../../utils/format';
 
 /** Icons for each conversion step. */
 const CONVERSION_ICONS: Record<string, string> = {
