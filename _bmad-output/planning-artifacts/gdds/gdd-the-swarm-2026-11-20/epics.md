@@ -42,7 +42,7 @@ Companion to `gdd.md`. High-level stories only; `gds-create-epics-and-stories` t
 - Make every cost an integer (fix `antimatter: 0.1`). (P1)
 - Automated reachability check: each guard is reachable from its phase's own production. (soft-lock rule)
 - Tune Phase 1 to 3–5 min, Phase 2 to day 1, Phase 3 to days 2–3. (P2)
-- Decide the Colony → Expansion alternate route. (P2)
+- Remove the Colony → Expansion alternate route; Combat becomes mandatory. Update E2E seeds that rely on it. (P2)
 
 **Done when:** a simulated six-check-ins-per-day player meets the phase targets for Phases 1–3.
 
@@ -56,6 +56,7 @@ Companion to `gdd.md`. High-level stories only; `gds-create-epics-and-stories` t
 - Entry and near-guard narrative beats for each phase. (P2)
 - Guard-progress readout on every phase. (check-in loop)
 - Automation targets ("keep N in training") for each automated verb. (P3)
+- Combat interest bar: at least 3 enemy types with traits visible before battle, a battle summary explaining the result, and army size kept a trade-off by food upkeep and worker cost. (P2, P4)
 
 **Done when:** a depth-bar checklist passes for Phases 1, 2 and 3.
 

@@ -193,11 +193,11 @@ Progression is gated by phase. Guards at baseline, from `src/phases/transitions.
 | Egg Laying → Colony | workers ≥ 10 |
 | Colony → Combat | workers ≥ 50 and ≥ 1 guard assigned |
 | Combat → Expansion | workers ≥ 60 and battlesWon ≥ 5 |
-| Colony → Expansion (alternate) | workers ≥ 40 and food ≥ 1000 |
+| ~~Colony → Expansion (alternate)~~ | ~~workers ≥ 40 and food ≥ 1000~~ (baseline only; **removed**, see below) |
 | Expansion → Space | workers ≥ 80 and food ≥ 5000 |
 | Space → Transcendence | void crystals ≥ 2000, antimatter ≥ 400, dark matter ≥ 200 |
 
-[NOTE FOR DESIGNER: the Colony → Expansion alternate route lets a player skip Combat. Decide whether skipping Combat is a deliberate peaceful path (then Combat-only content needs an Expansion equivalent) or a leftover (then remove it).]
+**Decision: Combat is mandatory.** The baseline's Colony → Expansion alternate route is a leftover and is removed (Epic 3). Every run passes through Combat. A deliberate peaceful path is a parked idea (see *Out of Scope*). If it is ever added, Combat-only rewards (silk, chitin, venom and the mutations they buy) need a non-combat source, and Combat must stay worth choosing.
 
 ### Difficulty Curve
 
@@ -252,8 +252,14 @@ The game's "levels" are its six phases. Each defines a scale, a new decision typ
 
 ### Level Progression
 
-- Phases are strictly sequential, with the one exception of the Colony → Expansion alternate route (see the note above).
+- Phases are strictly sequential. There are no alternate routes (the baseline Colony → Expansion shortcut is removed).
 - **Depth bar for a "complete" phase** (applies to MVP phases 1–3 first): at least 3 decision events unique to the phase, at least 4 purchasable upgrades or buildings competing for its currencies, at least 1 narrative beat on entry and 1 near its guard, and a progress readout showing how close the guard is. [ASSUMPTION: bar values]
+- **Combat interest bar (Phase 3).** Battles resolve automatically, so the interest comes from the decisions around them, never from watching them:
+  - **Before battle:** how many workers to turn into soldiers (each costs 1 worker + food, Pillar 4), when to commit, and which equipment and mutations to buy.
+  - **Visible counterplay:** each enemy shows a trait or type before the fight. At least 3 enemy types reward different soldier, equipment or mutation choices, so there is no single build that always wins. [ASSUMPTION: 3 types]
+  - **Stakes:** a loss costs soldiers and time (never the run). Wins drop silk, chitin and venom, the only source of those resources.
+  - **Readable result:** each battle ends in a short summary of why it was won or lost (for example, "their armor beat your venom") so the player knows what to change.
+  - **No dominant strategy:** "train the maximum and wait" must not be the best play at every step. Food upkeep and the worker cost keep army size a real trade-off.
 - Each phase changes the screen layout and palette on entry (Pillar 2). The reveal is the reward.
 
 ---
@@ -336,7 +342,7 @@ Passion project: these are quality signals from playtests, not business KPIs.
 ## Out of Scope
 
 - **Cut for v1.0:** monetization, ads, gacha and energy systems; accounts and cloud saves; multiplayer and leaderboards; music.
-- **Parked (post-launch):** content after Transcendence; new phases; additional planets or ship classes before phases 1–5 meet the depth bar.
+- **Parked (post-launch):** a peaceful path that skips or replaces Combat (needs a non-combat source of silk, chitin and venom); content after Transcendence; new phases; additional planets or ship classes before phases 1–5 meet the depth bar.
 - **Decided elsewhere:** stack, distribution channel and engine (architecture); detailed information architecture and visual design (UX).
 
 ---
@@ -357,12 +363,11 @@ Passion project: these are quality signals from playtests, not business KPIs.
 9. Number display rule (full to 999,999, then suffixes).
 10. `phase_skip` cannot skip a never-completed phase.
 11. Second run reaches the furthest phase in at most 50% of the time.
-12. Depth bar values (3 events, 4 upgrades, 2 beats per phase).
+12. Depth bar values (3 events, 4 upgrades, 2 beats per phase); 3 enemy types in Combat.
 13. No art budget; music out of scope; 2 MB download; reference device class; desktop shortcuts.
 
 **Notes for the designer (open):**
 - Tick-unit mismatch in the hatch and mature time comments.
 - Non-integer research cost (`antimatter: 0.1`).
 - Two offline caps in the baseline (4 h and 8 h).
-- Colony → Expansion alternate route: deliberate peaceful path or leftover?
 - Name collision with Swarm Simulator: is renaming in scope?
