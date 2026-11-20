@@ -63,8 +63,11 @@ Not sure which skill to use? Run `bmad-help`. **Plan in BMAD, build through GitH
 
 Repo rules win over BMAD defaults: TDD, invariant tests, integer resources, `transitions.ts` as the only guard source,
 and this file as the project context (don't generate a separate `project-context.md`). Update BMAD with
-`npx bmad-method install --action quick-update`. The Game Dev module must be pinned (`--pin gds=<tag>`) where the
-GitHub API is unreachable.
+`npx bmad-method install --action quick-update --shims --set gds.primary_platform=other`. Keep `--shims`: the
+gds skills still call the old `bmad-editorial-review-*` names, which only exist as shims. Keep
+`gds.primary_platform=other` (no game engine). Leaving it out has turned the value into a JSON string. The Game Dev
+module must be pinned (`--pin gds=<tag>`) where the GitHub API is unreachable. The owner's name is pinned in
+`_bmad/custom/config.toml`, because the installer resets the team `user_name` to "BMad".
 
 ## Architecture gotchas
 
