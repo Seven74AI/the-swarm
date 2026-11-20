@@ -63,6 +63,11 @@ Not sure which skill to use? Run `bmad-help`. **Plan in BMAD, build through GitH
 4. **Status lives in GitHub, not BMAD.** Don't maintain BMAD's sprint-status files. Open/closed issues are the truth.
    If a plan changes, update the artifact in a PR (`gds-correct-course`) and edit the affected issues.
 
+**Target architecture:** `_bmad-output/planning-artifacts/architecture/architecture-the-swarm-2026-11-20/game-architecture.md`
+(final) and the ADRs in `docs/decisions/`. Stories follow its structure, boundaries and patterns. The code still
+uses vanilla DOM panels; Preact replaces them panel by panel (ADR 0004). Use the Context7 MCP, when available,
+for current library docs (Vite 8, Preact 11, Vitest 5) before relying on memory.
+
 Repo rules win over BMAD defaults: TDD, invariant tests, integer resources, `transitions.ts` as the only guard source,
 and this file as the project context (don't generate a separate `project-context.md`). Update BMAD with
 `npx bmad-method install --action quick-update --shims --set gds.primary_platform=other`. Keep `--shims`: the
