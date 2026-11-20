@@ -14,3 +14,4 @@
 | 10 | 2026-11-20 | v0.1 draft of gdd.md and epics.md written (Express). Next: Finalize. | gds-gdd | logged |
 | 11 | 2026-11-20 | Colony → Expansion alternate route (40 workers + 1000 food) is a leftover: remove it; Combat is mandatory. A peaceful path is parked as a possible later addition (would need a non-combat source of silk, chitin and venom). | owner | decided |
 | 12 | 2026-11-20 | Combat must stay interesting in any case: added a Combat interest bar (pre-battle decisions, ≥3 enemy types with visible traits, readable result, no dominant strategy). Enemy-type count is an assumption. | owner + drafting | decided / ASSUMPTION |
+| 13 | 2026-11-20 | First victory target: about 3 weeks of real time at about 6 check-ins a day. Per-phase split stays an assumption until playtest. | owner | decided |
