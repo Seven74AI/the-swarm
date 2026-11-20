@@ -317,6 +317,11 @@ describe('ExpeditionSystem', () => {
       state.soldiers.scouts = 1;
       state.soldiers.warriors = 1;
 
+      // Pin the roll above risk + partial band so the expedition fully succeeds.
+      // Unseeded, a roll < risk (1%) is a total failure with no loot and the
+      // food > 0 assertion below flakes.
+      vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
       const result = resolveExpedition(state, exp);
 
       // All resources must be non-negative — starting from zero, this tests
