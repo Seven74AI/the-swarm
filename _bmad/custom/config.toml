@@ -5,3 +5,8 @@
 #
 # [agents.bmad-agent-pm]
 # description = "Prefers short, bulleted PRDs over narrative drafts."
+
+# Solo project: pin the owner's name for every session, including fresh
+# agent clones that have no personal config.user.toml.
+[core]
+user_name = "Seven74"
