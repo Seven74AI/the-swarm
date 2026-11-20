@@ -29,7 +29,7 @@ Unassigned workers produce at half gather rate. Worker efficiency follows a dimi
 Rate-based O(1) processing: `eggPipeline`, `larvaPipeline`, `soldierPipeline`. Each has `count` (rate) and `progress` (accumulated). No per-item timers.
 
 ### Prestige
-Reset loop: sacrifice all progress for Legacy Points. LP give +2% production each (additive). Prestige tree has 8 upgrades costing 57 LP total. Requires all buildings Lv.5 + 100K food lifetime.
+Reset loop: sacrifice progress for Legacy Points (LP). LP come from lifetime food produced and the phase reached (`calculateLegacyPoints()` in `PrestigeSystem.ts`) plus an entropy bonus. Each LP adds a production bonus via `productionMultiplier()` in `ProgressionCurve.ts`. LP also buy permanent upgrades in the prestige tree (`src/data/prestigeTree.ts`). Requires all buildings Lv.5 + 100K food lifetime. Void crystals, antimatter, dark matter and survey data carry over the reset.
 
 ### Combat Resources
 Dropped by enemies in the COMBAT phase. Used for crafting, equipment upgrades, and colony mutations.
