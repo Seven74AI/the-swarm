@@ -4,7 +4,7 @@ project: 'the-swarm'
 date: '2026-11-20'
 author: 'Seven74'
 version: '1.0'
-stepsCompleted: [1, 2, 3, 4]
+stepsCompleted: [1, 2, 3, 4, 5]
 status: 'in-progress'
 baseline_code: 'Seven74AI/the-swarm main @ a332d82'
 
@@ -24,7 +24,7 @@ ux:
 
 This architecture document is being created through the GDS Architecture Workflow.
 
-**Steps Completed:** 4 of 9 (Initialize, Project Context, Engine & Framework, Architectural Decisions)
+**Steps Completed:** 5 of 9 (Initialize, Project Context, Engine & Framework, Architectural Decisions, Cross-cutting Concerns)
 
 ---
 
@@ -376,3 +376,142 @@ Recorded as ADRs in `docs/decisions/` (created in the same PR as this document):
 
 - GDD/UX: notifications are removed from the web build (Q2). Update the E2 notification story and
   EXPERIENCE.md Settings through `gds-correct-course` when the stories are written.
+
+## Cross-cutting Concerns
+
+These patterns apply to ALL systems and must be followed by every implementation.
+
+Findings that shaped this section (code at `main` @ a332d82, 2026-11-21): `EventBus` silently drops
+listener errors in the browser (its `process.env` development check never passes in a Vite build);
+`SwarmEvents` is an untyped `[key: string]: unknown` map with ~45 event names; 11 direct `console.*`
+calls in `src/`.
+
+### Error Handling
+
+**Strategy:** pure systems don't throw for expected outcomes; boundaries catch everything else.
+
+| Kind | Example | Handling |
+|---|---|---|
+| Expected outcome | can't afford, no free workers, 3 of 3 out | Return a result (`{ ok: false, reason }`) or an unchanged state. Never throw. The UI shows the reason. |
+| Recoverable fault | save write fails, storage full, bad import file | Caught at the platform boundary; the player sees the UX state (`• SAVE FAILED`, `THAT FILE ISN'T A SWARM SAVE.`). |
+| Unexpected exception in the tick | a bug in a system | Caught once per tick in `GameLoop`. The tick's write is discarded (state stays at the last good snapshot) and the error is logged. After 3 consecutive failed ticks the simulation pauses and a sheet offers EXPORT SAVE and RELOAD. |
+| Corrupt save / failed migration | parse error, migration throws | `load()` status → corrupt-save sheet (D4). Never a silent reset. |
+| Event listener error | a UI callback throws | `EventBus` isolates it and **always** logs it via `log.error`. |
+
+Errors never wipe or overwrite a good save. The last good snapshot is what gets saved.
+
+**Example:**
+
+```ts
+// Expected outcome: a result, not an exception
+export function buyBuilding(s: GameState, id: BuildingId): Result<GameState> {
+  const cost = getBuildCost(id, s.buildings[id].level);
+  if (!canAfford(s, cost)) return { ok: false, reason: 'cannot_afford' };
+  return { ok: true, value: { ...s, resources: spend(s.resources, cost), buildings: levelUp(s.buildings, id) } };
+}
+
+// Tick boundary (GameLoop)
+try {
+  next = processTick(prev, ctx, dt);
+  failures = 0;
+} catch (e) {
+  log.error('tick', 'tick failed; state kept', e);
+  next = prev;
+  if (++failures >= 3) pauseWithErrorSheet();
+}
+```
+
+### Logging
+
+**Format:** plain console output prefixed by scope (`[scope] message`), plus structured detail objects.
+**Destination:** the browser console, plus an in-memory ring buffer (last 200 entries) included by
+"Export diagnostics" in Settings. No network.
+
+**Log levels:**
+- `error`: a bug or a lost operation. Always on.
+- `warn`: unexpected but handled (backup loaded, migration step skipped). Always on.
+- `info`: milestones (save loaded, resume of N ms, phase committed). Dev builds and `?debug=1`.
+- `debug`: diagnostics. Dev builds only; stripped from production via `import.meta.env.DEV`.
+
+**Rules:**
+- Only `src/utils/log.ts` calls `console.*` (enforced with oxlint `no-console`; the 11 current calls migrate).
+- Nothing is logged per tick or per frame, except `debug` behind a sampling counter.
+- Offline catch-up logs one summary line, not one per step.
+
+**Example:**
+
+```ts
+import { log } from '../utils/log';
+log.info('resume', 'caught up', { elapsedMs, steps, efficiency });
+log.warn('save', 'primary unreadable; loaded backup', { slot: 'bak1' });
+```
+
+### Configuration
+
+| Type | Lives in | Notes |
+|---|---|---|
+| Game constants (tick length, base caps, max tabs) | `src/data/constants.ts` | `as const`; rarely change |
+| Balance values (costs, rates, event timers) | `src/data/balance/*.ts`, one file per system | Typed `as const` objects, not JSON, so types and tree-shaking work. Guard targets live in `transitions.ts` (D3). Tests import these values; they never re-type numbers. |
+| Content tables (decision events, critical-path items, enemy types, tab registry) | `src/data/content/*.ts` | Data, not code paths (D7, D8) |
+| Player settings | `src/platform/settings.ts`: one signal, own localStorage key, own version | Outside the save (D4) |
+| Platform capabilities (vibrate, standalone, notifications) | `src/platform/capabilities.ts` | Detected once at boot; features degrade, never crash |
+
+No remote config.
+
+### Event System
+
+**Pattern:** the existing `EventBus`, typed, for notifications only (narrative, audio, haptics, log
+lines, UI juice). **State is the authority; events never are.**
+
+**Rules:**
+- One `SwarmEvents` interface in `src/engine/events.ts` lists every event and its payload type. No
+  string index signature; emitting an unknown event fails typecheck.
+- Naming: `snake_case`, `noun_verb` in the past tense (`battle_completed`, `phase_committed`), matching
+  the current names. The two `colon:style` names (`state:changed`, `click:egg`) migrate.
+- Synchronous. Events raised during a tick are queued and flushed **after** that tick's state write,
+  so listeners always see the new state.
+- Offline catch-up and `src/sim/` run with a collecting bus: nothing plays or animates. The offline
+  summary is built from the before/after states, not from events.
+- No listener writes game state. A listener that needs a state change calls an action, which writes
+  between ticks.
+
+**Example:**
+
+```ts
+// events.ts
+export interface SwarmEvents {
+  battle_completed: { outcome: 'victory' | 'defeat' | 'draw'; cause: BattleCause };
+  phase_committed: { from: Phase; to: Phase };
+  decision_spawned: { id: DecisionId };
+}
+
+// a system, inside the tick
+ctx.events.push('battle_completed', { outcome, cause });
+
+// GameLoop, after gameState.value = next
+ctx.events.flushTo(bus);
+```
+
+### Debug Tools
+
+| Tool | Dev build | Production with `?debug=1` |
+|---|---|---|
+| Overlay: FPS, tick time (p50/p95), catch-up time, seed, save version | yes | yes, read-only |
+| State inspector (current state as collapsible JSON) | yes | yes, read-only |
+| Log viewer (ring buffer) | yes | yes |
+| Cheat commands (`window.__swarm`: add resources, set phase, time-skip N hours, set seed) | yes | no |
+| Export diagnostics (logs + state + seed + build hash) | yes | yes (also in Settings for everyone) |
+
+**Activation:** the overlay toggles with the backtick key or a 3-finger long-press, in dev builds and
+with `?debug=1`. Cheats exist only in dev builds (`import.meta.env.DEV`) and are tree-shaken from
+production. E2E tests keep seeding saves; they don't depend on cheats.
+
+### Dependency Hygiene
+
+- As of 2026-11-21 all 73 Dependabot alerts are development-scope (Vite, Vitest, undici and their
+  transitive packages). None ship to players.
+- **Runtime dependencies stay minimal:** `preact`, `@preact/signals`, `@preact/signals-core` (plus the
+  PWA runtime). Adding one needs an ADR.
+- Dev dependencies get weekly grouped Dependabot PRs. CI is the gate; auto-merge applies as for any PR.
+- A story adds `pnpm audit --prod --audit-level=high` as a step inside an existing CI job (no new job
+  key, so branch protection is unaffected).
