@@ -1,6 +1,6 @@
 ---
 title: "THE SWARM — EXPERIENCE"
-status: draft
+status: final
 created: 2026-11-20
 updated: 2026-11-20
 form_factor: mobile portrait touch (primary; minimum viewport 360×512, reflow to 320); desktop browser ≥1024 px (secondary)
@@ -14,7 +14,7 @@ baseline_code: "Seven74AI/the-swarm main @ 24da5b1"
 
 # EXPERIENCE.md — THE SWARM
 
-> Constraints inherited from the GDD (*Controls and Input*, E1, E2) are referenced, not restated. Visual identity lives in DESIGN.md, which uses the same component names. Owner decisions are recorded in `.decision-log.md`. Remaining `[ASSUMPTION]` tags mark tuning values the owner hasn't confirmed. Copy quoted in Key Flows is illustrative wherever it is E4 content.
+> Constraints inherited from the GDD (*Controls and Input*, E1, E2) are referenced, not restated. Visual identity lives in DESIGN.md, which uses the same component names. Owner decisions are recorded in this workspace's `.decision-log.md` (GDD decisions: `decision-log.md` in the GDD folder). Remaining `[ASSUMPTION]` tags mark tuning values the owner hasn't confirmed. Copy quoted in Key Flows is illustrative wherever it is E4 content.
 
 ## Foundation
 
@@ -32,6 +32,18 @@ baseline_code: "Seven74AI/the-swarm main @ 24da5b1"
 | **Resource labels** | At most 4 letters: EGG, LRVA, WRKR, FOOD, WOOD, STON, NECT, SILK, CHTN, VNOM, VC, ANTM, DKMT, SRVY |
 | **Terrain** | Forest, Meadow, Mountain, Empty, Enemy Nest (GDD) |
 
+### Spec terms
+
+| Term | Meaning |
+|---|---|
+| **Check-in** | A 30–90 s session, from a cold load or a resume from the background |
+| **Latch** | Once a goal is met it stays met until CONTINUE is tapped |
+| **Next-action rule** | The ordered rule choosing the NEST and offline-summary action (Component Patterns) |
+| **Critical-path table** | Per-phase E4 content listing the items the next-action rule prefers |
+| **Ignore policy** | Free, costly or unavoidable: what happens when a decision event times out |
+| **Modal sheet / peek sheet** | A modal sheet has a scrim and takes focus; a peek sheet has no scrim and leaves the screen usable |
+| **Inverse video** | Selection shown as an accent fill with background-colored text (DESIGN.md) |
+
 ## Information Architecture
 
 ### Tabs
@@ -41,7 +53,7 @@ At most 5 tabs, revealed by phase. A phase adds tabs or segments, never a sixth 
 | Tab (label) | Appears | Primary action (pinned, bottom zone) | Holds |
 |---|---|---|---|
 | **NEST** (home) | Phase 1 | Phase 1: **> LAY EGG**. Later: chosen by the next-action rule (Component Patterns). Goal met: **> CONTINUE**. Phase 6 goal met: **> TRANSCEND** | Vector nest scene, phase line, goal meter, newest event lines. **Phase 1 only:** the Click Power card once it is first affordable |
-| **WRKR** (Workers) | Phase 2 | The single most useful reallocation when one exists (e.g. **> MOVE 4 TO GATHER**), otherwise none | Upkeep readout, role rows (Gather, Forage, Tend, Dig, Guard, Research), automation target rows |
+| **WRKR** (Workers) | Phase 2 | The single most useful reallocation when one exists (for example, **> MOVE 4 TO GATHER**), otherwise none | Upkeep readout, role rows (Gather, Forage, Tend, Dig, Guard, Research), automation target rows |
 | **BUILD** | Phase 2 | **> BUY** on the highlighted card | Buildings (including Click Power from Phase 2), research (with progress and cancel), resource converter |
 | **FRONT** (Frontier) | Phase 3 | WAR: **> FIGHT**. MAP: **> SEND EXPEDITION**. STARS: **> LAUNCH** | Segment row that grows: WAR → WAR · MAP → WAR · MAP · STARS, opening on the newest segment. WAR: soldiers, training target, equipment, mutations, enemy card, combat log. MAP: the 8×8 map, the expedition force (scouts and warriors recruited here, capped by Barracks level), active expeditions. STARS: ships, planets, explorations, entropy |
 | **LOG** (Chronicle) | Phase 2 | none (a reading surface) | Full event log, lifetime stats, settings (including PAUSE). **LEGACY** section once the GDD's prestige unlock condition is met: prestige and the Legacy tree |
@@ -97,22 +109,32 @@ The colony speaks in short, present-tense, upper-case terminal lines. The interf
 | Decision ignore line | `IGNORE: THE BEETLES TAKE 3 FORAGERS` | A silent timeout |
 | Offline summary | `YOU WERE GONE 6H 12M. THE NEST KEPT WORKING.` | "Welcome back! Collect your rewards!" |
 | Offline cap | `THE NEST STOPPED GROWING AFTER <cap>.` (reads the live cap) | A hard-coded `12H` |
-| Event names | `OVERCROWDING.` | `OVERCROWDING!` (rename from the GDD baseline in E4) |
+| Event names | `OVERCROWDING.` | `OVERCROWDING!` (the GDD baseline name; rename it in E4) |
 | Title | `ONE EGG. ONE QUEEN. ONE SWARM.` | Anything that names later phases |
 
 Abbreviations are visual only. Every label's accessible name is the full word (Accessibility Floor).
 
 ## Component Patterns
 
-Behaviour only. Visual specs are in DESIGN.md → Components, under the same names.
+Behavior only. Visual specs are in DESIGN.md → Components. Where the two files name things differently:
+
+| DESIGN.md | EXPERIENCE.md |
+|---|---|
+| Meter (goal) · Condensed goal meter | Goal meter |
+| Bottom sheet (decision sheet) | Decision event |
+| Bottom sheet | Offline summary, Battle summary, Expedition result |
+| Card | Click Power card, Enemy card, Research card |
+| Stepper · Role row · Upkeep readout | Stepper / role row |
+| Phase reveal | Phase change |
+| Glyphs, Secondary action, Disabled, Focus indicator, Title cinematic, Transcendence ending, Desktop left rail | Visual only; behavior is in State Patterns, Accessibility Floor and Game Feel |
 
 | Component | Behavior |
 |---|---|
 | **Resource strip** | 5 phase-relevant resources (P1: EGG, LRVA, WRKR, FOOD; P2: FOOD, WRKR, WOOD, STON, NECT; P3+: the capped or falling resources rotate in first) `[ASSUMPTION: per-phase sets]`. On screen, values refresh at most 4 times a second. Tapping opens the resource sheet. |
 | **Resource sheet** | Every unlocked resource with the exact integer, rate, cap and source. `[ SETTINGS ⚙ ]` at the bottom. |
-| **Tab bar** | Tap to switch; tapping the active tab scrolls it to the top. `•` when something on that tab became affordable since the last visit; it clears on visit. |
+| **Tab bar** | Tap to switch; tapping the active tab scrolls it to the top. `•` when something on that tab has become affordable since the last visit; it clears on visit. |
 | **Segment row** | Tap to switch segments; the last-used segment is remembered for the session. |
-| **Primary action** | The single most important verb on the current tab, pinned in the bottom zone. **Hold** repeats at about 8/s (GDD). **Next-action rule** (NEST after Phase 1, and the offline summary's button), first match wins: **(1)** goal met → CONTINUE (or TRANSCEND); **(2)** food critical (net food rate below 0 and stock under 60 s of upkeep) → the allocation fix; **(3)** capacity critical (≥ 95 % of nest capacity) → DIG or Warehouse; **(4)** an affordable item from the phase's **critical-path table** (an E4 content table per phase, not hard-coded names); **(5)** any affordable item; **(6)** none → no button, and the zone shows `NEXT AFFORDABLE: <item> IN ~<time>` `[ASSUMPTION: thresholds]`. **Stability:** the target is locked while a hold is active and for 1 s after the last tap, so it never changes under the thumb. |
+| **Primary action** | The single most important verb on the current tab, pinned in the bottom zone. **Hold** repeats at about 8/s (GDD). What it shows on NEST and in the offline summary follows the **next-action rule** below. |
 | **Stepper / role row** | Every −/+ **applies immediately**, as in today's build. The active multiplier sets the step: ×1, ×10, or ×MAX (as many as available, respecting capacity; Research counts toward the assigned total). Holding repeats. Values stay between 0 and what's available. The upkeep readout updates live. |
 | **Automation target row** | Appears under a verb once it can be automated (GDD *Automation Systems*). The stepper sets the target ("keep 20 in training") and `[AUTO]` toggles it. Offline progress runs the same target (GDD). Under the target, `holding at 20` or a `warn` reason (`food short`). |
 | **Card** | Only the card's action is tappable, never the whole card. Unaffordable cards show their shortfall. The first time a card becomes affordable it highlights for 2 s. |
@@ -120,8 +142,8 @@ Behaviour only. Visual specs are in DESIGN.md → Components, under the same nam
 | **Research card** | **> START** runs one chain step with a progress meter and time remaining. While running, `CANCEL (50 % BACK)` needs confirmation (hold or two taps), and the refund is shown before you confirm. |
 | **Goal meter** | `NEXT: <conditions>`, one row per condition with `met`/`need` and ✓/✗. **Latch:** once every condition is met, the goal stays met until CONTINUE is tapped, even if numbers dip. The meter then shows `GOAL MET`, and any condition that has since dipped reads `<now> now, reached <value> at <time>`. The condensed version shows on the other tabs. |
 | **Phase change** | The phase **does not change on its own**. When the goal is met, NEST gets `•` and its primary action becomes **> CONTINUE**; tapping it plays the phase reveal. Nothing about the next phase shows before the tap. |
-| **Decision event** | Fires only while the game is open and foregrounded, at most one at a time, every 2–3 min of **foreground play this session** (the spawn timer resets each session). It never fires before the offline-summary sheet is dismissed, or during a reveal, the cinematic or the ending (it waits and fires afterwards). **Ignore policy per event** (owner decision): **(1) free**: timer, `IGNORE: NOTHING HAPPENS`; **(2) costly**: timer, `IGNORE: <outcome>`, and on timeout the outcome applies, is written to the log and toasts once; **(3) unavoidable**: no timer, no dismiss. **Lifecycle:** an open event survives backgrounding and closing the app with its timer paused (GDD), and reopens on resume, so closing the app is never a free escape. Timers can be set to ×2 or off (types 1–2); the first timed event shows a one-time hint `TIMERS CAN BE SLOWED IN SETTINGS`. Which event gets which policy is E4 content. |
-| **Offline summary** | Shown on any resume (cold load or return from the background) after ≥ 1 min away `[ASSUMPTION: 1 min; code uses 30 s]`. Elapsed time, efficiency %, gains and losses with glyphs, whether the cap was reached, and **one next-action button** (next-action rule) that opens the relevant tab with the target highlighted. |
+| **Decision event** | A bottom sheet with the situation, 2 choices with visible cost or risk, and its ignore line. Spawning, ignore policies and lifecycle: **Decision events** below. |
+| **Offline summary** | Shown on any resume (cold load or return from the background) after at least 1 min away `[ASSUMPTION: 1 min; code uses 30 s]`. Elapsed time, efficiency %, gains and losses with glyphs, whether the cap was reached, and **one next-action button** (next-action rule) that opens the relevant tab with the target highlighted. |
 | **Battle summary** | VICTORY, DEFEAT or DRAW; losses; drops; one cause line; **> CHANGE → <card>** opens the relevant mutation or equipment card. |
 | **Enemy card** | Type and trait shown before committing (GDD Combat interest bar). **> FIGHT** is the primary action. |
 | **Expedition force** (FRONT · MAP) | Steppers for scouts and warriors, capped by Barracks level (scouts from Lv.1, warriors from Lv.2). Recruiting pulls directly from workers. This is separate from combat soldiers, which train in WAR. |
@@ -132,17 +154,56 @@ Behaviour only. Visual specs are in DESIGN.md → Components, under the same nam
 | **Bottom sheet** | Non-decision sheets close with swipe down, a tap on the scrim, `[ CLOSE ]` or Esc. Decision sheets close only by a choice or a timeout. |
 | **Hold-to-confirm** | For irreversible actions: prestige, research cancel, save import. The default is a 1 s hold (duration adjustable). **Two-tap mode** (setting): the first tap arms the action for 5 s and the second confirms. Holding Enter or Space works the same on a keyboard. |
 | **Toast** | One line for 2 s, replacing any earlier toast. Never the only place something you must act on appears. |
-| **Coach mark** | One element, one line, once per concept. Dismissed by doing the thing or by `[ GOT IT ]`; the dismissing tap is consumed. Also announced politely to screen readers. |
+| **Coach mark** | One element, one line, once per concept. Dismissed by performing the action it points to, or by `[ GOT IT ]`; the dismissing tap is consumed. Also announced politely to screen readers. |
 | **Event line** | Newest first; persisted with the save (LOG). Tapping a line that points at something jumps to it. |
+
+### Next-action rule
+
+Used by NEST after Phase 1 and by the offline summary's button. First match wins:
+
+1. Goal met → **> CONTINUE** (Phase 6: **> TRANSCEND**).
+2. Food critical (net food rate below 0 and stock under 60 s of upkeep) → the allocation fix.
+3. Capacity critical (≥ 95% of nest capacity) → DIG or Warehouse.
+4. An affordable item from the phase's **critical-path table** (E4 content, one table per phase; never hard-coded names).
+5. Any affordable item.
+6. None → no button; the zone shows `NEXT AFFORDABLE: <item> IN ~<time>`.
+
+Thresholds are `[ASSUMPTION]`. **Stability:** the target is locked while a hold is active and for 1 s after the last tap, so it never changes under the thumb.
+
+### Decision events
+
+- **Spawning:** only while the game is open and in the foreground; at most one at a time; every 2–3 min of foreground play this session (the timer resets each session). Never before the offline-summary sheet is dismissed, and never during a reveal, the cinematic or the ending (it waits and fires afterward).
+- **Ignore policies** (one per event; owner decision): **(1) free**: timer, `IGNORE: NOTHING HAPPENS`. **(2) costly**: timer, `IGNORE: <outcome>`; on timeout the outcome applies, is written to the log and toasts once. **(3) unavoidable**: no timer, no dismiss. Which event gets which policy is E4 content.
+- **Lifecycle:** an open event survives backgrounding and closing the app with its timer paused (GDD), and reopens on resume, so closing the app is never a free escape.
+- **Timer settings:** timers for policies 1 and 2 can be doubled in length (×2) or turned off. The first timed event shows a one-time hint, `TIMERS CAN BE SLOWED IN SETTINGS`.
+
+### Settings
+
+Reached from the resource sheet (`[ SETTINGS ⚙ ]`) and LOG.
+
+- Sound: off by default; respects the device's silent mode.
+- Haptics.
+- Reduced motion (also follows the OS).
+- CRT effects: SCENE (default) / FULL / OFF.
+- Decision timers: normal / ×2 (longer) / off.
+- Confirm style: hold / two taps, plus hold duration.
+- Lay mode (Phase 1): hold / toggle, at the same rate.
+- Keyboard shortcuts: on/off, remappable.
+- Notifications: off by default. If browser permission is denied: `NOTIFICATIONS ARE OFF IN YOUR BROWSER.`
+- Replay intro.
+- PAUSE.
+- Export and import save.
+
+Text size follows the browser.
 
 ## State Patterns
 
 | Surface | State | Treatment |
 |---|---|---|
-| App | **First launch** (no save **and** no first-launch flag, a separate localStorage key) | The title cinematic (about 11 s, Phase 1 only) plays. Skip with a tap, Enter, Space or Esc. It ends on **[ TAP TO WAKE THE QUEEN ]** (a real button), then `A QUEEN, ALONE.`, the brood chamber, and a coach mark on LAY EGG. E2E tests set the flag. |
+| App | **First launch** (no save **and** no first-launch flag, a separate localStorage key) | The title cinematic (about 11 s, Phase 1 visuals only) plays. Skip with a tap, Enter, Space or Esc. It ends on **[ TAP TO WAKE THE QUEEN ]** (a real button), then `A QUEEN, ALONE.`, the brood chamber, and a coach mark on LAY EGG. E2E tests set the flag. |
 | App | Later launches | Straight to NEST. |
 | App | Cold load | Terminal text (strip, phase line, primary action) renders first; the vector scene fades in when ready. First interactive under 3 s (GDD). |
-| App | **Resume from background** (≥ 1 min) | Offline catch-up runs and the offline-summary sheet opens, exactly as after a cold load. Under 1 min, no sheet; the strip deltas flash once. |
+| App | **Resume from background** (≥ 1 min) | Offline catch-up runs and the offline-summary sheet opens, exactly as after a cold load. After less than 1 min away, no sheet; the strip deltas flash once. |
 | App | Corrupt save or failed migration | Sheet `THIS SAVE COULDN'T BE READ.` with LOAD BACKUP or START OVER. Never a silent reset. |
 | App | Save write failed / storage full | Persistent strip marker `• SAVE FAILED`; tapping it explains and offers EXPORT SAVE. |
 | App | Import | Invalid file → `THAT FILE ISN'T A SWARM SAVE.` Valid file → a confirm sheet stating that it replaces the current run (hold-to-confirm). |
@@ -164,12 +225,12 @@ Behaviour only. Visual specs are in DESIGN.md → Components, under the same nam
 | FRONT · WAR | Battle running | Round counter on the enemy card; the summary sheet opens at the end. |
 | FRONT · MAP | Nothing discovered | All tiles `?`; one dim line: `SEND SCOUTS TO SEE.` |
 | FRONT · MAP / STARS | 3 of 3 out | Primary action disabled: `3 of 3 out · back in 14m`. |
-| FRONT · STARS | Entropy > 75 % | Entropy meter in `warn`; event line. |
+| FRONT · STARS | Entropy > 75% | Entropy meter in `warn`; event line. |
 | Any | Costly ignore timed out | The outcome is written to the log and a toast shows it once. |
 | Any | Event due during a reveal, the cinematic or the ending | Held until the overlay ends. |
 | Any | Phase reveal | Full screen for at most 3.5 s; skippable (tap, Enter, Esc) after you've seen that reveal once. |
 | LOG | First visit | Shows every event so far (never empty after Phase 1). |
-| Settings | — | Sound (off by default; respects the device's silent mode), haptics, reduced motion, **CRT effects: SCENE / FULL / OFF**, decision timers (normal / ×2 / off), **confirm style: hold / two taps** and hold duration, **lay mode: hold / toggle** (Phase 1, same rate), **keyboard shortcuts** (on/off, remappable), notifications (off by default; if permission is denied: `NOTIFICATIONS ARE OFF IN YOUR BROWSER.`), **replay intro**, PAUSE, export and import save. Text size follows the browser. |
+| Settings | — | See Component Patterns → Settings. |
 
 ## Interaction Primitives
 
@@ -177,7 +238,7 @@ Behaviour only. Visual specs are in DESIGN.md → Components, under the same nam
 - **Swipe down** dismisses non-decision and peek sheets. There are no other gestures, and every swipe has a button equivalent.
 - **Confirm** for irreversible actions: hold (default) or two taps (setting).
 - **No undo.** Allocation is instant and freely reversible. Confirmation guards anything irreversible.
-- **Desktop and keyboard:** a click is a tap. Hovering shows only what a tap would show, and it stays dismissible and hoverable (WCAG 1.4.13). Shortcuts, which can be switched off and remapped: **Space** triggers the primary action of the active tab (on desktop, the columns 2–3 action; NEST's own button is clicked or focused), but only when focus is on the page or that button; **1–5** switch tabs; **P** pauses; **Esc** closes a non-decision sheet. Space as the primary action generalises the GDD's "Space lays an egg". Today's Space-to-pause binding moves to P.
+- **Desktop and keyboard:** a click is a tap. Hovering shows only what a tap would show, and it stays dismissible and hoverable (WCAG 1.4.13). Shortcuts, which can be switched off and remapped: **Space** triggers the primary action of the active tab (on desktop, the action in columns 2–3; to use NEST's own button, click it or focus it and press Enter), but only when focus is on the page or that button; **1–5** switch tabs; **P** pauses; **Esc** closes a non-decision sheet. Space as the primary action generalizes the GDD's "Space lays an egg". Today's Space-to-pause binding moves to P.
 - **Banned:** ads, timed "claim" buttons, streaks, numeric badges, interstitials, and any mechanic that needs repeated tapping after Phase 1 (Pillar 3).
 
 ## HUD & Diegetic UI
@@ -206,39 +267,39 @@ Calm and responsive. The juice is phosphor: glow, the cursor and scene motion.
 - **Flash rule:** no element changes luminance more than 3 times in any 1 s. An E1 test asserts this during a 2 s hold.
 - A tap gets a visual response within 100 ms (GDD), before the state write lands.
 - The colony wanders gently between check-ins, so the nest reads as alive.
-- **Reduced motion** (OS setting or in-game toggle): no typing-in effects, wandering, camera easing or floating `+N`; an instant palette swap with a 300 ms fade; the cinematic opens on its logo; the ending is a 1 s fade; the cursor is steady; CRT effects go OFF. Haptics and sound keep their own toggles.
+- **Reduced motion** (OS setting or in-game toggle): no typing-in effects, wandering, camera easing or floating `+N`; a 300 ms palette fade instead of the 3 s cross-fade; the cinematic opens on its logo; the ending is a 1 s fade; the cursor is steady; CRT effects go OFF. Haptics and sound keep their own toggles.
 - Haptics are an enhancement and never the only feedback.
 
 ## Accessibility Floor
 
-Behaviour only. Contrast and type sizes live in DESIGN.md.
+Behavior only. Contrast and type sizes live in DESIGN.md.
 
-- **Typed decoration is hidden from assistive tech:** `>`, `·`, `█`, brackets, box-drawing characters and text meters are `aria-hidden` (or CSS-generated). Meters are `role="progressbar"` with `aria-valuetext` (e.g. "Workers 37 of 50"). Goal conditions are a list that reads "met" or "not met". Steppers have full names ("Add one gatherer"). Labels expose the full word ("Stone", not "STON"). Aligned rows use real list or table markup.
+- **Typed decoration is hidden from assistive tech:** `>`, `·`, `█`, brackets, box-drawing characters and text meters are `aria-hidden` (or CSS-generated). Meters are `role="progressbar"` with `aria-valuetext` (for example, "Workers 37 of 50"). Goal conditions are a list that reads "met" or "not met". Steppers have full names ("Add one gatherer"). Labels expose the full word ("Stone", not "STON"). Aligned rows use real list or table markup.
 - **Typing effects are visual only:** the accessible node holds the full string from the start.
 - **Live regions (polite):** goal met, phase entered, battle result, decision event arrived (the sheet takes focus), a costly ignore applied, starving, capacity reached, save failed, and the offline summary (focused on open). Resource values are not announced every tick.
 - **Focus:** visible indicator (DESIGN.md). Order: strip → phase line and goal meter → nest summary → event lines → primary action → tab bar. On desktop: rail → column 1 → columns 2–3. Sheets are `role="dialog"` and `aria-modal`; focus moves to the headline, is trapped inside, and returns to the trigger on close. Decision sheets can't be closed with Esc, but their choices are always reachable. `scroll-padding-bottom` equals the primary zone plus the tab bar, so focused items are never hidden.
 - **Nest scene:** a group labelled with its counts ("Nest: 37 workers, 5 eggs, 4 larvae"), with each chamber a labelled button.
-- **Text size:** rem units, zoom never disabled, and reflow rules down to 320 px and 200 % (DESIGN.md → Layout).
-- **Colour:** hue never carries meaning alone (DESIGN.md).
-- **Targets:** at least 44×44 px, with at least 8 px between adjacent targets. Map tiles are 40 px with 2 px gaps; a tap only selects and confirming happens in the sheet.
+- **Text size:** rem units, zoom never disabled, and reflow rules down to 320 px and 200% (DESIGN.md → Layout).
+- **Color:** hue never carries meaning alone (DESIGN.md).
+- **Targets:** at least 44×44 px, with at least 8 px between adjacent targets. Map tiles are 40 px with 2 px gaps; a tap only selects, and confirmation happens in the sheet.
 - **Motion, blinking, flashing:** reduced motion, CRT effects and the flash rule (above). The cursor stops blinking after 5 s idle.
-- **Timing:** decision timers can be ×2 or off; unavoidable events have no timer; the hint shows on the first timed event; timers pause when the app is in the background.
+- **Timing:** decision timers can be doubled (×2) or turned off; unavoidable events have no timer; the hint shows on the first timed event; timers pause when the app is in the background.
 - **Input alternatives:** two-tap confirm instead of hold; lay toggle instead of hold; ×MAX instead of hold-repeat; map pan buttons instead of dragging; shortcuts can be switched off and remapped.
 - **Audio** is never the only channel for information.
-- **One-handed:** the primary action, the tab bar and sheet actions are always in the bottom 40 %; any row can be scrolled into it.
+- **One-handed:** see the thumb-reach rule in DESIGN.md → Layout & Spacing.
 
 ## Responsive & Platform
 
 | Viewport | Layout |
 |---|---|
-| 320–359 px wide | Narrow margins (8 px); the grid reflows (DESIGN.md); the map pans |
+| 320–359 px wide | See DESIGN.md → Layout & Spacing |
 | 360–599 px | Single column, bottom tab bar, pinned primary zone |
-| 600–1023 px | The same single column, centred at 600 px max `[ASSUMPTION: no tablet layout]` |
-| ≥ 1024 px | Left rail (full tab names, number keys shown); NEST in column 1 with its own primary action; active tab in columns 2–3 with its primary action; sheets become centred dialogs. Picking NEST in the rail focuses column 1 and leaves columns 2–3 on the last tab (BUILD on first visit) `[ASSUMPTION]`. See [`mockups/key-desktop.html`](mockups/key-desktop.html) |
-| Height < 560 px | 1 event line on NEST; cost line moves inside the primary button |
-| Height < 480 px (landscape) | Primary zone un-pins; content scrolls |
+| 600–1023 px | The same single column, centered at 600 px max `[ASSUMPTION: no tablet layout]` |
+| ≥ 1024 px | Layout: DESIGN.md → Layout & Spacing. Behavior: picking NEST in the rail focuses column 1 and leaves columns 2–3 on the last tab (BUILD on first visit) `[ASSUMPTION]`. See [`mockups/key-desktop.html`](mockups/key-desktop.html) |
+| Height < 560 px | See DESIGN.md → Layout & Spacing |
+| Height < 480 px (landscape) | See DESIGN.md → Layout & Spacing |
 
-- Safe-area insets respected.
+- Safe-area insets are respected.
 - Opt-in notifications (GDD): `NEST IS FULL.` and `THE NEST STOPPED GROWING.` Architecture decides delivery.
 
 ## Inspiration & Anti-patterns
@@ -248,38 +309,6 @@ Behaviour only. Contrast and type sizes live in DESIGN.md.
 - **From real ant farms:** the cross-section nest that fills.
 - **From Kittens Game:** allocation as the core screen, done with steppers instead of spreadsheet density.
 - **Rejected:** Idle Ants / Pocket Ants loops (ads, claim timers, gacha, badge spam); tapping as a long-term verb; the prototype's 23 simultaneous panels; ASCII creatures (tried in Discovery, not readable enough); any preview of later phases.
-
-## Implementation notes (non-normative)
-
-These were found while reviewing the spec against the current code (`main @ 24da5b1`). They feed `gds-game-architecture` and story writing. They aren't UX contract. Full detail: `review-code-feasibility.md`.
-
-| Spec | Current code | Story note |
-|---|---|---|
-| CONTINUE with latch | `PhaseStateMachine.tick` auto-fires the first matching guard | Split into a pure check plus a commit on CONTINUE; persist the latch in the save. First remove Colony → Expansion (GDD E3); about 7 E2E specs and 4 unit files assume auto-transition |
-| Goal meter per condition | Guards are single booleans | Decompose each guard into named conditions **inside `transitions.ts`**, so the UI never copies thresholds |
-| Resume from background | No `visibilitychange` handling; `Ticker` caps frames at 1 s | Add a resume path running offline catch-up and the summary (E2) |
-| Decision lifecycle | 30 s wall-clock auto-dismiss; spawn timer fires right after load; `show()` replaces the open event | Add an ignore-policy field, a persisted open event, a session-based spawn timer and a one-slot queue |
-| Map tile select-only | `UIRoot` claims a tile on click | Move claiming into the peek sheet |
-| Space = primary, P = pause | Space toggles pause | Rebind |
-| Phase reveal skippable | Overlay has `pointer-events: none` | Make it input-blocking and skippable |
-| Corrupt save sheet | Recovery is silent | Show the sheet |
-| LOG persisted | Event log lives in component memory | Persist it with the save |
-| Settings | None; sound defaults on | New settings store; sound off by default |
-| First-launch flag | `OnboardingManager` already uses its own key | Reuse the pattern; no save migration |
-| BUILD and strip in Phase 2 | Buildings unlock in Expansion; wood, stone and nectar come only from territory | Already GDD E3 (Phase 2 worker-role sources) |
-
-## Mockups
-
-References only. **The spines win on any conflict**, and mock colours and sizes are illustrative: the DESIGN.md tokens are normative.
-
-- [`mockups/title-cinematic.html`](mockups/title-cinematic.html): first-launch cinematic (see Flow 1).
-- [`mockups/terminal-variants.html`](mockups/terminal-variants.html): the top row is the reference for the vector nest scene (small and large colony) and the vector map. Its inline tile panel is superseded by the peek sheet, and its ASCII-nest row is superseded.
-- [`mockups/glyphs.html`](mockups/glyphs.html): the glyph set and the strip in the chosen "glyph + label" layout. Its `WRK` label should read `WRKR`.
-- [`mockups/key-nest.html`](mockups/key-nest.html): NEST in Phase 1 (no tab bar, Click Power card) and Phase 2 with the goal latched after a dip, at 360×640 and 360×512 (Goal meter, Click Power card, State Patterns → NEST, Flows 1–2).
-- [`mockups/key-wrkr-build.html`](mockups/key-wrkr-build.html): WRKR with instant steppers, upkeep and an automation row; BUILD with the highlighted card, a disabled card and running research (Stepper / role row, Automation target row, Research card, Flow 5).
-- [`mockups/key-sheets.html`](mockups/key-sheets.html): offline summary, costly-to-ignore decision event, battle summary (Offline summary, Decision event, Battle summary, Flows 2–4).
-- [`mockups/key-map.html`](mockups/key-map.html): FRONT · MAP with a selected tile and its peek sheet, and with nothing selected (Map tile, Flow 6).
-- [`mockups/key-desktop.html`](mockups/key-desktop.html): desktop at 1280×800, with the left rail, NEST in column 1, BUILD in columns 2–3, and a decision dialog with keyboard focus (Responsive & Platform, Interaction Primitives, Accessibility Floor → Focus, Flow 8).
 
 ## Key Flows
 
@@ -299,7 +328,7 @@ Priya is on a bus, phone in one hand, and has never played an idle game.
 
 ### Flow 2: Dev's 45-second lunch check-in (Phase 2 → 3)
 
-Dev is on day 2 of his run and checks in between meetings, from the background where he left the app.
+Dev is on day 2 of his run and checks in between meetings, resuming the app from the background, where he left it.
 
 1. He switches to the app. The resume path runs catch-up, and the sheet reads `YOU WERE GONE 4H 10M · 50%`, with gains listed by glyph and one `warn` line: `UPKEEP OUTRAN FOOD FOR 20M.`
 2. The sheet's next action is **> BUY WAREHOUSE LV.3**. BUILD opens with that card highlighted, and he buys it.
@@ -345,7 +374,9 @@ Dev is on day 2 of his run and checks in between meetings, from the background w
 2. She recruits 2 scouts (Barracks Lv.1) and taps a `?` next to home. It's selected in inverse video, and a peek sheet offers SCOUT.
 3. She taps a different tile by mistake. The sheet retargets; nothing is committed.
 4. The scouts return: a Meadow and an Enemy Nest (mound, `warn`). She claims the Meadow from its peek sheet.
-5. **Climax:** an expedition to the Enemy Nest brings back a partial success: `−1 WARRIOR · +40 SILK`, with 10 % space drops noted when they occur (GDD).
+5. **Climax:** an expedition to the Enemy Nest brings back a partial success: `−1 WARRIOR · +40 SILK`, with space drops (a 10% chance, GDD) noted when they occur.
+
+*Failure path:* all three expedition slots are out → **> SEND EXPEDITION** is disabled with `3 of 3 out · back in 14m`; a failed expedition returns a result sheet with losses and no loot.
 
 ### Flow 7: Marco transcends and prestiges (post-MVP)
 
@@ -360,5 +391,39 @@ Dev is on day 2 of his run and checks in between meetings, from the background w
 
 1. Sam opens the game in a laptop tab. NEST stays in column 1 and BUILD in columns 2–3.
 2. He uses 1–5 to switch tabs and Space for the primary action. Space on a focused stepper presses that stepper, not the primary action.
-3. A decision dialog appears centred. Focus moves to its headline, and he answers with the keyboard.
+3. A decision dialog appears centered. Focus moves to its headline, and he answers with the keyboard.
 4. **Climax:** he presses P to pause while making dinner and comes back to an unchanged colony.
+
+*Failure path:* he has switched keyboard shortcuts off in settings; Space and P do nothing, and he uses the rail and buttons instead.
+
+## Implementation notes (non-normative)
+
+These were found while reviewing the spec against the current code (`main @ 24da5b1`). They feed `gds-game-architecture` and story writing. They aren't part of the UX contract. Full detail: `review-code-feasibility.md`.
+
+| Spec | Current code | Story note |
+|---|---|---|
+| CONTINUE with latch | `PhaseStateMachine.tick` auto-fires the first matching guard | Split into a pure check plus a commit on CONTINUE; persist the latch in the save. First remove the Colony → Expansion transition (GDD E3); about 7 E2E specs and 4 unit files assume auto-transition |
+| Goal meter per condition | Guards are single booleans | Decompose each guard into named conditions **inside `transitions.ts`**, so the UI never copies thresholds |
+| Resume from background | No `visibilitychange` handling; `Ticker` caps frames at 1 s | Add a resume path running offline catch-up and the summary (E2) |
+| Decision lifecycle | 30 s wall-clock auto-dismiss; spawn timer fires right after load; `show()` replaces the open event | Add an ignore-policy field, a persisted open event, a session-based spawn timer and a one-slot queue |
+| Map tile select-only | `UIRoot` claims a tile on click | Move claiming into the peek sheet |
+| Space = primary, P = pause | Space toggles pause | Rebind |
+| Phase reveal skippable | Overlay has `pointer-events: none` | Make it input-blocking and skippable |
+| Corrupt save sheet | Recovery is silent | Show the sheet |
+| LOG persisted | Event log lives in component memory | Persist it with the save |
+| Settings | None; sound defaults on | New settings store; sound off by default |
+| First-launch flag | `OnboardingManager` already uses its own key | Reuse the pattern; no save migration |
+| BUILD and strip in Phase 2 | Buildings unlock in Expansion; wood, stone and nectar come only from territory | Already covered by GDD E3 (Phase 2 worker-role sources) |
+
+## Mockups
+
+References only. **DESIGN.md and EXPERIENCE.md win on any conflict**, and mock colors and sizes are illustrative: the DESIGN.md tokens are normative.
+
+- [`mockups/title-cinematic.html`](mockups/title-cinematic.html): first-launch cinematic (see Flow 1).
+- [`mockups/terminal-variants.html`](mockups/terminal-variants.html): the top row is the reference for the vector nest scene (small and large colony) and the vector map. Its inline tile panel is superseded by the peek sheet, and its ASCII-nest row is superseded.
+- [`mockups/glyphs.html`](mockups/glyphs.html): the glyph set and the strip in the chosen "glyph + label" layout. Its `WRK` label should read `WRKR`.
+- [`mockups/key-nest.html`](mockups/key-nest.html): NEST in Phase 1 (no tab bar, Click Power card) and Phase 2 with the goal latched after a dip, at 360×640 and 360×512 (Goal meter, Click Power card, State Patterns → NEST, Flows 1–2).
+- [`mockups/key-wrkr-build.html`](mockups/key-wrkr-build.html): WRKR with instant steppers, upkeep and an automation row; BUILD with the highlighted card, a disabled card and running research (Stepper / role row, Automation target row, Research card, Flow 5).
+- [`mockups/key-sheets.html`](mockups/key-sheets.html): offline summary, costly-to-ignore decision event, battle summary (Offline summary, Decision event, Battle summary, Flows 2–4).
+- [`mockups/key-map.html`](mockups/key-map.html): FRONT · MAP with a selected tile and its peek sheet, and with nothing selected (Map tile, Flow 6).
+- [`mockups/key-desktop.html`](mockups/key-desktop.html): desktop at 1280×800, with the left rail, NEST in column 1, BUILD in columns 2–3, and a decision dialog with keyboard focus (Responsive & Platform, Interaction Primitives, Accessibility Floor → Focus, Flow 8).

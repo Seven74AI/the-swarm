@@ -1,8 +1,8 @@
 ---
 name: THE SWARM
-description: Mobile-first ant-colony idle game. Vector scene, terminal UI. One phosphor colour per phase on near-black.
+description: Mobile-first ant-colony idle game. Vector scene, terminal UI. One phosphor color per phase on near-black.
 title: "THE SWARM — DESIGN"
-status: draft
+status: final
 created: 2026-11-20
 updated: 2026-11-20
 sources:
@@ -11,7 +11,7 @@ sources:
   - _bmad-output/planning-artifacts/gdds/gdd-the-swarm-2026-11-20/decision-log.md
   - _bmad-output/planning-artifacts/briefs/brief-the-swarm-2026-11-20/brief.md
 colors:
-  # Per phase: bg (near-black), raised (accent 8 % into bg), line (25 %, decorative rules only),
+  # Per phase: bg (near-black), raised (accent 8% into bg), line (25%, decorative rules only),
   # edge (≥ 3:1 on bg, interactive outlines), dim (≥ 5.3:1 on raised), accent, warn (accent lightened toward white).
   egg-bg: '#0d0a04'
   egg-raised: '#201704'
@@ -218,20 +218,20 @@ components:
 
 ## Brand & Style
 
-**Vector scene, terminal UI.** The colony and its world are drawn as glowing vector line-work: soil, tunnels, chambers, ants, enemies, the surface map, planets. Everything you read or press is a terminal: monospace text, bracketed buttons, block meters, boxed panels. Both are drawn in one phosphor colour per phase on near-black. It's an old monochrome monitor showing a living ant farm.
+**Vector scene, terminal UI.** The colony and its world are drawn as glowing vector line-work: soil, tunnels, chambers, ants, enemies, the surface map, planets. Everything you read or press is a terminal: monospace text, bracketed buttons, block meters, boxed panels. Both are drawn in one phosphor color per phase on near-black. It's an old monochrome monitor showing a living ant farm.
 
 Four rules carry the identity:
 
-1. **One colour per phase.** Each phase is a single phosphor family: `accent` plus its own dim, edge and warn tints. Entering a phase repaints everything at once, and that repaint is the reveal (GDD: "the reveal is the reward"). No colour, name or picture from a later phase appears before that phase is reached. That covers the title cinematic and the goal meter too.
+1. **One color per phase.** Each phase is a single phosphor family: `accent` plus its own dim, edge and warn tints. Entering a phase repaints everything at once, and that repaint is the reveal (GDD: "the reveal is the reward"). No color, name or picture from a later phase appears before that phase is reached. That covers the title cinematic and the goal meter too.
 2. **The world is drawn and the interface is typed.** If it exists in the colony's world, it's vector. If it's information or a control, it's monospace text. Glyph icons are the one bridge: small vector marks that sit inside the text.
 3. **Ants, not stats.** The nest scene shows the colony as countable creatures. The exact integer always sits next to it in text.
 4. **Quiet chrome, loud moments.** Panels and labels are dim and still. Glow, motion and full accent are saved for what just changed and for what to press.
 
-Not: emoji, gradients, rounded "app" cards, confetti, numeric badges, or any colour outside the current phase's family.
+Not: emoji, gradients, rounded "app" cards, confetti, numeric badges, or any color outside the current phase's family.
 
 ## Colors
 
-Every phase defines seven values. Components use only the aliases (`bg`, `raised`, `line`, `edge`, `dim`, `accent`, `warn`, `on-accent`), so a phase change rebinds them and nothing else.
+Every phase defines seven values; `on-accent` reuses the phase's `bg`. The front matter wins over this table on any conflict. Components use only the aliases (`bg`, `raised`, `line`, `edge`, `dim`, `accent`, `warn`, `on-accent`), so a phase change rebinds them and nothing else.
 
 | Phase | `bg` | `accent` | `dim` | `warn` | Register |
 |---|---|---|---|---|---|
@@ -240,15 +240,15 @@ Every phase defines seven values. Components use only the aliases (`bg`, `raised
 | 3 Combat | `#0f0807` | `#ff7a5c` alarm red-orange | `#db694f` | `#ffc3b6` | First threat |
 | 4 Expansion | `#060d09` | `#7dffb0` mint | `#4fa16f` | `#c4ffdb` | The world above |
 | 5 Space | `#050a0f` | `#7ad7ff` cyan | `#5595b2` | `#c3edff` | Cold, off-planet |
-| 6 Transcendence | `#000000` | `#ffffff` white | `#8a8a8a` | `#ffffff` | The colour drains out |
+| 6 Transcendence | `#000000` | `#ffffff` white | `#8a8a8a` | `#ffffff` | The color drains out |
 
 - **`accent`:** values, active controls, the newest event line, creatures, and scene walls at reduced opacity.
 - **`dim`:** labels, older event lines, inactive tabs, cost lines, disabled labels. Never a value you act on.
 - **`line`:** decorative rules and card borders. Never text, and never the only boundary of a control.
 - **`edge`:** outlines that identify interactive or meaningful shapes: unclaimed map tiles, empty meter cells, the dashed border of a disabled button.
 - **`raised`:** sheet backgrounds, the selected card, claimed map tiles.
-- **`warn`:** negative deltas, shortfalls ("needs 60 more"), enemy nests. It is the phase's own accent pushed toward white, so it stays in the family, and it is **always** paired with `−`, ▼ or a word. In Transcendence `warn` equals the accent, so a warning there is carried by ▼ and an underline alone.
-- **Selection** (selected map tile, active tab, pressed button) uses **inverse video**: an `accent` fill with `on-accent` text or glyph. It adds no colour.
+- **`warn`:** negative deltas, shortfalls ("needs 60 more"), enemy nests. It is the phase's own accent pushed toward white, so it stays in the family. It is always paired with a non-color signal (see below).
+- **Selection** (selected map tile, active tab, pressed button) uses **inverse video**: an `accent` fill with `on-accent` text or glyph. It adds no color.
 
 **Contrast (measured, WCAG 2.x, with effects at their default):**
 
@@ -265,11 +265,11 @@ Every phase defines seven values. Components use only the aliases (`bg`, `raised
 
 The default CRT setting keeps scanlines off text (see Elevation & Depth), so these figures hold as rendered. A unit test recomputes this table from the tokens, so the claims can't drift.
 
-**Hue is never the only signal.** `warn` sits close to `accent` in every phase (1.1–1.7:1). Meaning comes from `−`, ▼, a word or an underline, never from the tint alone.
+**Hue is never the only signal.** `warn` sits close to `accent` in every phase (contrast between them is 1.1–1.7:1), so meaning comes from `−`, ▼, a word or an underline, never from the tint alone. In Transcendence `warn` equals the accent, so ▼ and an underline carry warnings there.
 
 ## Typography
 
-**One shipped monospace font** ("Swarm Mono": a subset of an OFL font such as JetBrains Mono or IBM Plex Mono, picked in architecture or E8). It covers ASCII, box-drawing, block elements and the symbols `· − × ✓ ✗ ▲ ▼ • █ ░ ▒ ▓` in regular and bold, as about 15–25 KB of WOFF2. System monospace is only a fallback, because phone system fonts render some of these symbols wider and break the grid.
+**One shipped monospace font** ("Swarm Mono": a subset of an OFL font such as JetBrains Mono or IBM Plex Mono, chosen during the architecture work or in E8). It covers ASCII, box-drawing, block elements and the symbols `· − × ✓ ✗ ▲ ▼ • █ ░ ▒ ▓` in regular and bold, as about 15–25 KB of WOFF2. System monospace is only a fallback, because phone system fonts render some of these symbols wider and break the grid.
 
 | Role | Size / weight | Use |
 |---|---|---|
@@ -281,19 +281,19 @@ The default CRT setting keeps scanlines off text (see Elevation & Depth), so the
 | `meta` | 12 / 400 | Event lines, goal conditions, tab labels, strip labels and deltas |
 
 - Sizes are written in px and implemented in **rem**, so the browser text size applies. The viewport never disables zoom.
-- Rules: no text below 12 px; no `dim` text below 12 px; no sentence-case text below 13 px. Glow on text only at 15 px and above.
+- Rules: no text below 12 px; no sentence-case text below 13 px. Glow on text only at 15 px and above.
 - Interface copy is UPPER CASE (terminal register), set as real capitals so screen readers read words. Cost and aside lines use sentence case.
 - **Number formatting:** in the strip, full digits from 0 to 9 999, then 5-character suffixes (`12.4K`, `124K`, `1.24M`). Everywhere else (cards, sheets, the resource sheet), full digits with space grouping up to 999 999, then suffixes. No scientific notation before Transcendence (GDD). Figures are tabular.
 
 ## Layout & Spacing
 
-4 px base scale (4 / 8 / 12 / 16 / 24 / 32). The mobile margin is `{spacing.margin-mobile}`, dropping to `{spacing.margin-narrow}` below 360 px of viewport width.
+The base scale is 4 px (4 / 8 / 12 / 16 / 24 / 32). The mobile margin is `{spacing.margin-mobile}`, dropping to `{spacing.margin-narrow}` below 360 px of viewport width.
 
 **Minimum viewport: 360×512 CSS px** (a 640 px device minus browser chrome). **Reflow floor: 320 px.**
 
-**Character grid.** Text panels are laid out on a monospace grid whose column count is computed: `cols = floor(contentWidth / advanceWidth(body))`. 36 is the design target. The grid is a layout aid and never a reason to clip text.
+**Character grid.** Text panels are laid out on a monospace grid whose column count is computed: `cols = floor(contentWidth / advanceWidth(body))`. The design target is 36 columns. The grid is a layout aid and never a reason to clip text.
 
-| Available columns | Behaviour |
+| Available columns | Behavior |
 |---|---|
 | ≥ 36 | As designed: box-drawn panels, aligned rows, full meters |
 | 28–35 | Meters shrink to `cols − 8` cells; two-column condition rows stack |
@@ -320,10 +320,10 @@ The default CRT setting keeps scanlines off text (see Elevation & Depth), so the
 
 (The glyphs in the skeleton stand in for the vector glyphs.)
 
-- **Thumb reach:** the primary action, the tab bar and the active sheet's actions always sit in the bottom 40 % (`100dvh`). Scrolling content (role rows, cards) may sit higher, and every row can be scrolled down into that zone because scroll areas carry bottom padding of primary zone plus tab bar.
+- **Thumb reach:** the primary action, the tab bar and the active sheet's actions always sit in the bottom 40% (`100dvh`). Scrolling content (role rows, cards) may sit higher, and every row can be scrolled down into that zone, because scroll areas have bottom padding equal to the height of the primary zone plus the tab bar.
 - Single column. Only the map and the star map pan.
 - **Landscape:** never blocked or locked. Content scrolls, and the primary zone un-pins below 480 px of viewport height.
-- **Desktop (≥ 1024 px):** a left text rail replaces the tab bar. NEST stays in column 1 and the active tab fills columns 2–3. Sheets become centred dialogs (max 480 px). Content is at most 1280 px wide. The grid rule applies per column.
+- **Desktop (≥ 1024 px):** a left text rail (Components → Desktop left rail) replaces the tab bar. NEST stays in column 1 and the active tab fills columns 2–3; each column ends in its own primary zone. Sheets become centered dialogs (max 480 px). Content is at most 1280 px wide. The grid rule applies per column.
 
 ## Elevation & Depth
 
@@ -335,11 +335,11 @@ Terminals are flat. Depth comes from three layers:
 
 **CRT effects** have three settings:
 
-- **SCENE (default):** scanlines over the vector scene and the full-screen overlays only, never over text, the strip, the tab bar or sheets. Glow (a 3 px accent drop-shadow) on vector line-work. On text, a ≤ 2 px, ≤ 35 % text-shadow on accent text of 15 px and up.
+- **SCENE (default):** scanlines over the vector scene and the full-screen overlays only, never over text, the strip, the tab bar or sheets. Glow (a 3 px accent drop-shadow) on vector line-work. On accent text 15 px and larger, a text-shadow of at most 2 px at no more than 35% opacity.
 - **FULL:** scanlines everywhere. The contrast table above doesn't hold in this mode, and the setting says so.
 - **OFF:** no scanlines, no glow.
 
-Scanlines are drawn in device pixels to avoid moiré on fractional-DPR screens. OFF is selected automatically when the OS asks for more contrast or reduced transparency, or when the text scale is above 130 %.
+Scanlines are drawn in device pixels to avoid moiré on fractional-DPR screens. OFF is selected automatically when the OS asks for more contrast or reduced transparency, or when the text scale is above 130%.
 
 ## Shapes
 
@@ -348,38 +348,52 @@ Scanlines are drawn in device pixels to avoid moiré on fractional-DPR screens. 
 
 ## Components
 
-Visual specs only. Behaviour lives in EXPERIENCE.md → Component Patterns, which uses the same component names. References: [`mockups/title-cinematic.html`](mockups/title-cinematic.html) (title cinematic, nest scene style), [`mockups/terminal-variants.html`](mockups/terminal-variants.html) (top row: nest scene at small and large colony sizes, map tiles), [`mockups/glyphs.html`](mockups/glyphs.html) (glyph set, strip), and the key screens [`mockups/key-nest.html`](mockups/key-nest.html), [`mockups/key-wrkr-build.html`](mockups/key-wrkr-build.html), [`mockups/key-sheets.html`](mockups/key-sheets.html), [`mockups/key-map.html`](mockups/key-map.html) and [`mockups/key-desktop.html`](mockups/key-desktop.html), which apply these tokens at true size. Mock colours and sizes are illustrative. The tokens in this file are normative (EXPERIENCE.md → Mockups).
+Visual specs only. Behavior lives in EXPERIENCE.md → Component Patterns (its name map lists where names differ). Reference mockups: EXPERIENCE.md → Mockups. Mock colors and sizes are illustrative; the tokens in this file are normative.
 
-- **Resource strip:** five equal cells (`repeat(5, 1fr)`), centred. Each cell has a glyph and a label of at most 4 letters (`meta`), the value (`value`, at most 5 characters, see number formatting) and the delta (`meta`, at most 5 characters, no `/s`; negatives in `warn` with `−`). A capped value turns `warn` with ▲. Height is min-content from 56 px. Above about 125 % text: 3 cells (capped or falling resources first) plus a `+2 ▸` cell that opens the resource sheet.
-- **Glyphs:** 24×24 line icons, `{spacing.stroke-strong}` stroke, round caps, `currentColor`. They appear at 15 px in the strip, 13–14 px inline in cost lines, 18–22 px on cards and 30 px in the resource sheet. 20 glyphs (14 resources, 6 buildings) plus a gear for settings. **Before E8:** redraw VNOM as a fang or vial (it currently reads like FOOD).
-- **Tab bar:** text in `meta`. The active tab is inverse video (an `accent` cell with `on-accent` text); inactive tabs are `dim`. A tab with something newly affordable shows `•` beside its name. Above 130 % text, names switch to 4-letter forms (`NEST WRKR BLDG FRNT LOG`). No numeric badges.
+### Chrome
+
+- **Resource strip:** five equal cells (`repeat(5, 1fr)`), centered. Each cell has a glyph and a label of at most 4 letters (`meta`), the value (`value`, at most 5 characters, see number formatting) and the delta (`meta`, at most 5 characters, no `/s`; negatives in `warn` with `−`). A capped value turns `warn` with ▲. Height is min-content from 56 px. At text scales above about 125%: 3 cells (capped or falling resources first) plus a `+2 ▸` cell that opens the resource sheet.
+- **Tab bar:** text in `meta`. The active tab is inverse video (an `accent` cell with `on-accent` text); inactive tabs are `dim`. A tab with something newly affordable shows `•` beside its name. At text scales above 130%, names switch to 4-letter forms (`NEST WRKR BLDG FRNT LOG`). No numeric badges.
 - **Segment row** (FRONT): `WAR · MAP · STARS` in `meta`, the active segment inverse video, each segment a 44 px target.
 - **Condensed goal meter** (tabs other than NEST): one 24 px line under the strip, `NEXT ████······ 74%` in `meta`.
-- **Primary action:** transparent with a 1.5 px `accent` border, the label in `value` prefixed with `> `, and a block cursor `█` after it. **Pressed:** inverse video, held from press until release. It never toggles per hold repeat. The cursor blinks at 1 Hz for at most 5 s after the last input, then holds steady. It is always steady under reduced motion or CRT OFF. If the label would wrap, it truncates the target name with an ellipsis and never the verb, and the cost line moves inside the button as a second `aside` line.
+- **Desktop left rail and dialog:** the rail is a 160 px text column with full tab names in `body`, number-key hints in `edge`, and the active tab in inverse video. Each column ends in its own primary zone ([`mockups/key-desktop.html`](mockups/key-desktop.html)). A dialog is a centered bottom-sheet body (max 480 px) with the same top rule.
+
+### Controls
+
+- **Primary action:** transparent with a 1.5 px `accent` border, the label in `value` prefixed with `> `, and a block cursor `█` after it. **Pressed:** inverse video, held from press until release. It doesn't toggle on each hold repeat. The cursor blinks at 1 Hz for at most 5 s after the last input, then holds steady. It is always steady under reduced motion or CRT OFF. If the label would wrap, it truncates the target name, never the verb, with an ellipsis. The cost line moves inside the button as a second `aside` line when the label would wrap **or** the viewport is under 560 px tall (the single rule for this).
 - **Secondary action:** `dim` text in `aside`, no border, at least 44 px tall (CLOSE, IGNORE).
 - **Disabled** (any button): label in `dim`, a 1 px dashed `edge` border, and the reason on the cost line. No opacity fade.
 - **Focus indicator:** a 2 px `accent` outline at a 2 px offset on every focusable control. It doesn't rely on glow.
 - **Stepper:** `[−]` value `[+]`, each bracket a 44 px target. Multiplier row above it: `×1  ×10  ×MAX`, the active one in inverse video.
+- **Hold-to-confirm:** a square ring of block cells around the button fills clockwise over the hold duration. **Two-tap mode** (setting): the first tap re-labels the button `> TAP AGAIN TO PRESTIGE` in inverse video for 5 s.
+
+### Rows, cards and meters
+
 - **Role row** (WRKR): a 44 px row with the role name, a text bar (`█` per worker, `·` in `edge` for empty, up to 16 cells and then scaled), the count, and the stepper.
 - **Upkeep readout** (top of WRKR): `UPKEEP 18 / PRODUCTION 21` in `meta`, with the net figure in `value`. A negative net is shown in `warn` with ▼.
 - **Automation target row:** `KEEP [−] 20 [+] IN TRAINING` plus an `[AUTO]` toggle (inverse when on), 44 px tall. Appears under the verb it automates.
 - **Card** (building, research, mutation, enemy, Click Power): 1 px `line` border, no fill (`raised` when selected). Title line: glyph, NAME in `body` bold, level change. Then an effect line (`meta`, `dim`), a cost line (`aside`, inline glyphs, shortfall in `warn`: "needs 60 more △") and the action. A newly affordable card gets an `accent` border and glow for 2 s.
 - **Research card** additionally shows a progress meter and remaining time in `meta`. While running, its action becomes `CANCEL (50 % BACK)` as a secondary action that needs confirmation.
-- **Meter:** `[████████······]  74%` in `meta`, with filled cells in `accent` and empty cells in `edge`. Condition rows sit underneath, one per condition, with the words `met` or `need` as well as ✓ or ✗. Entropy uses the same meter with a `warn` fill above 75 %.
-- **Hold-to-confirm:** a square ring of block cells around the button fills clockwise over the hold duration. **Two-tap mode** (setting): the first tap re-labels the button `> TAP AGAIN TO PRESTIGE` in inverse video for 5 s.
+- **Meter:** `[████████······]  74%` in `meta`, with filled cells in `accent` and empty cells in `edge`. Condition rows sit underneath, one per condition, with the words `met` or `need` as well as ✓ or ✗. Entropy uses the same meter with a `warn` fill above 75%.
+- **Event line:** `meta`. The newest line starts with `> ` in `accent`; older lines start with `· ` in `dim`.
+
+### Sheets and overlays
+
 - **Bottom sheet** (modal): `raised`, an `accent` top rule, a `────` handle, the headline in `display`, body text in `body`, and at most two actions. **Decision sheet:** a timer meter under the headline (when timed) plus the line `IGNORE: <outcome>` in `meta`.
 - **Peek sheet** (tile, planet, chamber): `raised` with an `accent` top rule, at most 160 px tall, no scrim. Header names the target (`MEADOW · (5,3)`). At most two actions.
 - **Resource sheet:** a modal sheet listing every unlocked resource as a 30 px glyph, the full name, the exact integer, its rate (with the unit stated once in the header), cap and source. A `[ SETTINGS ⚙ ]` text button sits at the bottom.
 - **Toast:** one line in `aside` on `raised` with a 1 px `accent` border, above the primary zone.
 - **Coach mark:** a 1 px `accent` box around the target, plus a one-line `body` caption on `raised` with a `[ GOT IT ]` secondary action.
-- **Event line:** `meta`. The newest line starts with `> ` in `accent`; older lines start with `· ` in `dim`.
-- **Nest scene** (vector): soil is an `accent` fill at 7 %, a grain pattern at 30 %, faint strata, a few pebble outlines and a grass line at the surface. Tunnels are round-capped `bg` strokes over a slightly wider `accent` stroke at 55 % (carved walls). Chambers are `bg` ellipses with a 2 px wall. Creatures are solid `accent`: the queen (abdomen, thorax, head, six legs, antennae), workers, eggs (outlined oval), larvae (thick curl). **Camera scale:** 2× in Phase 1 (worker about 18 px, egg about 10 px), 1.5× from about 50 workers, 1× from about 150 `[ASSUMPTION: thresholds]`. A worker drawn individually is never under 12 px. **Cloud:** once drawn ants would cover more than about 15 % of a chamber's area, the extras become a dot cloud (1–1.5 px dots at varying opacity) with 30–50 individual ants still moving on top. **Chamber labels** (with exact counts) are HTML text overlaid at chamber anchors in `meta`/`dim` on a `bg` plate, not SVG text.
+
+### Vector and full-screen
+
+- **Glyphs:** 24×24 line icons, `{spacing.stroke-strong}` stroke, round caps, `currentColor`. They appear at 15 px in the strip, 13–14 px inline in cost lines, 18–22 px on cards and 30 px in the resource sheet. There are 20 glyphs (14 resources, 6 buildings) plus a gear for settings. **Before E8:** redraw VNOM as a fang or vial (it currently reads like FOOD).
+- **Nest scene** (vector): soil is an `accent` fill at 7%, a grain pattern at 30%, faint strata, a few pebble outlines and a grass line at the surface. Tunnels are round-capped `bg` strokes over a slightly wider `accent` stroke at 55% (carved walls). Chambers are `bg` ellipses with a 2 px wall. Creatures are solid `accent`: the queen (abdomen, thorax, head, six legs, antennae), workers, eggs (outlined oval), larvae (thick curl). **Camera scale:** 2× in Phase 1 (worker about 18 px, egg about 10 px), 1.5× from about 50 workers, 1× from about 150 `[ASSUMPTION: thresholds]`. A worker drawn individually is never under 12 px. **Cloud:** once drawn ants would cover more than about 15% of a chamber's area, the extras become a dot cloud (1–1.5 px dots at varying opacity) with 30–50 individual ants still moving on top. **Chamber labels** (with exact counts) are HTML text overlaid at chamber anchors in `meta`/`dim` on a `bg` plate, not SVG text.
 - **Map tile** (vector, 8×8): 40 px squares with 2 px gaps and a 12 px screen margin. Unclaimed tiles have a 1 px `edge` stroke. Terrain uses the GDD types, one line glyph each: **Forest** (tree), **Meadow** (grass strokes), **Mountain** (ridge), **Empty** (a single dot), **Enemy Nest** (mound, in `warn`). Unknown tiles show `?` in `dim`. **Claimed:** `raised` fill with an `accent` stroke. **Selected:** inverse video (an `accent` fill with the glyph in `on-accent`).
-- **Star map** (vector): a dim starfield, planets as outlined circles with a 30 % fill, dashed routes from HOME, the planet name in `meta` bold above and its resource below, the ship as a small `accent` arrow. Locked planets are drawn in `edge`.
-- **Phase reveal:** full screen. The old palette cross-fades to the new one over 3 s, the phase name appears in `display`, and one event line types in. Entering Combat is where the first enemy creature is drawn.
+- **Star map** (vector): a dim starfield, planets as outlined circles with a 30% fill, dashed routes from HOME, the planet name in `meta` bold above and its resource below, the ship as a small `accent` arrow. Locked planets are drawn in `edge`.
+- **Phase reveal:** full screen. The old palette cross-fades to the new one over 3 s, the phase name appears in `display`, and one event line types in. The Combat reveal is where the first enemy creature is drawn.
 - **Title cinematic:** first launch only, Phase 1 amber only. See the mockup and EXPERIENCE.md → Key Flows.
 - **Transcendence ending:** the vector colony breaks apart into monospace characters, which scatter, and the screen empties to `bg`, leaving one line of text. Under reduced motion it is a 1 s fade.
-- **Desktop left rail and dialog:** the rail is a 160 px text column with full tab names in `body`, number-key hints in `edge`, and the active tab in inverse video. Each column ends in its own primary zone ([`mockups/key-desktop.html`](mockups/key-desktop.html)). A dialog is a centred bottom-sheet body (max 480 px) with the same top rule.
 
 ## Do's and Don'ts
 
@@ -388,7 +402,7 @@ Visual specs only. Behaviour lives in EXPERIENCE.md → Component Patterns, whic
 | Use only the runtime aliases in components | Hard-code a phase hex outside the theme table |
 | Draw the world in vector, type the interface in mono | Mix the two (no ASCII ants, no vector buttons) |
 | Use glyphs only inside text: strip, costs, cards, sheets | Use glyphs as standalone pictures or decoration |
-| Keep every colour inside the current phase's family | Show a later phase's colour, name or picture early |
+| Keep every color inside the current phase's family | Show a later phase's color, name or picture early |
 | Compute grid columns and reflow below 36 | Clip or overflow text to keep box-drawing aligned |
 | Pair every loss with `−`, ▼ or a word | Signal gain or loss with tint alone |
 | Keep the exact integer next to every drawn population | Let the drawing replace the number |
