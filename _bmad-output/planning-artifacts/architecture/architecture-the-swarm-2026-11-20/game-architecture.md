@@ -4,7 +4,7 @@ project: 'the-swarm'
 date: '2026-11-20'
 author: 'Seven74'
 version: '1.0'
-stepsCompleted: [1, 2, 3, 4, 5, 6]
+stepsCompleted: [1, 2, 3, 4, 5, 6, 7]
 status: 'in-progress'
 baseline_code: 'Seven74AI/the-swarm main @ a332d82'
 
@@ -24,7 +24,7 @@ ux:
 
 This architecture document is being created through the GDS Architecture Workflow.
 
-**Steps Completed:** 6 of 9 (Initialize, Project Context, Engine & Framework, Architectural Decisions, Cross-cutting Concerns, Project Structure)
+**Steps Completed:** 7 of 9 (Initialize, Project Context, Engine & Framework, Architectural Decisions, Cross-cutting Concerns, Project Structure, Implementation Patterns)
 
 ---
 
@@ -657,3 +657,277 @@ Import rules, enforced by `tests/arch/architecture.test.ts` (scans import statem
 5. `debug/` may read anything; nothing imports `debug/` except `main.tsx`, behind `import.meta.env.DEV`
    or `?debug=1`.
 6. Phase-guard thresholds exist only in `phases/transitions.ts`; balance numbers only in `data/balance/`.
+
+## Implementation Patterns
+
+These patterns ensure consistent implementation across all AI agents. Where a choice could be made two
+ways, this section picks one.
+
+### Novel Patterns
+
+#### N1. Countable-Ant Nest Scene
+
+**Purpose:** show the colony as real, countable ants (Pillar 1) from 1 ant to thousands, within the
+frame budget, without the scene ever becoming the source of truth for numbers.
+
+**Components:**
+- `selectNestView` (selector): derives a `NestView` from state at ≤ 4 Hz: per-chamber counts (eggs,
+  larvae, workers by role), queen state, starving/at-capacity flags, camera scale step.
+- `nestLayout` (pure function): `NestView` → chamber geometry, anchor points and the split between
+  `individuals` (≤ 50 ants) and `cloudCount` per chamber. Deterministic for a given view (seeded by chamber id).
+- `NestScene` (Preact SVG component): renders soil, tunnels, chambers, the queen, individual ants and
+  one dot-cloud `<path>` per chamber.
+- `useSceneClock` (animation loop): one rAF loop for all scenes; moves individual ants along tunnel
+  paths; paused when hidden or under reduced motion.
+- `ChamberLabels` (HTML overlay): exact integer counts at chamber anchors (DESIGN.md: HTML, not SVG text).
+
+**Data flow:**
+
+```
+gameState ──(selectNestView, ≤4 Hz)──▶ NestView ──(nestLayout)──▶ geometry + individuals + cloud
+                                                       │
+                     useSceneClock (rAF, visual only) ─┴─▶ NestScene (SVG) + ChamberLabels (HTML)
+```
+
+**Rules:**
+- The scene never reads `gameState` directly and never writes anything. Numbers shown as text come
+  from selectors, never from counting drawn ants.
+- Individual ants are visual tokens, not entities: there is no per-ant state in `GameState`.
+- Camera scale steps (2× / 1.5× / 1×) and the cloud threshold come from `data/balance/scene.ts`.
+- Accessibility: the scene root is a labelled group ("Nest: 37 workers, 5 eggs, 4 larvae"); chambers
+  are labelled buttons that open the chamber peek sheet.
+
+**Implementation guide:**
+
+```tsx
+export function NestScene() {
+  const view = useThrottledSignal(selectNestView, 250);       // ≤ 4 Hz
+  const layout = useMemo(() => nestLayout(view.value), [view.value]);
+  const t = useSceneClock();                                   // visual time only
+  return (
+    <svg role="group" aria-label={nestAriaLabel(view.value)} viewBox={layout.viewBox}>
+      <Soil /><Tunnels paths={layout.tunnels} />
+      {layout.chambers.map(c => (
+        <Chamber key={c.id} chamber={c}>
+          <DotCloud count={c.cloudCount} bounds={c.bounds} seed={c.id} />
+          {c.individuals.map(a => <Ant key={a.id} pose={antPose(a, t.value)} />)}
+        </Chamber>
+      ))}
+    </svg>
+  );
+}
+```
+
+**Usage:** the same split (selector → pure layout → dumb SVG + HTML labels) applies to `MapGrid` and `StarMap`.
+
+#### N2. Pacing Harness
+
+**Purpose:** prove "no soft-locks" in CI and measure pacing against the GDD targets, using the real
+game rules with no DOM.
+
+**Components:**
+- `SimRunner` (`src/sim/runner.ts`): owns a `GameState` and a seed; advances time only through
+  `resume(elapsedMs)` (D1/D2) and applies player moves only through `actions/`.
+- `CheckInSchedule`: a list of real-time gaps (for example 6 check-ins a day with overnight gaps).
+- `PlayerPolicy`: a pure function `(state) → Action[]` applied at each check-in. The default is
+  "follow `getNextAction`, rebalance roles, CONTINUE when the goal is met".
+- `Probes`: record phase entry times, check-in length in actions, decisions available per check-in.
+- Two entry points: `checkReachability(phase)` (CI) and `runPacingReport()` (`pnpm sim`, prints a table).
+
+**Data flow:**
+
+```
+seed + initial state ─▶ SimRunner ─(gap)─▶ resume() ─▶ PlayerPolicy(state) ─▶ actions ─▶ Probes
+                               ▲                                                         │
+                               └──────────────────── next gap ◀──────────────────────────┘
+```
+
+**Rules:**
+- The harness uses exactly the code the game uses: no sim-only shortcuts, no mocks of systems.
+- Decision events don't fire in the harness (they never fire offline); a policy that answers them is
+  a later extension.
+- The CI test asserts an invariant: "from the start of phase P, the guard of P is met within the
+  simulated budget, without prestige." The budget is a generous ceiling (for example 10× the GDD
+  target), not the target itself, so balance tuning doesn't break CI.
+
+**Implementation guide:**
+
+```ts
+// tests/sim/reachability.test.ts
+it.each(MVP_PHASES)('%s guard is reachable from its own production', (phase) => {
+  const result = checkReachability(phase, { seed: 1, policy: defaultPolicy, ceilingDays: 30 });
+  expect(result.reached).toBe(true);
+  expect(result.prestiged).toBe(false);
+});
+```
+
+#### N3. Persistent Paused Decision Event
+
+**Purpose:** a decision event survives backgrounding and closing the app with its timer paused, so
+closing the app is never a free escape (EXPERIENCE.md), while events still never spawn offline.
+
+**Components:**
+- `state.decision`: `{ open: { id, remainingMs, openedAtSessionMs } | null, nextSpawnSessionMs }`,
+  part of the save.
+- `DecisionSystem.tick(state, ctx, dt)`: foreground only. Spawns on the session clock, counts down
+  `remainingMs` on game time, applies the ignore outcome on timeout through `applyChoice`.
+- `DecisionSheet`: renders `state.decision.open`; its buttons call `actions.chooseDecision`.
+- `SheetController`: shows the sheet only when no higher-priority sheet or overlay is up.
+
+**Lifecycle:**
+
+```
+(foreground ≥ 2 min this session) ─▶ spawn ─▶ open (timer counts down on game time)
+     open ──hide/close──▶ saved with remainingMs ──resume──▶ reopens after the offline summary
+     open ──choice──▶ applyChoice ─▶ closed      open ──timeout (free/costly)──▶ applyChoice('ignore')
+     unavoidable: no timer, no dismiss
+```
+
+**Rules:**
+- Offline catch-up skips `DecisionSystem.tick` entirely: no spawns, no countdown.
+- On a new session, `nextSpawnSessionMs` resets to now + 2–3 min of foreground play (seeded RNG).
+- The countdown never runs while the sheet is waiting behind another sheet or overlay.
+
+### Communication Patterns
+
+**Pattern:** state for facts, actions for intents, events for notifications, a context for dependencies.
+
+- **Systems** receive a `TickContext` argument (`{ rng, events, balance, dtSec }`) instead of importing
+  singletons. No `new SomeSystem(bus)` constructors holding references; systems are modules of pure functions.
+- **UI → game:** call an action. **Game → UI:** selectors (state) and events (one-off juice).
+- **Platform services** are passed in once at boot (`createGame({ storage, audio, haptics, lifecycle })`).
+
+**Example:**
+
+```ts
+// actions/workers.ts
+export function assignWorkers(role: Role, n: number): Result<void> {
+  const r = ResourceSystem.assign(gameState.value, role, n);     // pure
+  if (!r.ok) return r;
+  gameState.value = r.value;                                      // between ticks
+  return { ok: true, value: undefined };
+}
+```
+
+### Entity Patterns
+
+**Creation:** plain data objects made by pure factory functions; no classes for game data, no pooling.
+
+- `createInitialState()`, `createExpedition(...)`, `createEnemy(battlesWon, rng)` return plain,
+  JSON-serializable objects (everything in `GameState` must survive `JSON.stringify` → `parse`).
+- IDs are snake_case string literals from content tables, or sequential integers for runtime instances
+  (`state.nextId`). No `Math.random` IDs, no UUIDs.
+
+**Example:**
+
+```ts
+export function createEnemy(battlesWon: number, rng: Rng): [Enemy, Rng] {
+  const [type, rng2] = pick(rng, enemyTypes);                   // content table
+  return [{ type: type.id, ...scaleEnemy(type.base, battlesWon) }, rng2];
+}
+```
+
+### State Patterns
+
+**Pattern:** discriminated unions for anything with a lifecycle; the phase FSM for phases; no loose
+boolean flags.
+
+- Expeditions, explorations, research, battles: `{ status: 'idle' } | { status: 'running', ... }
+  | { status: 'done', result }`. Times are game time in ms, never wall clock (D1).
+- The phase is changed only by `PhaseStateMachine.commit` (or prestige). Nothing else assigns `state.phase`.
+- Every state write is a spread; nested objects are spread at each changed level.
+
+**Example:**
+
+```ts
+type Research =
+  | { status: 'idle' }
+  | { status: 'running'; projectId: ResearchId; progressMs: number; durationMs: number }
+  | { status: 'done'; projectId: ResearchId };
+```
+
+### Data Patterns
+
+**Access:** import typed `as const` modules from `data/`; look up content by ID through typed helpers.
+
+```ts
+import { buildingCosts } from '../data/balance/buildings';
+import { getDecision } from '../data/content/decisions';
+
+const cost = getBuildCost(buildingCosts[id], level);   // never re-type the numbers
+const event = getDecision('beetle_sighting');           // typed ID; throws in dev if missing
+```
+
+### Units and Integers
+
+- **Durations** are in milliseconds, named with an `Ms` suffix (`hatchMs`, `timerMs`). Rates are per
+  second, named `PerSec`. Ticks never appear in balance data. This resolves the tick-unit ambiguity
+  flagged in the GDD.
+- **Resources** are integers at rest. Fractional accumulation lives only in pipeline `progress` fields
+  and `*Remainder` fields; amounts are floored when credited or spent. Display uses `formatInt`, which
+  floors and never rounds up.
+- A property test checks, after random ticks and catch-ups, that every value in `state.resources` is
+  `Number.isInteger` and ≥ 0.
+
+### UI Component Patterns (Preact)
+
+- Function components only. A component reads selectors (`selectX.value`) and calls actions; it never
+  reads `gameState.value`.
+- Local UI state (open segment, hold progress) uses `useSignal`; it goes into `GameState` only if it
+  must survive a reload (then into settings or the save, per D4).
+- Every interactive element has a stable `data-*` hook for E2E (`data-action`, `data-tab`, `data-role`).
+- Primitives from `ui/primitives/` replace raw elements for buttons, steppers, meters and
+  hold-to-confirm, so the accessibility floor and the flash rule are implemented once.
+
+```tsx
+export function RoleRow({ role }: { role: Role }) {
+  const count = selectRoleCount(role);                    // computed slice
+  return (
+    <li class="role-row" data-role={role}>
+      <span>{roleLabel(role)}</span>
+      <Stepper value={count} canAdd={selectFreeWorkers.value > 0}
+               onStep={(n) => assignWorkers(role, n)} label={roleLabel(role)} />
+    </li>
+  );
+}
+```
+
+### Save Migration Pattern
+
+```ts
+// persistence/migrations.ts: one function per version, never renumbered
+migrations[14] = (save: SaveV13): SaveV14 => ({
+  ...save,
+  version: 14,
+  phaseGoal: null,                         // D3 latch
+  decision: { open: null, nextSpawnSessionMs: 0 },
+});
+// tests/unit/persistence: every fixture in tests/saves migrates to the current version and loads.
+```
+
+### Testing Patterns
+
+- TDD: the failing test comes first, in the same PR.
+- Unit tests build state with `makeState(overrides)` (wraps `createInitialState()`); never hand-write
+  a full `GameState`.
+- Assert invariants and relations (`toBeGreaterThan(before)`, `Number.isInteger`), never balance numbers.
+  When a test needs a number, it imports it from `data/balance/`.
+- Randomness: pass a fixed seed; assert outcome sets (`Victory | Defeat | Draw`), not one outcome.
+- E2E: `seedSave(page, state, { introSeen: true })` before `page.goto('/')`; phase seeds satisfy the
+  conditions in `transitions.ts`; phase changes happen by clicking `[data-action="continue"]`.
+
+### Consistency Rules
+
+| Pattern | Convention | Enforcement |
+|---|---|---|
+| State writes | One spread write per tick; actions write between ticks | `tests/arch` + review checklist |
+| UI reads | Selectors only | `tests/arch` (no `gameState.value` under `ui/`) |
+| Layer imports | Rules in Architectural Boundaries | `tests/arch/architecture.test.ts` |
+| Randomness | Seeded `rng` in `systems/` and `sim/` | `tests/arch` (no `Math.random` there) |
+| Logging | `log.*` only | oxlint `no-console` |
+| Integers | Resources floored when credited or spent | Property test on resources |
+| Units | `Ms` / `PerSec` suffixes in balance data | Code review; branded types where cheap |
+| Phase thresholds | Only in `transitions.ts` | `tests/arch` (no guard numbers in `ui/`) |
+| Saves | One numbered migration per schema change; a fixture per shipped version | Migration test over `tests/saves/` |
+| Events | Typed in `events.ts`, flushed after the tick write | Typecheck |
+| Test hooks | `data-*` on every interactive element | E2E specs |
