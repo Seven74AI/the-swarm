@@ -1,5 +1,9 @@
 # THE SWARM — Developer Unlock Reference
 
+> ⚠️ **STALE — do not rely on the numbers below.** Thresholds and costs were rebalanced several times after this was written.
+> Phase guards: `src/phases/transitions.ts`. Building effects/costs: `src/systems/BuildingSystem.ts`, `src/engine/ProgressionCurve.ts`.
+> Spaceships: `src/systems/SpaceshipSystem.ts`. The code is the only authority.
+
 > Internal only. Keep mystery for players.
 
 ---
