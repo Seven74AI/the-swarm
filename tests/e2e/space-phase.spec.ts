@@ -81,7 +81,25 @@ async function readGameState(page: Page, path: string): Promise<unknown> {
   }, path);
 }
 
-/** Seed expansion phase and wait for SPACE transition using fake timers. */
+/**
+ * Wait for the SPACE phase to be entered and its panels revealed.
+ *
+ * Do NOT fast-forward a fixed span with `page.clock.runFor()` here. The seed
+ * already satisfies the EXPANSION→SPACE guard, so the transition fires on the
+ * first tick. After `clock.install()` the fake clock keeps flowing in real
+ * time, so web-first assertions are enough. `runFor(n)` fires every fake timer
+ * in the span one at a time, and Playwright yields a real macrotask (clamped to
+ * ≥4ms by Chromium) after each one. The game schedules ~120 timers per fake
+ * second (Ticker rAF, panel render rAFs, HUD flash timeouts), so each
+ * `runFor(5000)` cost seconds of wall time. Under CI CPU contention that pushed
+ * these tests past the 30s test timeout.
+ */
+async function waitForSpacePanels(page: Page) {
+  await expect(page.locator('#phase-indicator')).toContainText('Space', { timeout: 10000 });
+  await expect(page.locator('#spaceship-panel')).toBeVisible({ timeout: 10000 });
+}
+
+/** Seed expansion phase (on the verge of SPACE) and wait for the SPACE transition. */
 async function seedAndWaitForSpace(page: Page, overrides?: Record<string, unknown>) {
   const data = makeSaveData(overrides);
   await page.addInitScript((saveStr) => {
@@ -90,15 +108,7 @@ async function seedAndWaitForSpace(page: Page, overrides?: Record<string, unknow
   await page.clock.install();
   await page.goto('/');
   await page.waitForSelector('#panels', { timeout: 10000 });
-
-  // Advance time: workers=80, gather=40 → produce food each tick.
-  // Need to pass through EXPANSION first, then hit SPACE guard.
-  // With food=5000 and workers=80, the guard should trigger quickly.
-  await page.clock.runFor(5000);
-
-  // Wait for spaceship panel (only visible in SPACE phase)
-  await page.waitForSelector('#spaceship-panel', { timeout: 10000 });
-  await expect(page.locator('#phase-indicator')).toContainText('Space', { timeout: 5000 });
+  await waitForSpacePanels(page);
 }
 
 test.describe('Space Phase — Neon Theme & Panels', () => {
@@ -307,10 +317,9 @@ test.describe('Space Phase — Neon Theme & Panels', () => {
     // Reload
     await page.reload();
     await page.waitForSelector('#panels', { timeout: 10000 });
-    await page.clock.runFor(5000);
 
     // Wait for SPACE phase to be re-entered (state is preserved in save)
-    await expect(page.locator('#phase-indicator')).toContainText('Space', { timeout: 10000 });
+    await waitForSpacePanels(page);
 
     // Theme should be re-applied
     hasClass = await page.evaluate(() =>
@@ -367,11 +376,8 @@ test.describe('Space Phase — Neon Theme & Panels', () => {
     await page.goto('/');
     await page.waitForSelector('#panels', { timeout: 10000 });
 
-    // Fast-forward enough to trigger SPACE transition
-    await page.clock.runFor(5000);
-
-    // Wait for SPACE phase
-    await expect(page.locator('#phase-indicator')).toContainText('Space', { timeout: 10000 });
+    // Wait for the SPACE transition (the seed satisfies the guard)
+    await waitForSpacePanels(page);
 
     // Lazy-loaded panels should now exist in the DOM
     const starmapPanel = page.locator('#starmap-panel');
@@ -397,9 +403,8 @@ test.describe('Space Phase — Neon Theme & Panels', () => {
     await page.goto('/');
     await page.waitForSelector('#panels', { timeout: 10000 });
 
-    // Fast-forward to SPACE
-    await page.clock.runFor(5000);
-    await expect(page.locator('#phase-indicator')).toContainText('Space', { timeout: 10000 });
+    // Wait for the SPACE transition (the seed satisfies the guard)
+    await waitForSpacePanels(page);
 
     // Count starmap panels after first load
     const count = await page.locator('#starmap-panel').count();
@@ -415,8 +420,7 @@ test.describe('Space Phase — Neon Theme & Panels', () => {
 
     await page.reload();
     await page.waitForSelector('#panels', { timeout: 10000 });
-    await page.clock.runFor(5000);
-    await expect(page.locator('#phase-indicator')).toContainText('Space', { timeout: 10000 });
+    await waitForSpacePanels(page);
 
     // After reload, still exactly one starmap-panel
     const countAfterReload = await page.locator('#starmap-panel').count();

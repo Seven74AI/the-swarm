@@ -77,8 +77,10 @@ async function seedSpaceAndWait(page: any, overrides?: Record<string, unknown>) 
   await page.clock.install();
   await page.goto('/');
   await page.waitForSelector('#panels', { timeout: 10000 });
-  // Advance time so the game processes ticks and renders panels
-  await page.clock.runFor(2000);
+  // The seed is already in SPACE, so the research panel is revealed on boot.
+  // Wait for it instead of fast-forwarding a fixed span: every fake timer that
+  // runFor() fires costs a real macrotask, which is slow under CI load.
+  await expect(page.locator('#research-panel')).toBeVisible({ timeout: 10000 });
 }
 
 test.describe('Research System', () => {
@@ -126,10 +128,12 @@ test.describe('Research System', () => {
     const researcherSection = panel.locator('.research-researcher-pool');
     const researcherPlus = researcherSection.locator('button').last();
 
+    // The click handler writes state synchronously and the panel re-renders in
+    // the same effect, so no clock advance is needed between clicks.
     for (let i = 0; i < 50; i++) {
       await researcherPlus.dispatchEvent('click');
-      await page.clock.runFor(50); // let state update
     }
+    await expect(researcherSection.locator('.research-pool-count')).toHaveText('50');
 
     const vcsCard = panel.locator('[data-research-project="voidCrystalSynthesis"]');
     const startBtn = vcsCard.locator('button');
