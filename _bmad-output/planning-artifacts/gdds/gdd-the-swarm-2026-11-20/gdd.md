@@ -201,7 +201,7 @@ Progression is gated by phase. Guards at baseline, from `src/phases/transitions.
 
 ### Difficulty Curve
 
-Phase duration targets in real time, for a player who checks in about 6 times a day. [ASSUMPTION: all targets, to be validated in playtest]
+Phase duration targets in real time, for a player who checks in about 6 times a day. **First victory in about 3 weeks is decided (owner).** The per-phase split below derives from it and is to be validated in playtest. [ASSUMPTION: per-phase split]
 
 | Phase | Active-play target | Real-time target (with check-ins) |
 |---|---|---|
@@ -355,7 +355,7 @@ Passion project: these are quality signals from playtests, not business KPIs.
 1. Session shape: 30–90 s check-ins, about 6 per day.
 2. Differentiators (real ending, physical growth, premium-feeling reveal) not yet confirmed by the owner.
 3. "At least one decision per check-in" rule.
-4. Phase duration targets and about 3 weeks to first victory.
+4. Per-phase duration split (the 3-week total is decided).
 5. Tap-share targets for Phase 1.
 6. "No dominant upgrade" rule.
 7. Automation unlock after 10 manual performances.
