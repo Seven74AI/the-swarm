@@ -5,3 +5,6 @@ test-results/
 playwright-report/
 *.local
 repo/
+
+# BMAD installer backups (written on every quick-update)
+_bmad/*.bak
