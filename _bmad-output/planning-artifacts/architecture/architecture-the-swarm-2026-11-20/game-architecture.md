@@ -4,7 +4,7 @@ project: 'the-swarm'
 date: '2026-11-20'
 author: 'Seven74'
 version: '1.0'
-stepsCompleted: [1, 2, 3, 4, 5]
+stepsCompleted: [1, 2, 3, 4, 5, 6]
 status: 'in-progress'
 baseline_code: 'Seven74AI/the-swarm main @ a332d82'
 
@@ -24,7 +24,7 @@ ux:
 
 This architecture document is being created through the GDS Architecture Workflow.
 
-**Steps Completed:** 5 of 9 (Initialize, Project Context, Engine & Framework, Architectural Decisions, Cross-cutting Concerns)
+**Steps Completed:** 6 of 9 (Initialize, Project Context, Engine & Framework, Architectural Decisions, Cross-cutting Concerns, Project Structure)
 
 ---
 
@@ -515,3 +515,145 @@ production. E2E tests keep seeding saves; they don't depend on cheats.
 - Dev dependencies get weekly grouped Dependabot PRs. CI is the gate; auto-merge applies as for any PR.
 - A story adds `pnpm audit --prod --audit-level=high` as a step inside an existing CI job (no new job
   key, so branch protection is unaffected).
+
+## Project Structure
+
+### Organization Pattern
+
+**Pattern:** hybrid. Layers at the top of `src/` (engine, state, systems, UI…), features inside the UI
+layer (one folder per tab).
+
+**Rationale:** the simulation is shared by the game, offline catch-up and the headless pacing harness,
+so it must stay a DOM-free layer. The UI is where features change most (5 tabs, sheets, scenes), so it
+is grouped by feature. The prototype already uses this top-level split; the rework adds layers rather
+than moving them.
+
+### Directory Structure
+
+```
+the-swarm/
+├── src/
+│   ├── main.tsx                 # Boot only: load save, resume(), mount the UI, start GameLoop
+│   ├── engine/                  # Ticker, GameLoop, resume(), EventBus + events.ts, ProgressionCurve
+│   ├── state/                   # GameState types, gameSignal, selectors.ts, createInitialState
+│   ├── actions/                 # Player intents (assignWorkers, buyBuilding, continuePhase…): validate, write state between ticks
+│   ├── systems/                 # Pure per-tick rules (ResourceSystem, BattleSystem, DecisionSystem…)
+│   ├── phases/                  # transitions.ts (only source of guards), PhaseStateMachine (evaluate/commit), phase content
+│   ├── persistence/             # SaveManager (load status), migrations.ts, save schema types
+│   ├── platform/                # Interfaces + web implementations: audio, haptics, notifications, storage, lifecycle, settings, capabilities
+│   ├── sim/                     # Headless pacing harness: player policy, check-in schedule, reachability, report
+│   ├── data/
+│   │   ├── constants.ts
+│   │   ├── balance/             # One file per system: costs, rates, timers (as const)
+│   │   └── content/             # Decision events, enemy types, critical-path tables, tab registry, planets, prestige tree
+│   ├── utils/                   # format.ts, math.ts, rng.ts (seeded PRNG), log.ts, result.ts
+│   ├── debug/                   # Overlay, state inspector, log viewer; cheats (dev build only)
+│   └── ui/
+│       ├── App.tsx              # Root: strip, active tab, tab bar, SheetHost, OverlayHost
+│       ├── shell/               # TabBar, ResourceStrip, GoalMeter, PrimaryZone, SheetController, OverlayHost, desktop rail
+│       ├── tabs/
+│       │   ├── nest/            # NEST tab (Phase 1 lay egg, next action, event lines, Click Power card)
+│       │   ├── wrkr/            # Role rows, upkeep, automation targets
+│       │   ├── build/           # Buildings, research, converter
+│       │   ├── front/           # war/, map/, stars/ segments
+│       │   └── log/             # Chronicle, lifetime stats, settings, legacy/
+│       ├── sheets/              # OfflineSummary, DecisionSheet, BattleSummary, ResourceSheet, CorruptSave, peek sheets
+│       ├── overlays/            # PhaseReveal, TitleCinematic, TranscendenceEnding, Paused
+│       ├── scenes/              # NestScene, MapGrid, StarMap (SVG), plus their animation loop
+│       ├── primitives/          # Button, Stepper, HoldToConfirm, Meter, Card, Toast, CoachMark, Value
+│       ├── glyphs/              # The 20 resource/building glyphs + gear, as TSX SVG components
+│       └── styles/              # tokens.css (DESIGN.md tokens), base.css, layout.css, per-component CSS modules
+├── public/                      # PWA icons, manifest assets (no game assets)
+├── tests/
+│   ├── unit/                    # Mirrors src/ (new tests); legacy flat files move when touched
+│   ├── arch/                    # architecture.test.ts: import-boundary rules (below)
+│   ├── sim/                     # Reachability (CI) and pacing report (pnpm sim, not CI)
+│   ├── perf/                    # Catch-up budget, scene frame budget
+│   ├── e2e/                     # Playwright specs (kebab-case.spec.ts) + helpers/ (seeds, intro flag)
+│   ├── saves/                   # Save fixtures per shipped version (migration tests)
+│   └── snapshots/
+├── docs/
+│   ├── decisions/               # ADRs (ADR-0001…)
+│   └── agents/                  # Agent workflow docs (existing)
+├── _bmad-output/planning-artifacts/   # Brief, GDD, UX, architecture
+└── vite.config.ts, vitest.config.ts, playwright.config.ts, tsconfig.json, package.json, pnpm-lock.yaml
+```
+
+Removed by the rework: `src/state/StateManager.ts`, `src/state/Store.ts`, `src/state/GameStatePool.ts`
+(D5); `src/ui/UIRoot.ts` and `src/ui/panels/*` (replaced by `ui/shell` + `ui/tabs` as each panel is
+migrated); `package-lock.json` (stale; the repo is pnpm-only).
+
+### System Location Mapping
+
+| System | Location | Responsibility |
+|---|---|---|
+| Simulation clock, resume | `src/engine/Ticker.ts`, `GameLoop.ts`, `resume.ts` | Fixed 20 Hz step, visible-only, single resume path (D1) |
+| Offline catch-up | `src/engine/resume.ts` + `src/systems/OfflineProgression.ts` | Macro-steps, cap, efficiency, starvation floor (D2) |
+| Game state + selectors | `src/state/` | One signal, `computed` slices (D5) |
+| Player actions | `src/actions/` | Validate intent, return `Result`, write state between ticks |
+| Economy, pipelines, roles | `src/systems/ResourceSystem.ts` | Integer resources, eggs → larvae → workers |
+| Combat | `src/systems/BattleSystem.ts`, `SoldierSystem.ts`, `EnemySystem.ts` | Auto-battle, enemy traits, battle cause |
+| Scouts/warriors, expeditions | `src/systems/RecruitmentSystem.ts`, `ExpeditionSystem.ts` | Separate from combat soldiers (existing rule) |
+| Decision events | `src/systems/DecisionSystem.ts` + `src/data/content/decisions.ts` | Spawn on session clock, `applyChoice` (D8) |
+| Next action | `src/systems/NextAction.ts` | Pure `getNextAction(state)` for NEST, WRKR, offline summary |
+| Phase flow | `src/phases/transitions.ts`, `PhaseStateMachine.ts` | Conditions, evaluate/commit, latch (D3) |
+| Prestige | `src/systems/PrestigeSystem.ts`, `src/data/content/prestigeTree.ts` | Full wipe rules (E5) |
+| Saves and migrations | `src/persistence/` | Load status, numbered migrations (D4) |
+| Settings | `src/platform/settings.ts` | Own key, outside the save |
+| Audio, haptics, notifications | `src/platform/{audio,haptics,notifications}/` | Interfaces + web implementations (D9) |
+| Seeded RNG | `src/utils/rng.ts` | PRNG state lives in `GameState` (D6) |
+| Logging | `src/utils/log.ts` | Only place that calls `console.*` |
+| Tabs and sheets | `src/ui/shell/`, `src/ui/tabs/*`, `src/ui/sheets/` | Tab registry, SheetController (D7) |
+| Scenes | `src/ui/scenes/` | SVG nest, map, star map (D11) |
+| Pacing harness | `src/sim/`, `tests/sim/` | Reachability gate, pacing report (D12) |
+| Debug tools | `src/debug/` | Overlay, inspector; cheats dev-only |
+| PWA | `vite.config.ts` (vite-plugin-pwa), `public/` | Manifest, service worker (D10) |
+
+### Naming Conventions
+
+#### Files
+- Class or component modules: `PascalCase` (`BattleSystem.ts`, `NestTab.tsx`, `DecisionSheet.tsx`).
+- Function/data modules: `camelCase` (`selectors.ts`, `transitions.ts`, `format.ts`, `rng.ts`).
+- `.tsx` only for files that contain JSX; everything else `.ts`.
+- Unit tests: `<SourceName>.test.ts(x)`, mirroring the source path under `tests/unit/`.
+- E2E specs: `kebab-case.spec.ts` (existing convention).
+- ADRs: `docs/decisions/ADR-NNNN-kebab-title.md`.
+
+#### Code Elements
+
+| Element | Convention | Example |
+|---|---|---|
+| Types, interfaces, components | PascalCase | `GameState`, `Transition`, `GoalMeter` |
+| Functions, variables | camelCase | `getNextAction`, `assignWorkers`, `elapsedMs` |
+| Module-level constants | UPPER_SNAKE | `TICK_MS`, `MAX_TABS` |
+| Balance/content objects | camelCase `as const` | `buildingCosts`, `decisionEvents` |
+| Selectors | `select` + noun | `selectWorkers`, `selectGoalProgress` |
+| Actions | imperative verb | `buyBuilding`, `continuePhase` |
+| Events | snake_case past tense | `battle_completed`, `phase_committed` |
+| String-literal IDs | snake_case | `'chitin_armory'`, `'beetle_sighting'` |
+| DOM test hooks | `data-*`, kebab-case values | `data-action="continue"`, `data-tab="wrkr"`, `data-stat="resources.eggs"` |
+| CSS classes | kebab-case, component-scoped | `.goal-meter__row` |
+| Storage keys | `the_swarm_` prefix | `the_swarm_save`, `the_swarm_settings`, `the_swarm_intro_seen` |
+
+Existing `data-stat` / `id` selectors used by E2E specs are kept when components migrate.
+
+#### Game Assets
+- No binary game assets: glyphs and scenes are TSX SVG components; audio is synthesized.
+- Glyph components: `Glyph` + resource or building name (`GlyphChitin`, `GlyphBarracks`).
+- Design tokens are CSS custom properties named as in DESIGN.md (`--color-accent`, `--space-2`).
+
+### Architectural Boundaries
+
+Import rules, enforced by `tests/arch/architecture.test.ts` (scans import statements; no new dependency):
+
+1. `systems/`, `phases/`, `state/`, `data/`, `sim/`, `utils/` import **no** DOM APIs, no `ui/`, no
+   `platform/`, no `debug/`. They run in Node for tests and the harness.
+2. `ui/` reads state only through `state/selectors.ts` and changes it only through `actions/`. It never
+   imports `systems/` directly and never writes `gameState.value`.
+3. `actions/` may call `systems/` and write `gameState` (between ticks). Only `engine/GameLoop` writes
+   during a tick.
+4. `platform/` imports only types from the game layers; game layers reach platform services only
+   through interfaces passed in at boot.
+5. `debug/` may read anything; nothing imports `debug/` except `main.tsx`, behind `import.meta.env.DEV`
+   or `?debug=1`.
+6. Phase-guard thresholds exist only in `phases/transitions.ts`; balance numbers only in `data/balance/`.
