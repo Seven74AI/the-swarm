@@ -177,7 +177,7 @@ Behaviour only. Visual specs are in DESIGN.md → Components, under the same nam
 - **Swipe down** dismisses non-decision and peek sheets. There are no other gestures, and every swipe has a button equivalent.
 - **Confirm** for irreversible actions: hold (default) or two taps (setting).
 - **No undo.** Allocation is instant and freely reversible. Confirmation guards anything irreversible.
-- **Desktop and keyboard:** a click is a tap. Hovering shows only what a tap would show, and it stays dismissible and hoverable (WCAG 1.4.13). Shortcuts, which can be switched off and remapped: **Space** triggers the primary action, but only when focus is on the page or the primary button; **1–5** switch tabs; **P** pauses; **Esc** closes a non-decision sheet. Space as the primary action generalises the GDD's "Space lays an egg". Today's Space-to-pause binding moves to P.
+- **Desktop and keyboard:** a click is a tap. Hovering shows only what a tap would show, and it stays dismissible and hoverable (WCAG 1.4.13). Shortcuts, which can be switched off and remapped: **Space** triggers the primary action of the active tab (on desktop, the columns 2–3 action; NEST's own button is clicked or focused), but only when focus is on the page or that button; **1–5** switch tabs; **P** pauses; **Esc** closes a non-decision sheet. Space as the primary action generalises the GDD's "Space lays an egg". Today's Space-to-pause binding moves to P.
 - **Banned:** ads, timed "claim" buttons, streaks, numeric badges, interstitials, and any mechanic that needs repeated tapping after Phase 1 (Pillar 3).
 
 ## HUD & Diegetic UI
@@ -234,7 +234,7 @@ Behaviour only. Contrast and type sizes live in DESIGN.md.
 | 320–359 px wide | Narrow margins (8 px); the grid reflows (DESIGN.md); the map pans |
 | 360–599 px | Single column, bottom tab bar, pinned primary zone |
 | 600–1023 px | The same single column, centred at 600 px max `[ASSUMPTION: no tablet layout]` |
-| ≥ 1024 px | Left rail; NEST in column 1; active tab in columns 2–3; sheets become dialogs |
+| ≥ 1024 px | Left rail (full tab names, number keys shown); NEST in column 1 with its own primary action; active tab in columns 2–3 with its primary action; sheets become centred dialogs. Picking NEST in the rail focuses column 1 and leaves columns 2–3 on the last tab (BUILD on first visit) `[ASSUMPTION]`. See [`mockups/key-desktop.html`](mockups/key-desktop.html) |
 | Height < 560 px | 1 event line on NEST; cost line moves inside the primary button |
 | Height < 480 px (landscape) | Primary zone un-pins; content scrolls |
 
@@ -279,6 +279,7 @@ References only. **The spines win on any conflict**, and mock colours and sizes 
 - [`mockups/key-wrkr-build.html`](mockups/key-wrkr-build.html): WRKR with instant steppers, upkeep and an automation row; BUILD with the highlighted card, a disabled card and running research (Stepper / role row, Automation target row, Research card, Flow 5).
 - [`mockups/key-sheets.html`](mockups/key-sheets.html): offline summary, costly-to-ignore decision event, battle summary (Offline summary, Decision event, Battle summary, Flows 2–4).
 - [`mockups/key-map.html`](mockups/key-map.html): FRONT · MAP with a selected tile and its peek sheet, and with nothing selected (Map tile, Flow 6).
+- [`mockups/key-desktop.html`](mockups/key-desktop.html): desktop at 1280×800, with the left rail, NEST in column 1, BUILD in columns 2–3, and a decision dialog with keyboard focus (Responsive & Platform, Interaction Primitives, Accessibility Floor → Focus, Flow 8).
 
 ## Key Flows
 
