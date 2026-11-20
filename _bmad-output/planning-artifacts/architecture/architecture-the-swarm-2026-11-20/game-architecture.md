@@ -4,8 +4,10 @@ project: 'the-swarm'
 date: '2026-11-20'
 author: 'Seven74'
 version: '1.0'
-stepsCompleted: [1, 2, 3, 4, 5, 6, 7]
-status: 'in-progress'
+stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+status: 'complete'
+engine: 'none (web stack: TypeScript + Vite 8 + Preact 11 + @preact/signals)'
+platform: 'mobile web PWA (portrait) first; desktop browser; optional Capacitor store build later'
 baseline_code: 'Seven74AI/the-swarm main @ a332d82'
 
 # Source Documents
@@ -22,9 +24,41 @@ ux:
 
 ## Document Status
 
-This architecture document is being created through the GDS Architecture Workflow.
+**Status:** complete (v1.0, 2026-11-21). Created with the GDS Architecture Workflow, all 9 steps.
+Source code stays authoritative for current behaviour; this document is the target architecture
+for the mobile-first rework. Change it through a PR (`gds-correct-course`), not in place.
 
-**Steps Completed:** 7 of 9 (Initialize, Project Context, Engine & Framework, Architectural Decisions, Cross-cutting Concerns, Project Structure, Implementation Patterns)
+## Executive Summary
+
+**THE SWARM** architecture is a web stack with no game engine: TypeScript, Vite 8, Preact 11 and
+`@preact/signals`, targeting an installable mobile-web PWA (portrait) first, desktop browsers second,
+and an optional Capacitor store build later.
+
+**Key Architectural Decisions:**
+
+- **One time model:** the simulation runs at a fixed 20 Hz only while the game is visible. Every return
+  (cold start, background, long frame) goes through one `resume(elapsedMs)` with one offline cap and
+  macro-step catch-up; gaps under 60 s count at full efficiency (D1, D2).
+- **Phase flow under player control:** guard conditions are declared in `transitions.ts`; a pure
+  `evaluate()` latches GOAL MET and `commit()` runs only on CONTINUE (D3).
+- **State discipline:** one `GameState` signal, one spread write per tick, UI reads only `computed`
+  selectors and writes only through actions; seeded PRNG in state (D5, D6).
+- **Durable local saves:** `SaveStore` interface over localStorage, explicit load status, numbered
+  migrations, settings outside the save (D4).
+- **UI shell:** 5-tab registry, one sheet controller, one overlay layer; DOM-first for accessibility,
+  SVG scenes with HTML labels (D7, D11).
+- **Platform seams:** audio, haptics, notifications, storage and lifecycle behind interfaces; no
+  notifications on web (D9, D10).
+- **Pacing harness:** the real systems run headless; guard reachability gates CI, durations are a
+  report (D12).
+
+**Project Structure:** hybrid organization (layers at the top, features inside `ui/`) with 15 core
+systems, enforced by import-boundary tests.
+
+**Implementation Patterns:** 9 standard patterns and 3 novel patterns (countable-ant nest, pacing
+harness, persistent paused decision events), each with examples.
+
+**Ready for:** epics and stories (`gds-create-epics-and-stories`), then GitHub issues.
 
 ---
 
@@ -68,7 +102,10 @@ test files, 24 E2E specs, save v13) is reshaped for a mobile-first MVP (Phases 1
 
 ### Technical Requirements
 
-- First interactive in < 3 s on a ~2022 mid-range Android over 4G; initial download < 2 MB.
+- Fast first load, with no hard numeric target: the owner dropped the GDD's 2 MB download limit and
+  its 3 s first-interactive target on 2026-11-21. Principle kept: terminal text renders first, the
+  vector scene fades in when ready (EXPERIENCE.md Cold load), and the PWA precache makes later
+  launches instant.
 - Tap → visual response in < 100 ms; scrolling and transitions at 60 FPS.
 - Game outcomes independent of frame rate and device speed.
 - Offline catch-up for 12 h (24 h with upgrades) in < 500 ms on resume.
@@ -149,15 +186,16 @@ Exact versions come from `package.json` at install time. This document names maj
 - Agent-friendly: TypeScript + Vitest + Playwright fit the issue → PR → CI-gated TDD loop.
 
 **Rejected:**
-- *Godot / Unity web export:* WebAssembly payloads of tens of MB break the 3 s first-load target,
-  web exports run much worse than native on phones, and accessibility is weak. It would need a full rewrite.
+- *Godot / Unity web export:* WebAssembly payloads of tens of MB, web exports that run much worse
+  than native on phones, weak accessibility for a text-heavy UI, and a full rewrite of the code,
+  tests and save chain.
 - *Phaser 4 / PixiJS 8 as the main renderer:* built for canvas-first games. PixiJS is kept as a
   fallback for the nest scene only, if SVG can't hold the frame budget at large colony sizes.
 - *Stay on vanilla DOM (no UI library):* viable, but every agent hand-rolls components, and
   drift between panels is already visible in the prototype.
 
-**Note on the size budget (owner, 2026-11-21):** the GDD's 2 MB download limit is not treated
-as a hard constraint. The 3 s first-interactive target still applies.
+**Note on load budgets (owner, 2026-11-21):** the GDD's 2 MB download limit and 3 s
+first-interactive target are dropped as hard constraints. Load speed stays a quality goal.
 
 ### Distribution
 
@@ -192,9 +230,15 @@ Brownfield; no starter template. Adoption steps (each is a story):
 
 ### AI Tooling
 
-- **Context7** (upstash/context7, MCP docs lookup) is recommended so agents check current
-  Vite 8, Preact 11 and Vitest 5 docs instead of relying on training data. Owner to confirm.
-  No engine-specific MCP applies (no engine).
+- **Context7** (upstash/context7, MCP docs lookup): **accepted** (owner, 2026-11-21). Agents check
+  current Vite 8, Preact 11 and Vitest 5 docs instead of relying on training data.
+  - Local server: `claude mcp add context7 -- npx -y @upstash/context7-mcp`
+  - Remote server: `claude mcp add --transport http context7 https://mcp.context7.com/mcp`
+  - Optional free API key for higher rate limits. Needs Node.js 18+ for the local server.
+  - Add to `CLAUDE.md`: "Use Context7 for library/API documentation before relying on memory."
+  - Scheduled agent sessions need `mcp.context7.com` (remote) or the npm registry (local) on their
+    network allowlist.
+- No engine-specific MCP applies (no engine).
 
 ### Remaining Architectural Decisions
 
@@ -254,6 +298,10 @@ D4–D13 accepted as recommended.
   4 h cap (`OfflineProgression.ts`), the 8 h cap (`GameLoop.ts`) and the frame cap that drops hidden time.
 - **Clocks:** wall clock (`Date.now`) only for gaps; game time (tick count) for everything simulated.
   A session clock (foreground ticks since this launch) drives decision-event spawning (D8).
+- **Long frames while visible:** a frame gap over 1 s (device stall, throttled tab that never fired
+  `visibilitychange`) is handed to `resume(gap)` instead of being dropped by the frame cap.
+- **Pause is in-session only** (owner, validation step): PAUSE stops the ticker; hiding or closing
+  the app ends the pause, and the time away counts as normal offline time. No `paused` flag in the save.
 
 ### Offline Catch-up (D2)
 
@@ -264,7 +312,9 @@ D4–D13 accepted as recommended.
   below 50% of the pre-absence count), no decision events, no phase commits (the latch may set).
 - **Tests:** a property test compares macro-step with fine-step results within a tolerance on random
   seeded states and checks the invariants (integers, never above capped production, starvation floor).
-  A perf test enforces the 500 ms budget on a 24 h absence.
+  The CI gate is deterministic: a 24 h catch-up uses at most a fixed number of `processTick` calls
+  (from `data/constants.ts`). Wall-clock time against the 500 ms budget is measured on the reference
+  phone and reported (`pnpm perf`); timing is not asserted on CI runners, so CI never flakes on speed.
 
 ### Phase Flow (D3)
 
@@ -287,7 +337,8 @@ D4–D13 accepted as recommended.
   "add to home screen" hint (home-screen web apps are exempt from Safari's 7-day storage cap);
   export/import is the player's backup.
 - **Inside the save:** game state, the `phaseGoal` latch, the open decision event with its remaining
-  time, the event log (last 100 lines), `lifetime.revealsSeen`, the PRNG state.
+  time, the event log (last 100 lines), `lifetime.revealsSeen`, `lifetime.phasesCompleted` (for the
+  Phase Skip rule: never skip a phase that was never completed), the PRNG state.
 - **Outside the save** (own keys; survive prestige and import; not exported): settings, intro flag.
 - **Migrations:** one numbered step per schema change, in order; two branches claiming the same
   version merge into one function (existing rule). The E5 prestige wipe is a normal step.
@@ -349,7 +400,8 @@ D4–D13 accepted as recommended.
 - At most 50 individually animated ants; the rest is a dot cloud drawn as one SVG path.
 - Scene animation runs in its own rAF loop, reads slices at most 4 times per second, and stops under
   reduced motion.
-- **Fallback trigger:** if p95 frame time on the reference device exceeds 16 ms in the perf test,
+- **Fallback trigger** (measured on the reference phone via `pnpm perf`, not asserted in CI): if p95
+  frame time exceeds 16 ms,
   move the dot cloud to Canvas 2D; consider PixiJS only if Canvas is not enough.
 
 ### Pacing Harness (D12)
@@ -366,11 +418,11 @@ D4–D13 accepted as recommended.
 
 Recorded as ADRs in `docs/decisions/` (created in the same PR as this document):
 
-1. ADR-0001 Single game-state signal with `computed` selectors; delete the legacy state primitives (D5, #186).
-2. ADR-0002 Visible-only simulation and the single resume path (D1, D2).
-3. ADR-0003 Phase conditions, evaluate/commit and the latched goal (D3).
-4. ADR-0004 Preact for the UI layer, web-first PWA, optional Capacitor (Engine & Framework, D9, D10).
-5. ADR-0005 Seeded PRNG in game state (D6).
+1. `0001-single-state-signal-with-selectors.md`: one game-state signal with `computed` selectors; delete the legacy state primitives (D5, #186).
+2. `0002-visible-only-simulation-and-resume.md`: visible-only simulation and the single resume path (D1, D2).
+3. `0003-phase-conditions-and-continue.md`: phase conditions, evaluate/commit and the latched goal (D3).
+4. `0004-preact-ui-and-pwa-distribution.md`: Preact for the UI layer, web-first PWA, optional Capacitor (Engine & Framework, D9, D10).
+5. `0005-seeded-prng-in-state.md`: seeded PRNG in game state (D6).
 
 ### Follow-ups for other planning artifacts
 
@@ -573,7 +625,7 @@ the-swarm/
 │   ├── saves/                   # Save fixtures per shipped version (migration tests)
 │   └── snapshots/
 ├── docs/
-│   ├── decisions/               # ADRs (ADR-0001…)
+│   ├── decisions/               # ADRs (0001-…md)
 │   └── agents/                  # Agent workflow docs (existing)
 ├── _bmad-output/planning-artifacts/   # Brief, GDD, UX, architecture
 └── vite.config.ts, vitest.config.ts, playwright.config.ts, tsconfig.json, package.json, pnpm-lock.yaml
@@ -617,7 +669,7 @@ migrated); `package-lock.json` (stale; the repo is pnpm-only).
 - `.tsx` only for files that contain JSX; everything else `.ts`.
 - Unit tests: `<SourceName>.test.ts(x)`, mirroring the source path under `tests/unit/`.
 - E2E specs: `kebab-case.spec.ts` (existing convention).
-- ADRs: `docs/decisions/ADR-NNNN-kebab-title.md`.
+- ADRs: `docs/decisions/NNNN-kebab-title.md` (repo convention, `docs/agents/domain.md`).
 
 #### Code Elements
 
@@ -931,3 +983,109 @@ migrations[14] = (save: SaveV13): SaveV14 => ({
 | Saves | One numbered migration per schema change; a fixture per shipped version | Migration test over `tests/saves/` |
 | Events | Typed in `events.ts`, flushed after the tick write | Typecheck |
 | Test hooks | `data-*` on every interactive element | E2E specs |
+
+## Architecture Validation
+
+### Validation Summary
+
+| Check | Result | Notes |
+|---|---|---|
+| Decision Compatibility | Pass | Web stack + Preact + signals; visible-only clock, macro-step catch-up and the pacing harness share one `resume()` path; no conflicting decisions |
+| GDD Coverage | Pass | All 15 core systems from Project Context map to a location and a decision; each technical requirement has an owner (table below) |
+| Pattern Completeness | Pass | Entity creation, communication, state, errors, data access and events defined with examples; 3 novel patterns documented |
+| Epic Mapping | Pass | E1–E8 mapped (table below) |
+| Document Completeness | Pass | Stack with verified versions, decision table, full structure, cross-cutting concerns, patterns, naming; no placeholders |
+
+### Requirement Coverage
+
+| Requirement (GDD) | How addressed |
+|---|---|
+| Fast first load (no hard target since 2026-11-21) | Precached PWA, minimal runtime deps, text first then scene fade-in (D10, D11) |
+| Tap response < 100 ms, 60 FPS | Preact slice subscriptions (D5), scene loop with ≤ 4 Hz reads (D11) |
+| Outcomes independent of frame rate | Fixed 20 Hz step; frame gaps > 1 s go to `resume()` (D1) |
+| 12–24 h catch-up < 500 ms | Macro-steps (D2); deterministic step budget in CI, timing on the reference phone |
+| No background processing | Visible-only simulation; save on hide (D1) |
+| Integer resources | Units and Integers pattern + property test |
+| Save migration from every shipped version | Numbered migrations + a fixture per version (D4) |
+| Accessibility floor | DOM-first UI; primitives implement it once (Engine & Framework, UI patterns) |
+| Zero soft-locks | Reachability gate in CI (D12, N2) |
+
+### Epic Mapping
+
+| Epic | Location | Key decisions / patterns |
+|---|---|---|
+| E1 Mobile shell | `ui/shell`, `ui/tabs/*`, `ui/sheets`, `ui/primitives` | D7, UI component patterns, Preact adoption steps |
+| E2 Offline and check-in | `engine/resume.ts`, `systems/OfflineProgression.ts`, `ui/sheets/OfflineSummary` | D1, D2, D9 (no web notifications), next-action selector |
+| E3 Pacing pass | `sim/`, `tests/sim`, `data/balance/` | D6, D12, N2, Units and Integers |
+| E4 Phase depth | `data/content/`, `systems/DecisionSystem.ts`, `phases/transitions.ts` | D3, D8, N3, Entity and State patterns |
+| E5 Prestige rework | `systems/PrestigeSystem.ts`, `persistence/migrations.ts` | D4 (wipe migration, `phasesCompleted`), Save Migration pattern |
+| E6 Phases 4–5 on mobile | `ui/tabs/front/{map,stars}`, `ui/scenes/MapGrid`, `StarMap` | N1 split reused, D7 peek sheets |
+| E7 Transcendence | `ui/overlays/TranscendenceEnding`, `phases/` | D3 commit, D7 overlay layer |
+| E8 Art and audio | `ui/glyphs`, `ui/styles/tokens.css`, `platform/audio` | D9, D11 |
+
+### Coverage Report
+
+**Systems covered:** 15/15
+**Patterns defined:** 9 standard + 3 novel
+**Decisions made:** 13 (D1–D13) + stack and distribution
+
+### Issues Resolved
+
+1. Load budgets: the 2 MB download limit and the 3 s first-interactive target dropped as hard constraints (owner).
+2. Pause is in-session only; hiding or closing the app ends it (owner).
+3. Visible frame gaps > 1 s go to `resume()` instead of being dropped.
+4. `lifetime.phasesCompleted` added for the Phase Skip rule.
+5. Perf gates made deterministic in CI; timings measured on the reference phone.
+6. Context7 accepted, with setup steps (owner).
+
+### Validation Date
+
+2026-11-21
+
+## Development Environment
+
+### Prerequisites
+
+- Node.js 20.19+ or 22.12+ (required by Vite 8)
+- pnpm 11 (pinned through `packageManager` in `package.json`; enable with `corepack enable`)
+- Playwright Chromium (`pnpm exec playwright install chromium`)
+- Network access to `registry.npmjs.org` and the Playwright browser hosts (also needed by scheduled
+  agent sessions; see #197)
+
+### AI Tooling (MCP Servers)
+
+| MCP Server | Purpose | Install Type |
+|---|---|---|
+| Context7 (upstash/context7) | Current docs for Vite 8, Preact 11, Vitest 5, signals, vite-plugin-pwa | Local (`npx`) or remote (HTTP) |
+
+**Setup:**
+
+```bash
+# local server
+claude mcp add context7 -- npx -y @upstash/context7-mcp
+# or remote server
+claude mcp add --transport http context7 https://mcp.context7.com/mcp
+```
+
+A free Context7 API key raises rate limits but is optional. No engine-specific MCP applies (no engine).
+
+### Setup Commands
+
+```bash
+git clone https://github.com/Seven74AI/the-swarm.git
+cd the-swarm
+pnpm install
+pnpm exec playwright install chromium
+pnpm test:all      # typecheck + unit + e2e
+pnpm dev
+```
+
+### First Steps
+
+1. Run `gds-create-epics-and-stories` with the GDD, UX and this document as input; each story
+   becomes one `needs-triage` GitHub issue (CLAUDE.md).
+2. Start with the foundation stories that unblock everything else: remove `COLONY_TO_EXPANSION`;
+   typed `SwarmEvents` + `log.ts`; `tests/arch` boundary test; delete `StateManager`/`Store`/`GameStatePool`;
+   add Preact + JSX config with the single-`signals-core` check; delete `package-lock.json`.
+3. Configure Context7 per the AI Tooling instructions above.
+4. Then the time model (D1/D2) and phase flow (D3), which E1, E2 and E4 stories build on.
