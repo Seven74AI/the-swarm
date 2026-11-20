@@ -20,7 +20,7 @@ const PHASE_NUMBER: Record<string, number> = {
  * Get the phase score — sum of all reached phase numbers.
  * For example, if current phase is 'space' (5), phaseScore = 1+2+3+4+5 = 15.
  */
-function getPhaseScore(currentPhase: string): number {
+export function getPhaseScore(currentPhase: string): number {
   const n = PHASE_NUMBER[currentPhase] ?? 1;
   let sum = 0;
   for (let i = 1; i <= n; i++) {
