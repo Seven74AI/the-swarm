@@ -1,0 +1,42 @@
+name: Auto-merge
+
+# Arms squash auto-merge on our own PRs as soon as they open, so they merge
+# by themselves once the required checks are green. CI stays the only gate.
+#
+# Skipped for: Dependabot PRs, PRs from forks, drafts (armed when marked ready).
+#
+# Needs the AUTOMERGE_TOKEN secret: a fine-grained personal access token for
+# this repo with "Contents: read and write" and "Pull requests: read and write".
+# The built-in GITHUB_TOKEN would work for arming, but a merge it performs
+# does not trigger other workflows, so the Pages deploy on push to main would
+# silently stop running.
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  enable-auto-merge:
+    if: >-
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔑 Check token
+        env:
+          TOKEN: ${{ secrets.AUTOMERGE_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::AUTOMERGE_TOKEN secret is not set. See the header of .github/workflows/auto-merge.yml."
+            exit 1
+          fi
+
+      - name: 🔀 Enable squash auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.AUTOMERGE_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --squash "$PR_URL"
