@@ -12,3 +12,5 @@
 | 8 | 2026-11-20 | Offline efficiency upgrades count as Legacy upgrades (survive prestige). | drafting inference | ASSUMPTION |
 | 9 | 2026-11-20 | Code discrepancies found: two offline caps (4 h OfflineProgression vs 8 h GameLoop catch-up); non-integer research cost antimatter: 0.1; tick-unit comment (50 ticks at 20 Hz = 2.5 s, comment says 1 s/tick); Temporal Resonance gated behind Transcendence. Logged as NOTE FOR DESIGNER. | code read | open |
 | 10 | 2026-11-20 | v0.1 draft of gdd.md and epics.md written (Express). Next: Finalize. | gds-gdd | logged |
+| 11 | 2026-11-20 | Colony → Expansion alternate route (40 workers + 1000 food) is a leftover: remove it; Combat is mandatory. A peaceful path is parked as a possible later addition (would need a non-combat source of silk, chitin and venom). | owner | decided |
+| 12 | 2026-11-20 | Combat must stay interesting in any case: added a Combat interest bar (pre-battle decisions, ≥3 enemy types with visible traits, readable result, no dominant strategy). Enemy-type count is an assumption. | owner + drafting | decided / ASSUMPTION |
