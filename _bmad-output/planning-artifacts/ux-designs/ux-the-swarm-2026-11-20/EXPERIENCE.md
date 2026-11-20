@@ -2,7 +2,7 @@
 title: "THE SWARM — EXPERIENCE"
 status: final
 created: 2026-11-20
-updated: 2026-11-20
+updated: 2026-11-21
 form_factor: mobile portrait touch (primary; minimum viewport 360×512, reflow to 320); desktop browser ≥1024 px (secondary)
 sources:
   - _bmad-output/planning-artifacts/gdds/gdd-the-swarm-2026-11-20/gdd.md
@@ -143,7 +143,7 @@ Behavior only. Visual specs are in DESIGN.md → Components. Where the two files
 | **Goal meter** | `NEXT: <conditions>`, one row per condition with `met`/`need` and ✓/✗. **Latch:** once every condition is met, the goal stays met until CONTINUE is tapped, even if numbers dip. The meter then shows `GOAL MET`, and any condition that has since dipped reads `<now> now, reached <value> at <time>`. The condensed version shows on the other tabs. |
 | **Phase change** | The phase **does not change on its own**. When the goal is met, NEST gets `•` and its primary action becomes **> CONTINUE**; tapping it plays the phase reveal. Nothing about the next phase shows before the tap. |
 | **Decision event** | A bottom sheet with the situation, 2 choices with visible cost or risk, and its ignore line. Spawning, ignore policies and lifecycle: **Decision events** below. |
-| **Offline summary** | Shown on any resume (cold load or return from the background) after at least 1 min away `[ASSUMPTION: 1 min; code uses 30 s]`. Elapsed time, efficiency %, gains and losses with glyphs, whether the cap was reached, and **one next-action button** (next-action rule) that opens the relevant tab with the target highlighted. |
+| **Offline summary** | Shown on any resume (cold load or return from the background) after at least 60 s away (owner, 2026-11-21; the code uses 30 s today). Shorter gaps count at full efficiency and open no sheet (State Patterns → Resume from background). Elapsed time, efficiency %, gains and losses with glyphs, whether the cap was reached, and **one next-action button** (next-action rule) that opens the relevant tab with the target highlighted. |
 | **Battle summary** | VICTORY, DEFEAT or DRAW; losses; drops; one cause line; **> CHANGE → <card>** opens the relevant mutation or equipment card. |
 | **Enemy card** | Type and trait shown before committing (GDD Combat interest bar). **> FIGHT** is the primary action. |
 | **Expedition force** (FRONT · MAP) | Steppers for scouts and warriors, capped by Barracks level (scouts from Lv.1, warriors from Lv.2). Recruiting pulls directly from workers. This is separate from combat soldiers, which train in WAR. |
@@ -189,9 +189,9 @@ Reached from the resource sheet (`[ SETTINGS ⚙ ]`) and LOG.
 - Confirm style: hold / two taps, plus hold duration.
 - Lay mode (Phase 1): hold / toggle, at the same rate.
 - Keyboard shortcuts: on/off, remappable.
-- Notifications: off by default. If browser permission is denied: `NOTIFICATIONS ARE OFF IN YOUR BROWSER.`
+- Notifications: **not in the web build** (owner, 2026-11-21), so the web settings have no notifications toggle. A later store build may add one (Responsive & Platform).
 - Replay intro.
-- PAUSE.
+- PAUSE (in-session only; see State Patterns → Paused).
 - Export and import save.
 
 Text size follows the browser.
@@ -202,12 +202,12 @@ Text size follows the browser.
 |---|---|---|
 | App | **First launch** (no save **and** no first-launch flag, a separate localStorage key) | The title cinematic (about 11 s, Phase 1 visuals only) plays. Skip with a tap, Enter, Space or Esc. It ends on **[ TAP TO WAKE THE QUEEN ]** (a real button), then `A QUEEN, ALONE.`, the brood chamber, and a coach mark on LAY EGG. E2E tests set the flag. |
 | App | Later launches | Straight to NEST. |
-| App | Cold load | Terminal text (strip, phase line, primary action) renders first; the vector scene fades in when ready. First interactive under 3 s (GDD). |
-| App | **Resume from background** (≥ 1 min) | Offline catch-up runs and the offline-summary sheet opens, exactly as after a cold load. After less than 1 min away, no sheet; the strip deltas flash once. |
+| App | Cold load | Terminal text (strip, phase line, primary action) renders first; the vector scene fades in when ready. Fast first load is a quality goal with no hard time target (GDD, owner 2026-11-21). |
+| App | **Resume from background** (≥ 60 s) | Offline catch-up runs and the offline-summary sheet opens, exactly as after a cold load. After less than 60 s away, the time counts at full efficiency (GDD), no sheet opens, and the strip deltas flash once. |
 | App | Corrupt save or failed migration | Sheet `THIS SAVE COULDN'T BE READ.` with LOAD BACKUP or START OVER. Never a silent reset. |
 | App | Save write failed / storage full | Persistent strip marker `• SAVE FAILED`; tapping it explains and offers EXPORT SAVE. |
 | App | Import | Invalid file → `THAT FILE ISN'T A SWARM SAVE.` Valid file → a confirm sheet stating that it replaces the current run (hold-to-confirm). |
-| App | Paused (LOG → settings, or P on desktop) | `PAUSED` overlay line; the simulation stops; the next tap resumes. |
+| App | Paused (LOG → settings, or P on desktop) | `PAUSED` overlay line; the simulation stops; the next tap resumes. **In-session only:** hiding or closing the app ends the pause, and the time away counts as normal offline time (the resume rows above apply). The game always reopens unpaused. |
 | NEST | Phase 1, nothing hatched | Empty chamber with the queen; `EGGS HATCH INTO LARVAE.` |
 | NEST | Phase 1, Click Power affordable | The Click Power card appears under the event lines. |
 | NEST | Starving | FOOD turns `warn` ▼; an event line; next-action rule (2); the drawn colony visibly thins. |
@@ -300,7 +300,7 @@ Behavior only. Contrast and type sizes live in DESIGN.md.
 | Height < 480 px (landscape) | See DESIGN.md → Layout & Spacing |
 
 - Safe-area insets are respected.
-- Opt-in notifications (GDD): `NEST IS FULL.` and `THE NEST STOPPED GROWING.` Architecture decides delivery.
+- **No notifications in the web build** (owner, 2026-11-21): a closed page cannot detect events. A later store build may schedule local notifications at predicted times (for example `NEST IS FULL.` and `THE NEST STOPPED GROWING.`); any such toggle starts off. Nothing in the game may depend on them.
 
 ## Inspiration & Anti-patterns
 
@@ -394,7 +394,7 @@ Dev is on day 2 of his run and checks in between meetings, resuming the app from
 3. A decision dialog appears centered. Focus moves to its headline, and he answers with the keyboard.
 4. **Climax:** he presses P to pause while making dinner and comes back to an unchanged colony.
 
-*Failure path:* he has switched keyboard shortcuts off in settings; Space and P do nothing, and he uses the rail and buttons instead.
+*Failure path:* he has switched keyboard shortcuts off in settings; Space and P do nothing, and he uses the rail and buttons instead. If he switches to another browser tab or closes the laptop instead, the pause ends: on return the time away is offline time and, after 60 s or more, the offline summary opens.
 
 ## Implementation notes (non-normative)
 
@@ -407,7 +407,7 @@ These were found while reviewing the spec against the current code (`main @ 24da
 | Resume from background | No `visibilitychange` handling; `Ticker` caps frames at 1 s | Add a resume path running offline catch-up and the summary (E2) |
 | Decision lifecycle | 30 s wall-clock auto-dismiss; spawn timer fires right after load; `show()` replaces the open event | Add an ignore-policy field, a persisted open event, a session-based spawn timer and a one-slot queue |
 | Map tile select-only | `UIRoot` claims a tile on click | Move claiming into the peek sheet |
-| Space = primary, P = pause | Space toggles pause | Rebind |
+| Space = primary, P = pause | Space toggles pause | Rebind. Pause stays in memory only (no save field); hiding the app ends it |
 | Phase reveal skippable | Overlay has `pointer-events: none` | Make it input-blocking and skippable |
 | Corrupt save sheet | Recovery is silent | Show the sheet |
 | LOG persisted | Event log lives in component memory | Persist it with the save |
