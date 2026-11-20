@@ -6,6 +6,7 @@ import {
   isPrestigeAvailable,
   getUnmetRequirements,
   calculateLegacyPoints,
+  getPhaseScore,
   prestige as doPrestige,
   canBuyTemporalResonance,
   buyTemporalResonance,
@@ -66,10 +67,8 @@ export class PrestigePanel {
     const { count, legacyPoints, totalFoodProduced } = state.prestige;
 
     // Compute projected points for this reset
-    // phaseScore: sum of all reached phase numbers
-    const phaseNum = getPhaseNumber(state.phase);
-    const phaseScore = sumToN(phaseNum);
-    const projected = calculateLegacyPoints(totalFoodProduced, phaseScore);
+    // Same scoring prestige() uses, so the preview can't drift from the award.
+    const projected = calculateLegacyPoints(totalFoodProduced, getPhaseScore(state.phase));
 
     this.container.innerHTML = '';
 
@@ -225,30 +224,4 @@ export class PrestigePanel {
 
     this.container.appendChild(btn);
   }
-}
-
-/**
- * Get the numeric position of a phase (1-6).
- */
-function getPhaseNumber(phase: string): number {
-  const map: Record<string, number> = {
-    egg_laying: 1,
-    colony: 2,
-    combat: 3,
-    expansion: 4,
-    space: 5,
-    transcendence: 6,
-  };
-  return map[phase] ?? 1;
-}
-
-/**
- * Sum 1 + 2 + ... + n.
- */
-function sumToN(n: number): number {
-  let sum = 0;
-  for (let i = 1; i <= n; i++) {
-    sum += i;
-  }
-  return sum;
 }

@@ -3,6 +3,8 @@ import { gameState } from '../../src/state/gameSignal';
 import { PrestigePanel } from '../../src/ui/panels/PrestigePanel';
 import { EventBus } from '../../src/engine/EventBus';
 import { createInitialState, type GameState } from '../../src/state/GameState';
+import { PHASE_ORDER } from '../../src/phases/phases';
+import { calculateLegacyPoints, getPhaseScore } from '../../src/systems/PrestigeSystem';
 
 describe('PrestigePanel', () => {
   let bus: EventBus;
@@ -175,4 +177,38 @@ describe('PrestigePanel', () => {
     expect(tooltip).toContain('Reset');
     expect(tooltip).toContain('Legacy');
   });
+});
+
+describe('PrestigePanel LP preview matches PrestigeSystem scoring (#188)', () => {
+  const prestigeReadyBuildings = {
+    barracks: { level: 5, count: 0 },
+    walls: { level: 5 },
+    warehouse: { level: 5 },
+    silk_weaving: { level: 0 },
+    chitin_armory: { level: 0 },
+    venom_lab: { level: 0 },
+  };
+
+  for (const phase of PHASE_ORDER) {
+    it(`preview equals calculateLegacyPoints(food, getPhaseScore('${phase}'))`, () => {
+      const totalFoodProduced = 1_000_000_000;
+      let state: GameState = {
+        ...createInitialState(),
+        phase,
+        buildings: prestigeReadyBuildings,
+        prestige: {
+          ...createInitialState().prestige,
+          totalFoodProduced,
+          totalWoodProduced: 50_000,
+          totalStoneProduced: 50_000,
+          totalNectarProduced: 25_000,
+        },
+      };
+      const panel = new PrestigePanel(new EventBus(), () => state, (s) => { state = s; });
+      panel.refresh();
+      const value = panel.getElement().querySelector('.stat-row.projected .stat-value')?.textContent;
+      const expected = calculateLegacyPoints(totalFoodProduced, getPhaseScore(phase));
+      expect(value).toBe(`+${expected} LP`);
+    });
+  }
 });
