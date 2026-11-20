@@ -1058,16 +1058,17 @@ migrations[14] = (save: SaveV13): SaveV14 => ({
 |---|---|---|
 | Context7 (upstash/context7) | Current docs for Vite 8, Preact 11, Vitest 5, signals, vite-plugin-pwa | Local (`npx`) or remote (HTTP) |
 
-**Setup:**
+**Setup:** the repo's `.mcp.json` configures the remote Context7 server for every Claude Code session
+in the repo, with no key (free tier). Sessions need `mcp.context7.com` on their network allowlist
+(added for the cloud environment on 2026-11-21).
+
+To use a personal API key (higher rate limits), add it to your own user config instead, never to the repo:
 
 ```bash
-# local server
-claude mcp add context7 -- npx -y @upstash/context7-mcp
-# or remote server
-claude mcp add --transport http context7 https://mcp.context7.com/mcp
+claude mcp add --scope user --header "CONTEXT7_API_KEY: <your key>" --transport http context7 https://mcp.context7.com/mcp
 ```
 
-A free Context7 API key raises rate limits but is optional. No engine-specific MCP applies (no engine).
+No engine-specific MCP applies (no engine).
 
 ### Setup Commands
 
