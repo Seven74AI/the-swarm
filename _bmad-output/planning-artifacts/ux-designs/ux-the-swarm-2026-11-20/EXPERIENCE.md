@@ -275,6 +275,10 @@ References only. **The spines win on any conflict**, and mock colours and sizes 
 - [`mockups/title-cinematic.html`](mockups/title-cinematic.html): first-launch cinematic (see Flow 1).
 - [`mockups/terminal-variants.html`](mockups/terminal-variants.html): the top row is the reference for the vector nest scene (small and large colony) and the vector map. Its inline tile panel is superseded by the peek sheet, and its ASCII-nest row is superseded.
 - [`mockups/glyphs.html`](mockups/glyphs.html): the glyph set and the strip in the chosen "glyph + label" layout. Its `WRK` label should read `WRKR`.
+- [`mockups/key-nest.html`](mockups/key-nest.html): NEST in Phase 1 (no tab bar, Click Power card) and Phase 2 with the goal latched after a dip, at 360×640 and 360×512 (Goal meter, Click Power card, State Patterns → NEST, Flows 1–2).
+- [`mockups/key-wrkr-build.html`](mockups/key-wrkr-build.html): WRKR with instant steppers, upkeep and an automation row; BUILD with the highlighted card, a disabled card and running research (Stepper / role row, Automation target row, Research card, Flow 5).
+- [`mockups/key-sheets.html`](mockups/key-sheets.html): offline summary, costly-to-ignore decision event, battle summary (Offline summary, Decision event, Battle summary, Flows 2–4).
+- [`mockups/key-map.html`](mockups/key-map.html): FRONT · MAP with a selected tile and its peek sheet, and with nothing selected (Map tile, Flow 6).
 
 ## Key Flows
 
