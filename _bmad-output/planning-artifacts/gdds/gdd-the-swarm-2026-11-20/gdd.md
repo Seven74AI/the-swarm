@@ -4,7 +4,7 @@ game_type: idle-incremental
 platforms: ["mobile (portrait, touch) - primary; distribution TBD in architecture", "desktop browser - secondary"]
 status: final
 created: 2026-11-20
-updated: 2026-11-20
+updated: 2026-11-21
 inputs:
   - _bmad-output/planning-artifacts/briefs/brief-the-swarm-2026-11-20/brief.md
 baseline_code: "Seven74AI/the-swarm main @ 0b0b364"
@@ -249,8 +249,10 @@ The curve is a staircase: each phase opens with a burst of new options, then slo
 **Offline progress (decision):**
 - **Cap 12 h** (baseline 4 h). Legacy upgrades can raise it to 24 h. [ASSUMPTION: 24 h ceiling]
 - **Efficiency:** base 50%; Phase 2–3 research raises it to 75%; a Legacy upgrade raises it to 100% (see *Meta-Progression*).
+- **Short gaps (decided):** time away under 60 s (a glance at another app, a stalled frame) counts at full efficiency and shows no summary. From 60 s on, the time is offline: the offline efficiency and cap apply and the summary sheet opens. The same rule applies whether the player returns from the background or cold-loads.
 - On return, the player sees a summary sheet: elapsed time, resources gained, and the one most useful next action (decision events do not queue offline). Starvation offline cannot drop workers below 50% of their pre-absence count. [ASSUMPTION: floor]
-- Optional local notifications: "nest is full" and "offline cap reached". Off by default. [ASSUMPTION: opt-in]
+- **Pause (decided):** pause is in-session only. Hiding or closing the app ends it, and the time away counts as normal offline time. A pause is never saved.
+- **Notifications (decided):** none in the web build. A closed web page cannot detect "nest is full" or "offline cap reached". A later store build (native wrapper) may add local notifications scheduled at predicted times. The game must never depend on them.
 
 [NOTE FOR DESIGNER: the baseline has two offline caps, 4 h in `OfflineProgression.ts` and 8 h in the game-loop catch-up. The new model needs a single cap; architecture decides where it lives.]
 
@@ -309,7 +311,8 @@ The game's "levels" are its six phases. Each defines a scale, a new decision typ
 
 ### Performance Requirements
 
-- First interactive screen in under 3 s on a mid-range phone (about 2022 Android) over 4G. [ASSUMPTION: device class]
+- Fast first load is a quality goal, not a hard target (owner, 2026-11-21; this replaces the earlier 3 s first-interactive target). Terminal text renders first and the vector scene fades in when ready; later launches load from the local cache.
+- Reference device for the targets below: a mid-range phone (about 2022 Android). [ASSUMPTION: device class]
 - Interface responds to a tap within 100 ms. Scrolling and transitions hold 60 FPS. Game outcomes are independent of frame rate and device speed (tick rate is an architecture decision).
 - Offline catch-up for a 12 h absence completes in under 500 ms on resume.
 - No processing while the app is backgrounded (progress is computed on return), so the game costs no battery while closed.
@@ -323,7 +326,7 @@ The game's "levels" are its six phases. Each defines a scale, a new decision typ
 ### Asset Requirements
 
 - Icon set covering about 20 resources and 6 buildings, a palette for each of the 6 phases, 5+ sound effects.
-- Total initial download under 2 MB. [ASSUMPTION]
+- Keep the initial download small. There is no hard size limit (owner, 2026-11-21; this replaces the earlier 2 MB limit).
 
 ---
 
@@ -334,7 +337,7 @@ The game's "levels" are its six phases. Each defines a scale, a new decision typ
 | # | Epic | Scope | MVP |
 |---|---|---|---|
 | E1 | Mobile shell and screens | Portrait layout, at most 5-tab navigation, consolidate panels | ✅ |
-| E2 | Offline and check-in | 12 h cap, single offline model, return summary, opt-in notifications | ✅ |
+| E2 | Offline and check-in | 12 h cap, single offline model, 60 s full-efficiency window, return summary, in-session pause (no notifications on web) | ✅ |
 | E3 | Pacing pass, Phases 1–3 | Play telemetry (local), tune against duration targets, fix integer and tick-unit issues | ✅ |
 | E4 | Phase depth, Phases 1–3 | Meet the depth bar: events, upgrades, narrative beats, guard readouts | ✅ |
 | E5 | Prestige rework | Full wipe except LP, Legacy upgrades, lifetime stats and victory record; save migration (#192) | ✅ |
@@ -350,7 +353,7 @@ The game's "levels" are its six phases. Each defines a scale, a new decision typ
 
 ### Technical Metrics
 
-- All performance targets in *Technical Specifications* met on the reference device.
+- All performance targets in *Technical Specifications* met on the reference device (load speed is a quality goal, not a pass/fail target).
 - Zero soft-locks: an automated check that every phase guard is reachable from that phase's own production.
 - Save migration from every shipped save version passes.
 
@@ -385,12 +388,12 @@ Passion project: these are quality signals from playtests, not business KPIs.
 6. Tap-share targets for Phase 1.
 7. "No dominant upgrade" rule.
 8. Automation unlock after 10 manual performances.
-9. Offline: 24 h ceiling, 50% starvation floor, opt-in notifications.
+9. Offline: 24 h ceiling, 50% starvation floor.
 10. Number display rule (full to 999,999, then suffixes).
 11. Phase Skip cannot skip a never-completed phase.
 12. Second run reaches the furthest phase in at most 50% of the time.
 13. Depth bar values (3 events, 4 upgrades, 2 beats per phase); 3 enemy types in Combat.
-14. No art budget; music out of scope for MVP (ambient layer later); 2 MB download; reference device class; desktop shortcuts.
+14. No art budget; music out of scope for MVP (ambient layer later); reference device class; desktop shortcuts.
 15. Offline-efficiency research cost.
 16. Phase 3–5 active-play minutes and ending-sequence length.
 17. Wood, stone and nectar yields from Gather, Forage and Dig.

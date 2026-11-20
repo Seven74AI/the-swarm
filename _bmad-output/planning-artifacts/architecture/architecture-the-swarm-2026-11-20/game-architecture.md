@@ -428,6 +428,8 @@ Recorded as ADRs in `docs/decisions/` (created in the same PR as this document):
 
 - GDD/UX: notifications are removed from the web build (Q2). Update the E2 notification story and
   EXPERIENCE.md Settings through `gds-correct-course` when the stories are written.
+  **Done 2026-11-21** (`sprint-change-proposal-2026-11-21.md`, GDD decision log #24–#28), together
+  with the load budgets, in-session pause and the 60 s full-efficiency window.
 
 ## Cross-cutting Concerns
 

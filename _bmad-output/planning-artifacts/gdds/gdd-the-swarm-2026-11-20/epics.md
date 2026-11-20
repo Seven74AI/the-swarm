@@ -24,15 +24,17 @@ Every epic has the same shape: **Goal**, **Delivers** (the `gdd.md` sections it 
 ## E2: Offline and check-in (MVP)
 
 **Goal:** every return shows a summary with at least one decision worth making.
-**Delivers:** *Economy and Resources* (offline progress decision: 12 h cap, efficiency, summary, notifications); the offline efficiency chain in *Meta-Progression*; the check-in loop in *Core Gameplay Loop*.
+**Delivers:** *Economy and Resources* (offline progress decision: 12 h cap, efficiency, the 60 s short-gap rule, summary, in-session pause, no web notifications); the offline efficiency chain in *Meta-Progression*; the check-in loop in *Core Gameplay Loop*.
 
 - Replace the two baseline offline caps (4 h and 8 h) with a single 12 h cap that upgrades can raise to 24 h. (check-in loop)
+- Short gaps: time away under 60 s counts at full efficiency and opens no summary; from 60 s on, it is offline time at the offline efficiency. Applies to a return from the background and to a cold load. (check-in loop)
 - Offline efficiency chain: base 50%; 50% → 75% through Phase 2–3 research (wiped on prestige, re-bought each run); 75% → 100% and the 12 h → 24 h cap raise through Legacy upgrades (kept on prestige). Replaces Temporal Resonance / Chrono Synchronization and migrates saves that own them. (check-in loop, technical)
 - Return summary sheet: elapsed time, resources gained, and the one most useful next action (an allocation change or an affordable upgrade). Decision events fire only while the game is open and never queue offline, so the summary does not rely on them. (check-in loop)
 - Offline starvation floor: offline starvation never drops workers below 50% of their pre-absence count. (check-in loop; softens P4 offline)
-- Opt-in local notifications, off by default: "nest is full" and "offline cap reached". (check-in loop)
+- Pause is in-session only: PAUSE stops the simulation; hiding or closing the app ends the pause, and the time away counts as normal offline time. A pause is never saved. (check-in loop)
+- No notifications in the web build. Local notifications are left to a later store build and nothing may depend on them. (check-in loop, technical)
 
-**Done when:** a 12 h absence resolves in under 500 ms on resume; offline gains are integers and never exceed what the capped duration would produce at the current efficiency; workers never fall below the starvation floor; no decision event is generated offline; and the summary always names at least one available allocation change or affordable upgrade.
+**Done when:** a 12 h absence resolves in under 500 ms on resume; offline gains are integers and never exceed what the capped duration would produce at the current efficiency; workers never fall below the starvation floor; no decision event is generated offline; a gap under 60 s is simulated at full efficiency and opens no summary; a hidden or reloaded app is never paused on return; and the summary always names at least one available allocation change or affordable upgrade.
 
 ## E3: Pacing pass, phases 1–3 (MVP)
 
