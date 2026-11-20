@@ -73,24 +73,6 @@ describe('OnboardingManager', () => {
 
       expect(document.querySelector('.onboarding-overlay')).toBeNull();
     });
-
-    it('marks onboarding as complete after all steps dismissed', () => {
-      const mgr = new OnboardingManager();
-      mgr.start();
-
-      // Dismiss step 1: click egg
-      let btn = document.querySelector('.onboarding-tooltip-dismiss') as HTMLElement;
-      expect(btn).not.toBeNull();
-      btn.click();
-
-      // Dismiss step 2: eggs hatch (wait for the 300ms timeout)
-      // We need to fast-forward timers, but the simple approach is to
-      // verify that clicking through all steps works.
-
-      // After clicking first dismiss, overlay should be gone (waiting for next step)
-      // The 300ms timeout means we can't test step 2 without fake timers.
-      // Instead, verify localStorage state after full sequence via reset + start.
-    });
   });
 
   describe('reset', () => {

@@ -1,5 +1,4 @@
 import type { GameState } from '../state/GameState';
-import { clamp } from '../utils/math';
 import { PLANETS, type PlanetDef } from '../data/planets';
 
 export const MAX_ACTIVE_EXPLORATIONS = 3;
