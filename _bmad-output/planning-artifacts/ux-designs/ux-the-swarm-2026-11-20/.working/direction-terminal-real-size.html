@@ -1,0 +1,85 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>THE SWARM — Hive Terminal at real size</title><style>
+/* Hive Terminal. Per-phase accent: egg #ffb000 · colony #c8f7a0 · combat #ff6b4a · expansion #7dffb0 · space #7ad7ff · transcendence #ffffff. Dim text = accent at 62% opacity. */
+body{margin:0;background:#161616;color:#ddd;font-family:system-ui,sans-serif;padding:20px}
+header{max-width:1200px;margin:0 auto 16px}h1{font-size:21px;margin:0 0 6px}header p{color:#aaa;font-size:14px;margin:4px 0;max-width:820px;line-height:1.45}
+.grid{display:flex;flex-wrap:wrap;gap:22px;justify-content:center}
+figure{margin:0}figcaption{font-size:13px;color:#aaa;margin:0 0 6px 4px}
+.phone{width:360px;height:720px;background:var(--bg);color:var(--a);font:14px/1.3 ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;border:7px solid #000;border-radius:30px;display:flex;flex-direction:column;overflow:hidden;position:relative;text-shadow:0 0 5px color-mix(in srgb,var(--a) 45%,transparent);box-sizing:content-box}
+.phone::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
+.dim,.g,.cond,.log p,.cost,.strip .l,.tabs div{color:color-mix(in srgb,var(--a) 62%,var(--bg))}
+.strip{display:flex;justify-content:space-between;padding:12px 12px 8px;border-bottom:1px solid color-mix(in srgb,var(--a) 25%,var(--bg))}
+.strip div{display:flex;flex-direction:column;align-items:center}.strip .l{font-size:11px}.strip .n{font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}.strip i{font-style:normal;font-size:11px}.strip i.bad,.bad{color:#ff9a6b}
+.ph{padding:10px 14px 4px}.pn{font-size:20px;font-weight:700;letter-spacing:.08em}.g{font-size:12px;margin-top:2px}.mt{margin-top:4px;font-size:13px;white-space:pre}.cond{display:flex;justify-content:space-between;font-size:12px}
+.body{padding:6px 12px 0}pre{margin:0;font:inherit;font-size:13px;line-height:1.15;white-space:pre}
+.mult{font-size:13px;margin:4px 0 8px}.role{display:grid;grid-template-columns:62px 1fr 24px 26px 62px;align-items:center;height:44px;font-size:13px;border-bottom:1px dashed color-mix(in srgb,var(--a) 18%,var(--bg))}.rb{letter-spacing:-1px;overflow:hidden}.rc{text-align:right;font-weight:700}.pend{color:#fff;font-weight:400;text-align:center;font-size:12px}.st{text-align:right;font-weight:700}
+.log{padding:8px 14px;flex:1}.log p{margin:3px 0;font-size:12.5px}.log p::before{content:"· "}.log p.new{color:var(--a)}.log p.new::before{content:"> "}
+.pa{padding:8px 14px 10px}.pb{width:100%;min-height:50px;background:transparent;border:1.5px solid var(--a);color:var(--a);font:700 15px ui-monospace,Menlo,monospace;text-shadow:inherit;letter-spacing:.04em}.pb.dis{opacity:.4}.cur{animation:b 1s steps(1) infinite;margin-left:4px}@keyframes b{50%{opacity:0}}
+.cost{text-align:center;font-size:12px;margin-top:5px}
+.tabs{display:flex;border-top:1px solid color-mix(in srgb,var(--a) 25%,var(--bg))}.tabs div{flex:1;text-align:center;height:52px;line-height:52px;font-size:12px;position:relative}.tabs .on{color:var(--a);font-weight:700}.tabs em{position:absolute;top:-8px;right:8px;font-style:normal;color:var(--a)}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.6)}.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-top:1.5px solid var(--a);padding:6px 16px 18px}.handle{text-align:center;opacity:.5}.sh{font-size:24px;font-weight:700;letter-spacing:.1em;margin:6px 0}.sheet p{margin:4px 0;color:var(--a)}.sheet .pb{margin-top:14px}.sb{width:100%;min-height:46px;margin-top:8px;background:transparent;border:0;color:color-mix(in srgb,var(--a) 62%,var(--bg));font:13px ui-monospace,monospace}
+</style></head><body><header><h1>C · Hive Terminal, at real phone size</h1>
+<p>Each frame is 360 px wide, the GDD's minimum phone width. Text is 13–15 px monospace: what a phone would actually show, not a scaled-down preview. That gives about 38 characters per line, so every ASCII drawing is built to fit inside 36.</p>
+<p><b>No emoji:</b> resources use 4-letter labels, because emoji break the monospace grid. <b>Big colonies:</b> above about 100 ants, each character stands for a group of ants, shaded ░▒▓█ by how full it is (see the late-game frame). <b>Phases</b> change the phosphor color. The scanlines and glow are optional and would be switched off by reduced motion.</p></header><div class="grid"><figure><figcaption>Phase 1 · first minute</figcaption><div class="phone" style="--a:#ffb000;--bg:#0d0a04">
+<div class="strip"><div><span class="l">EGG</span><span class="n">3</span><i class=""></i></div><div><span class="l">LRV</span><span class="n">1</span><i class=""></i></div><div><span class="l">WRK</span><span class="n">0</span><i class=""></i></div><div><span class="l">FOOD</span><span class="n">40</span><i class="bad">−0/s</i></div></div>
+<div class="ph"><div class="pn">EGG LAYING</div><div class="g">COLONY AT 10 WORKERS</div><div class="mt">[························]   0%</div><div class="cond"><span class="">workers 0/10</span></div></div>
+<div class="body"><pre>┌─ BROOD ──────────────────────────┐
+│                                  │
+│      o o o   ~                   │
+│            Q                     │
+│                                  │
+│                                  │
+└──────────────────────────────────┘
+
+  o egg   ~ larva   Q queen</pre></div><div class="log"><p class="new">A QUEEN, ALONE.</p></div>
+<div class="pa"><button class="pb">&gt; LAY EGG<span class="cur">█</span></button><div class="cost">tap · hold to repeat</div></div></div></figure><figure><figcaption>Phase 2 · Nest</figcaption><div class="phone" style="--a:#c8f7a0;--bg:#0b0d08">
+<div class="strip"><div><span class="l">FOOD</span><span class="n">1 240</span><i class="">+18/s</i></div><div><span class="l">WRK</span><span class="n">37</span><i class="">+1</i></div><div><span class="l">WOOD</span><span class="n">212</span><i class="">+3/s</i></div><div><span class="l">STON</span><span class="n">96</span><i class="">+2/s</i></div><div><span class="l">NECT</span><span class="n">41</span><i class="bad">−1/s</i></div></div>
+<div class="ph"><div class="pn">COLONY</div><div class="g">COMBAT AT 50 WORKERS + 1 GUARD</div><div class="mt">[██████████████████······]  74%</div><div class="cond"><span class="">workers 37/50</span><span class="bad">guard ✗</span></div></div>
+<div class="body"><pre>┌─ BROOD ──────────────────────────┐
+│ o o o 0 0 ~ ~ ~                  │
+│ ~ ~ ~ ~        Q                 │
+└──────────────────────────────────┘
+┌─ WORKERS · 37 ───────────────────┐
+│ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥  │
+│ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥ ¥  │
+│ ¥ ¥ ¥ ¥ ¥                        │
+└──────────────────────────────────┘</pre></div><div class="log"><p class="new">THE FIRST GUARD IS READY TO BE NAMED.</p><p class="">BEETLES TOOK 3 FORAGERS.</p></div>
+<div class="pa"><button class="pb">&gt; BUY WAREHOUSE LV.3<span class="cur">█</span></button><div class="cost">400 FOOD · 40 WOOD</div></div><div class="tabs"><div class="on">[NEST]</div><div class="">WRKR<em>•</em></div><div class="">BUILD</div><div class="">LOG</div></div></div></figure><figure><figcaption>Phase 2 · Workers</figcaption><div class="phone" style="--a:#c8f7a0;--bg:#0b0d08">
+<div class="strip"><div><span class="l">FOOD</span><span class="n">1 240</span><i class="">+18/s</i></div><div><span class="l">WRK</span><span class="n">37</span><i class="">+1</i></div><div><span class="l">WOOD</span><span class="n">212</span><i class="">+3/s</i></div><div><span class="l">STON</span><span class="n">96</span><i class="">+2/s</i></div><div><span class="l">NECT</span><span class="n">41</span><i class="bad">−1/s</i></div></div>
+<div class="ph"><div class="pn">WORKERS</div><div class="g">FREE 3 · UPKEEP 18/s OF 21/s</div><div class="cond"></div></div>
+<div class="body"><div class="mult">[ ×1 ] ×10  ×MAX</div><div class="role"><span class="rn">GATHER</span><span class="rb">██████████████··</span><span class="rc">14</span><b class="pend">+3</b><span class="st">[−][+]</span></div><div class="role"><span class="rn">FORAGE</span><span class="rb">██████··········</span><span class="rc"> 6</span><b class="pend"></b><span class="st">[−][+]</span></div><div class="role"><span class="rn">TEND</span><span class="rb">████············</span><span class="rc"> 4</span><b class="pend"></b><span class="st">[−][+]</span></div><div class="role"><span class="rn">DIG</span><span class="rb">████████········</span><span class="rc"> 8</span><b class="pend"></b><span class="st">[−][+]</span></div><div class="role"><span class="rn">GUARD</span><span class="rb">················</span><span class="rc"> 0</span><b class="pend">+1</b><span class="st">[−][+]</span></div><div class="role"><span class="rn">RESRCH</span><span class="rb">██··············</span><span class="rc"> 2</span><b class="pend"></b><span class="st">[−][+]</span></div></div><div class="log"></div>
+<div class="pa"><button class="pb">&gt; APPLY (+4 −0)<span class="cur">█</span></button><div class="cost">pending changes</div></div><div class="tabs"><div class="">NEST</div><div class="on">[WRKR]</div><div class="">BUILD</div><div class="">LOG</div></div></div></figure><figure><figcaption>Phase 3 · battle summary</figcaption><div class="phone" style="--a:#ff6b4a;--bg:#0f0807">
+<div class="strip"><div><span class="l">FOOD</span><span class="n">3 910</span><i class="">+31/s</i></div><div><span class="l">WRK</span><span class="n">58</span><i class=""></i></div><div><span class="l">SILK</span><span class="n">12</span><i class=""></i></div><div><span class="l">CHTN</span><span class="n">4</span><i class=""></i></div><div><span class="l">VNOM</span><span class="n">19</span><i class=""></i></div></div>
+<div class="ph"><div class="pn">COMBAT</div><div class="g">EXPANSION AT 60 WORKERS + 5 WINS</div><div class="mt">[██████████████··········]  60%</div><div class="cond"><span class="">workers 58/60</span><span class="">wins 3/5</span></div></div>
+<div class="body"><pre>┌─ BATTLE 4 · ARMORED BEETLE ──────┐
+│ YOU  ¥¥¥¥¥¥¥¥¥¥¥¥    12 → 7      │
+│ THEM ▓▓▓▓▓▓▓▓       shell 3      │
+└──────────────────────────────────┘</pre></div><div class="log"><p class="new">THE BEETLES CAME AT DUSK.</p></div>
+<div class="pa"><button class="pb">&gt; FIGHT<span class="cur">█</span></button><div class="cost">12 soldiers ready</div></div><div class="tabs"><div class="">NEST</div><div class="">WRKR</div><div class="">BUILD</div><div class="on">[WAR]</div><div class="">LOG</div></div><div class="scrim"></div><div class="sheet"><div class="handle">────</div><div class="sh">DEFEAT</div><p>−5 SOLDIERS</p><p>THEIR SHELLS TURNED YOUR VENOM.</p><button class="pb">&gt; CHANGE → MANDIBLES</button><button class="sb">CLOSE</button></div></div></figure><figure><figcaption>Late game · 1 240 workers</figcaption><div class="phone" style="--a:#7dffb0;--bg:#060d09">
+<div class="strip"><div><span class="l">FOOD</span><span class="n">88.2K</span><i class="">+410/s</i></div><div><span class="l">WRK</span><span class="n">1 240</span><i class="">+6</i></div><div><span class="l">WOOD</span><span class="n">9 104</span><i class=""></i></div><div><span class="l">STON</span><span class="n">7 553</span><i class=""></i></div><div><span class="l">NECT</span><span class="n">2 301</span><i class=""></i></div></div>
+<div class="ph"><div class="pn">EXPANSION</div><div class="g">SPACE AT 80 WORKERS + 5 000 FOOD</div><div class="mt">[████████████████████████] 100%</div><div class="cond"><span class="">workers ✓</span><span class="">food ✓</span></div></div>
+<div class="body"><pre>┌─ WORKERS · 1 240 ────────────────┐
+│ ▒██░▒▓█  ▓▒█▒░▓██▓▓░▒░█▓  ░█ ▒ ▒ │
+│ ▓▓▓▓█▓░▒░ ░▓░▒▓▒▓█▓█▒██▓█▒▒ ▒░▒█ │
+│ ██░░█▒▒░ ▓▓ ▒ ▓░ ▒▓▓░  ▓█▒█▒█▒ ▒ │
+│   ░█ ░▓▒▒░ ▒▒▒░▓▓▓█▓█░█▒▓▒▒▓▒█▒█ │
+└──────────────────────────────────┘
+
+  ░▒▓█ = 1–18 ants per cell</pre></div><div class="log"><p class="new">THE SURFACE IS OURS AS FAR AS THE OAK.</p></div>
+<div class="pa"><button class="pb">&gt; CONTINUE<span class="cur">█</span></button><div class="cost">the next scale is ready</div></div><div class="tabs"><div class="on">[NEST]</div><div class="">WRKR</div><div class="">BUILD</div><div class="">FRONT</div><div class="">LOG</div></div></div></figure><figure><figcaption>Phase 4 · map</figcaption><div class="phone" style="--a:#7dffb0;--bg:#060d09">
+<div class="strip"><div><span class="l">FOOD</span><span class="n">12.4K</span><i class="">+96/s</i></div><div><span class="l">WRK</span><span class="n">74</span><i class=""></i></div><div><span class="l">WOOD</span><span class="n">1 880</span><i class=""></i></div><div><span class="l">STON</span><span class="n">1 202</span><i class=""></i></div><div><span class="l">NECT</span><span class="n">640</span><i class=""></i></div></div>
+<div class="ph"><div class="pn">FRONTIER · MAP</div><div class="g">3 OF 3 EXPEDITIONS OUT</div><div class="cond"></div></div>
+<div class="body"><pre>┌─ SURFACE 8×8 ────────────────────┐
+│                                  │
+│  ?  .  ^  ^  #  ?  .  .          │
+│  ~  ~  ^  #  ?  .  E  .          │
+│  #  ^  ~ [.] .  #  #  .          │
+│  ^  ^  ? [.][~] E  #  ?          │
+│  ^  ?  ~ [#][.] .  ?  #          │
+│  ?  ^  .  .  ~  ?  #  .          │
+│  .  E  ^  .  ?  ~  #  .          │
+│  ^  ^  .  ?  .  .  ~             │
+│                                  │
+│ ^ forest . meadow # rock         │
+│  ~ water  E nest  [ ] ours       │
+└──────────────────────────────────┘</pre></div><div class="log"><p class="new">SCOUTS RETURN FROM THE ROCKS IN 14M.</p></div>
+<div class="pa"><button class="pb dis">&gt; SEND EXPEDITION<span class="cur">█</span></button><div class="cost">3 of 3 out · back in 14m</div></div><div class="tabs"><div class="">NEST</div><div class="">WRKR</div><div class="">BUILD</div><div class="on">[FRONT]</div><div class="">LOG</div></div></div></figure></div></body></html>
