@@ -1,0 +1,37 @@
+name: Flake hunt
+
+# Runs every E2E test 3 times to surface flaky tests. Kept off the PR path so
+# PRs only pay for one pass; a failure here should become a needs-triage issue.
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  flake-hunt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Playwright tests x3, no retries
+        run: pnpm exec playwright test --repeat-each=3 --retries=0 --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: flake-hunt-report-${{ matrix.shard }}
+          path: playwright-report/
+          retention-days: 14
