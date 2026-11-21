@@ -45,6 +45,11 @@ export interface PrestigeUpgrade {
   prerequisites: PrestigeUpgradeId[];
   /** Depth in the tree (0 = root node) */
   depth: number;
+  /**
+   * How much owning this node raises the offline cap, in ms (Story 2.4).
+   * Summed by `getOfflineCapMs`; no node sets it until Story 2.8.
+   */
+  offlineCapRaiseMs?: number;
 }
 
 /** All 8 prestige tree upgrades. */

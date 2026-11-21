@@ -13,7 +13,10 @@ import type { OfflineLoadInfo } from '../../../../src/engine/resume';
  */
 
 function info(overrides: Partial<OfflineLoadInfo> = {}): OfflineLoadInfo {
-  return { elapsedMs: 11_640_000, effectiveMs: 11_640_000, offlineTicks: 116_400, efficiency: 0.5, ...overrides };
+  return {
+    elapsedMs: 11_640_000, effectiveMs: 11_640_000, offlineTicks: 116_400, efficiency: 0.5,
+    capMs: 43_200_000, capped: false, ...overrides,
+  };
 }
 
 let sheets: SheetController;
@@ -55,6 +58,20 @@ describe('offline summary sheet', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
     expect(popup()).toBeNull();
     expect(document.querySelector('.offline-overlay')).toBeNull();
+  });
+
+  it('says when the cap stopped the nest, and which cap it was (Story 2.4)', () => {
+    const capMs = info().capMs;
+    act(() => void openOfflineSummary(sheets, info({ elapsedMs: capMs * 2, effectiveMs: capMs, capped: true })));
+    const cap = popup()!.querySelector('[data-offline-cap]');
+    expect(cap).not.toBeNull();
+    expect(cap!.getAttribute('data-offline-cap')).toBe(String(capMs));
+    expect(cap!.textContent).toContain(formatAway(capMs).toUpperCase());
+  });
+
+  it('says nothing about the cap when the whole absence was simulated', () => {
+    act(() => void openOfflineSummary(sheets, info()));
+    expect(popup()!.querySelector('[data-offline-cap]')).toBeNull();
   });
 
   it('opens ahead of a decision sheet requested at the same time', () => {

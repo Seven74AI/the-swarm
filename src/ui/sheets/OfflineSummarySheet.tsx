@@ -34,6 +34,11 @@ export function OfflineSummarySheet({ info }: { info: OfflineLoadInfo }) {
     >
       <p class="offline-duration">YOU WERE GONE {formatAway(info.elapsedMs).toUpperCase()}.</p>
       <p class="offline-efficiency">CATCH-UP EFFICIENCY: {Math.round(info.efficiency * 100)}%</p>
+      {info.capped && (
+        <p class="offline-cap" data-offline-cap={String(info.capMs)}>
+          THE NEST WORKED THE FIRST {formatAway(info.capMs).toUpperCase()}.
+        </p>
+      )}
     </ModalSheet>
   );
 }

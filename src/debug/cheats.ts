@@ -20,14 +20,17 @@ import { Phase, PHASE_ORDER } from '../phases/phases';
 import type { GameState } from '../state/GameState';
 import { isSeed } from '../state/seed';
 import { log } from '../utils/log';
+import { HOUR_MS, OFFLINE_CAP_MAX_MS } from '../data/constants';
 
 /** Greps for this in the production bundle must find nothing. */
 export const CHEATS_MARKER = 'swarm-cheats:dev-only';
 
-/** The longest time skip, in hours: catch-up runs every tick, so longer ones freeze the page. */
-export const MAX_SKIP_HOURS = 24;
+/**
+ * The longest time skip, in hours: the offline cap's ceiling. The catch-up then
+ * simulates at most the current `getOfflineCapMs(state)` of it (Story 2.4).
+ */
+export const MAX_SKIP_HOURS = OFFLINE_CAP_MAX_MS / HOUR_MS;
 
-const HOUR_MS = 60 * 60 * 1000;
 
 export type CheatResult = { readonly ok: true } | { readonly ok: false; readonly reason: string };
 

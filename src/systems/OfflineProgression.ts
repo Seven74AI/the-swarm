@@ -1,13 +1,14 @@
 import type { GameState } from '../state/GameState';
 import type { TerritoryBonuses } from './TerritorySystem';
-import { computeResourceRates, type ResourceRates } from './ResourceSystem';
+import { computeResourceRates } from './ResourceSystem';
+import { OFFLINE_CAP_BASE_MS, OFFLINE_CAP_MAX_MS } from '../data/constants';
+import { PRESTIGE_UPGRADES, type PrestigeUpgrade } from '../data/prestigeTree';
 
 /**
  * Offline Progression — calculates how many game ticks to simulate
  * when the player returns after being away.
  *
- * Standard incremental convention:
- * - Offline progress is capped at 4 hours
+ * - Offline progress is capped by `getOfflineCapMs(state)` (Story 2.4)
  * - Offline efficiency starts at 50% (Phase 1-4)
  * - Upgrades can increase efficiency to 75% and 100%
  *
@@ -16,12 +17,22 @@ import { computeResourceRates, type ResourceRates } from './ResourceSystem';
  * non-linear events (pipelines, battles, expeditions).
  */
 
-export interface OfflineTickResult {
-  /** Wall-clock ms actually used for catch-up (capped at 8h, floored at 0) */
+/** How much of an absence is simulated (Story 2.4). */
+export interface OfflinePlan {
+  /** Wall-clock ms away (negative gaps read as 0). */
+  elapsedMs: number;
+  /** Ms simulated: `elapsedMs`, at most `capMs`. */
   effectiveMs: number;
-  /** Number of game ticks to simulate for non-linear events (efficiency-reduced) */
+  /** Game ticks to simulate for the non-linear parts (efficiency-reduced). */
   offlineTicks: number;
+  /** The cap that applied: `getOfflineCapMs(state)`. */
+  capMs: number;
+  /** True when the absence was longer than the cap. */
+  capped: boolean;
 }
+
+/** The simulated tick length. */
+const TICK_MS = 50;
 
 /**
  * Closed-form resource deltas for the full offline period.
@@ -82,28 +93,41 @@ export function computeOfflineResourceDeltas(
 }
 
 /**
- * Calculate offline ticks based on elapsed wall-clock time and efficiency.
+ * The offline cap (Story 2.4, FR20): the most resumed time that is simulated.
+ * The baseline from data/constants.ts plus the `offlineCapRaiseMs` of every
+ * owned Legacy upgrade, never above `OFFLINE_CAP_MAX_MS`. Every offline path
+ * reads the cap here and nowhere else (tests/arch/offlineCap.test.ts).
  *
- * @param elapsedMs - Wall-clock milliseconds since last save
- * @param efficiency - Offline efficiency multiplier (0.5 = 50%, 1.0 = 100%)
- * @param tickIntervalMs - Duration of one game tick in ms (default 50)
- * @returns Object with effectiveMs (capped) and offlineTicks (efficiency-reduced)
+ * @param upgrades - the upgrade table (tests pass one with cap-raise nodes)
  */
-export function calculateOfflineTicks(
+export function getOfflineCapMs(state: GameState, upgrades: readonly PrestigeUpgrade[] = PRESTIGE_UPGRADES): number {
+  const owned = new Set(state.prestigeTree?.purchased ?? []);
+  let raise = 0;
+  for (const u of upgrades) {
+    if (owned.has(u.id)) raise += u.offlineCapRaiseMs ?? 0;
+  }
+  return Math.min(OFFLINE_CAP_BASE_MS + raise, OFFLINE_CAP_MAX_MS);
+}
+
+/** `ms` of absence, cut to the offline cap (negative and non-finite gaps read as 0). */
+export function capOfflineMs(state: GameState, ms: number, upgrades?: readonly PrestigeUpgrade[]): number {
+  if (!(ms > 0)) return 0;
+  return Math.min(ms, getOfflineCapMs(state, upgrades));
+}
+
+/**
+ * Plan the catch-up for an absence of `elapsedMs`: at most the cap is
+ * simulated, at `efficiency` (0.5 = 50%) of its ticks.
+ */
+export function planOffline(
+  state: GameState,
   elapsedMs: number,
   efficiency: number,
-  tickIntervalMs: number = 50,
-): OfflineTickResult {
-  const OFFLINE_CAP_MS = 4 * 60 * 60 * 1000; // 4 hours
-
-  // Guard against negative elapsed (clock skew)
-  if (elapsedMs <= 0) {
-    return { effectiveMs: 0, offlineTicks: 0 };
-  }
-
-  const effectiveMs = Math.min(elapsedMs, OFFLINE_CAP_MS);
-  const totalTicks = Math.floor(effectiveMs / tickIntervalMs);
-  const offlineTicks = Math.floor(totalTicks * efficiency);
-
-  return { effectiveMs, offlineTicks };
+  upgrades?: readonly PrestigeUpgrade[],
+): OfflinePlan {
+  const away = elapsedMs > 0 ? elapsedMs : 0;
+  const capMs = getOfflineCapMs(state, upgrades);
+  const effectiveMs = capOfflineMs(state, away, upgrades);
+  const offlineTicks = Math.floor(Math.floor(effectiveMs / TICK_MS) * efficiency);
+  return { elapsedMs: away, effectiveMs, offlineTicks, capMs, capped: away > capMs };
 }
