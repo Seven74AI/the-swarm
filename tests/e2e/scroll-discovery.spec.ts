@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { tapContinue } from './helpers/phase';
+import { REVEAL, tapContinue } from './helpers/phase';
 
 /**
  * E2E: Phase-Based Panel Reveal + Phase Theme Shifting (UX-10).
@@ -144,7 +144,7 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
       await page.clock.runFor(500);
       await tapContinue(page);
       await page.clock.runFor(4000);
-      await expect(page.locator('#phase-transition-overlay.active')).not.toBeVisible({ timeout: 5000 });
+      await expect(page.locator(REVEAL)).toHaveCount(0, { timeout: 5000 });
 
       // worker_assignment should now exist and be visible (phase-based reveal)
       const wa = page.locator('#worker-assignment');
@@ -162,10 +162,9 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
       await page.goto('/');
       await page.waitForSelector('#panels', { timeout: 10000 });
 
-      // The goal latches on the first tick; CONTINUE commits it (Story 1.19)
+      // The goal latches on the first tick; CONTINUE commits it (Story 1.19).
+      // The panels are revealed under the phase reveal (Story 1.20), which tapContinue waits out.
       await tapContinue(page);
-      // Wait for the phase transition (PANEL_REVEAL_DELAY_MS + TRANSITION_DURATION_MS)
-      await page.waitForTimeout(3500);
 
       // worker_assignment should now exist with panel-revealed class
       const wa = page.locator('#worker-assignment');
@@ -211,7 +210,7 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
       await page.clock.runFor(4000);
 
       // Wait for transition to complete (overlay disappears)
-      await expect(page.locator('#phase-transition-overlay.active')).not.toBeVisible({ timeout: 5000 });
+      await expect(page.locator(REVEAL)).toHaveCount(0, { timeout: 5000 });
 
       const hasColonyClass = await page.evaluate(() =>
         document.body.classList.contains('phase-colony'),
@@ -246,7 +245,7 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
       await page.clock.runFor(4000);
 
       // Wait for transition overlay to clear
-      await expect(page.locator('#phase-transition-overlay.active')).not.toBeVisible({ timeout: 5000 });
+      await expect(page.locator(REVEAL)).toHaveCount(0, { timeout: 5000 });
 
       phaseClass = await page.evaluate(() => {
         const classes = Array.from(document.body.classList);
@@ -276,7 +275,7 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
       await page.waitForTimeout(5000);
 
       // Wait for transition overlay to clear
-      await expect(page.locator('#phase-transition-overlay.active')).not.toBeVisible({ timeout: 5000 });
+      await expect(page.locator(REVEAL)).toHaveCount(0, { timeout: 5000 });
 
       // Verify body class changed to colony (triggers theme shift)
       const phaseClass = await page.evaluate(() => {

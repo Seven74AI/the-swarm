@@ -28,7 +28,15 @@ function palette(token: string): Record<string, string> {
 async function boundAliases(page: Page): Promise<Record<string, string>> {
   return page.evaluate((names) => {
     const cs = getComputedStyle(document.documentElement);
-    return Object.fromEntries(names.map((n) => [n, cs.getPropertyValue(n).trim().toLowerCase()]));
+    // The aliases are registered colors (Story 1.20's cross-fade), so they compute to rgb(): compare as hex.
+    const hex = (v: string): string => {
+      const m = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/.exec(v);
+      if (!m) return v;
+      const parts = [m[1], m[2], m[3]].map((c) => Number(c).toString(16).padStart(2, '0'));
+      if (m[4] !== undefined && Number(m[4]) < 1) parts.push(Math.round(Number(m[4]) * 255).toString(16).padStart(2, '0'));
+      return `#${parts.join('')}`;
+    };
+    return Object.fromEntries(names.map((n) => [n, hex(cs.getPropertyValue(n).trim().toLowerCase())]));
   }, ALIASES);
 }
 

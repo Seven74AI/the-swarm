@@ -3,6 +3,7 @@ import { render, cleanup, act } from '@testing-library/preact';
 import '@preact/signals';
 import { signal } from '@preact/signals-core';
 import { createSheetController } from '../../../src/ui/shell/SheetController';
+import { createOverlayController } from '../../../src/ui/shell/OverlayController';
 import { App, type LegacyUi } from '../../../src/ui/App';
 import type { ShellHosts } from '../../../src/ui/shell/hosts';
 import { createTabShell } from '../../../src/ui/shell/tabShell';
@@ -58,5 +59,21 @@ describe('App (Preact root)', () => {
     act(() => void sheets.open({ priority: 'modal', render: () => <p data-probe="" /> }));
     expect(container.querySelector('[data-probe]')).not.toBeNull();
     expect(container.querySelector('#top-bar')).not.toBeNull();
+  });
+
+  it('draws the overlay layer above the sheets, which wait while it is up (Story 1.20)', () => {
+    const sheets = createSheetController();
+    const overlays = createOverlayController();
+    const { container } = render(<App legacy={fakeLegacy()} shell={shell()} sheets={sheets} overlays={overlays} />);
+    let id = 0;
+    act(() => {
+      id = overlays.show({ kind: 'phase-reveal', render: () => <p data-overlay-probe="" /> });
+    });
+    act(() => void sheets.open({ priority: 'decision', render: () => <p data-probe="" /> }));
+    expect(container.querySelector('[data-overlay-probe]')).not.toBeNull();
+    expect(container.querySelector('[data-probe]')).toBeNull();
+    act(() => overlays.end(id));
+    expect(container.querySelector('[data-overlay-probe]')).toBeNull();
+    expect(container.querySelector('[data-probe]')).not.toBeNull();
   });
 });

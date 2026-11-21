@@ -14,6 +14,7 @@ import type { BuildingType } from '../systems/BuildingSystem';
 import type { AutomationBuildingType, ResearchType } from '../systems/AutomationSystem';
 import type { ResearchProjectId } from '../state/GameState';
 import type { PrestigeUpgradeId } from '../data/prestigeTree';
+import type { Phase } from '../phases/phases';
 import * as nest from './nest';
 import * as buildings from './buildings';
 import * as research from './research';
@@ -22,7 +23,7 @@ import * as expansion from './expansion';
 import * as space from './space';
 import * as prestige from './prestige';
 import { chooseDecision } from './decisions';
-import { continuePhase } from './phase';
+import { continuePhase, markRevealSeen } from './phase';
 
 export type { ActionDeps } from './context';
 export type { ActionResult, RefusalReason, Refused, StateStore } from './result';
@@ -70,6 +71,7 @@ export function createActions(deps: ActionDeps) {
     buyChronoSynchronization: () => prestige.buyChronoSynchronization(deps),
     // Phase flow
     continuePhase: () => continuePhase(deps),
+    markRevealSeen: (phase: Phase) => markRevealSeen(deps, phase),
     // Decisions
     chooseDecision: (type: DecisionEvent['type'], choice: string) => chooseDecision(deps, type, choice),
   };

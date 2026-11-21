@@ -1,12 +1,13 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { openTab } from './helpers/tabs';
-import { tapContinue } from './helpers/phase';
+import { REVEAL, tapContinue, waitOutReveal } from './helpers/phase';
 
 /**
- * E2E: Phase Transition Visual Spectacle.
- * Seeds a game state on the verge of EGG→COLONY transition,
- * fast-forwards until the goal is met, taps CONTINUE (Story 1.19), and verifies
- * the animated overlay, lore quote, panel reveal, and scroll behavior.
+ * E2E: the phase reveal (Story 1.20, UX-DR27).
+ * Seeds a game state whose Colony goal is met, taps CONTINUE (Story 1.19), and
+ * checks the reveal: a full-screen overlay that blocks input for at most 3.5 s,
+ * shows the phase name and one line, cross-fades the palette, holds sheets, and
+ * can be skipped (tap, Enter, Esc) only once that reveal has been seen.
  */
 
 function makeSaveData(overrides?: Record<string, unknown>) {
@@ -85,70 +86,145 @@ function makeSaveData(overrides?: Record<string, unknown>) {
   };
 }
 
-test.describe('Phase Transition — Visual Spectacle', () => {
+type Swarm = {
+  manager: { getState(): { phase: string; lifetime: { revealsSeen: string[] } } };
+  bus: { emit(name: string, payload: unknown): void };
+};
+const state = (page: Page) =>
+  page.evaluate(() => (window as unknown as { __swarm: Swarm }).__swarm.manager.getState());
+const colorBg = (page: Page) =>
+  page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--color-bg').trim());
+
+async function seed(page: Page, overrides?: Record<string, unknown>) {
+  await page.addInitScript((saveStr) => {
+    localStorage.setItem('the_swarm_save', saveStr);
+  }, JSON.stringify(makeSaveData(overrides)));
+}
+
+test.describe('Phase reveal (fake clock)', () => {
   test.beforeEach(async ({ page }) => {
-    const data = makeSaveData();
-    await page.addInitScript((saveStr) => {
-      localStorage.setItem('the_swarm_save', saveStr);
-    }, JSON.stringify(data));
+    await seed(page);
     await page.clock.install();
     await page.goto('/');
     await page.waitForSelector('#panels', { timeout: 10000 });
-  });
-
-  test('transition overlay appears with lore quote during phase change', async ({ page }) => {
-    // Fast-forward to trigger EGG→COLONY transition (workers=9, need 10)
-    // The game ticks once per second. Clicking the egg button adds eggs.
-    // But workers come from larvae hatching... let's just advance ticks.
-    // Actually: seed has 9 workers and 3 larvae. Each larvaPipeline tick
-    // produces workers. Run the clock a few seconds to cross threshold.
-    await page.clock.runFor(3000);
+    await page.clock.runFor(1000);
     // The goal is met; the phase waits for CONTINUE (Story 1.19).
     await expect(page.locator('#phase-indicator')).toContainText('The Lonely Queen');
-    await tapContinue(page);
-
-    // Wait for the transition overlay to appear
-    const overlay = page.locator('#phase-transition-overlay');
-    await expect(overlay).toBeVisible({ timeout: 5000 });
-
-    // Overlay should contain a lore quote (non-empty text)
-    const quoteText = overlay.locator('.phase-transition-quote');
-    await expect(quoteText).toBeVisible();
-    const text = await quoteText.textContent();
-    expect(text?.trim().length).toBeGreaterThan(0);
   });
 
-  test('new panels appear after transition animation completes', async ({ page }) => {
-    // Trigger transition
+  test('CONTINUE plays a full-screen reveal: phase name, one typed line, then it ends by itself', async ({ page }) => {
+    await tapContinue(page, undefined, { reveal: 'keep' });
+    const reveal = page.locator(REVEAL);
+    await expect(reveal).toBeVisible();
+    await expect(reveal).toHaveAttribute('role', 'dialog');
+    await expect(reveal.locator('[data-reveal-name]')).toContainText('COLONY');
+    // Only the committed phase's palette and name (Story 1.8): the reveal is Colony's.
+    await expect(reveal).toHaveAttribute('data-phase-reveal', 'colony');
+    await expect(page.locator('html')).toHaveAttribute('data-phase', 'colony');
+
+    const box = await reveal.boundingBox();
+    const viewport = page.viewportSize()!;
+    expect(box!.width).toBeGreaterThanOrEqual(viewport.width - 1);
+    expect(box!.height).toBeGreaterThanOrEqual(viewport.height - 1);
+
     await page.clock.runFor(3000);
-    await tapContinue(page);
-    await page.clock.runFor(3000);
+    const line = (await reveal.locator('[data-reveal-line]').textContent()) ?? '';
+    expect(line.trim().length).toBeGreaterThan(0);
 
-    // Wait for the overlay to appear and then disappear (2s animation)
-    await expect(page.locator('#phase-transition-overlay.active')).not.toBeVisible({ timeout: 8000 });
+    await page.clock.runFor(600);
+    await expect(reveal).toHaveCount(0);
+    expect((await state(page)).lifetime.revealsSeen).toContain('colony');
+  });
 
-    // After transition, colony panels should be visible
-    const phaseIndicator = page.locator('#phase-indicator');
-    await expect(phaseIndicator).toContainText('Colony', { timeout: 5000 });
+  test('the reveal blocks input, and a first reveal cannot be skipped', async ({ page }) => {
+    await tapContinue(page, undefined, { reveal: 'keep' });
+    const reveal = page.locator(REVEAL);
+    await expect(reveal).toBeVisible();
+    await expect(reveal).toHaveAttribute('data-skippable', 'false');
+    // A tap where the tab bar sits lands on the overlay, not the tab.
+    const tab = page.locator('[data-tab="wrkr"]');
+    const box = await tab.boundingBox();
+    if (box) await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Enter');
+    await expect(reveal).toBeVisible();
+    await expect(page.locator('[data-shell]')).toHaveAttribute('data-active-tab', 'nest');
 
-    // Worker assignment panel should now be visible in WRKR (unlocked in colony phase)
+    await waitOutReveal(page);
     await openTab(page, 'wrkr');
     await expect(page.locator('#worker-assignment')).toBeVisible({ timeout: 5000 });
   });
 
-  test('phase indicator reflects the new phase after transition', async ({ page }) => {
-    // Trigger transition
-    await page.clock.runFor(3000);
-    await tapContinue(page);
-    await page.clock.runFor(3000);
+  test('a decision event during the reveal waits until it ends', async ({ page }) => {
+    await tapContinue(page, undefined, { reveal: 'keep' });
+    await expect(page.locator(REVEAL)).toBeVisible();
+    await page.evaluate(() =>
+      (window as unknown as { __swarm: Swarm }).__swarm.bus.emit('decision_event', {
+        type: 'beetle',
+        title: 'BEETLE SIGHTING',
+        description: 'A beetle wanders near the nest.',
+        choices: [{ label: 'Ignore', description: 'Nothing happens.' }],
+      }),
+    );
+    await expect(page.locator('#decision-popup')).toHaveCount(0);
+    await waitOutReveal(page);
+    await expect(page.locator('#decision-popup')).toBeVisible();
+  });
+});
 
-    // Wait for transition to complete
-    await expect(page.locator('#phase-transition-overlay.active')).not.toBeVisible({ timeout: 8000 });
+test.describe('Phase reveal, once seen', () => {
+  for (const key of ['Escape', 'Enter'] as const) {
+    test(`${key} skips a reveal already seen`, async ({ page }) => {
+      await seed(page, { lifetime: { revealsSeen: ['colony'] } });
+      await page.goto('/');
+      await page.waitForSelector('#panels', { timeout: 10000 });
+      await tapContinue(page, undefined, { reveal: 'keep' });
+      const reveal = page.locator(REVEAL);
+      await expect(reveal).toHaveAttribute('data-skippable', 'true');
+      await page.keyboard.press(key);
+      await expect(reveal).toHaveCount(0, { timeout: 1000 });
+    });
+  }
 
-    // Phase indicator should show colony title
-    const indicator = page.locator('#phase-indicator');
-    await expect(indicator).toContainText('Colony', { timeout: 5000 });
-    // And the phase-colony class should be applied
-    await expect(indicator).toHaveClass(/phase-colony/);
+  test('a tap skips a reveal already seen', async ({ page }) => {
+    await seed(page, { lifetime: { revealsSeen: ['colony'] } });
+    await page.goto('/');
+    await page.waitForSelector('#panels', { timeout: 10000 });
+    await tapContinue(page, undefined, { reveal: 'keep' });
+    const reveal = page.locator(REVEAL);
+    await expect(reveal).toBeVisible();
+    await reveal.click();
+    await expect(reveal).toHaveCount(0, { timeout: 1000 });
+  });
+});
+
+test.describe('Phase reveal palette cross-fade (real time)', () => {
+  test('the old palette cross-fades into the new one over about 3 s', async ({ page }) => {
+    await seed(page);
+    await page.goto('/');
+    await page.waitForSelector('#panels', { timeout: 10000 });
+    await expect(page.locator('[data-action="continue"]')).toHaveCount(1, { timeout: 15000 });
+    const from = await colorBg(page);
+    await tapContinue(page, undefined, { reveal: 'keep' });
+    await page.waitForTimeout(1000);
+    const mid = await colorBg(page);
+    await waitOutReveal(page);
+    const to = await colorBg(page);
+    expect(to).not.toBe(from);
+    expect(mid).not.toBe(from);
+    expect(mid).not.toBe(to);
+  });
+
+  test('under reduced motion the cross-fade is short', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await seed(page);
+    await page.goto('/');
+    await page.waitForSelector('#panels', { timeout: 10000 });
+    await expect(page.locator('html')).toHaveAttribute('data-reduced-motion', 'true');
+    await tapContinue(page, undefined, { reveal: 'keep' });
+    await page.waitForTimeout(700);
+    const settled = await colorBg(page);
+    await waitOutReveal(page);
+    expect(await colorBg(page)).toBe(settled);
   });
 });

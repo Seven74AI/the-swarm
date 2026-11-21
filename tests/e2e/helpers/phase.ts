@@ -7,7 +7,11 @@ import { openTab } from './tabs';
  * `> CONTINUE` (`[data-action="continue"]`). Behind an open sheet or overlay it
  * presses the button programmatically, like `openTab`.
  */
-export async function tapContinue(page: Page, timeout = 15_000): Promise<void> {
+export async function tapContinue(
+  page: Page,
+  timeout = 15_000,
+  opts: { reveal?: 'wait' | 'keep' } = {},
+): Promise<void> {
   const cont = page.locator('[data-action="continue"]');
   await expect(cont).toHaveCount(1, { timeout });
   if (await page.locator('[data-tab-bar]').isVisible()) await openTab(page, 'nest');
@@ -31,4 +35,21 @@ export async function tapContinue(page: Page, timeout = 15_000): Promise<void> {
   }
   // The next phase's goal may latch at once, bringing CONTINUE back: wait for the phase instead.
   await expect.poll(phase).not.toBe(before);
+  // The phase reveal (Story 1.20) blocks input for up to 3.5 s: wait it out unless the spec checks it.
+  if (opts.reveal !== 'keep') await waitOutReveal(page);
+}
+
+/** Selector of the phase reveal overlay (Story 1.20). */
+export const REVEAL = '[data-overlay="phase-reveal"]';
+
+/**
+ * Let a playing phase reveal end by itself (a first reveal cannot be skipped).
+ * Under `page.clock.install()` the page's timers are fake: advance them past it.
+ */
+export async function waitOutReveal(page: Page): Promise<void> {
+  const reveal = page.locator(REVEAL);
+  if ((await reveal.count()) === 0) return;
+  const fakeTimers = await page.evaluate(() => !/\[native code\]/.test(String(window.setTimeout)));
+  if (fakeTimers) await page.clock.runFor(4_000);
+  await expect(reveal).toHaveCount(0, { timeout: 6_000 });
 }

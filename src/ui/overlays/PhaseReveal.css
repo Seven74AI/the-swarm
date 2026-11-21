@@ -1,0 +1,104 @@
+/*
+ * The phase reveal (Story 1.20, UX-DR27).
+ *
+ * Palette cross-fade: the runtime color aliases are registered as colors so
+ * they interpolate. The transition is on only while the reveal is up: the
+ * OverlayController puts `data-overlay-active="phase-reveal"` on <html> before the
+ * phase change reaches the style pass, so the after-change style carries it.
+ * Boot and prestige still repaint at once. 3 s, or 300 ms under reduced motion.
+ * No phase hex here: the colors come from tokens.css only.
+ */
+@property --color-bg { syntax: '<color>'; inherits: true; initial-value: transparent; }
+@property --color-raised { syntax: '<color>'; inherits: true; initial-value: transparent; }
+@property --color-line { syntax: '<color>'; inherits: true; initial-value: transparent; }
+@property --color-edge { syntax: '<color>'; inherits: true; initial-value: transparent; }
+@property --color-dim { syntax: '<color>'; inherits: true; initial-value: transparent; }
+@property --color-accent { syntax: '<color>'; inherits: true; initial-value: transparent; }
+@property --color-warn { syntax: '<color>'; inherits: true; initial-value: transparent; }
+@property --color-on-accent { syntax: '<color>'; inherits: true; initial-value: transparent; }
+
+:root {
+  --reveal-fade: 3s;
+}
+:root[data-reduced-motion="true"] {
+  --reveal-fade: 300ms;
+}
+
+:root[data-overlay-active="phase-reveal"] {
+  transition:
+    --color-bg var(--reveal-fade) linear,
+    --color-raised var(--reveal-fade) linear,
+    --color-line var(--reveal-fade) linear,
+    --color-edge var(--reveal-fade) linear,
+    --color-dim var(--reveal-fade) linear,
+    --color-accent var(--reveal-fade) linear,
+    --color-warn var(--reveal-fade) linear,
+    --color-on-accent var(--reveal-fade) linear;
+}
+
+/* Full screen, above sheets and every legacy layer; it takes every tap. */
+.phase-reveal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem 1rem calc(2rem + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  background: var(--color-bg);
+  color: var(--color-accent);
+  font-family: "Swarm Mono", ui-monospace, Menlo, Consolas, monospace;
+  text-align: center;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+}
+
+/* `display` (24 / 700, +0.1 em), fitted to narrow screens and large text. */
+.phase-reveal__name {
+  margin: 0;
+  max-width: 100%;
+  font-size: min(1.5rem, 7vw);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.1em;
+  overflow-wrap: anywhere;
+  animation: phase-reveal-name 600ms ease-out both;
+}
+
+.phase-reveal__line {
+  margin: 0;
+  max-width: 32ch;
+  min-height: 1.4em;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  color: var(--color-accent);
+}
+.phase-reveal__line::after {
+  content: "\2588";
+  margin-left: 0.1em;
+  animation: phase-reveal-cursor 1s steps(1) infinite;
+}
+
+.phase-reveal__skip {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-dim);
+}
+
+@keyframes phase-reveal-name {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes phase-reveal-cursor {
+  50% { opacity: 0; }
+}
+
+:root[data-reduced-motion="true"] .phase-reveal__name,
+:root[data-reduced-motion="true"] .phase-reveal__line::after {
+  animation: none;
+}

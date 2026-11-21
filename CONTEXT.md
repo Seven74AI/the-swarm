@@ -31,6 +31,9 @@ A phase's unlock condition: its outgoing transition in `src/phases/transitions.t
 ### Latch and CONTINUE
 The phase never changes on its own (Story 1.19, ADR 0003). Each tick `PhaseStateMachine.evaluate` checks the goal and `latch` writes `state.phaseGoal` (`{ phase, latched, atMs, reached }`) the first time it is met. The latch survives dips and saves: the meter reads `GOAL MET`, a dipped row reads `<now> now, reached <value> at <time>` (game time), NEST gets `•` and its primary action becomes `> CONTINUE` (`[data-action="continue"]`). Tapping it calls `actions.continuePhase`, which runs `PhaseStateMachine.commit` (onEnter, clears the latch, emits `phase_committed { from, to }`). Only `commit` and prestige write `state.phase` (tests/arch/architecture.test.ts).
 
+### Phase reveal and overlays
+Committing a phase plays the **phase reveal** (Story 1.20, ADR 0014): a full-screen overlay from the one overlay layer (`ui/shell/OverlayController`, drawn by `OverlayHost`) that blocks input for at most 3.5 s, cross-fades the palette, shows the phase name and types one line. Sheets and decision events wait while an overlay is up. A reveal can be skipped (tap, Enter, Esc) only once its phase is in `state.lifetime.revealsSeen`, which survives prestige.
+
 ### Pipelines
 Rate-based O(1) processing: `eggPipeline`, `larvaPipeline`, `soldierPipeline`. Each has `count` (rate) and `progress` (accumulated). No per-item timers.
 

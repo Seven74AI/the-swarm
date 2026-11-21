@@ -1,34 +1,6 @@
 import { Phase } from '../phases/phases';
 import type { UIRoot } from './UIRoot';
-import type { EventBus } from '../engine/EventBus';
 import { panelsForPhase } from '../data/content/tabs';
-
-/** Delay before revealing new panels after the transition overlay appears (ms). */
-const PANEL_REVEAL_DELAY_MS = 300;
-/** Total duration of the phase transition cinematic (ms). */
-const TRANSITION_DURATION_MS = 3500;
-
-/** Lore quotes — one displayed during each phase transition. */
-const LORE_QUOTES: Record<string, string[]> = {
-  [Phase.EGG_LAYING]: [
-    'A single queen, alone in the dark earth. The first egg is an act of faith.',
-  ],
-  [Phase.COLONY]: [
-    'Many legs, one mind. The colony breathes as a single organism.',
-  ],
-  [Phase.COMBAT]: [
-    'The workers look at the stars. The stars look back.',
-  ],
-  [Phase.EXPANSION]: [
-    'Beyond the nest, beyond the garden — the world awaits discovery.',
-  ],
-  [Phase.SPACE]: [
-    'Gravity is a chain. The swarm breaks free.',
-  ],
-  [Phase.TRANSCENDENCE]: [
-    'The swarm collapses into a singularity of pure thought. All boundaries dissolve.',
-  ],
-};
 
 export class PhaseContent {
   /**
@@ -59,73 +31,6 @@ export class PhaseContent {
   }
 
   /**
-   * Returns a random lore quote for the given phase.
-   * Falls back to a generic message for unknown phases.
-   */
-  getLoreQuote(phase: string): string {
-    const quotes = LORE_QUOTES[phase];
-    if (quotes && quotes.length > 0) {
-      return quotes[Math.floor(Math.random() * quotes.length)];
-    }
-    return 'The swarm marches on.';
-  }
-
-  /**
-   * Triggers the visual phase transition sequence.
-   * Emits transition_start immediately and transition_complete after the animation duration.
-   *
-   * On prestige runs (prestigeCount > 0), the transition becomes skippable via
-   * click or keypress (Space/Enter/Escape). Skipping immediately calls onPhaseEnter
-   * and emits transition_complete.
-   *
-   * @param phase         The new phase being entered.
-   * @param bus           Event bus for emitting transition events.
-   * @param uiRoot        Root UI controller for panel management.
-   * @param prestigeCount Number of times the player has prestiged (0 = no skips).
-   */
-  triggerTransition(phase: Phase, bus: EventBus, uiRoot: UIRoot, prestigeCount: number = 0): void {
-    const quote = this.getLoreQuote(phase);
-    const skippable = prestigeCount > 0;
-
-    // Timeout handles for auto-completion (cleared on skip)
-    let revealTimeout: ReturnType<typeof setTimeout> | undefined;
-    let completeTimeout: ReturnType<typeof setTimeout> | undefined;
-
-    const onSkip = skippable ? () => {
-      // Clear auto-completion timeouts
-      if (revealTimeout !== undefined) clearTimeout(revealTimeout);
-      if (completeTimeout !== undefined) clearTimeout(completeTimeout);
-      // Immediately reveal panels and complete transition
-      this.onPhaseEnter(phase, uiRoot);
-      bus.emit('transition_complete', { phase });
-    } : undefined;
-
-    bus.emit('transition_start', { phase, quote, skippable, onSkip });
-
-    // If skipped, onSkip was already called — don't schedule timeouts.
-    // We detect skip by checking whether the timeouts have been cleared.
-    if (skippable) {
-      // Store timeouts for potential clearing
-      revealTimeout = setTimeout(() => {
-        this.onPhaseEnter(phase, uiRoot);
-      }, PANEL_REVEAL_DELAY_MS);
-
-      completeTimeout = setTimeout(() => {
-        bus.emit('transition_complete', { phase });
-      }, TRANSITION_DURATION_MS);
-    } else {
-      // Non-prestige: standard timing
-      setTimeout(() => {
-        this.onPhaseEnter(phase, uiRoot);
-      }, PANEL_REVEAL_DELAY_MS);
-
-      setTimeout(() => {
-        bus.emit('transition_complete', { phase });
-      }, TRANSITION_DURATION_MS);
-    }
-  }
-
-  /**
    * Called when entering a new phase. Creates lazy panels on demand, reveals
    * all active panels, and sets the body class for phase theme shifting.
    * For Phase 1 panels that were mounted at boot, createPanel()
@@ -148,7 +53,7 @@ export class PhaseContent {
 
     const panels = this.getActivePanels(phase);
     // Stagger panel reveals — each panel gets an incremental animation-delay
-    // so they cascade in one-by-one (150ms per panel) during the 3.5s cinematic.
+    // so they cascade in one-by-one (150ms per panel) under the phase reveal (Story 1.20).
     const STAGGER_MS = 150;
     for (let i = 0; i < panels.length; i++) {
       const panelId = panels[i];

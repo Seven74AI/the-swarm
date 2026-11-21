@@ -585,3 +585,36 @@ describe('phase (Story 1.19: CONTINUE)', () => {
     expect(after.phaseGoal).toBeNull();
   });
 });
+
+describe('phase reveal (Story 1.20: lifetime.revealsSeen)', () => {
+  it('records a reveal as seen, once', () => {
+    const before = given(rich({ phase: 'colony' }));
+    const after = expectApplied(actions.markRevealSeen('colony' as never), before);
+    expect(after.lifetime.revealsSeen).toContain('colony');
+    expectRefused(actions.markRevealSeen('colony' as never), 'already_owned', after);
+  });
+
+  it('keeps the seen reveals through prestige', () => {
+    const base = rich();
+    const before = given({
+      ...base,
+      phase: 'transcendence',
+      lifetime: { revealsSeen: ['colony', 'combat'] },
+      buildings: {
+        ...base.buildings,
+        barracks: { level: 99, count: 1 },
+        walls: { level: 99 },
+        warehouse: { level: 99 },
+      },
+      prestige: {
+        ...base.prestige,
+        totalFoodProduced: LOTS,
+        totalWoodProduced: LOTS,
+        totalStoneProduced: LOTS,
+        totalNectarProduced: LOTS,
+      },
+    });
+    const after = expectApplied(actions.prestige(), before);
+    expect(after.lifetime.revealsSeen).toEqual(before.lifetime.revealsSeen);
+  });
+});

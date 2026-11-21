@@ -442,3 +442,31 @@ describe('v14 → v15: the phase goal latch (Story 1.19)', () => {
     expect(migrateSave(data, 14, 15).gameState.phaseGoal).toBeNull();
   });
 });
+
+describe('v15 → v16: seen phase reveals (Story 1.20)', () => {
+  const v15 = (gs: Record<string, unknown>): SaveData => {
+    const { lifetime: _omit, ...rest } = { ...createInitialState(), ...gs } as Record<string, unknown>;
+    return { version: 15, timestamp: 0, playTimeMs: 0, gameState: rest as unknown as GameState };
+  };
+
+  it('adds lifetime.revealsSeen, empty, so every reveal plays unskippable once', () => {
+    const out = migrateSave(v15({ phase: 'combat' }), 15, 16);
+    expect(out.version).toBe(16);
+    expect(out.gameState.lifetime.revealsSeen).toEqual([]);
+  });
+
+  it('keeps reveals already recorded', () => {
+    const data: SaveData = {
+      version: 15,
+      timestamp: 0,
+      playTimeMs: 0,
+      gameState: { ...createInitialState(), lifetime: { revealsSeen: ['colony'] } },
+    };
+    expect(migrateSave(data, 15, 16).gameState.lifetime.revealsSeen).toEqual(['colony']);
+  });
+
+  it('survives a partial v15 game state', () => {
+    const data = { version: 15, timestamp: 0, playTimeMs: 0, gameState: { phase: 'colony' } as unknown as GameState };
+    expect(migrateSave(data, 15, 16).gameState.lifetime.revealsSeen).toEqual([]);
+  });
+});
