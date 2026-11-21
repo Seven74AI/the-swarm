@@ -32,6 +32,13 @@ export default defineConfig({
       use: {
         ...devices['Pixel 7'],
         launchOptions: { args: CHROMIUM_ARGS },
+        // A mobile browser shows the one-time add-to-home-screen hint (Story 2.13) over
+        // everything. These tests are about playing, so they start with it seen;
+        // storage-durability.spec tests the hint itself.
+        storageState: {
+          cookies: [],
+          origins: [{ origin: 'http://localhost:5173', localStorage: [{ name: 'the_swarm_home_hint', value: 'seen' }] }],
+        },
       },
     },
   ],
