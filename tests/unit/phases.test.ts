@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { Phase, PHASE_ORDER } from '../../src/phases/phases';
 import type { Transition } from '../../src/phases/transitions';
-import { EGG_TO_COLONY, COLONY_TO_COMBAT, COMBAT_TO_EXPANSION, COLONY_TO_EXPANSION, EXPANSION_TO_SPACE, SPACE_TO_TRANSCENDENCE } from '../../src/phases/transitions';
+import { EGG_TO_COLONY, COLONY_TO_COMBAT, COMBAT_TO_EXPANSION, EXPANSION_TO_SPACE, SPACE_TO_TRANSCENDENCE, TRANSITIONS } from '../../src/phases/transitions';
+import { PhaseStateMachine } from '../../src/phases/PhaseStateMachine';
 import { createInitialState } from '../../src/state/GameState';
 import { EventBus } from '../../src/engine/EventBus';
 
@@ -195,50 +196,39 @@ describe('Transition COMBAT → EXPANSION', () => {
   });
 });
 
-describe('Transition COLONY → EXPANSION', () => {
-  it('has correct from/to', () => {
-    expect(COLONY_TO_EXPANSION.from).toBe(Phase.COLONY);
-    expect(COLONY_TO_EXPANSION.to).toBe(Phase.EXPANSION);
+describe('Phase graph — Combat is the only way into Expansion', () => {
+  it('has no transition from COLONY to EXPANSION', () => {
+    const shortcut = TRANSITIONS.filter((t) => t.from === Phase.COLONY && t.to === Phase.EXPANSION);
+    expect(shortcut).toHaveLength(0);
   });
 
-  it('guard returns true when workers >= 40 AND food >= 1000', () => {
-    const state = createInitialState();
-    state.resources.workers = 40;
-    state.resources.food = 1000;
-    expect(COLONY_TO_EXPANSION.guard(state)).toBe(true);
+  it('the only exit from COLONY leads to COMBAT', () => {
+    const exits = TRANSITIONS.filter((t) => t.from === Phase.COLONY).map((t) => t.to);
+    expect(exits).toEqual([Phase.COMBAT]);
   });
 
-  it('guard returns false when workers < 40 even if food >= 1000', () => {
-    const state = createInitialState();
-    state.resources.workers = 39;
-    state.resources.food = 1000;
-    expect(COLONY_TO_EXPANSION.guard(state)).toBe(false);
+  it('each phase has exactly one successor, in PHASE_ORDER', () => {
+    for (let i = 0; i < PHASE_ORDER.length - 1; i++) {
+      const exits = TRANSITIONS.filter((t) => t.from === PHASE_ORDER[i]).map((t) => t.to);
+      expect(exits, `${PHASE_ORDER[i]} should lead only to ${PHASE_ORDER[i + 1]}`).toEqual([PHASE_ORDER[i + 1]]);
+    }
+    const last = PHASE_ORDER[PHASE_ORDER.length - 1];
+    expect(TRANSITIONS.filter((t) => t.from === last)).toHaveLength(0);
   });
 
-  it('guard returns false when food < 1000 even if workers >= 40', () => {
-    const state = createInitialState();
-    state.resources.workers = 40;
-    state.resources.food = 999;
-    expect(COLONY_TO_EXPANSION.guard(state)).toBe(false);
+  it('PHASE_ORDER is EGG_LAYING → COLONY → COMBAT → EXPANSION → SPACE → TRANSCENDENCE', () => {
+    expect(PHASE_ORDER).toEqual([
+      Phase.EGG_LAYING, Phase.COLONY, Phase.COMBAT, Phase.EXPANSION, Phase.SPACE, Phase.TRANSCENDENCE,
+    ]);
   });
 
-  it('guard returns false when both conditions not met', () => {
+  it('a COLONY state rich in workers and food but without guards stays in COLONY', () => {
     const state = createInitialState();
-    expect(COLONY_TO_EXPANSION.guard(state)).toBe(false);
-  });
-
-  it('onEnter emits phase_changed event with EXPANSION', () => {
-    const state = createInitialState();
-    const bus = new EventBus();
-    let emitted = false;
-    let phasePayload: string | null = null;
-    bus.subscribe('phase_changed', (payload: unknown) => {
-      emitted = true;
-      phasePayload = (payload as { phase: string }).phase;
-    });
-    COLONY_TO_EXPANSION.onEnter!(state, bus);
-    expect(emitted).toBe(true);
-    expect(phasePayload).toBe(Phase.EXPANSION);
+    state.resources.workers = 10_000;
+    state.resources.food = 10_000_000;
+    state.workersAssigned.guard = 0;
+    const sm = new PhaseStateMachine(Phase.COLONY, TRANSITIONS);
+    expect(sm.tick(state, new EventBus()).phase).toBe(Phase.COLONY);
   });
 });
 

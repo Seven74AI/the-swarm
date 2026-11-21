@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SaveManager } from '../../src/persistence/SaveManager';
 import { createInitialState } from '../../src/state/GameState';
 import type { GameState } from '../../src/state/GameState';
+import { Phase } from '../../src/phases/phases';
+import { PhaseStateMachine } from '../../src/phases/PhaseStateMachine';
+import { TRANSITIONS } from '../../src/phases/transitions';
+import { EventBus } from '../../src/engine/EventBus';
 
 describe('SaveManager', () => {
   let saveManager: SaveManager;
@@ -92,6 +96,26 @@ describe('SaveManager', () => {
       const result = saveManager.load();
       // Missing gameState — structural validation fails, returns null
       expect(result).toBeNull();
+    });
+  });
+
+  describe('saves that took the old COLONY → EXPANSION shortcut', () => {
+    it('still load in EXPANSION, and the phase machine keeps them there', () => {
+      // An older save that reached EXPANSION without fighting a battle.
+      const old = createInitialState();
+      old.phase = 'expansion';
+      old.battlesWon = 0;
+      localStorage.setItem(
+        'the_swarm_save',
+        JSON.stringify({ version: 11, timestamp: Date.now(), playTimeMs: 0, gameState: old }),
+      );
+
+      const loaded = saveManager.load();
+      expect(loaded).not.toBeNull();
+      expect(loaded!.gameState.phase).toBe(Phase.EXPANSION);
+
+      const sm = new PhaseStateMachine(Phase.EXPANSION, TRANSITIONS);
+      expect(sm.tick(loaded!.gameState, new EventBus()).phase).toBe(Phase.EXPANSION);
     });
   });
 

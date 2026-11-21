@@ -9,7 +9,6 @@ import { Phase } from '../../src/phases/phases';
 import {
   EGG_TO_COLONY,
   COLONY_TO_COMBAT,
-  COLONY_TO_EXPANSION,
   EXPANSION_TO_SPACE,
   SPACE_TO_TRANSCENDENCE,
   TRANSITIONS,
@@ -266,15 +265,9 @@ describe('Phase transitions — property-based (no dead ends)', () => {
           state.resources.workers = 10;
           break;
         case Phase.COLONY:
-          if (t.to === Phase.COMBAT) {
-            // COLONY → COMBAT: workers >= 50 AND guard >= 1
-            state.resources.workers = 50;
-            state.workersAssigned.guard = 1;
-          } else if (t.to === Phase.EXPANSION) {
-            // COLONY → EXPANSION: workers >= 40 AND food >= 1000
-            state.resources.workers = 40;
-            state.resources.food = 1000;
-          }
+          // COLONY → COMBAT: workers >= 50 AND guard >= 1
+          state.resources.workers = 50;
+          state.workersAssigned.guard = 1;
           break;
         case Phase.COMBAT:
           // COMBAT → EXPANSION: workers >= 60 AND battlesWon >= 5
@@ -286,21 +279,11 @@ describe('Phase transitions — property-based (no dead ends)', () => {
           state.resources.workers = 80;
           state.resources.food = 5000;
           break;
-        case Phase.COMBAT:
-          // COMBAT → EXPANSION: workers >= 60 AND battlesWon >= 5
-          state.resources.workers = 60;
-          state.battlesWon = 5;
-          break;
         case Phase.SPACE:
           // SPACE → TRANSCENDENCE: voidCrystals >= 2000, antimatter >= 400, darkMatter >= 200
           state.resources.voidCrystals = 2000;
           state.resources.antimatter = 400;
           state.resources.darkMatter = 200;
-          break;
-        case Phase.COMBAT:
-          // COMBAT → EXPANSION: workers >= 25 AND battlesWon >= 3
-          state.resources.workers = 25;
-          state.battlesWon = 3;
           break;
       }
 
@@ -312,7 +295,7 @@ describe('Phase transitions — property-based (no dead ends)', () => {
   });
 
   it('every phase (except transcendence) has at least one outgoing transition', () => {
-    // COMBAT is an optional branch from COLONY and can exit to EXPANSION.
+    // Every run passes through COMBAT on its way to EXPANSION.
     // TRANSCENDENCE is the terminal victory phase.
     const phasesRequiringOutgoing = new Set([
       Phase.EGG_LAYING, Phase.COLONY, Phase.COMBAT, Phase.EXPANSION, Phase.SPACE,
@@ -326,7 +309,7 @@ describe('Phase transitions — property-based (no dead ends)', () => {
       ).toBe(true);
     }
 
-    // COMBAT has one outgoing transition (COMBAT → EXPANSION) — intentional rescue path
+    // COMBAT → EXPANSION is the only way into EXPANSION
     expect(phasesWithOutgoing.has(Phase.COMBAT)).toBe(true);
 
     // Transcendence is terminal — no outgoing transitions is correct

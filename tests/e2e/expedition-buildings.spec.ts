@@ -11,7 +11,7 @@ import { test, expect, type Page } from '@playwright/test';
  * - Food changes during ticks (gatherers produce food). Don't assert exact values.
  * - Building effects (warehouse capacity, etc.) are DISPLAY ONLY, not in game state.
  * - SoldierPanel doesn't use data-stat — use .soldier-count in expedition panel.
- * - Phase transition COLONY→EXPANSION needs workers≥40 AND food≥1000.
+ * - Seeds start in EXPANSION directly; the only way in during play is COMBAT→EXPANSION.
  */
 
 function makeSaveData(overrides?: Record<string, unknown>) {
@@ -352,7 +352,7 @@ test.describe('Buildings', () => {
   });
 
   test('cannot build without resources — buttons disabled', async ({ page }) => {
-    // Need food≥1000 for colony→expansion transition, but 0 food/wood/stone so no buildings
+    // Already in EXPANSION; 0 wood/stone so no building is affordable
     const data = makeSaveData({
       resources: {
         eggs: 0, larvae: 0, workers: 40, food: 1000,

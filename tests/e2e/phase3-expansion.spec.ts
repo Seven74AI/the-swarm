@@ -6,19 +6,20 @@ import { test, expect } from '@playwright/test';
  */
 test.describe('Phase 3 — Expansion', () => {
   test.beforeEach(async ({ page }) => {
-    // Seed a rich colony state with 40 workers, 1000 food, 200 wood, 200 stone
+    // Seed a COMBAT-phase state that satisfies COMBAT → EXPANSION
+    // (60 workers, 5 battles won), with 1000 food, 200 wood, 200 stone
     // Plus 5 scouts for expedition testing
-    // Note: 39 assigned (gather:24 + tend:8 + dig:3), 1 available worker
+    // Note: 35 assigned (gather:24 + tend:8 + dig:3), 25 available workers
     await page.addInitScript(() => {
       const data = {
         version: 11,
         timestamp: Date.now(),
         playTimeMs: 0,
         gameState: {
-          phase: 'colony',
+          phase: 'combat',
           resources: {
-            eggs: 0, larvae: 0, workers: 40, food: 1000,
-            nestCapacity: 50, wood: 200, stone: 200, nectar: 50,
+            eggs: 0, larvae: 0, workers: 60, food: 1000,
+            nestCapacity: 100, wood: 200, stone: 200, nectar: 50,
           },
           eggPipeline: { count: 0, progress: 0 },
           larvaPipeline: { count: 0, progress: 0 },
@@ -38,7 +39,7 @@ test.describe('Phase 3 — Expansion', () => {
           equipment: { weapon: 0, armor: 0 },
           lastBattle: null,
           combatResources: { chitin: 0, silk: 0, venom: 0 },
-          battlesWon: 0,
+          battlesWon: 5,
           battlesLost: 0,
           soldierPipeline: { count: 0, progress: 0 },
           territory: { ownedTiles: 0, bonuses: {} },
@@ -80,17 +81,17 @@ test.describe('Phase 3 — Expansion', () => {
     const saved = await page.evaluate(() => localStorage.getItem('the_swarm_save'));
     expect(saved).toBeTruthy();
     const parsed = JSON.parse(saved!);
-    expect(parsed.gameState.resources.workers).toBe(40);
+    expect(parsed.gameState.phase).toBe('combat');
 
     // Wait for the app to mount and render panels
     await page.waitForSelector('#panels', { timeout: 10000 });
 
-    // Wait for phase transition — COLONY → EXPANSION (40 workers + 1000 food)
+    // Wait for phase transition — COMBAT → EXPANSION (the seed satisfies its guard)
     const indicator = page.locator('#phase-indicator');
     await expect(indicator).toContainText('The Expansion', { timeout: 15000 });
   });
 
-  test('phase transitions to expansion with 40 workers', async ({ page }) => {
+  test('phase transitions from combat to expansion', async ({ page }) => {
     const indicator = page.locator('#phase-indicator');
     // Already verified in beforeEach — confirm it persists
     await expect(indicator).toContainText('The Expansion');
