@@ -1,4 +1,5 @@
 import './ui/styles/tokens.css';
+import './ui/styles/base.css';
 import { log } from './utils/log';
 import { EventBus } from './engine/EventBus';
 import { EventQueue, type EventSink } from './engine/events';
@@ -39,6 +40,7 @@ import { TRANSITIONS } from './phases/transitions';
 import type { GameState } from './state/GameState';
 import { OnboardingManager } from './ui/OnboardingManager';
 import { bindPhaseTheme } from './ui/theme/phaseTheme';
+import { bindReducedMotion } from './ui/theme/reducedMotion';
 import { createWebPlatform, type Platform } from './platform';
 import { bindHapticFeedback, bindSoundSetting } from './platform/feedback';
 
@@ -369,6 +371,8 @@ export function bootstrap(): {
 
   // Phase palette (Story 1.8): one attribute on <html> rebinds the color aliases.
   bindPhaseTheme(document.documentElement);
+  // Reduced motion in effect (Story 1.10 setting, OS by default) as one root attribute (Story 1.11).
+  bindReducedMotion(document.documentElement, platform.settings.reducedMotion);
 
   // Every player intent goes through an action (Story 1.6): the UI never
   // writes state or touches a system. Decision choices are an action too,
