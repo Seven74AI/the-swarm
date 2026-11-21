@@ -9,6 +9,9 @@ import { SheetHost } from './shell/SheetHost';
 import type { OverlayController } from './shell/OverlayController';
 import { OverlayHost } from './shell/OverlayHost';
 import { ToastHost, type Toasts } from './primitives/Toast';
+import { useEffect, useMemo } from 'preact/hooks';
+import { appGridCols } from './primitives/charGrid';
+import { createCharGrid } from './shell/charGrid';
 
 export type { LegacyUi } from './shell/Shell';
 
@@ -26,6 +29,9 @@ export type { LegacyUi } from './shell/Shell';
  *
  * `overlays` is the overlay layer (Story 1.20): the playing overlay is drawn last,
  * above everything, and no sheet is drawn while it is up.
+ *
+ * The character grid (Story 1.31): the shell measures its columns, and every
+ * Preact root (sheets and tab hosts included) reads them through `appGridCols`.
  */
 export function App({
   legacy,
@@ -47,9 +53,11 @@ export function App({
   /** The rail's key hints on desktop (Story 1.29). */
   tabKeys?: ReadonlySignal<readonly string[]>;
 }) {
+  const grid = useMemo(() => createCharGrid({ root: document.documentElement, cols: appGridCols }), []);
+  useEffect(() => () => grid.dispose(), [grid]);
   return (
     <>
-      <Shell shell={shell} legacy={legacy} onContinue={onContinue} tabKeys={tabKeys} />
+      <Shell shell={shell} legacy={legacy} onContinue={onContinue} tabKeys={tabKeys} grid={grid} />
       {toasts && <ToastHost toasts={toasts} />}
       {sheets && <SheetHost sheets={sheets} held={overlays?.held} />}
       {overlays && <OverlayHost overlays={overlays} />}
