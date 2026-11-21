@@ -7,17 +7,17 @@
  * no game-save migration for them; a settings schema change bumps
  * `SETTINGS_VERSION` here.
  *
- * Version 2 (Story 1.12) added `coachMarksSeen`. Older versions in
- * `READABLE_VERSIONS` are read field by field, so a version-1 file keeps its
- * values and gets the new field's default.
+ * Version 2 (Story 1.12) added `coachMarksSeen`; version 3 (Story 1.27) added
+ * `keyBindings`. Older versions in `READABLE_VERSIONS` are read field by
+ * field, so an older file keeps its values and gets each new field's default.
  */
 import { computed, signal, type ReadonlySignal } from '@preact/signals-core';
 import type { Capabilities } from './capabilities';
 
 export const SETTINGS_KEY = 'the_swarm_settings';
-export const SETTINGS_VERSION = 2;
+export const SETTINGS_VERSION = 3;
 /** Stored versions this build can read; each missing field takes its default. */
-const READABLE_VERSIONS: readonly number[] = [1, SETTINGS_VERSION];
+const READABLE_VERSIONS: readonly number[] = [1, 2, SETTINGS_VERSION];
 
 /** `os` follows the device's reduced-motion preference. */
 export type ReducedMotionSetting = 'os' | 'on' | 'off';
@@ -26,6 +26,27 @@ export type CrtMode = 'scene' | 'full' | 'off';
 export type DecisionTimers = 'normal' | 'double' | 'off';
 export type ConfirmStyle = 'hold' | 'twoTaps';
 export type LayMode = 'hold' | 'toggle';
+
+/**
+ * The keyboard shortcuts (UX-DR41; Story 1.30 acts on them): the active tab's
+ * primary action, pause, tabs 1–5 and closing a non-decision sheet. Story 1.27
+ * lets the player remap them.
+ */
+export type ShortcutId = 'primary' | 'pause' | 'tab1' | 'tab2' | 'tab3' | 'tab4' | 'tab5' | 'close';
+/** Shortcut → `KeyboardEvent.key` (single characters lower case). No two shortcuts share a key. */
+export type KeyBindings = Readonly<Record<ShortcutId, string>>;
+
+/** The default keys, in the order the settings screen lists them. */
+export const DEFAULT_KEY_BINDINGS: KeyBindings = Object.freeze({
+  primary: ' ',
+  pause: 'p',
+  tab1: '1',
+  tab2: '2',
+  tab3: '3',
+  tab4: '4',
+  tab5: '5',
+  close: 'Escape',
+});
 
 export interface Settings {
   readonly sound: boolean;
@@ -38,6 +59,8 @@ export interface Settings {
   readonly confirmHoldMs: number;
   readonly layMode: LayMode;
   readonly keyboardShortcuts: boolean;
+  /** Which key triggers each shortcut (Story 1.27). */
+  readonly keyBindings: KeyBindings;
   /** Concepts whose coach mark was shown and dismissed (Story 1.12): each shows once, ever. */
   readonly coachMarksSeen: readonly string[];
 }
@@ -64,6 +87,7 @@ export function defaultSettings(capabilities: Capabilities): Settings {
     confirmHoldMs: 1000,
     layMode: 'hold',
     keyboardShortcuts: true,
+    keyBindings: DEFAULT_KEY_BINDINGS,
     coachMarksSeen: NO_CONCEPTS,
   });
 }
@@ -75,6 +99,26 @@ const oneOf =
 const isBoolean = (v: unknown): v is boolean => typeof v === 'boolean';
 const isConceptList = (v: unknown): v is readonly string[] =>
   Array.isArray(v) && v.every((c) => typeof c === 'string' && c.length > 0);
+
+const MAX_KEY_LENGTH = 32;
+const isKey = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= MAX_KEY_LENGTH;
+const isBindingMap = (v: unknown): v is Partial<Record<ShortcutId, unknown>> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/**
+ * `base` with every known shortcut of `patch` that has a usable key applied.
+ * A result where two shortcuts share a key is refused: `base` is kept.
+ */
+function mergeBindings(base: KeyBindings, patch: Partial<Record<ShortcutId, unknown>>): KeyBindings {
+  const next: Record<string, string> = { ...base };
+  for (const id of Object.keys(DEFAULT_KEY_BINDINGS) as ShortcutId[]) {
+    const key = patch[id];
+    if (isKey(key)) next[id] = key;
+  }
+  const keys = Object.values(next);
+  if (new Set(keys).size !== keys.length) return base;
+  return Object.freeze(next as unknown as KeyBindings);
+}
 
 /** Per-field check; a value that fails it is replaced by the default. */
 const VALID: { readonly [K in keyof Settings]: (v: unknown) => boolean } = {
@@ -88,18 +132,24 @@ const VALID: { readonly [K in keyof Settings]: (v: unknown) => boolean } = {
     typeof v === 'number' && Number.isFinite(v) && v >= CONFIRM_HOLD_MS_RANGE.min && v <= CONFIRM_HOLD_MS_RANGE.max,
   layMode: oneOf<LayMode>('hold', 'toggle'),
   keyboardShortcuts: isBoolean,
+  keyBindings: isBindingMap,
   coachMarksSeen: isConceptList,
 };
 
-/** The stored form of a valid field: whole ms, and concept lists without repeats, frozen. */
-function normalize(key: keyof Settings, v: unknown): unknown {
+/** The stored form of a valid field: whole ms, key maps merged onto `base`, concept lists without repeats, frozen. */
+function normalize(base: Settings, key: keyof Settings, v: unknown): unknown {
   if (key === 'confirmHoldMs') return Math.floor(v as number);
+  if (key === 'keyBindings') return mergeBindings(base.keyBindings, v as Partial<Record<ShortcutId, unknown>>);
   if (key === 'coachMarksSeen') return Object.freeze([...new Set(v as string[])]);
   return v;
 }
 
 function sameValue(a: unknown, b: unknown): boolean {
   if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((x, i) => x === b[i]);
+  if (isBindingMap(a) && isBindingMap(b)) {
+    const ka = Object.keys(a) as ShortcutId[];
+    return ka.length === Object.keys(b).length && ka.every((k) => a[k] === b[k]);
+  }
   return a === b;
 }
 
@@ -109,7 +159,7 @@ function merge(base: Settings, patch: unknown): Settings {
   const next: Record<string, unknown> = { ...base };
   for (const key of Object.keys(VALID) as (keyof Settings)[]) {
     const v = (patch as Record<string, unknown>)[key];
-    if (v !== undefined && VALID[key](v)) next[key] = normalize(key, v);
+    if (v !== undefined && VALID[key](v)) next[key] = normalize(base, key, v);
   }
   return Object.freeze(next as unknown as Settings);
 }

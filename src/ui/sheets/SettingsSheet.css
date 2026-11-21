@@ -1,0 +1,75 @@
+/*
+ * Settings screen (Story 1.27; EXPERIENCE.md → Settings, UX-DR32).
+ * Colors only through the --color-* aliases of ui/styles/tokens.css.
+ */
+
+.settings-list,
+.settings-keys {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-list {
+  gap: 0.75rem;
+}
+
+.settings-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.settings-row__title {
+  font-size: 12px;
+  color: var(--color-dim);
+}
+
+.settings-row__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.settings-row__note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-dim);
+}
+
+.settings-option {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 0.75rem;
+  font: inherit;
+  color: var(--color-dim);
+  background: transparent;
+  border: 1px solid var(--color-line);
+  cursor: pointer;
+}
+
+.settings-option[aria-pressed="true"],
+.settings-key__key[data-listening="true"] {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.settings-keys {
+  gap: 0.25rem;
+}
+
+.settings-key {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.settings-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}

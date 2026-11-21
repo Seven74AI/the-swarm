@@ -34,3 +34,19 @@ to swap the web implementations for native ones.
 - `platform/` cannot use `utils/log` (value import from a game layer), so it reports nothing and degrades silently.
 - Later stories (settings screen 1.27, buttons 1.11, decision timers, CRT) read `settings`/`reducedMotion` from the
   platform object `main` hands them.
+
+## Addendum: the settings screen (Story 1.27)
+
+- **Settings v3:** `keyBindings: Readonly<Record<ShortcutId, string>>` (shortcut → `KeyboardEvent.key`, single
+  characters lower case). Defaults in `DEFAULT_KEY_BINDINGS`: Space = primary action, P = pause, 1–5 = tabs,
+  Esc = close a sheet. A stored or updated map is merged shortcut by shortcut onto the current one; unknown
+  shortcuts and empty keys are dropped, and a map where two shortcuts share a key is refused as a whole.
+  Versions 1 and 2 are still read field by field and get the default keys. Story 1.30 acts on the bindings and on
+  `keyboardShortcuts`.
+- **Screen:** `src/ui/sheets/SettingsSheet.tsx` `openSettings(sheets, { store, capabilities, onExportDiagnostics,
+  onReplayIntro? })`, a modal through the SheetController. It gets the store from main (no platform value import)
+  and calls `store.update` on every tap. Remapping swaps keys, so no two shortcuts ever share one. REPLAY INTRO is
+  disabled with its reason until Story 8.10 passes `onReplayIntro`.
+- **Diagnostics:** `src/debug/diagnostics.ts` `buildDiagnostics(...)` (log ring buffer, the serialized save,
+  settings, capabilities, build id, user agent) is built in main and downloaded with `platform.browser.download`;
+  nothing leaves the device. The build id is Vite's `__BUILD_ID__` define (the commit in CI, `dev` locally).

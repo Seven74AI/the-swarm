@@ -39,6 +39,8 @@ import { computeOfflineResourceDeltas } from './systems/OfflineProgression';
 import { openOfflineSummary } from './ui/sheets/OfflineSummarySheet';
 import { bindDecisionSheets } from './ui/sheets/DecisionSheet';
 import { openTickFailure } from './ui/sheets/TickFailureSheet';
+import { openSettings } from './ui/sheets/SettingsSheet';
+import { buildDiagnostics, DIAGNOSTICS_FILENAME } from './debug/diagnostics';
 import { createSheetController, type SheetController } from './ui/shell/SheetController';
 import { createResourceFeed } from './ui/shell/resourceFeed';
 import { ResourceStrip } from './ui/shell/ResourceStrip';
@@ -87,6 +89,9 @@ import { bindHapticFeedback, bindSoundSetting } from './platform/feedback';
  * - Fixed 50ms timestep with rAF-based delta accumulator
  * - Offline progress: accelerated catch-up on load (capped at 8 hours)
  */
+/** The build in diagnostics: the commit Vite was given (`__BUILD_ID__`), or `dev`. */
+const BUILD_ID: string = typeof __BUILD_ID__ === 'string' ? __BUILD_ID__ : 'dev';
+
 export function bootstrap(): {
   bus: EventBus;
   ticker: Ticker;
@@ -451,6 +456,29 @@ export function bootstrap(): {
     });
   };
 
+  // The settings screen (Story 1.27): from the resource sheet's [ SETTINGS ⚙ ] and from LOG.
+  // It writes the settings store directly; EXPORT DIAGNOSTICS downloads a file built here.
+  const exportDiagnostics = (): void => {
+    const state = haltedSnapshot ?? gameState.value;
+    const text = buildDiagnostics({
+      build: BUILD_ID,
+      now: Date.now(),
+      userAgent: typeof navigator === 'undefined' ? '' : navigator.userAgent,
+      save: saveManager.serialize(state, state.stats.playTimeMs),
+      settings: platform.settings.settings.value,
+      capabilities: platform.capabilities,
+      log: log.entries(),
+    });
+    if (!platform.browser.download(DIAGNOSTICS_FILENAME, text)) log.warn('diagnostics', 'export download failed');
+  };
+  const openSettingsScreen = (): void => {
+    openSettings(sheets, {
+      store: platform.settings,
+      capabilities: platform.capabilities,
+      onExportDiagnostics: exportDiagnostics,
+    });
+  };
+
   // The tab shell (Story 1.15): tabs revealed by phase, `•` from what became affordable.
   // A latched goal (Story 1.19): `•` on NEST and CONTINUE as its primary action.
   const shell = createTabShell({ phase: selectPhase, affordable: selectAffordableKeys, goalMet: selectGoalMet });
@@ -480,7 +508,8 @@ export function bootstrap(): {
     // Irreversible actions read the confirm style and hold duration from the settings (Story 1.13).
     confirmSettings: platform.settings.settings,
     // The resource strip and resource sheet (Story 1.16) share one sampled feed (ADR 0012).
-    mountStrip: (host) => render(<ResourceStrip feed={resourceFeed} sheets={sheets} />, host),
+    mountStrip: (host) =>
+      render(<ResourceStrip feed={resourceFeed} sheets={sheets} onOpenSettings={openSettingsScreen} />, host),
     // NEST's phase line and goal meter (Story 1.18), from the conditions in transitions.ts.
     mountPhaseLine: (host) => render(<PhaseLine host={host} />, host),
     // NEST (Story 1.22): LAY EGG in Phase 1, then the next action; the scene area; the Click Power card.
