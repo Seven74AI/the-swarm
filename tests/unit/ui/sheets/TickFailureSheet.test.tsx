@@ -50,6 +50,8 @@ describe('tick failure sheet', () => {
     act(() => void openTickFailure(sheets, { onExport: () => {}, onReload: () => {} }));
     expect(document.querySelector('[data-sheet-close]')).toBeNull();
     act(() => void document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+    // Esc reaches sheets through `SheetController.dismiss` (Story 1.30), which refuses this one.
+    act(() => void expect(sheets.dismiss()).toBe(false));
     const scrim = document.querySelector<HTMLElement>('[data-sheet-scrim]')!;
     act(() => scrim.click());
     expect(sheet()).not.toBeNull();

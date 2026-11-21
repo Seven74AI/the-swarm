@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 /**
  * E2E tests for pause/resume functionality (Slice 2/2).
- * Covers: pause button, Space shortcut, UI dimming, reload unpauses.
+ * Covers: pause button, the P shortcut (Story 1.30: Space no longer pauses), UI dimming, reload unpauses.
  *
  * Dependencies: Slice 1/2 (pause engine + state + UI button) must be merged.
  * Seed: 5 workers assigned to gather, 100 food. Each tick increases food.
@@ -114,12 +114,22 @@ test('click resume restarts food production', async ({ page }) => {
   expect(foodAfter).toBeGreaterThan(foodPaused);
 });
 
-test('Space bar toggles pause', async ({ page }) => {
+test('Space does not pause (it is the primary action now)', async ({ page }) => {
   await seedSave(page);
   await page.goto('/');
-
-  // Press Space to pause
+  await expect(page.locator(PAUSE_BUTTON)).toBeAttached();
   await page.keyboard.press('Space');
+  await page.waitForTimeout(200);
+  await expect(page.locator('body')).not.toHaveClass(/game-paused/);
+});
+
+test('P toggles pause (Story 1.30)', async ({ page }) => {
+  await seedSave(page);
+  await page.goto('/');
+  await expect(page.locator(PAUSE_BUTTON)).toBeAttached();
+
+  // Press P to pause
+  await page.keyboard.press('p');
 
   // Verify body has game-paused class
   await expect(page.locator('body')).toHaveClass(/game-paused/);
@@ -131,8 +141,8 @@ test('Space bar toggles pause', async ({ page }) => {
   const foodDiff = foodStillPaused - foodPaused;
   expect(foodDiff).toBeLessThanOrEqual(2);
 
-  // Press Space again to resume
-  await page.keyboard.press('Space');
+  // Press P again to resume
+  await page.keyboard.press('p');
 
   // Verify game-paused class removed
   await expect(page.locator('body')).not.toHaveClass(/game-paused/);

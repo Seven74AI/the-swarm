@@ -37,5 +37,5 @@ export function TickFailureSheet({ onExport, onReload }: TickFailureHandlers) {
 
 /** Request the tick-failure sheet; returns its sheet id. */
 export function openTickFailure(sheets: SheetController, handlers: TickFailureHandlers): number {
-  return sheets.open({ priority: 'offline', render: () => <TickFailureSheet {...handlers} /> });
+  return sheets.open({ priority: 'offline', dismissible: false, render: () => <TickFailureSheet {...handlers} /> });
 }

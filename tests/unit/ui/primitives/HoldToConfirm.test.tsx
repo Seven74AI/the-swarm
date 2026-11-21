@@ -201,7 +201,7 @@ describe('HoldToConfirm, hold mode (Story 1.13)', () => {
     });
   }
 
-  it('keeps Enter and Space to itself, so page shortcuts (Space pauses) do not fire', () => {
+  it('keeps Enter and Space to itself, so page shortcuts (Space = primary action) do not fire', () => {
     const onDoc = vi.fn();
     document.addEventListener('keydown', onDoc);
     try {

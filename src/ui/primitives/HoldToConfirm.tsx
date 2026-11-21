@@ -57,7 +57,7 @@ const isConfirmKey = (key: string): boolean => key === 'Enter' || key === ' ';
  * - **Two taps**: the first tap (or keyboard activation) arms the control for
  *   `ARM_MS`: it re-labels `> TAP AGAIN TO <VERB>` in inverse video. A second
  *   tap inside the window fires; otherwise it disarms.
- * - Enter and Space stay with the control (page shortcuts like Space-to-pause
+ * - Enter and Space stay with the control (page shortcuts like Space for the primary action,
  *   don't see them).
  * - Disabled uses `aria-disabled`, like `Button`, so it stays focusable.
  * - Looks like a primary `Button` (same CSS), pressed in inverse video.

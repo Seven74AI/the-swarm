@@ -142,7 +142,10 @@ html, body {
   border-color: var(--accent-glow);
 }
 
-/* ── Tooltip system via data-tooltip attribute ── */
+/* ── Tooltip system via data-tooltip attribute ──
+   Story 1.30 (UX-DR41, WCAG 1.4.13): a tap shows what a hover shows (data-tip-open,
+   toggled by ui/shell/tips.ts), the bubble is hoverable (it takes the pointer, and a
+   bridge covers the gap above the element), and Esc dismisses it (data-tip-dismissed). */
 [data-tooltip] {
   position: relative;
 }
@@ -159,7 +162,7 @@ html, body {
   border-radius: 4px;
   font-size: 0.75rem;
   white-space: nowrap;
-  pointer-events: none;
+  visibility: hidden;
   opacity: 0;
   transition: opacity var(--anim-micro) ease;
   z-index: 50;
@@ -167,10 +170,36 @@ html, body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
-/* Keep tooltip visible when button is the hover target */
-[data-tooltip]:hover::after,
-[data-tooltip]:focus-visible::after {
+/* The gap between element and bubble: keeps the hover while the pointer crosses it. */
+[data-tooltip]::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 8px;
+  display: none;
+}
+
+@media (hover: hover) {
+  [data-tooltip]:hover::after {
+    visibility: visible;
+    opacity: 1;
+  }
+  [data-tooltip]:hover::before {
+    display: block;
+  }
+}
+
+[data-tooltip]:focus-visible::after,
+[data-tooltip][data-tip-open]::after {
+  visibility: visible;
   opacity: 1;
+}
+
+[data-tooltip][data-tip-dismissed]::after {
+  visibility: hidden;
+  opacity: 0;
 }
 
 /* ── Top Bar ── */

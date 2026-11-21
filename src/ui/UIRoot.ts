@@ -295,10 +295,11 @@ export class UIRoot {
   }
 
   /**
-   * Toggle pause state — used by both button click and Space keyboard shortcut.
+   * Toggle pause state — used by the pause button and the pause shortcut
+   * (P by default; `ui/shell/shortcuts.ts`, bound in main.tsx, Story 1.30).
    * Reads current state, calls loop.pause()/resume(), updates signal + UI.
    */
-  private togglePause(): void {
+  togglePause(): void {
     const btn = this.pauseBtnEl;
     const state = this.getState();
     if (state.paused) {
@@ -337,16 +338,6 @@ export class UIRoot {
     pauseBtn.addEventListener('click', () => this.togglePause());
     this.pauseBtnEl = pauseBtn;
     topBar.appendChild(pauseBtn);
-
-    // Keyboard shortcut: Space toggles pause
-    document.addEventListener('keydown', (e: KeyboardEvent) => {
-      if (e.key !== ' ') return;
-      // Ignore when focus is on an input or textarea
-      const tag = (document.activeElement?.tagName ?? '').toLowerCase();
-      if (tag === 'input' || tag === 'textarea') return;
-      e.preventDefault();
-      this.togglePause();
-    });
 
     const phaseLabel = document.createElement('span');
     phaseLabel.className = 'game-phase';

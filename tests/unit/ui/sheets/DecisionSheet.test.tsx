@@ -100,12 +100,15 @@ describe('decision sheet', () => {
     expect(sheets.state.value.open).toBeNull();
   });
 
-  it('does not close on Esc or a scrim tap', () => {
+  it('does not close on Esc (the close shortcut) or a scrim tap', () => {
     show(byPolicy('free'));
     act(() => {
       fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
       document.querySelector<HTMLElement>('[data-sheet-scrim]')!.click();
     });
+    expect(popup()).not.toBeNull();
+    // Esc reaches sheets through `SheetController.dismiss` (Story 1.30), which refuses a decision.
+    act(() => void expect(sheets.dismiss()).toBe(false));
     expect(popup()).not.toBeNull();
   });
 

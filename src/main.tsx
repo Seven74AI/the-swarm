@@ -44,6 +44,8 @@ import { openTickFailure } from './ui/sheets/TickFailureSheet';
 import { openSettings } from './ui/sheets/SettingsSheet';
 import { buildDiagnostics, DIAGNOSTICS_FILENAME } from './debug/diagnostics';
 import { createSheetController, type SheetController } from './ui/shell/SheetController';
+import { bindShortcuts } from './ui/shell/shortcuts';
+import { bindTips } from './ui/shell/tips';
 import { createResourceFeed } from './ui/shell/resourceFeed';
 import { ResourceStrip } from './ui/shell/ResourceStrip';
 import { PhaseLine } from './ui/shell/GoalMeter';
@@ -627,6 +629,16 @@ export function bootstrap(): {
       app,
     );
   }
+
+  // ── Keyboard shortcuts (Story 1.30): primary action, tabs, pause, close; on/off and remaps from settings ──
+  bindShortcuts({
+    settings: platform.settings.settings,
+    sheets,
+    overlayHeld: overlays.held,
+    pause: () => ui.togglePause(),
+  });
+  // What hover shows, a tap shows; tips stay hoverable and Esc dismisses them (WCAG 1.4.13).
+  bindTips();
 
   // Start onboarding tutorial for new players (persisted via localStorage)
   setTimeout(() => {
