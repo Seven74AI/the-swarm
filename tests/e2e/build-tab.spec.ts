@@ -43,7 +43,9 @@ test.describe('BUILD tab', () => {
   });
 
   test('in Colony, nothing affordable: the header names what comes next and > BUY is empty', async ({ page }) => {
-    await seed(page, colony(0));
+    // Food comes in from the gatherers, so the price must stay out of reach for the
+    // whole test: a high Click Power level, not an empty larder, keeps it unaffordable.
+    await seed(page, { ...colony(0), upgrades: { click_power: 40 } });
     await openTab(page, 'build');
     const build = page.locator('[data-tab-panel="build"]');
     await expect(build.locator('[data-build-header]')).toHaveText(/^NEXT: CLICK POWER IN ~/);
@@ -81,7 +83,9 @@ test.describe('BUILD tab', () => {
       resources: { eggs: 0, larvae: 0, workers: 10, food: 0, nestCapacity: 1000, wood: 0, stone: 1_000_000, nectar: 0 },
       eggPipeline: { count: 0, progress: 0 },
       larvaPipeline: { count: 0, progress: 0 },
-      workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 },
+      // Every worker has a role that makes no food: unassigned workers forage, and
+      // the food they bring in would soon afford Click Power and move the highlight.
+      workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 10, researchers: 0 },
     });
     await openTab(page, 'build');
     const walls = page.locator('[data-building="walls"]');
