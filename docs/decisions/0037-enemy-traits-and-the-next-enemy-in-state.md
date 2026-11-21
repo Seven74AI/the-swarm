@@ -1,4 +1,4 @@
-# 0036. Enemy traits, and the next enemy in state
+# 0037. Enemy traits, and the next enemy in state
 
 - **Status:** accepted (2026-11-21)
 - **Source:** Story 4.1 (#292) · FR12 (combat interest bar) · UX-DR26 (enemy card) · ADR 0005 (seeded randomness), 0017 (WAR segment)
