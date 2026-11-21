@@ -5,12 +5,6 @@ import {
   getUnmetRequirements,
   calculateLegacyPoints,
   prestige,
-  canBuyTemporalResonance,
-  buyTemporalResonance,
-  TEMPORAL_RESONANCE_COST,
-  canBuyChronoSynchronization,
-  buyChronoSynchronization,
-  CHRONO_SYNCHRONIZATION_COST,
 } from '../../src/systems/PrestigeSystem';
 
 /**
@@ -369,125 +363,8 @@ describe('PrestigeSystem', () => {
     });
   });
 
-  // GM-8: Offline efficiency prestige upgrades
-  describe('offline efficiency upgrades', () => {
-    function makeTranscendenceState(): GameState {
-      const s = createInitialState();
-      s.phase = 'transcendence';
-      s.offlineEfficiency = 0.5;
-      s.prestige = { count: 1, legacyPoints: 15, totalFoodProduced: 500_000, totalWoodProduced: 0, totalStoneProduced: 0, totalNectarProduced: 0 };
-      s.resources.voidCrystals = 20;
-      return s;
-    }
-
-    describe('Temporal Resonance (50% → 75%, cost: 10 LP)', () => {
-      it('can buy when phase=transcendence, LP >= 10, efficiency = 50%', () => {
-        const s = makeTranscendenceState();
-        expect(canBuyTemporalResonance(s)).toBe(true);
-      });
-
-      it('cannot buy when phase is not transcendence or egg_laying', () => {
-        const s = makeTranscendenceState();
-        s.phase = 'space';
-        expect(canBuyTemporalResonance(s)).toBe(false);
-      });
-
-      it('can buy when phase=egg_laying (post-prestige)', () => {
-        const s = makeTranscendenceState();
-        s.phase = 'egg_laying';
-        expect(canBuyTemporalResonance(s)).toBe(true);
-      });
-
-      it('cannot buy when legacy points < 10', () => {
-        const s = makeTranscendenceState();
-        s.prestige.legacyPoints = 5;
-        expect(canBuyTemporalResonance(s)).toBe(false);
-      });
-
-      it('cannot buy when efficiency already > 50%', () => {
-        const s = makeTranscendenceState();
-        s.offlineEfficiency = 0.75;
-        expect(canBuyTemporalResonance(s)).toBe(false);
-      });
-
-      it('buy sets efficiency to 75% and deducts 10 LP', () => {
-        const s = makeTranscendenceState();
-        const result = buyTemporalResonance(s);
-        expect(result).not.toBeNull();
-        expect(result!.offlineEfficiency).toBe(0.75);
-        expect(result!.prestige.legacyPoints).toBe(5); // 15 - 10
-      });
-
-      it('buy returns null when requirements not met', () => {
-        const s = makeTranscendenceState();
-        s.prestige.legacyPoints = 5;
-        expect(buyTemporalResonance(s)).toBeNull();
-      });
-    });
-
-    describe('Chrono-Synchronization (75% → 100%, cost: 5 voidCrystals)', () => {
-      function makeCSReadyState(): GameState {
-        const s = makeTranscendenceState();
-        s.offlineEfficiency = 0.75;
-        s.resources.voidCrystals = 10;
-        return s;
-      }
-
-      it('can buy when efficiency = 75% and voidCrystals >= 5', () => {
-        const s = makeCSReadyState();
-        expect(canBuyChronoSynchronization(s)).toBe(true);
-      });
-
-      it('cannot buy when efficiency is not 75%', () => {
-        const s = makeCSReadyState();
-        s.offlineEfficiency = 0.5;
-        expect(canBuyChronoSynchronization(s)).toBe(false);
-      });
-
-      it('cannot buy when voidCrystals < 5', () => {
-        const s = makeCSReadyState();
-        s.resources.voidCrystals = 3;
-        expect(canBuyChronoSynchronization(s)).toBe(false);
-      });
-
-      it('cannot buy when efficiency is already 100%', () => {
-        const s = makeCSReadyState();
-        s.offlineEfficiency = 1.0;
-        expect(canBuyChronoSynchronization(s)).toBe(false);
-      });
-
-      it('buy sets efficiency to 100% and deducts 5 voidCrystals', () => {
-        const s = makeCSReadyState();
-        const result = buyChronoSynchronization(s);
-        expect(result).not.toBeNull();
-        expect(result!.offlineEfficiency).toBe(1.0);
-        expect(result!.resources.voidCrystals).toBe(5); // 10 - 5
-      });
-
-      it('buy returns null when requirements not met', () => {
-        const s = makeCSReadyState();
-        s.resources.voidCrystals = 3;
-        expect(buyChronoSynchronization(s)).toBeNull();
-      });
-    });
-
-    it('offlineEfficiency is preserved across prestige reset', () => {
-      const s = createInitialState();
-      s.offlineEfficiency = 0.75;
-      s.buildings.barracks.level = 5;
-      s.buildings.walls.level = 5;
-      s.buildings.warehouse.level = 5;
-      s.prestige.totalFoodProduced = 100_000;
-
-      const result = prestige(s);
-      expect(result.offlineEfficiency).toBe(0.75);
-    });
-
-    it('cost constants have expected values', () => {
-      expect(TEMPORAL_RESONANCE_COST).toBe(10);
-      expect(CHRONO_SYNCHRONIZATION_COST).toBe(5);
-    });
-  });
+  // GM-8's Temporal Resonance / Chrono-Synchronization one-off buys became
+  // Legacy-tree nodes in Story 2.8: see tests/unit/offlineEfficiency.test.ts.
 
   describe('prestige unlock bonuses (Slice 4)', () => {
     function makeRichState(): GameState {

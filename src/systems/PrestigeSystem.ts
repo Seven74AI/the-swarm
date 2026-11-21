@@ -2,6 +2,7 @@ import { createEmptyMap, type GameState } from '../state/GameState';
 import { resetEntropy, calculateEntropyPrestigeBonus } from './EntropySystem';
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
 import { PRESTIGE_UPGRADES, type PrestigeUpgradeId } from '../data/prestigeTree';
+import { OFFLINE_RESEARCH_ID } from './ResearchSystem';
 
 /**
  * Map phase names to their numeric position.
@@ -88,6 +89,7 @@ export function calculateLegacyPoints(
  *   - Legacy Points added based on formula
  *   - totalFoodProduced preserved (never resets)
  *   - Phase set to egg_laying
+ *   - The run's offline research wiped; Legacy nodes (prestigeTree) kept
  */
 export function prestige(state: GameState): GameState {
   const phaseScore = getPhaseScore(state.phase);
@@ -184,72 +186,16 @@ export function prestige(state: GameState): GameState {
       totalStoneProduced: state.prestige.totalStoneProduced,
       totalNectarProduced: state.prestige.totalNectarProduced,
     },
+    // The run's offline research is wiped (Story 2.8); the Legacy nodes in prestigeTree stay.
+    research: {
+      ...state.research,
+      projects: { ...state.research.projects, [OFFLINE_RESEARCH_ID]: { status: 'idle' } },
+    },
     prestigeTree: state.prestigeTree,
     mutations: state.mutations,
     equipment: {
       weapon: 0,
       armor: 0,
-    },
-  };
-}
-
-/** GM-8 Offline efficiency prestige upgrades */
-
-/** Cost: 10 Legacy Points. Requirement: offlineEfficiency at 50%. Result: 75%. */
-export const TEMPORAL_RESONANCE_COST = 10;
-/** Cost: 5 Void Crystals. Requirement: offlineEfficiency at 75%. Result: 100%. */
-export const CHRONO_SYNCHRONIZATION_COST = 5;
-
-/**
- * Check if the player can buy the Temporal Resonance upgrade.
- * Requires: phase transcendence+, legacyPoints >= 10, offlineEfficiency === 0.5.
- */
-export function canBuyTemporalResonance(state: GameState): boolean {
-  if (state.phase !== 'transcendence' && state.phase !== 'egg_laying') return false;
-  if (state.prestige.legacyPoints < TEMPORAL_RESONANCE_COST) return false;
-  if (state.offlineEfficiency !== 0.5) return false;
-  return true;
-}
-
-/**
- * Buy Temporal Resonance: offline efficiency 50% → 75%.
- * Returns new state, or null if requirements not met.
- */
-export function buyTemporalResonance(state: GameState): GameState | null {
-  if (!canBuyTemporalResonance(state)) return null;
-  return {
-    ...state,
-    offlineEfficiency: 0.75,
-    prestige: {
-      ...state.prestige,
-      legacyPoints: state.prestige.legacyPoints - TEMPORAL_RESONANCE_COST,
-    },
-  };
-}
-
-/**
- * Check if the player can buy the Chrono-Synchronization upgrade.
- * Requires: offlineEfficiency === 0.75, voidCrystals >= 5.
- * Available in any phase after Transcendence (including prestige resets to egg_laying).
- */
-export function canBuyChronoSynchronization(state: GameState): boolean {
-  if (state.resources.voidCrystals < CHRONO_SYNCHRONIZATION_COST) return false;
-  if (state.offlineEfficiency !== 0.75) return false;
-  return true;
-}
-
-/**
- * Buy Chrono-Synchronization: offline efficiency 75% → 100%.
- * Returns new state, or null if requirements not met.
- */
-export function buyChronoSynchronization(state: GameState): GameState | null {
-  if (!canBuyChronoSynchronization(state)) return null;
-  return {
-    ...state,
-    offlineEfficiency: 1.0,
-    resources: {
-      ...state.resources,
-      voidCrystals: state.resources.voidCrystals - CHRONO_SYNCHRONIZATION_COST,
     },
   };
 }

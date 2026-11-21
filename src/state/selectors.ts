@@ -28,13 +28,12 @@ import { canBuild, type BuildingType } from '../systems/BuildingSystem';
 import { canStartProject, getAssignedResearchers, getProjectStatus } from '../systems/ResearchSystem';
 import {
   calculateLegacyPoints,
-  canBuyChronoSynchronization,
-  canBuyTemporalResonance,
   canPurchasePrestigeUpgrade,
   getPhaseScore,
   getUnmetRequirements,
   isPrestigeAvailable,
 } from '../systems/PrestigeSystem';
+import { getOfflineCapMs, getOfflineEfficiency } from '../systems/OfflineProgression';
 import type { PrestigeUpgradeId } from '../data/prestigeTree';
 import type { ResearchProjectId, ResearchProjectStatus } from './GameState';
 import { conditionMet, goalFor, goalPercent, type GoalCondition, type Transition } from '../phases/transitions';
@@ -100,7 +99,6 @@ export const selectSpaceProbes = slice('spaceProbes');
 export const selectDiscoveries = slice('discoveries');
 export const selectPrestige = slice('prestige');
 export const selectAutoProduction = slice('autoProduction');
-export const selectOfflineEfficiency = slice('offlineEfficiency');
 export const selectResearch = slice('research');
 export const selectConversions = slice('conversions');
 export const selectPrestigeTree = slice('prestigeTree');
@@ -451,8 +449,10 @@ export const selectProjectedLegacyPoints = computed(() => {
   return calculateLegacyPoints(s.prestige.totalFoodProduced, getPhaseScore(s.phase));
 });
 
-export const selectCanBuyTemporalResonance = computed(() => canBuyTemporalResonance(gameState.value));
-export const selectCanBuyChronoSynchronization = computed(() => canBuyChronoSynchronization(gameState.value));
+/** Offline efficiency as a fraction (Story 2.8): base + run research + Legacy node, at most 1. */
+export const selectOfflineEfficiency = computed(() => getOfflineEfficiency(gameState.value));
+/** The offline cap in ms (Story 2.4), raised by the Legacy cap nodes (Story 2.8). */
+export const selectOfflineAwayLimitMs = computed(() => getOfflineCapMs(gameState.value));
 
 const canPurchaseUpgrades = new Map<PrestigeUpgradeId, ReadonlySignal<boolean>>();
 /** Whether a Legacy-tree upgrade can be bought now. */

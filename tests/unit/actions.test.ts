@@ -523,19 +523,6 @@ describe('prestige', () => {
     expect(after.prestigeTree.purchased).toContain(upgrade.id);
     expectRefused(actions.buyPrestigeUpgrade(upgrade.id), 'already_owned', after);
   });
-
-  it('buys the offline-efficiency upgrades in order', () => {
-    let before = given(rich({ phase: 'transcendence', offlineEfficiency: 0.5 }));
-    expectRefused(actions.buyChronoSynchronization(), 'locked', before);
-    let after = expectApplied(actions.buyTemporalResonance(), before);
-    expect(after.offlineEfficiency).toBeGreaterThan(before.offlineEfficiency);
-    expectRefused(actions.buyTemporalResonance(), 'already_owned', after);
-    after = expectApplied(actions.buyChronoSynchronization(), after);
-    expect(after.offlineEfficiency).toBeGreaterThan(0.75);
-
-    before = given(poor({ phase: 'transcendence' }));
-    expectRefused(actions.buyTemporalResonance(), 'cannot_afford', before);
-  });
 });
 
 describe('decisions (Story 1.28)', () => {

@@ -1,11 +1,10 @@
 import type { ReadonlySignal } from '@preact/signals-core';
 import type { Actions } from '../../actions';
 import { PRESTIGE_UPGRADES, type PrestigeUpgrade } from '../../data/prestigeTree';
-import { CHRONO_SYNCHRONIZATION_COST, TEMPORAL_RESONANCE_COST } from '../../state/queries';
+import { HOUR_MS } from '../../data/constants';
 import {
-  selectCanBuyChronoSynchronization,
-  selectCanBuyTemporalResonance,
   selectCanPurchasePrestigeUpgrade,
+  selectOfflineAwayLimitMs,
   selectOfflineEfficiency,
   selectPrestige,
   selectPrestigeAvailable,
@@ -42,16 +41,7 @@ export function PrestigeCard({ actions, confirmSettings }: { actions: Actions; c
   const efficiency = selectOfflineEfficiency.value;
   const available = selectPrestigeAvailable.value;
   const shortfall = selectPrestigeShortfall.value;
-  const canTR = selectCanBuyTemporalResonance.value;
-  const canCS = selectCanBuyChronoSynchronization.value;
-  const trTitle = canTR ? undefined : efficiency !== 0.5 ? 'Already purchased' : `Requires ${TEMPORAL_RESONANCE_COST} Legacy Points`;
-  const csTitle = canCS
-    ? undefined
-    : efficiency === 1
-      ? 'Max efficiency reached'
-      : efficiency !== 0.75
-        ? 'Requires Temporal Resonance first'
-        : `Requires ${CHRONO_SYNCHRONIZATION_COST} void crystals`;
+  const capHours = Math.floor(selectOfflineAwayLimitMs.value / HOUR_MS);
   const tooltip = available
     ? undefined
     : `Prestige needs:\n${shortfall
@@ -73,24 +63,7 @@ export function PrestigeCard({ actions, confirmSettings }: { actions: Actions; c
         </button>
         {legacyPoints > 0 && <Stat label="⚡ Production Bonus" value={`+${legacyPoints * 2}%`} />}
         <Stat label="⏳ Offline Efficiency" value={`${percent(efficiency)}%`} />
-        <button
-          type="button"
-          class="btn btn-upgrade"
-          disabled={!canTR}
-          title={trTitle}
-          onClick={() => actions.buyTemporalResonance()}
-        >
-          {`🌀 Temporal Resonance (${percent(efficiency)}% → 75%) — ${TEMPORAL_RESONANCE_COST} LP`}
-        </button>
-        <button
-          type="button"
-          class="btn btn-upgrade"
-          disabled={!canCS}
-          title={csTitle}
-          onClick={() => actions.buyChronoSynchronization()}
-        >
-          {`🔮 Chrono-Synchronization (${percent(efficiency)}% → 100%) — ${CHRONO_SYNCHRONIZATION_COST} ◈`}
-        </button>
+        <Stat label="⌛ Offline Cap" value={`${capHours} h`} />
         <Stat class="projected" label="📊 Next Reset" value={available ? `+${selectProjectedLegacyPoints.value} LP` : '—'} />
       </div>
       <div class="prestige-confirm">
@@ -108,6 +81,12 @@ export function PrestigeCard({ actions, confirmSettings }: { actions: Actions; c
   );
 }
 
+const TYPE_LABEL: Readonly<Record<PrestigeUpgrade['type'], string>> = {
+  production: '📈 Production',
+  unlock: '🔓 Unlock',
+  offline: '⏳ Offline',
+};
+
 function UpgradeCard({ upgrade, actions }: { upgrade: PrestigeUpgrade; actions: Actions }) {
   const purchased = selectPrestigeTree.value.purchased.includes(upgrade.id);
   const points = selectPrestige.value.legacyPoints;
@@ -118,7 +97,7 @@ function UpgradeCard({ upgrade, actions }: { upgrade: PrestigeUpgrade; actions: 
     <div class={`prestige-tree-card ${state}`}>
       <div class="prestige-tree-card-icon">{upgrade.icon}</div>
       <div class="prestige-tree-card-name">{upgrade.name}</div>
-      <div class="prestige-tree-card-type">{upgrade.type === 'unlock' ? '🔓 Unlock' : '📈 Production'}</div>
+      <div class="prestige-tree-card-type">{TYPE_LABEL[upgrade.type]}</div>
       <div class="prestige-tree-card-desc">{upgrade.description}</div>
       <div class="prestige-tree-card-footer">
         {purchased ? (

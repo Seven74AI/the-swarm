@@ -85,6 +85,7 @@ describe('tab registry', () => {
       // BUILD (Story 1.24): TechTreePanel is gone (the Legacy tree is sold in LOG → LEGACY).
       build_header: ['build'],
       build_click_power: ['build'],
+      offline_research_panel: ['build'],
       building_panel: ['build'],
       research_panel: ['build'],
       resource_converter_panel: ['build'],
@@ -129,12 +130,12 @@ describe('tab registry', () => {
     expect(new Set(tabs).size).toBe(tabs.length);
   });
 
-  it('BUILD shows its header, the Click Power card and > BUY from Colony, then buildings, research and the converter in that order (Story 1.24)', () => {
+  it('BUILD shows its header, the Click Power card, the offline research (2.8) and > BUY from Colony, then buildings, research and the converter in that order (Story 1.24)', () => {
     expect(PANEL_PLACEMENT.build_primary.zone).toBe('primary');
     const colony = panelsForPhase(Phase.COLONY).filter((id) => PANEL_PLACEMENT[id].tab === 'build');
-    expect(colony).toEqual(['build_header', 'build_click_power', 'build_primary']);
+    expect(colony).toEqual(['build_header', 'build_click_power', 'offline_research_panel', 'build_primary']);
     const space = panelsForPhase(Phase.SPACE).filter((id) => PANEL_PLACEMENT[id].tab === 'build' && !PANEL_PLACEMENT[id].zone);
-    expect(space).toEqual(['build_header', 'build_click_power', 'building_panel', 'research_panel', 'resource_converter_panel']);
+    expect(space).toEqual(['build_header', 'build_click_power', 'offline_research_panel', 'building_panel', 'research_panel', 'resource_converter_panel']);
   });
 
   it('WAR stacks soldiers (and equipment), mutations, the enemy card, then the combat log; FIGHT is its primary (Story 1.25)', () => {

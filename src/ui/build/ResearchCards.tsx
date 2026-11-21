@@ -6,7 +6,7 @@ import {
   selectResearch,
   selectResearchStatus,
 } from '../../state/selectors';
-import { getProjects, itemKey, type ResearchProjectDef } from '../../state/queries';
+import { getProjects, getProjectsFor, itemKey, type ResearchProjectDef } from '../../state/queries';
 import { formatFull, formatTime } from '../../utils/format';
 import { Button } from '../primitives/Button';
 import { Card } from '../primitives/Card';
@@ -20,6 +20,8 @@ import { decorate } from '../primitives/Deco';
 type Act = (id: ResearchProjectId) => { readonly ok: boolean };
 
 export interface ResearchCardsProps {
+  /** The panel whose projects to draw (default: the space research chain). */
+  panel?: ResearchProjectDef['panel'];
   start: Act;
   cancel: Act;
   /** Confirm style and hold duration (platform settings, from main). */
@@ -44,6 +46,8 @@ function ResearchCard({ def, step, steps, selected, props }: { def: ResearchProj
   const short = shortfallOf(def.cost);
   const staffed = researchers >= def.requiredResearchers;
   const crew = `${formatFull(def.requiredResearchers)} RESEARCHERS`;
+  // A project without a crew (the offline research, Story 2.8) shows only its price.
+  const crewed = def.requiredResearchers > 0;
 
   let action;
   let progress = null;
@@ -102,12 +106,13 @@ function ResearchCard({ def, step, steps, selected, props }: { def: ResearchProj
         id={def.id}
         glyph={RESEARCH_GLYPH}
         title={def.name.toUpperCase()}
-        level={`STEP ${step}/${steps}`}
+        level={steps > 1 ? `STEP ${step}/${steps}` : undefined}
         effect={RESEARCH_EFFECT[def.id]}
         cost={
           status === 'completed' ? undefined : (
             <>
-              <PriceText price={def.cost} /> · {crew}
+              <PriceText price={def.cost} />
+              {crewed && <> · {crew}</>}
             </>
           )
         }
@@ -132,7 +137,7 @@ function ResearchCard({ def, step, steps, selected, props }: { def: ResearchProj
  */
 export function ResearchCards(props: ResearchCardsProps) {
   const selected = highlightedKey();
-  const projects = getProjects();
+  const projects = getProjectsFor(props.panel ?? 'research_panel');
   return (
     <>
       {projects.map((def, i) => (

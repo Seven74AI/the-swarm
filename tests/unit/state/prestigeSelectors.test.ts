@@ -2,23 +2,22 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { gameState } from '../../../src/state/gameSignal';
 import { createInitialState, type GameState } from '../../../src/state/GameState';
 import {
-  selectCanBuyChronoSynchronization,
-  selectCanBuyTemporalResonance,
   selectCanPurchasePrestigeUpgrade,
+  selectOfflineAwayLimitMs,
+  selectOfflineEfficiency,
   selectPrestigeAvailable,
   selectPrestigeShortfall,
   selectProjectedLegacyPoints,
 } from '../../../src/state/selectors';
 import {
   calculateLegacyPoints,
-  canBuyChronoSynchronization,
-  canBuyTemporalResonance,
   canPurchasePrestigeUpgrade,
   getPhaseScore,
   getUnmetRequirements,
   isPrestigeAvailable,
 } from '../../../src/state/queries';
 import { PRESTIGE_UPGRADES } from '../../../src/data/prestigeTree';
+import { getOfflineCapMs, getOfflineEfficiency } from '../../../src/systems/OfflineProgression';
 import { PHASE_ORDER } from '../../../src/phases/phases';
 
 /** Story 1.36: LOG → LEGACY reads the prestige rules through selectors, like every other view. */
@@ -41,8 +40,8 @@ describe('prestige selectors', () => {
       gameState.value = s;
       expect(selectPrestigeAvailable.value).toBe(isPrestigeAvailable(s));
       expect(selectPrestigeShortfall.value).toEqual(getUnmetRequirements(s).join('\n'));
-      expect(selectCanBuyTemporalResonance.value).toBe(canBuyTemporalResonance(s));
-      expect(selectCanBuyChronoSynchronization.value).toBe(canBuyChronoSynchronization(s));
+      expect(selectOfflineEfficiency.value).toBe(getOfflineEfficiency(s));
+      expect(selectOfflineAwayLimitMs.value).toBe(getOfflineCapMs(s));
     }
     gameState.value = createInitialState();
     expect(selectPrestigeShortfall.value).not.toBe('');

@@ -1,16 +1,22 @@
 import type { GameState } from '../state/GameState';
 import type { TerritoryBonuses } from './TerritorySystem';
 import { computeResourceRates } from './ResourceSystem';
-import { OFFLINE_CAP_BASE_MS, OFFLINE_CAP_MAX_MS } from '../data/constants';
+import {
+  OFFLINE_CAP_BASE_MS,
+  OFFLINE_CAP_MAX_MS,
+  OFFLINE_EFFICIENCY_BASE_POINTS,
+  OFFLINE_EFFICIENCY_MAX_POINTS,
+} from '../data/constants';
 import { PRESTIGE_UPGRADES, type PrestigeUpgrade } from '../data/prestigeTree';
+import { getProjects } from './ResearchSystem';
 
 /**
  * Offline Progression — calculates how many game ticks to simulate
  * when the player returns after being away.
  *
  * - Offline progress is capped by `getOfflineCapMs(state)` (Story 2.4)
- * - Offline efficiency starts at 50% (Phase 1-4)
- * - Upgrades can increase efficiency to 75% and 100%
+ * - Offline efficiency is `getOfflineEfficiency(state)` (Story 2.8): 50%, plus
+ *   the run's offline research, plus the Legacy efficiency node, at most 100%
  *
  * Closed-form resource computation (rate × time) for deterministic
  * resources (food, wood, stone). Tick-based catch-up remains for
@@ -107,6 +113,27 @@ export function getOfflineCapMs(state: GameState, upgrades: readonly PrestigeUpg
     if (owned.has(u.id)) raise += u.offlineCapRaiseMs ?? 0;
   }
   return Math.min(OFFLINE_CAP_BASE_MS + raise, OFFLINE_CAP_MAX_MS);
+}
+
+/**
+ * Offline efficiency (Story 2.8, FR21) as a fraction (0.5 = 50%): the base
+ * points, plus `offlineEfficiencyPoints` of every research project this run
+ * has done, plus those of every owned Legacy upgrade, never above the max.
+ * Additive, so the research and the Legacy node can come in either order.
+ *
+ * @param upgrades - the upgrade table (tests pass one with extra nodes)
+ */
+export function getOfflineEfficiency(state: GameState, upgrades: readonly PrestigeUpgrade[] = PRESTIGE_UPGRADES): number {
+  let points: number = OFFLINE_EFFICIENCY_BASE_POINTS;
+  const projects = state.research?.projects;
+  for (const p of getProjects()) {
+    if (projects?.[p.id]?.status === 'done') points += p.offlineEfficiencyPoints ?? 0;
+  }
+  const owned = new Set(state.prestigeTree?.purchased ?? []);
+  for (const u of upgrades) {
+    if (owned.has(u.id)) points += u.offlineEfficiencyPoints ?? 0;
+  }
+  return Math.min(points, OFFLINE_EFFICIENCY_MAX_POINTS) / 100;
 }
 
 /** `ms` of absence, cut to the offline cap (negative and non-finite gaps read as 0). */

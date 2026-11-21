@@ -1,6 +1,6 @@
 import type { GameState } from '../state/GameState';
 import { RESUME_FULL_EFFICIENCY_MS } from '../data/constants';
-import { planOffline, type OfflinePlan } from '../systems/OfflineProgression';
+import { getOfflineEfficiency, planOffline, type OfflinePlan } from '../systems/OfflineProgression';
 import { log } from '../utils/log';
 import { catchUp, type CatchUpDeps } from './catchUp';
 
@@ -10,7 +10,7 @@ import { catchUp, type CatchUpDeps } from './catchUp';
  * that applied and whether it was reached, Story 2.4) plus the efficiency.
  */
 export interface OfflineLoadInfo extends OfflinePlan {
-  /** The offline efficiency used (from the state, default 0.5). */
+  /** The offline efficiency used (`getOfflineEfficiency(state)`, Story 2.8). */
   efficiency: number;
 }
 
@@ -26,8 +26,6 @@ export interface ResumeResult {
 
 /** The game tick length the catch-up steps by. */
 const TICK_MS = 50;
-/** Saves without an offline efficiency count at 50% (the offline baseline). */
-const DEFAULT_OFFLINE_EFFICIENCY = 0.5;
 
 /**
  * Resume after `elapsedMs` away (Story 2.3, D1, ADR 0002). Pure: returns the
@@ -40,7 +38,7 @@ const DEFAULT_OFFLINE_EFFICIENCY = 0.5;
  *
  * The offline cap (Story 2.4, `getOfflineCapMs`) bounds every gap here and in
  * `catchUp`. Macro-steps (2.6), offline-only rules (2.7) and the
- * efficiency curve (2.8) build on this function; it stays the only entry point.
+ * efficiency from research and Legacy nodes (2.8) build on this function; it stays the only entry point.
  */
 export function resume(state: GameState, elapsedMs: number, deps: CatchUpDeps): ResumeResult {
   const elapsed = Number.isFinite(elapsedMs) && elapsedMs > 0 ? elapsedMs : 0;
@@ -52,7 +50,7 @@ export function resume(state: GameState, elapsedMs: number, deps: CatchUpDeps): 
     return { state: ticks > 0 ? catchUp(state, ms, ticks, deps) : state, elapsedMs: elapsed, efficiency: 1, offline: null };
   }
 
-  const efficiency = typeof state.offlineEfficiency === 'number' ? state.offlineEfficiency : DEFAULT_OFFLINE_EFFICIENCY;
+  const efficiency = getOfflineEfficiency(state);
   // At most getOfflineCapMs(state) of the gap is simulated (Story 2.4).
   const plan = planOffline(state, elapsed, efficiency);
   return {

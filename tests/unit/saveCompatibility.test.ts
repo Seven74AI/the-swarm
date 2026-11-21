@@ -304,7 +304,7 @@ describe('Save Version Compatibility', () => {
         'combatSoldiers', 'soldierStats', 'equipment', 'lastBattle',
         'combatResources', 'battlesWon', 'battlesLost', 'victoryAchieved',
         'spaceship', 'spaceProbes', 'discoveries', 'nextIds',
-        'prestige', 'autoProduction', 'offlineEfficiency', 'research',
+        'prestige', 'autoProduction', 'research',
         'conversions', 'entropy', 'entropyDampener', 'prestigeTree',
       ];
 

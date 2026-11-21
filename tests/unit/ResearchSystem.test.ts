@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 import {
   getProjects,
+  getProjectsFor,
   getProjectStatus,
   canStartProject,
   startProject,
@@ -12,7 +13,6 @@ import {
   getAssignedResearchers,
   getTotalProgress,
   isProjectCompleted,
-  type ResearchProjectId,
 } from '../../src/systems/ResearchSystem';
 
 /**
@@ -33,18 +33,18 @@ describe('ResearchSystem', () => {
   });
 
   describe('getProjects', () => {
-    it('returns all 3 research projects', () => {
-      const projects = getProjects();
-      expect(projects).toHaveLength(3);
-      expect(projects.map((p) => p.id).sort()).toEqual([
+    it('returns the 3-step space chain plus the offline research (Story 2.8)', () => {
+      expect(getProjectsFor('research_panel').map((p) => p.id).sort()).toEqual([
         'antimatterContainment',
         'darkMatterDetection',
         'voidCrystalSynthesis',
       ]);
+      expect(getProjectsFor('offline_research_panel').map((p) => p.id)).toEqual(['dormantForaging']);
+      expect(getProjects()).toHaveLength(4);
     });
 
     it('each project has name, cost, requiredResearchers, durationMs, and unlock', () => {
-      for (const project of getProjects()) {
+      for (const project of getProjectsFor('research_panel')) {
         expect(project.name).toBeTruthy();
         expect(project.requiredResearchers).toBeGreaterThan(0);
         expect(project.durationMs).toBeGreaterThan(0);
@@ -93,6 +93,7 @@ describe('ResearchSystem', () => {
           voidCrystalSynthesis: { status: 'done' },
           antimatterContainment: { status: 'idle' },
           darkMatterDetection: { status: 'idle' },
+          dormantForaging: { status: 'idle' },
         },
       };
       const status = getProjectStatus(state, 'antimatterContainment');
@@ -105,6 +106,7 @@ describe('ResearchSystem', () => {
           voidCrystalSynthesis: { status: 'running' as const, progressMs: 2500, durationMs: 30_000 },
           antimatterContainment: { status: 'idle' },
           darkMatterDetection: { status: 'idle' },
+          dormantForaging: { status: 'idle' },
         },
       };
       const status = getProjectStatus(state, 'voidCrystalSynthesis');
@@ -117,6 +119,7 @@ describe('ResearchSystem', () => {
           voidCrystalSynthesis: { status: 'done' },
           antimatterContainment: { status: 'idle' },
           darkMatterDetection: { status: 'idle' },
+          dormantForaging: { status: 'idle' },
         },
       };
       const status = getProjectStatus(state, 'voidCrystalSynthesis');
@@ -148,6 +151,7 @@ describe('ResearchSystem', () => {
           voidCrystalSynthesis: { status: 'running' as const, progressMs: 0, durationMs: 30_000 },
           antimatterContainment: { status: 'idle' },
           darkMatterDetection: { status: 'idle' },
+          dormantForaging: { status: 'idle' },
         },
       };
       expect(canStartProject(state, 'voidCrystalSynthesis')).toBe(false);
@@ -160,6 +164,7 @@ describe('ResearchSystem', () => {
           voidCrystalSynthesis: { status: 'done' },
           antimatterContainment: { status: 'idle' },
           darkMatterDetection: { status: 'idle' },
+          dormantForaging: { status: 'idle' },
         },
       };
       expect(canStartProject(state, 'voidCrystalSynthesis')).toBe(false);
@@ -206,6 +211,7 @@ describe('ResearchSystem', () => {
           voidCrystalSynthesis: { status: 'done' },
           antimatterContainment: { status: 'idle' },
           darkMatterDetection: { status: 'idle' },
+          dormantForaging: { status: 'idle' },
         },
       };
       const result = startProject(state, 'antimatterContainment');
@@ -263,6 +269,7 @@ describe('ResearchSystem', () => {
           voidCrystalSynthesis: { status: 'running' as const, progressMs: 0, durationMs: 30_000 },
           antimatterContainment: { status: 'idle' },
           darkMatterDetection: { status: 'idle' },
+          dormantForaging: { status: 'idle' },
         },
       };
       const result = tickResearch(state, 0.05);
@@ -319,6 +326,7 @@ describe('ResearchSystem', () => {
           voidCrystalSynthesis: { status: 'running' as const, progressMs: 500, durationMs: 30_000 },
           antimatterContainment: { status: 'running' as const, progressMs: 2500, durationMs: 30_000 },
           darkMatterDetection: { status: 'idle' },
+          dormantForaging: { status: 'idle' },
         },
       };
 
@@ -371,6 +379,7 @@ describe('ResearchSystem', () => {
           voidCrystalSynthesis: { status: 'running' as const, progressMs: 5000, durationMs: 30_000 },
           antimatterContainment: { status: 'running' as const, progressMs: 2500, durationMs: 30_000 },
           darkMatterDetection: { status: 'idle' },
+          dormantForaging: { status: 'idle' },
         },
       };
       expect(getTotalProgress(state)).toBe(150 * 50);
@@ -384,6 +393,7 @@ describe('ResearchSystem', () => {
           voidCrystalSynthesis: { status: 'done' },
           antimatterContainment: { status: 'idle' },
           darkMatterDetection: { status: 'idle' },
+          dormantForaging: { status: 'idle' },
         },
       };
       expect(isProjectCompleted(state, 'voidCrystalSynthesis')).toBe(true);

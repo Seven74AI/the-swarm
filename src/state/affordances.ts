@@ -28,7 +28,7 @@ export function affordableKeys(state: GameState): string[] {
     if (canBuild(b, state)) keys.push(`building_panel:${b}`);
   }
   for (const p of getProjects()) {
-    if (canStartProject(state, p.id)) keys.push(`research_panel:${p.id}`);
+    if (canStartProject(state, p.id)) keys.push(`${p.panel}:${p.id}`);
   }
   for (const m of MUTATIONS) {
     if (canPurchaseMutation(state, m.id)) keys.push(`mutation_panel:${m.id}`);

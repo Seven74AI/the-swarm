@@ -25,6 +25,19 @@ export const HOUR_MS = 60 * 60 * 1000;
 export const OFFLINE_CAP_BASE_MS = 12 * HOUR_MS;
 /** The highest the offline cap can be raised (Story 2.8: "the cap never above 24 h"). */
 export const OFFLINE_CAP_MAX_MS = 24 * HOUR_MS;
+/** What each Legacy cap-raise node adds (Story 2.8): two of them take 12 h to 24 h. */
+export const OFFLINE_CAP_RAISE_MS = 6 * HOUR_MS;
+
+/**
+ * Offline efficiency (Story 2.8, FR21), in percentage points: a new run is at
+ * the base; the run's offline research and the Legacy efficiency node each add
+ * their `offlineEfficiencyPoints`, in either order; the sum never exceeds the
+ * max. `getOfflineEfficiency(state)` is the only place this is computed.
+ */
+export const OFFLINE_EFFICIENCY_BASE_POINTS = 50 as const;
+export const OFFLINE_EFFICIENCY_MAX_POINTS = 100 as const;
+/** What the run research and the Legacy efficiency node each add (Story 2.8): 50 + 25 + 25 = 100. */
+export const OFFLINE_EFFICIENCY_STEP_POINTS = 25 as const;
 
 /**
  * The fixed simulation step (Ticker, 20 Hz). Systems are correct for any step

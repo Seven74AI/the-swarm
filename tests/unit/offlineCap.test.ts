@@ -36,8 +36,8 @@ describe('getOfflineCapMs', () => {
     expect(OFFLINE_CAP_MAX_MS).toBeGreaterThanOrEqual(OFFLINE_CAP_BASE_MS);
   });
 
-  it('no upgrade that ships today raises it', () => {
-    expect(getOfflineCapMs(owning(PRESTIGE_UPGRADES.map((u) => u.id)))).toBe(OFFLINE_CAP_BASE_MS);
+  it('the shipped Legacy cap nodes (Story 2.8) raise it to the ceiling, not past it', () => {
+    expect(getOfflineCapMs(owning(PRESTIGE_UPGRADES.map((u) => u.id)))).toBe(OFFLINE_CAP_MAX_MS);
   });
 
   it('sums the raises of owned upgrades only', () => {
@@ -130,8 +130,8 @@ describe('catchUp honours the cap', () => {
 });
 
 describe('every resume honours the cap (Story 2.3 resume path)', () => {
-  // Efficiency 0: no ticks run, so a gap of days stays cheap; the plan is what is checked.
-  const idle = (): GameState => ({ ...makeState({ phase: 'colony', resources: { workers: 10, food: 100 }, workersAssigned: { gather: 10 } }), offlineEfficiency: 0 });
+  // Catch-up macro-steps (Story 2.6), so a gap of days stays cheap; the plan is what is checked.
+  const idle = (): GameState => makeState({ phase: 'colony', resources: { workers: 10, food: 100 }, workersAssigned: { gather: 10 } });
 
   it('simulates at most the cap of a long absence, and the summary knows it was reached', () => {
     const before = idle();
