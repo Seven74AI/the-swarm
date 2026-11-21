@@ -3,6 +3,7 @@ import { gameState } from './gameSignal';
 import type { GameState } from './GameState';
 import { getEffects } from '../systems/BuildingSystem';
 import { computeResourceRates } from '../systems/ResourceSystem';
+import { affordableKeys } from './affordances';
 import {
   getConversionDefs,
   getConversionRate,
@@ -139,3 +140,9 @@ export function selectConversionCap(id: ConversionId): ReadonlySignal<number> {
   }
   return sel;
 }
+
+/**
+ * What the player can afford now, as `<panelId>:<item>` keys joined by `|` (Story 1.15, the tab dot).
+ * A string, so a tick that changes nothing affordable leaves the value equal and stays quiet.
+ */
+export const selectAffordableKeys = computed(() => affordableKeys(gameState.value).join('|'));

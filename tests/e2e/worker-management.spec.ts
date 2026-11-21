@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openTab } from './helpers/tabs';
 
 /**
  * Worker Management & Resource Loop E2E Tests
@@ -141,6 +142,7 @@ test.describe('Worker Management', () => {
     await expect(page.locator('#phase-indicator')).toContainText('The Colony', { timeout: 5000 });
 
     // Worker panel should become visible after transition
+    await openTab(page, 'wrkr');
     await expect(page.locator('#worker-assignment')).toBeVisible({ timeout: 5000 });
 
     // Verify worker assignment rows exist
@@ -157,6 +159,7 @@ test.describe('Worker Management', () => {
 
     // Should be in colony now
     await expect(page.locator('#phase-indicator')).toContainText('The Colony', { timeout: 5000 });
+    await openTab(page, 'wrkr');
     await expect(page.locator('#worker-assignment')).toBeVisible({ timeout: 5000 });
 
     // Record initial food
@@ -187,6 +190,7 @@ test.describe('Worker Management', () => {
       workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 },
     });
 
+    await openTab(page, 'wrkr');
     await expect(page.locator('#worker-assignment')).toBeVisible({ timeout: 5000 });
 
     // With 5x pacing nerf (EGG_HATCH_TIME=50, LARVA_MATURE_TIME=50),
@@ -220,6 +224,7 @@ test.describe('Worker Management', () => {
       workersAssigned: { gather: 3, tend: 0, dig: 0, guard: 0, researchers: 0 },
     });
 
+    await openTab(page, 'wrkr');
     await expect(page.locator('#worker-assignment')).toBeVisible({ timeout: 5000 });
 
     const gatherRow = page.locator('[data-role="gather"]');
@@ -244,6 +249,7 @@ test.describe('Worker Management', () => {
       workersAssigned: { gather: 3, tend: 0, dig: 0, guard: 0, researchers: 0 },
     });
 
+    await openTab(page, 'wrkr');
     await expect(page.locator('#worker-assignment')).toBeVisible({ timeout: 5000 });
     const foodDisplay = page.locator('[data-stat="resources.food"]');
 
@@ -278,6 +284,7 @@ test.describe('Worker Management', () => {
       workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 },
     });
 
+    await openTab(page, 'wrkr');
     await expect(page.locator('#worker-assignment')).toBeVisible({ timeout: 5000 });
 
     const gatherRow = page.locator('[data-role="gather"]');

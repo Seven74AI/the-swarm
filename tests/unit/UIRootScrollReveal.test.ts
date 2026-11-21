@@ -6,6 +6,7 @@
  * adding .panel-revealed for the animation. Scroll-based
  * discovery (IntersectionObserver + .panel-awaiting-reveal) has been removed.
  */
+import { shellHosts } from './helpers/shellHosts';
 import { testActions } from './helpers/actions';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { EventBus } from '../../src/engine/EventBus';
@@ -50,7 +51,7 @@ describe('UIRoot — Phase-Based Panel Reveal', () => {
 
   describe('lazy panel creation', () => {
     it('Phase 1 panels (resource_panel) are mounted at boot', () => {
-      ui.mount(container);
+      ui.mount(shellHosts(container));
 
       // resource_panel should exist in the DOM after mount
       const panel = document.querySelector('.resource-panel');
@@ -58,7 +59,7 @@ describe('UIRoot — Phase-Based Panel Reveal', () => {
     });
 
     it('Phase 2+ panels are NOT mounted at boot', () => {
-      ui.mount(container);
+      ui.mount(shellHosts(container));
 
       // worker_assignment should NOT be in the DOM (lazy-loaded)
       const wa = document.querySelector('.worker-assignment');
@@ -70,7 +71,7 @@ describe('UIRoot — Phase-Based Panel Reveal', () => {
     });
 
     it('createPanel lazily creates Phase 2 panels and appends to #panels', () => {
-      ui.mount(container);
+      ui.mount(shellHosts(container));
 
       const el = ui.createPanel('worker_assignment');
       expect(el).not.toBeNull();
@@ -82,7 +83,7 @@ describe('UIRoot — Phase-Based Panel Reveal', () => {
     });
 
     it('createPanel is idempotent — returns same element on second call', () => {
-      ui.mount(container);
+      ui.mount(shellHosts(container));
 
       const first = ui.createPanel('worker_assignment');
       const second = ui.createPanel('worker_assignment');
@@ -91,7 +92,7 @@ describe('UIRoot — Phase-Based Panel Reveal', () => {
     });
 
     it('createPanel throws for unknown panel IDs', () => {
-      ui.mount(container);
+      ui.mount(shellHosts(container));
 
       expect(() => ui.createPanel('nonexistent_panel')).toThrow();
     });
@@ -99,7 +100,7 @@ describe('UIRoot — Phase-Based Panel Reveal', () => {
 
   describe('phase-based panel reveal', () => {
     it('showPanel sets display to empty and adds panel-revealed class', () => {
-      ui.mount(container);
+      ui.mount(shellHosts(container));
       const el = ui.createPanel('worker_assignment');
 
       // Panel should start hidden (set by constructor)
@@ -116,7 +117,7 @@ describe('UIRoot — Phase-Based Panel Reveal', () => {
     });
 
     it('showPanel removes legacy panel-awaiting-reveal if present', () => {
-      ui.mount(container);
+      ui.mount(shellHosts(container));
       const el = ui.createPanel('worker_assignment');
       el.classList.add('panel-awaiting-reveal'); // simulate legacy state
 
@@ -126,7 +127,7 @@ describe('UIRoot — Phase-Based Panel Reveal', () => {
     });
 
     it('showPanel emits panel_revealed event', () => {
-      ui.mount(container);
+      ui.mount(shellHosts(container));
       ui.createPanel('worker_assignment');
 
       const events: unknown[] = [];
@@ -140,7 +141,7 @@ describe('UIRoot — Phase-Based Panel Reveal', () => {
     });
 
     it('showPanel is a no-op for panels not yet created', () => {
-      ui.mount(container);
+      ui.mount(shellHosts(container));
 
       // Should not throw
       expect(() => ui.showPanel('worker_assignment')).not.toThrow();
@@ -151,7 +152,7 @@ describe('UIRoot — Phase-Based Panel Reveal', () => {
     it('IntersectionObserver is never created during mount', () => {
       // We should be able to mount without IntersectionObserver being available
       // (In jsdom it's undefined by default; the old code would crash without a mock)
-      ui.mount(container);
+      ui.mount(shellHosts(container));
 
       // Verify mount succeeded without errors
       const panelsEl = document.getElementById('panels');

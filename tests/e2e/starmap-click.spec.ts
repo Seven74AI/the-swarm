@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openTab } from './helpers/tabs';
 
 /**
  * E2E: Exploration Map Tiles — click + hover on StarmapPanel planet cards.
@@ -88,7 +89,8 @@ async function goToStarmap(page: Page) {
   // Allow a few ticks for rendering
   await page.clock.runFor(500);
 
-  // Verify starmap panel is visible
+  // Verify starmap panel is visible (FRONT → STARS, Story 1.15)
+  await openTab(page, 'front', 'stars');
   await expect(page.locator('#starmap-panel')).toBeAttached({ timeout: 5000 });
 }
 

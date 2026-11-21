@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openTab } from './helpers/tabs';
 
 /**
  * Golden Path E2E: Full progression seed → all panels unlock → save/load.
@@ -162,6 +163,7 @@ test.describe('Golden Path — Full Progression', () => {
   });
 
   test('worker assignment panel shows gather/tend rows', async ({ page }) => {
+    await openTab(page, 'wrkr');
     const workerPanel = page.locator('#worker-assignment');
     await expect(workerPanel).toBeVisible();
     const text = await workerPanel.textContent();
@@ -170,6 +172,7 @@ test.describe('Golden Path — Full Progression', () => {
   });
 
   test('soldier panel shows recruit button and soldier stats', async ({ page }) => {
+    await openTab(page, 'front', 'war');
     const soldierPanel = page.locator('#soldier-panel');
     await expect(soldierPanel).toBeVisible();
 
@@ -181,6 +184,7 @@ test.describe('Golden Path — Full Progression', () => {
   });
 
   test('battle panel shows scout and engage buttons', async ({ page }) => {
+    await openTab(page, 'front', 'war');
     const battlePanel = page.locator('#battle-panel');
     await expect(battlePanel).toBeVisible();
 
@@ -192,11 +196,13 @@ test.describe('Golden Path — Full Progression', () => {
   });
 
   test('map panel is visible in expansion phase', async ({ page }) => {
+    await openTab(page, 'front', 'map');
     const mapPanel = page.locator('.map-panel');
     await expect(mapPanel).toBeVisible();
   });
 
   test('building panel shows six building rows', async ({ page }) => {
+    await openTab(page, 'build');
     const buildingPanel = page.locator('#building-panel');
     await expect(buildingPanel).toBeVisible();
 
@@ -222,6 +228,7 @@ test.describe('Golden Path — Full Progression', () => {
   });
 
   test('expedition panel shows launch form', async ({ page }) => {
+    await openTab(page, 'front', 'map');
     const expeditionPanel = page.locator('#expedition-panel');
     await expect(expeditionPanel).toBeVisible();
 
@@ -255,6 +262,7 @@ test.describe('Golden Path — Full Progression', () => {
   });
 
   test('scout reveals enemy information', async ({ page }) => {
+    await openTab(page, 'front', 'war');
     // Scout button should be enabled (combatSoldiers=5 > 0)
     const scoutBtn = page.locator('#scout-enemy');
     await expect(scoutBtn).toBeEnabled({ timeout: 5000 });
@@ -345,30 +353,30 @@ test.describe('Golden Path — Full Progression', () => {
     await expect(page.locator('[data-stat="resources.food"]')).toBeVisible();
     await expect(page.locator('[data-stat="resources.eggs"]')).toBeVisible();
 
-    // Worker assignment
+    // Activity log (NEST)
+    await expect(page.locator('#activity-log')).toBeVisible();
+
+    // Worker assignment (WRKR)
+    await openTab(page, 'wrkr');
     await expect(page.locator('#worker-assignment')).toBeVisible();
 
-    // Soldier panel
+    // Soldier and battle panels (FRONT → WAR)
+    await openTab(page, 'front', 'war');
     await expect(page.locator('#soldier-panel')).toBeVisible();
-
-    // Battle panel
     await expect(page.locator('#battle-panel')).toBeVisible();
 
-    // Map panel
+    // Map and expedition panels (FRONT → MAP)
+    await openTab(page, 'front', 'map');
     await expect(page.locator('.map-panel')).toBeVisible();
+    await expect(page.locator('#expedition-panel')).toBeVisible();
 
-    // Building panel
+    // Building panel (BUILD)
+    await openTab(page, 'build');
     const buildingPanel = page.locator('#building-panel');
     await expect(buildingPanel).toBeVisible();
     await expect(buildingPanel.locator('[data-building="barracks"]')).toBeVisible();
     await expect(buildingPanel.locator('[data-building="walls"]')).toBeVisible();
     await expect(buildingPanel.locator('[data-building="warehouse"]')).toBeVisible();
-
-    // Expedition panel
-    await expect(page.locator('#expedition-panel')).toBeVisible();
-
-    // Activity log
-    await expect(page.locator('#activity-log')).toBeVisible();
 
     // ─── Verify building levels preserved ─────────────────────────
     const barracksLabelAfter = await page

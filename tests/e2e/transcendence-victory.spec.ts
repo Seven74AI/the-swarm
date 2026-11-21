@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openTab } from './helpers/tabs';
 
 /**
  * E2E: Transcendence Victory — Phase Transition, Overlay & Post-Victory.
@@ -207,12 +208,16 @@ test.describe('Transcendence Victory — Phase Transition & Overlay', () => {
     await expect(page.locator('#phase-indicator')).toBeVisible();
     await expect(page.locator('.resource-panel')).toBeVisible();
 
-    // Space panels still visible
+    // Phase 5: the final goal sits on NEST
+    await expect(page.locator('#transcendence-panel')).toBeVisible();
+
+    // Space panels still there (FRONT → STARS)
+    await openTab(page, 'front', 'stars');
     await expect(page.locator('#spaceship-panel')).toBeVisible();
     await expect(page.locator('#exploration-panel')).toBeVisible();
 
-    // Phase 5 panels visible
-    await expect(page.locator('#transcendence-panel')).toBeVisible();
+    // Prestige lives in LOG → LEGACY
+    await openTab(page, 'log');
     await expect(page.locator('#prestige-panel')).toBeVisible();
   });
 

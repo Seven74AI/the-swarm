@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openTab } from './helpers/tabs';
 
 /**
  * E2E: Expedition Lifecycle & Building Construction.
@@ -121,7 +122,8 @@ async function seedWithFakeTimers(page: Page, overrides?: Record<string, unknown
   // Advance a few ticks: map generation + expansion panel initialization
   await page.clock.runFor(5000);
 
-  // Now wait for expansion panels
+  // Now wait for expansion panels (expeditions live in FRONT → MAP, Story 1.15)
+  await openTab(page, 'front', 'map');
   await page.waitForSelector('#expedition-panel', { timeout: 5000 });
   await expect(page.locator('#phase-indicator')).toContainText('The Expansion', { timeout: 5000 });
 }
@@ -362,6 +364,7 @@ test.describe('Buildings', () => {
       localStorage.setItem('the_swarm_save', saveStr);
     }, JSON.stringify(data));
     await page.goto('/');
+    await openTab(page, 'build');
     await page.waitForSelector('#building-panel', { timeout: 10000 });
     await expect(page.locator('#phase-indicator')).toContainText('The Expansion', { timeout: 15000 });
 

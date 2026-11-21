@@ -1,0 +1,191 @@
+/*
+ * The portrait tab shell (Story 1.15, UX-DR5, UX-DR9, DESIGN.md → Layout & Spacing).
+ * Strip at the top; primary zone (64 px) and tab bar (52 px) pinned at the
+ * bottom above the safe-area inset, so they sit in the bottom 40 % of 100dvh
+ * from a 360×512 viewport up. The scroll area is padded by their combined
+ * height, so every row can be scrolled into the thumb zone.
+ * Colors only through the --color-* aliases (tokens.css).
+ */
+
+:root {
+  --shell-primary-zone: 64px;
+  --shell-tab-bar: 52px;
+  --shell-max-width: 600px;
+  --shell-margin: 14px;
+  --shell-safe-top: env(safe-area-inset-top, 0px);
+  --shell-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media (max-width: 359px) {
+  :root { --shell-margin: 8px; }
+}
+
+/* The shell owns the page layout: #app no longer pads or centers. */
+#app:has(> .shell) {
+  display: block;
+  min-height: 0;
+  padding: 0;
+}
+
+.shell {
+  --shell-bottom: calc(var(--shell-primary-zone) + var(--shell-tab-bar));
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--shell-max-width);
+  height: 100vh;
+  height: 100dvh;
+  margin: 0 auto;
+}
+
+.shell[data-tab-bar-shown="false"] {
+  --shell-bottom: var(--shell-primary-zone);
+}
+
+/* Containers the shell hides stay hidden whatever their class sets. */
+.shell [hidden] {
+  display: none !important;
+}
+
+.shell-strip {
+  flex: 0 0 auto;
+  max-height: 34dvh;
+  overflow-y: auto;
+  padding: var(--shell-safe-top) var(--shell-margin) 0;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.shell-strip .top-bar {
+  margin-bottom: 0;
+}
+
+.shell-strip .resource-panel {
+  margin-bottom: 0.5rem;
+  max-width: none;
+}
+
+.shell-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.75rem var(--shell-margin) calc(var(--shell-bottom) + var(--shell-safe-bottom));
+  scroll-padding-bottom: calc(var(--shell-bottom) + var(--shell-safe-bottom));
+}
+
+/* A tab without content yet shows one dim line (BUILD in Colony, LOG before the Legacy). */
+.shell-tab-content:empty::before {
+  content: attr(data-empty);
+  color: var(--color-dim);
+}
+
+.shell-scroll .panel,
+.shell-scroll .phase-indicator,
+.shell-scroll .map-panel {
+  max-width: none;
+}
+
+.shell-primary,
+.tab-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-width: var(--shell-max-width);
+  margin-inline: auto;
+  background: var(--color-bg);
+}
+
+.shell-primary {
+  bottom: calc(var(--shell-tab-bar) + var(--shell-safe-bottom));
+  height: var(--shell-primary-zone);
+  border-top: 1px solid var(--color-line);
+}
+
+.shell[data-tab-bar-shown="false"] .shell-primary {
+  bottom: var(--shell-safe-bottom);
+}
+
+.shell-primary-slot {
+  height: 100%;
+}
+
+/* The lay-egg button as NEST's primary action: full width, one 48 px row. */
+.shell-primary .click-button-container {
+  flex-direction: row;
+  height: 100%;
+  margin: 0;
+  padding: 8px var(--shell-margin);
+  gap: 12px;
+}
+
+.shell-primary .click-button {
+  flex: 1 1 auto;
+  width: auto;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 0;
+  font-size: 1.1rem;
+  justify-content: flex-start;
+}
+
+.shell-primary .click-button:hover {
+  transform: none;
+}
+
+.shell-primary .click-counter {
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.tab-bar {
+  bottom: 0;
+  height: calc(var(--shell-tab-bar) + var(--shell-safe-bottom));
+  padding-bottom: var(--shell-safe-bottom);
+  border-top: 1px solid var(--color-line);
+}
+
+.tab-bar-list {
+  display: flex;
+  height: var(--shell-tab-bar);
+}
+
+.tab-bar-tab,
+.segment-row-tab {
+  flex: 1 1 0;
+  min-height: 44px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-dim);
+  font: inherit;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+
+/* Selection is inverse video: an accent cell with on-accent text. */
+.tab-bar-tab[aria-selected="true"],
+.segment-row-tab[aria-selected="true"] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.tab-bar-dot {
+  margin-left: 2px;
+}
+
+.segment-row {
+  display: flex;
+  margin-bottom: 0.75rem;
+  border: 1px solid var(--color-line);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

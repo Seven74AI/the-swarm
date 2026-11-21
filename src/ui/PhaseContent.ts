@@ -1,6 +1,7 @@
 import { Phase } from '../phases/phases';
 import type { UIRoot } from './UIRoot';
 import type { EventBus } from '../engine/EventBus';
+import { panelsForPhase } from '../data/content/tabs';
 
 /** Delay before revealing new panels after the transition overlay appears (ms). */
 const PANEL_REVEAL_DELAY_MS = 300;
@@ -29,101 +30,6 @@ const LORE_QUOTES: Record<string, string[]> = {
   ],
 };
 
-/**
- * Maps each phase to which UI panels should be active.
- * As the game progresses, new panels are revealed.
- */
-const PHASE_PANELS: Record<string, string[]> = {
-  [Phase.EGG_LAYING]: [
-    'click_button',
-    'event_log',
-    'phase_indicator',
-    'resource_panel',
-  ],
-  [Phase.COLONY]: [
-    'click_button',
-    'event_log',
-    'phase_indicator',
-    'resource_panel',
-    'worker_assignment',
-    'food_display',
-  ],
-  [Phase.COMBAT]: [
-    'click_button',
-    'event_log',
-    'phase_indicator',
-    'resource_panel',
-    'worker_assignment',
-    'food_display',
-    'soldier_panel',
-    'battle_panel',
-    'combat_log',
-    'mutation_panel',
-  ],
-  [Phase.EXPANSION]: [
-    'click_button',
-    'event_log',
-    'phase_indicator',
-    'resource_panel',
-    'worker_assignment',
-    'food_display',
-    'soldier_panel',
-    'battle_panel',
-    'combat_log',
-    'map_panel',
-    'building_panel',
-    'expedition_panel',
-    'mutation_panel',
-  ],
-  [Phase.SPACE]: [
-    'click_button',
-    'event_log',
-    'phase_indicator',
-    'resource_panel',
-    'worker_assignment',
-    'food_display',
-    'soldier_panel',
-    'battle_panel',
-    'combat_log',
-    'map_panel',
-    'building_panel',
-    'expedition_panel',
-    'spaceship_panel',
-    'exploration_panel',
-    'cosmic_panel',
-    'starmap_panel',
-    'resource_converter_panel',
-    'research_panel',
-    'mutation_panel',
-  ],
-  [Phase.TRANSCENDENCE]: [
-    'click_button',
-    'event_log',
-    'phase_indicator',
-    'resource_panel',
-    'worker_assignment',
-    'food_display',
-    'soldier_panel',
-    'battle_panel',
-    'combat_log',
-    'map_panel',
-    'building_panel',
-    'expedition_panel',
-    'spaceship_panel',
-    'exploration_panel',
-    'cosmic_panel',
-    'starmap_panel',
-    'resource_converter_panel',
-    'transcendence_panel',
-    'tech_tree_panel',
-    'automation_panel',
-    'prestige_panel',
-    'prestige_tree_panel',
-    'research_panel',
-    'mutation_panel',
-  ],
-};
-
 export class PhaseContent {
   /**
    * Maps each phase to its CSS body class for theme shifting.
@@ -148,7 +54,8 @@ export class PhaseContent {
    * Returns the list of panel IDs active for a given phase.
    */
   getActivePanels(phase: Phase): string[] {
-    return PHASE_PANELS[phase] ?? PHASE_PANELS[Phase.EGG_LAYING];
+    // The tab registry (data/content/tabs.ts, Story 1.15) is the one source of panel unlocks.
+    return panelsForPhase(phase);
   }
 
   /**
