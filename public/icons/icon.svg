@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- THE SWARM app icon (Story 2.13): an amber ant on the Egg Laying background.
+       Full bleed, with the ant inside the central 60 % so it also works as a maskable icon. -->
+  <rect width="512" height="512" fill="#0d0a04"/>
+  <g fill="none" stroke="#ffb000" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M226 150 L196 104 M286 150 L316 104"/>
+    <path d="M236 236 L172 204 L150 228 M276 236 L340 204 L362 228"/>
+    <path d="M232 262 L168 274 L148 312 M280 262 L344 274 L364 312"/>
+    <path d="M238 288 L188 336 L184 380 M274 288 L324 336 L328 380"/>
+  </g>
+  <g fill="#ffb000">
+    <ellipse cx="256" cy="172" rx="34" ry="30"/>
+    <ellipse cx="256" cy="252" rx="26" ry="40"/>
+    <ellipse cx="256" cy="348" rx="46" ry="62"/>
+  </g>
+</svg>

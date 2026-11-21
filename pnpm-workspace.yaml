@@ -6,3 +6,9 @@ onlyBuiltDependencies:
 
 allowBuilds:
   esbuild: true
+
+# Story 2.13: workbox-build (via vite-plugin-pwa, build-time only) still asks for
+# glob 11, which carries moderate advisories (glob, minimatch). glob 14 keeps the
+# globSync API workbox-build uses; drop this once workbox-build moves on.
+overrides:
+  workbox-build>glob: ^14.0.6
