@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { EventLog } from '../../src/ui/panels/EventLog';
+import { EventLog } from '../../src/ui/log/EventLog';
 import { EventBus } from '../../src/engine/EventBus';
 import { Phase } from '../../src/phases/phases';
 import { getDecision } from '../../src/data/content/decisions';
@@ -15,14 +15,11 @@ describe('EventLog', () => {
   });
 
   function getEntries(): string[] {
-    const el = log.getElement();
-    const entries = el.querySelectorAll('.log-entry');
-    return Array.from(entries).map((e) => e.textContent ?? '');
+    return log.entries().map((e) => e.message);
   }
 
   function getLatestEntry(): string {
-    const entries = log.getElement().querySelectorAll('.log-entry');
-    return entries.length > 0 ? entries[0].textContent ?? '' : '';
+    return getEntries()[0] ?? '';
   }
 
   // ── Decision events (Story 1.28) ──
@@ -239,38 +236,14 @@ describe('EventLog', () => {
     });
   });
 
-  // ── NEST event lines (Story 1.22, UX-DR30) ──
-  describe('NEST event lines', () => {
-    const lines = () => Array.from(log.getElement().querySelectorAll<HTMLElement>('.log-entry'));
-
-    it('shows only the newest 3 lines, newest first', () => {
-      for (let i = 0; i < 5; i++) {
-        bus.emit('building_complete', { building: 'nest', level: i + 2 });
-      }
-      expect(lines()).toHaveLength(3);
-      expect(lines()[0].textContent).toContain('LEVEL 6');
-      expect(lines()[1].textContent).toContain('LEVEL 5');
-      expect(lines()[2].textContent).toContain('LEVEL 4');
-    });
-
-    it('prefixes the newest line with "> " and older ones with "· "', () => {
-      bus.emit('building_complete', { building: 'nest', level: 2 });
-      bus.emit('building_complete', { building: 'nest', level: 3 });
-      const [newest, ...older] = lines();
-      expect(newest.dataset.newest).toBe('true');
-      expect(newest.querySelector('[data-line-prefix]')?.textContent).toBe('> ');
-      for (const line of older) {
-        expect(line.dataset.newest).toBe('false');
-        expect(line.querySelector('[data-line-prefix]')?.textContent).toBe('· ');
-      }
-    });
-
+  // ── Line order (Story 1.22, UX-DR30); NEST's drawing is tests/unit/ui/nest/EventLines.test.tsx ──
+  describe('line order', () => {
     it('keeps the phase line newest over the panel reveals of the same commit', () => {
       bus.emit('phase_committed', { from: Phase.EXPANSION, to: Phase.SPACE });
       bus.emit('panel_revealed', { panelId: 'spaceship_panel' });
       bus.emit('panel_revealed', { panelId: 'expedition_panel' });
       bus.emit('panel_revealed', { panelId: 'soldier_panel' });
-      expect(lines()[0].textContent).toBe('> ' + COLONY_LINES.phase_space.text);
+      expect(getLatestEntry()).toBe(COLONY_LINES.phase_space.text);
       expect(log.entries()).toHaveLength(5);
     });
 
@@ -278,14 +251,13 @@ describe('EventLog', () => {
       bus.emit('phase_committed', { from: Phase.EXPANSION, to: Phase.SPACE });
       await Promise.resolve();
       bus.emit('panel_revealed', { panelId: 'spaceship_panel' });
-      expect(lines()[0].textContent).toBe('> ' + COLONY_LINES.panel_spaceship.text);
+      expect(getLatestEntry()).toBe(COLONY_LINES.panel_spaceship.text);
     });
 
-    it('keeps older entries in memory for the LOG tab', () => {
-      for (let i = 0; i < 5; i++) {
-        bus.emit('building_complete', { building: 'nest', level: i + 2 });
-      }
-      expect(log.entries().length).toBeGreaterThan(lines().length);
+    it('the tenth worker line comes from workers_changed itself (UIRoot used to forward it)', () => {
+      bus.emit('workers_changed', { workers: 12 });
+      bus.emit('workers_changed', { workers: 13 });
+      expect(getEntries().filter((e) => e === COLONY_LINES.tenth_worker.text)).toHaveLength(1);
     });
   });
 });

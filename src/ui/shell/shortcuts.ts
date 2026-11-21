@@ -12,7 +12,7 @@ import type { SheetController } from './SheetController';
  *   focus is on the page or on that button. A focused control keeps Space and
  *   Enter (a stepper, a card action, a hold-to-confirm).
  * - `tab1`–`tab5` (1–5) press the Nth tab of the visible tab bar (the rail on desktop).
- * - `pause` (P) calls `pause` (UIRoot's pause toggle). Space no longer pauses.
+ * - `pause` (P) calls `pause` (main's pause toggle). Space no longer pauses.
  * - `close` (Esc) dismisses the open sheet through the SheetController; a
  *   decision sheet is never dismissed (`SheetController.dismiss`).
  *

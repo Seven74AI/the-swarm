@@ -26,7 +26,16 @@ import {
 } from '../systems/ResourceConversionSystem';
 import { canBuild, type BuildingType } from '../systems/BuildingSystem';
 import { canStartProject, getAssignedResearchers, getProjectStatus } from '../systems/ResearchSystem';
-import { isPrestigeAvailable } from '../systems/PrestigeSystem';
+import {
+  calculateLegacyPoints,
+  canBuyChronoSynchronization,
+  canBuyTemporalResonance,
+  canPurchasePrestigeUpgrade,
+  getPhaseScore,
+  getUnmetRequirements,
+  isPrestigeAvailable,
+} from '../systems/PrestigeSystem';
+import type { PrestigeUpgradeId } from '../data/prestigeTree';
 import type { ResearchProjectId, ResearchProjectStatus } from './GameState';
 import { conditionMet, goalFor, goalPercent, type GoalCondition, type Transition } from '../phases/transitions';
 
@@ -427,3 +436,26 @@ export const selectLegacyUnlocked = computed(() => {
   const s = gameState.value;
   return s.prestige.count > 0 || s.victoryAchieved || isPrestigeAvailable(s);
 });
+
+// --- LOG → LEGACY: the prestige card and the Legacy tree (Story 1.36) --------------------------------
+
+/** The GDD's prestige condition is met: PRESTIGE can be held. */
+export const selectPrestigeAvailable = computed(() => isPrestigeAvailable(gameState.value));
+
+/** What prestige still needs, one requirement per line; empty once it is available. */
+export const selectPrestigeShortfall = computed(() => getUnmetRequirements(gameState.value).join('\n'));
+
+/** Legacy points the next prestige awards: the same scoring `prestige()` uses (#188). */
+export const selectProjectedLegacyPoints = computed(() => {
+  const s = gameState.value;
+  return calculateLegacyPoints(s.prestige.totalFoodProduced, getPhaseScore(s.phase));
+});
+
+export const selectCanBuyTemporalResonance = computed(() => canBuyTemporalResonance(gameState.value));
+export const selectCanBuyChronoSynchronization = computed(() => canBuyChronoSynchronization(gameState.value));
+
+const canPurchaseUpgrades = new Map<PrestigeUpgradeId, ReadonlySignal<boolean>>();
+/** Whether a Legacy-tree upgrade can be bought now. */
+export function selectCanPurchasePrestigeUpgrade(id: PrestigeUpgradeId): ReadonlySignal<boolean> {
+  return memo(canPurchaseUpgrades, id, () => canPurchasePrestigeUpgrade(gameState.value, id));
+}

@@ -3,17 +3,19 @@
  * Tests that onPhaseEnter sets the correct body class for each phase,
  * (The phase reveal itself is tests/unit/ui/overlays/PhaseReveal.test.tsx, Story 1.20.)
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { PhaseContent } from '../../src/ui/PhaseContent';
 import { Phase } from '../../src/phases/phases';
+import { createPanelReveal, type PanelReveal } from '../../src/ui/shell/panelReveal';
+import { panelsForPhase } from '../../src/data/content/tabs';
 
 describe('PhaseContent — Phase Theme Shifting', () => {
   let phaseContent: PhaseContent;
-  let uiRoot: { showPanel: ReturnType<typeof vi.fn>; createPanel: ReturnType<typeof vi.fn> };
+  let uiRoot: PanelReveal;
 
   beforeEach(() => {
     phaseContent = new PhaseContent();
-    uiRoot = { showPanel: vi.fn(), createPanel: vi.fn() };
+    uiRoot = createPanelReveal();
     // Add a minimal CSS to support body class assertion
     const style = document.createElement('style');
     style.id = 'test-phase-styles';
@@ -39,45 +41,56 @@ describe('PhaseContent — Phase Theme Shifting', () => {
     if (style) style.remove();
   });
 
+  describe('panel reveal (Story 1.36)', () => {
+    it('reveals the phase\'s panels, announcing each, and keeps earlier ones', () => {
+      const seen: string[] = [];
+      const panels = createPanelReveal({ onReveal: (id) => void seen.push(id) });
+      phaseContent.onPhaseEnter(Phase.COLONY, panels);
+      expect(seen).toEqual(panelsForPhase(Phase.COLONY));
+      phaseContent.onPhaseEnter(Phase.EGG_LAYING, panels);
+      for (const id of panelsForPhase(Phase.COLONY)) expect(panels.revealed.value.has(id)).toBe(true);
+    });
+  });
+
   describe('body class toggling per phase', () => {
     it('sets body class to phase-egg when entering EGG_LAYING', () => {
-      phaseContent.onPhaseEnter(Phase.EGG_LAYING, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot);
+      phaseContent.onPhaseEnter(Phase.EGG_LAYING, uiRoot);
       expect(document.body.classList.contains('phase-egg')).toBe(true);
       // Should not have other phase classes
       expect(document.body.classList.contains('phase-colony')).toBe(false);
     });
 
     it('sets body class to phase-colony when entering COLONY', () => {
-      phaseContent.onPhaseEnter(Phase.COLONY, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot);
+      phaseContent.onPhaseEnter(Phase.COLONY, uiRoot);
       expect(document.body.classList.contains('phase-colony')).toBe(true);
       // Previous phase class should be cleaned up
       expect(document.body.classList.contains('phase-egg')).toBe(false);
     });
 
     it('sets body class to phase-combat when entering COMBAT', () => {
-      phaseContent.onPhaseEnter(Phase.COMBAT, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot);
+      phaseContent.onPhaseEnter(Phase.COMBAT, uiRoot);
       expect(document.body.classList.contains('phase-combat')).toBe(true);
     });
 
     it('sets body class to phase-expansion when entering EXPANSION', () => {
-      phaseContent.onPhaseEnter(Phase.EXPANSION, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot);
+      phaseContent.onPhaseEnter(Phase.EXPANSION, uiRoot);
       expect(document.body.classList.contains('phase-expansion')).toBe(true);
     });
 
     it('sets body class to phase-space when entering SPACE', () => {
-      phaseContent.onPhaseEnter(Phase.SPACE, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot);
+      phaseContent.onPhaseEnter(Phase.SPACE, uiRoot);
       expect(document.body.classList.contains('phase-space')).toBe(true);
     });
 
     it('sets body class to phase-transcendence when entering TRANSCENDENCE', () => {
-      phaseContent.onPhaseEnter(Phase.TRANSCENDENCE, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot);
+      phaseContent.onPhaseEnter(Phase.TRANSCENDENCE, uiRoot);
       expect(document.body.classList.contains('phase-transcendence')).toBe(true);
     });
 
     it('only one phase body class is active at a time', () => {
       // Enter colony, then combat
-      phaseContent.onPhaseEnter(Phase.COLONY, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot);
-      phaseContent.onPhaseEnter(Phase.COMBAT, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot);
+      phaseContent.onPhaseEnter(Phase.COLONY, uiRoot);
+      phaseContent.onPhaseEnter(Phase.COMBAT, uiRoot);
 
       const phaseClasses = Array.from(document.body.classList).filter(
         (c) => c.startsWith('phase-'),

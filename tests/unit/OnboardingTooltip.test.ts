@@ -2,7 +2,7 @@
  * OnboardingTooltip unit tests — DOM structure, positioning, dismissal.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { OnboardingTooltip, type TooltipConfig } from '../../src/ui/components/OnboardingTooltip';
+import { OnboardingTooltip, type TooltipConfig } from '../../src/ui/OnboardingTooltip';
 
 describe('OnboardingTooltip', () => {
   beforeEach(() => {

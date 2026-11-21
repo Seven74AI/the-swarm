@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { EventBus } from '../../src/engine/EventBus';
 import type { SwarmEvents } from '../../src/engine/events';
-import { EventLog } from '../../src/ui/panels/EventLog';
+import { EventLog } from '../../src/ui/log/EventLog';
 import { BattleSystem } from '../../src/systems/BattleSystem';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 import { TRANSITIONS } from '../../src/phases/transitions';

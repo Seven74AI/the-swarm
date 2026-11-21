@@ -48,11 +48,30 @@ const PLATFORM_VALUE_IMPORTERS = ['main', 'platform'];
 /**
  * Legacy UI files that still read `gameState.value` directly. UI reads state
  * through `state/selectors.ts` (Story 1.5 migrated every file and emptied this
- * list). Keep it empty: migrate a file instead of listing it. Only files under `ui/UIRoot.ts`, `ui/panels/` and
- * `ui/components/` may be listed.
+ * list). Keep it empty: migrate a file instead of listing it. Only files under
+ * `ui/panels/` may be listed.
  */
 const LEGACY_GAME_STATE_READERS: readonly string[] = [];
-const LEGACY_READER_SCOPE = /^ui\/(UIRoot\.ts$|panels\/|components\/)/;
+const LEGACY_READER_SCOPE = /^ui\/panels\//;
+
+/**
+ * The legacy vanilla-DOM panels still in the game (Story 1.36). `UIRoot` and
+ * `ui/components/` are gone; every other panel is a Preact component mounted
+ * by its tab. What is left are the Phase 4–5 panels that FRONT → MAP and
+ * STARS mount directly, until Epic 6 rebuilds them, and the refusal helper
+ * only they use. The list may only shrink: migrate a panel, then remove it.
+ */
+const LEGACY_PANELS: readonly string[] = [
+  'ui/panels/MapPanel.ts', // FRONT → MAP, Epic 6
+  'ui/panels/ExpeditionPanel.ts', // FRONT → MAP, Epic 6
+  'ui/panels/SpaceshipPanel.ts', // FRONT → STARS, Epic 6
+  'ui/panels/ExplorationPanel.ts', // FRONT → STARS, Epic 6
+  'ui/panels/CosmicPanel.ts', // FRONT → STARS, Epic 6
+  'ui/panels/StarmapPanel.ts', // FRONT → STARS, Epic 6
+  'ui/panels/refusal.ts', // `explain()`, used only by the panels above
+];
+/** Files and folders of the old panel system that must not come back (Story 1.36). */
+const REMOVED_LEGACY_UI = ['ui/UIRoot.ts', 'ui/components', 'ui/shell/hosts.ts'];
 
 /**
  * Known `Math.random` uses in `systems/`, with how many each file has.
@@ -273,6 +292,28 @@ describe('architecture boundaries (AR21)', () => {
         : `${rel} no longer exists; remove the entry`,
     );
     expect(stale).toEqual([]);
+  });
+
+  it('the old panel system is gone: no UIRoot, no ui/components/ (Story 1.36)', () => {
+    expect(REMOVED_LEGACY_UI.filter((rel) => existsSync(join(SRC, rel)))).toEqual([]);
+  });
+
+  it('ui/panels/ holds only the listed legacy FRONT panels, and the list only shrinks', () => {
+    const panels = files.map((f) => f.rel).filter((rel) => rel.startsWith('ui/panels/'));
+    expect(panels.filter((rel) => !LEGACY_PANELS.includes(rel))).toEqual([]);
+    expect(LEGACY_PANELS.filter((rel) => !panels.includes(rel)).map((rel) => `${rel} no longer exists; remove the entry`)).toEqual([]);
+  });
+
+  it('only the FRONT segments (ui/front/) mount the legacy panels', () => {
+    const out: Violation[] = [];
+    for (const f of files) {
+      if (f.rel.startsWith('ui/panels/') || f.rel.startsWith('ui/front/')) continue;
+      for (const ref of findImports(f.text)) {
+        const target = resolveInSrc(f.rel, ref.specifier);
+        if (target?.startsWith('ui/panels/') && !ref.typeOnly) out.push(`${f.rel}:${ref.line} imports ${target}`);
+      }
+    }
+    expect(out).toEqual([]);
   });
 
   it('only PhaseStateMachine.commit and prestige write state.phase', () => {

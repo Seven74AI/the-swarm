@@ -17,7 +17,7 @@ import type { ComponentChildren } from 'preact';
  *   there on close. A sheet requested from inside another sheet inherits that
  *   sheet's trigger, since its own button is about to disappear.
  *
- * The controller knows nothing about game state: callers (main, UIRoot) turn bus
+ * The controller knows nothing about game state: callers (main) turn bus
  * events into requests, and a sheet's buttons call actions.
  */
 

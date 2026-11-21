@@ -29,11 +29,13 @@ import { processTick } from './engine/processTick';
 import { catchUp, type CatchUpDeps } from './engine/catchUp';
 import { getPrestigeBonuses } from './systems/PrestigeBonusSystem';
 import { render } from 'preact';
-import { computed } from '@preact/signals-core';
-import { UIRoot } from './ui/UIRoot';
+import { computed, effect } from '@preact/signals-core';
 import { App } from './ui/App';
+import { gameViews } from './ui/gameViews';
+import { EventLog } from './ui/log/EventLog';
+import { createPanelReveal, type PanelReveal } from './ui/shell/panelReveal';
 import { createTabShell } from './ui/shell/tabShell';
-import { selectAffordableKeys, selectCanChoose, selectCapacityReached, selectGoalMet, selectStarving, selectLifetime, selectOpenDecision, selectPhase } from './state/selectors';
+import { selectAffordableKeys, selectCanChoose, selectCapacityReached, selectGoalMet, selectStarving, selectLifetime, selectOpenDecision, selectPaused, selectPhase } from './state/selectors';
 import { AudioSystem } from './ui/AudioSystem';
 import { SaveManager } from './persistence/SaveManager';
 import type { OfflineLoadInfo } from './persistence/SaveManager';
@@ -51,27 +53,10 @@ import { createSheetController, type SheetController } from './ui/shell/SheetCon
 import { bindShortcuts } from './ui/shell/shortcuts';
 import { bindTips } from './ui/shell/tips';
 import { createResourceFeed } from './ui/shell/resourceFeed';
-import { ResourceStrip } from './ui/shell/ResourceStrip';
-import { PhaseLine } from './ui/shell/GoalMeter';
 import { createOverlayController, type OverlayController } from './ui/shell/OverlayController';
 import { bindPhaseReveal } from './ui/overlays/PhaseReveal';
-import { NestPrimary } from './ui/nest/NestPrimary';
-import { NestScene } from './ui/nest/NestScene';
-import { ClickPowerCard } from './ui/nest/ClickPowerCard';
-import { WorkersPrimary, WorkersTab } from './ui/wrkr/WorkersTab';
-import { AutomationSection } from './ui/wrkr/AutomationSection';
-import { CombatLog, EnemyCard, MutationsSection, SoldiersSection, WarPrimary } from './ui/war/WarSegment';
 import { createWarSession } from './ui/war/warSession';
 import { openBattleSummary } from './ui/sheets/BattleSummarySheet';
-import { BuildHeader } from './ui/build/BuildHeader';
-import { BuildingCards } from './ui/build/BuildingCards';
-import { ResearchCards } from './ui/build/ResearchCards';
-import { ConverterCard } from './ui/build/ConverterCard';
-import { BuildPrimary } from './ui/build/BuildPrimary';
-import { ChronicleLog } from './ui/log/ChronicleLog';
-import { LifetimeStats } from './ui/log/LifetimeStats';
-import { LogSettingsEntry } from './ui/log/LogSettingsEntry';
-import { LegacySection } from './ui/log/LegacySection';
 import { createLineJump } from './ui/log/jump';
 import { createChronicle, type Chronicle } from './state/chronicle';
 import { PhaseStateMachine } from './phases/PhaseStateMachine';
@@ -111,7 +96,8 @@ export function bootstrap(): {
   resourceSystem: ResourceSystem;
   saveManager: SaveManager;
   fsm: PhaseStateMachine;
-  ui: UIRoot;
+  /** Which panels the session has revealed (Story 1.36; UIRoot is gone). */
+  panels: PanelReveal;
   audio: AudioSystem;
   actions: Actions;
   platform: Platform;
@@ -547,77 +533,53 @@ export function bootstrap(): {
     phase: () => selectPhase.peek(),
     select: (tab) => shell.select(tab),
     selectSegment: (segment) => shell.selectSegment(segment),
-    element: (panelId) => ui.panelElement(panelId),
+    element: (panelId) => document.querySelector<HTMLElement>(`[data-panel="${panelId}"]`),
   });
 
-  const ui = new UIRoot({
+  // The colony's event lines, written into the chronicle from game events (Story 1.26). It draws
+  // nothing: NEST and LOG are views of the chronicle (Story 1.36).
+  new EventLog(bus, { chronicle });
+
+  // Pause (the top bar's button and the P shortcut, Story 1.30): the loop and the state flag together.
+  const togglePause = (): void => {
+    if (gameState.value.paused) loop.resume();
+    else loop.pause();
+    actions.togglePause();
+  };
+  // The paused look (main.css `.game-paused`) follows the state.
+  effect(() => {
+    document.body.classList.toggle('game-paused', selectPaused.value);
+  });
+
+  // Panels appear as their phase reveals them and stay for the session (Story 1.36, replacing
+  // UIRoot's lazy panels). Each reveal is announced: the event log writes a panel's first line.
+  const panels = createPanelReveal({ onReveal: (panelId) => bus.emit('panel_revealed', { panelId }) });
+  // Reveal the current phase's panels before the first render, so they draw at once.
+  phaseContent.onPhaseEnter(currentPhase as Phase, panels);
+
+  // Every panel of the game, placed by the tab registry (data/content/tabs.ts).
+  const views = gameViews({
     bus,
-    chronicle,
-    jump,
-    actions,
-    saveManager,
     getState: () => gameState.value,
-    audio,
-    loop,
+    actions,
     // Irreversible actions read the confirm style and hold duration from the settings (Story 1.13).
     confirmSettings: platform.settings.settings,
     // The resource strip and resource sheet (Story 1.16) share one sampled feed (ADR 0012).
-    mountStrip: (host) =>
-      render(<ResourceStrip feed={resourceFeed} sheets={sheets} onOpenSettings={openSettingsScreen} />, host),
-    // NEST's phase line and goal meter (Story 1.18), from the conditions in transitions.ts.
-    mountPhaseLine: (host) => render(<PhaseLine host={host} />, host),
-    // NEST (Story 1.22): LAY EGG in Phase 1, then the next action; the scene area; the Click Power card.
-    mountNest: {
-      primary: (host) => render(<NestPrimary actions={actions} layMode={layMode} />, host),
-      scene: (host) => render(<NestScene lay={actions.layEgg} />, host),
-      clickPower: (host) => render(<ClickPowerCard buy={() => actions.buyUpgrade('click_power')} />, host),
-    },
-    // WRKR (Story 1.23): role rows and upkeep readout, the reallocation primary action, automation.
-    mountWorkers: {
-      tab: (host) => render(<WorkersTab actions={actions} />, host),
-      primary: (host) => render(<WorkersPrimary actions={actions} />, host),
-      automation: (host) => render(<AutomationSection actions={actions} />, host),
-    },
-    // BUILD (Story 1.24): header, Click Power (Phase 2+), buildings, research, converter; > BUY on the highlighted card.
-    mountBuild: {
-      header: (host) => render(<BuildHeader />, host),
-      clickPower: (host) => render(<ClickPowerCard place="build" buy={() => actions.buyUpgrade('click_power')} />, host),
-      buildings: (host) => render(<BuildingCards buy={(id) => actions.buyBuilding(id)} />, host),
-      research: (host) =>
-        render(
-          <ResearchCards
-            start={(id) => actions.startResearch(id)}
-            cancel={(id) => actions.cancelResearch(id)}
-            confirmSettings={platform.settings.settings}
-          />,
-          host,
-        ),
-      converter: (host) => render(<ConverterCard convert={() => actions.runConversions()} />, host),
-      primary: (host) => render(<BuildPrimary perform={(intent) => actions.perform(intent)} />, host),
-    },
-    // FRONT → WAR (Story 1.25): soldiers and equipment, mutations, the enemy card, the combat log, FIGHT.
-    mountWar: {
-      soldiers: (host) => render(<SoldiersSection actions={actions} />, host),
-      mutations: (host) => render(<MutationsSection actions={actions} />, host),
-      enemy: (host) => render(<EnemyCard session={war} />, host),
-      log: (host) => render(<CombatLog session={war} />, host),
-      primary: (host) => render(<WarPrimary session={war} segment={shell.segment} />, host),
-    },
-    // LOG (Story 1.26): the full chronicle, lifetime stats, the settings entry (the screen is
-    // Story 1.27), and LEGACY with the prestige panels once the prestige condition is met.
-    mountLog: {
-      chronicle: (host) => render(<ChronicleLog chronicle={chronicle} jump={jump} />, host),
-      stats: (host) => render(<LifetimeStats />, host),
-      settings: (host) => render(<LogSettingsEntry onOpenSettings={openSettingsScreen} />, host),
-      legacy: (host, panels) => render(<LegacySection panels={panels} />, host),
-    },
+    feed: resourceFeed,
+    sheets,
+    onOpenSettings: openSettingsScreen,
+    onTogglePause: togglePause,
+    layMode,
+    war,
+    segment: shell.segment,
+    chronicle,
+    jump,
   });
   if (app) {
-    // The Preact root hosts the legacy UIRoot (Story 1.7). render() mounts it synchronously,
-    // so the panels exist before the phase's panels are revealed below.
     render(
       <App
-        legacy={ui}
+        views={views}
+        panels={panels}
         shell={shell}
         sheets={sheets}
         overlays={overlays}
@@ -666,7 +628,7 @@ export function bootstrap(): {
     settings: platform.settings.settings,
     sheets,
     overlayHeld: overlays.held,
-    pause: () => ui.togglePause(),
+    pause: togglePause,
   });
   // What hover shows, a tap shows; tips stay hoverable and Esc dismisses them (WCAG 1.4.13).
   bindTips();
@@ -677,8 +639,6 @@ export function bootstrap(): {
     onboarding.start();
   }, 500);
 
-  // Reveal panels for current phase
-  phaseContent.onPhaseEnter(currentPhase as Phase, ui);
   // Ensure body class persists (some environments may clear it during boot)
   requestAnimationFrame(() => {
     const bodyClass = PhaseContent.getPhaseBodyClass(currentPhase as Phase);
@@ -689,7 +649,7 @@ export function bootstrap(): {
 
   // A committed phase reveals its panels at once, under the phase reveal (Story 1.20).
   bus.subscribe('phase_committed', ({ to }) => {
-    phaseContent.onPhaseEnter(to, ui);
+    phaseContent.onPhaseEnter(to, panels);
   });
 
   // ── Haptics and the sound setting (Story 1.10) ──
@@ -761,7 +721,7 @@ export function bootstrap(): {
 
   loop.start();
 
-  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, ui, audio, actions, platform, sheets, overlays, chronicle, toasts, cheatsLoaded };
+  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, panels, audio, actions, platform, sheets, overlays, chronicle, toasts, cheatsLoaded };
 }
 
 // processTick lives in engine/processTick.ts; re-exported for existing callers.

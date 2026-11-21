@@ -85,7 +85,7 @@ describe('Cards and prices', () => {
 describe('Tab bar', () => {
   it('phone tabs show their short label but are named with the full word', () => {
     const shell = createTabShell({ phase: signal(Phase.COMBAT), affordable: signal('') });
-    render(<Shell shell={shell} legacy={{ mount: () => {} }} />);
+    render(<Shell shell={shell} />);
     for (const t of TABS) {
       const el = document.querySelector<HTMLElement>(`[data-tab="${t.id}"]`);
       if (!el) continue;
@@ -95,7 +95,7 @@ describe('Tab bar', () => {
 
   it('the condensed goal line is a named region', () => {
     const shell = createTabShell({ phase: signal(Phase.COLONY), affordable: signal('') });
-    render(<Shell shell={shell} legacy={{ mount: () => {} }} />);
+    render(<Shell shell={shell} />);
     const line = document.querySelector('[data-goal-line]')!;
     expect(line.getAttribute('role')).toBe('region');
     expect(line.getAttribute('aria-label')).toBeTruthy();

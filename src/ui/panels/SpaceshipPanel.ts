@@ -7,7 +7,7 @@ import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 
 import type { Actions } from '../../actions';
-import { explain } from '../components/refusal';
+import { explain } from './refusal';
 import { MAX_SHIP_LEVEL, canAffordShipCost, getShipCost } from '../../state/queries';
 
 export class SpaceshipPanel {

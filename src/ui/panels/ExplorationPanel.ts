@@ -11,7 +11,7 @@ import { formatFull } from '../../utils/format';
 import { PLANETS } from '../../data/planets';
 import { MAX_PROBES, PROBE_SWARM_THRESHOLD } from '../../state/queries';
 import type { Actions } from '../../actions';
-import { explain } from '../components/refusal';
+import { explain } from './refusal';
 
 export class ExplorationPanel {
   private container: HTMLDivElement;

@@ -6,8 +6,6 @@ import { Phase } from '../../../../src/phases/phases';
 import { createTabShell } from '../../../../src/ui/shell/tabShell';
 import { Shell } from '../../../../src/ui/shell/Shell';
 import { columnFocusOrder } from '../../../../src/ui/shell/focusOrder';
-import type { ShellHosts } from '../../../../src/ui/shell/hosts';
-import { PANEL_PLACEMENT } from '../../../../src/data/content/tabs';
 
 /**
  * Story 1.32 (UX-DR40): on desktop columns, Tab goes strip → rail → column 1
@@ -17,20 +15,19 @@ afterEach(cleanup);
 
 function setup() {
   const shell = createTabShell({ phase: signal(Phase.COMBAT), affordable: signal(''), wide: signal(true) });
-  let hosts!: ShellHosts;
-  render(<Shell shell={shell} legacy={{ mount: (h) => (hosts = h) }} />);
-  shell.select('build');
-  const add = (host: HTMLElement, name: string) => {
-    const b = document.createElement('button');
-    b.textContent = name;
-    host.appendChild(b);
-    return b;
+  const views = {
+    strip: <button>strip</button>,
+    tabs: { nest: <button>nest</button>, build: <button>build</button> },
+    primary: { nest: <button>nest primary</button>, build: <button>build primary</button> },
   };
-  const strip = add(hosts.strip, 'strip');
-  const nest = add(hosts.host(PANEL_PLACEMENT.event_log), 'nest');
-  const nestPrimary = add(hosts.host(PANEL_PLACEMENT.click_button), 'nest primary');
-  const build = add(hosts.host(PANEL_PLACEMENT.build_header), 'build');
-  const buildPrimary = add(hosts.host(PANEL_PLACEMENT.build_primary), 'build primary');
+  render(<Shell shell={shell} views={views} />);
+  shell.select('build');
+  const button = (name: string) => [...document.querySelectorAll('button')].find((b) => b.textContent === name) as HTMLElement;
+  const strip = button('strip');
+  const nest = button('nest');
+  const nestPrimary = button('nest primary');
+  const build = button('build');
+  const buildPrimary = button('build primary');
   return { strip, nest, nestPrimary, build, buildPrimary };
 }
 

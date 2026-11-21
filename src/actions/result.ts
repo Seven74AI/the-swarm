@@ -19,7 +19,7 @@ export const signalStore: StateStore = {
 
 /**
  * Why an action was refused (AR16 expected outcomes). The UI turns each into
- * words; see `ui/components/refusal.ts`.
+ * words; see `ui/panels/refusal.ts`.
  */
 export const REFUSAL_REASONS = [
   'cannot_afford',

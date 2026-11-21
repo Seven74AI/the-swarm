@@ -7,7 +7,7 @@ import type { EventBus } from '../../engine/EventBus';
 import type { Expedition, GameState } from '../../state/GameState';
 import { MAX_ACTIVE_EXPEDITIONS } from '../../state/queries';
 import type { Actions } from '../../actions';
-import { explain } from '../components/refusal';
+import { explain } from './refusal';
 import { formatFull } from '../../utils/format';
 
 /** Whole seconds of game time left on a timer. */

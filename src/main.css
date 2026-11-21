@@ -258,133 +258,6 @@ html, body {
   border-color: #b8942e; /* amber accent */
 }
 
-/* ── Number Display ── */
-.number-display {
-  display: block;
-  color: var(--text-primary);
-  padding: 0.15rem 0;
-  overflow: visible; /* allow particles to extend beyond bounds */
-}
-
-.number-display-text {
-  position: relative;
-  z-index: 1;
-}
-
-/* Rate indicator shown below resource counts */
-.rate-indicator {
-  color: var(--text-muted);
-  font-size: 0.65rem;
-  margin-left: 0.3rem;
-  vertical-align: middle;
-}
-
-/* ── Number Particles ── */
-.number-particle {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0;
-}
-
-.number-particle-up {
-  background: var(--success);
-  box-shadow: 0 0 4px var(--success);
-  animation: particle-rise var(--anim-particle) ease-out forwards;
-}
-
-.number-particle-down {
-  background: var(--danger);
-  box-shadow: 0 0 4px var(--danger);
-  animation: particle-fall var(--anim-particle) ease-out forwards;
-}
-
-@keyframes particle-rise {
-  0% {
-    opacity: 0;
-    transform: translateY(0) scale(0.5);
-  }
-  20% {
-    opacity: 1;
-    transform: translateY(-5px) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-30px) scale(0.3);
-  }
-}
-
-@keyframes particle-fall {
-  0% {
-    opacity: 0;
-    transform: translateY(0) scale(0.5);
-  }
-  20% {
-    opacity: 1;
-    transform: translateY(5px) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(25px) scale(0.3);
-  }
-}
-
-/* ── Progress Bar ── */
-.progress-bar {
-  width: 100%;
-  margin: 0.5rem 0;
-}
-
-.progress-header {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.8rem;
-  margin-bottom: 0.25rem;
-}
-
-.progress-label {
-  color: var(--text-secondary);
-}
-
-.progress-percent {
-  color: var(--accent);
-}
-
-.progress-track {
-  width: 100%;
-  height: 8px;
-  background: var(--bg-primary);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 4px;
-  transition: width var(--anim-ui) ease;
-}
-
-/* Capacity state colors */
-.progress-fill.capacity-warning {
-  background: #e67e22; /* orange */
-}
-
-.progress-fill.capacity-full {
-  background: #e74c3c; /* red */
-}
-
-/* Section titles (AutomationPanel) */
-.section-title {
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
 /* ── Mobile Responsive (mobile-first) ── */
 
 /*
@@ -442,24 +315,12 @@ html, body {
 }
 
 /* ── Worker Assignment Panel ── */
-.worker-assignment-panel .worker-hint {
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  margin-bottom: 0.5rem;
-  font-style: italic;
-}
 
 .worker-role-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.4rem;
-}
-
-.worker-role-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
 }
 
 .worker-role-label {
@@ -504,24 +365,8 @@ html, body {
   border-top: 1px solid var(--border);
 }
 
-.worker-summary {
-  margin-top: 0.6rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--border);
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
 .worker-summary-value {
   font-weight: bold;
-}
-
-.worker-summary-value.food-positive {
-  color: var(--success);
-}
-
-.worker-summary-value.food-negative {
-  color: var(--danger);
 }
 
 /* .panel-unlocked is a marker class for auto-scroll during transitions.
@@ -651,9 +496,6 @@ html, body {
   display: flex;
   gap: 0.5rem;
 }
-
-.risk-high { color: var(--danger); }
-.risk-low { color: var(--text-muted); }
 
 .expedition-list-title {
   color: var(--text-secondary);
@@ -827,19 +669,6 @@ body.phase-space .top-bar {
   border-color: var(--border);
 }
 
-/* Animated neon glow pulse on buttons */
-@keyframes neon-pulse {
-  0%, 100% { box-shadow: 0 0 8px rgba(0, 204, 255, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(0, 204, 255, 0.6); }
-}
-
-
-/* Progress bar neon styling */
-body.phase-space .progress-fill {
-  background: linear-gradient(90deg, #00aacc, #00ccff, #40ddff);
-  box-shadow: 0 0 8px rgba(0, 204, 255, 0.4);
-}
-
 /* ── Spaceship Panel ── */
 .spaceship-panel .spaceship-info {
   color: var(--text-secondary);
@@ -870,65 +699,6 @@ body.phase-space .progress-fill {
   color: var(--success);
   font-size: 0.9rem;
   font-weight: bold;
-}
-
-/* ── Exploration Panel ── */
-.exploration-panel .exploration-launch {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  align-items: center;
-  margin-bottom: 0.75rem;
-}
-
-.exploration-panel .exploration-input {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 0.25rem 0.5rem;
-  font-family: inherit;
-  font-size: 0.85rem;
-  width: 64px;
-}
-
-.exploration-panel .exploration-select {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 0.25rem;
-  font-family: inherit;
-  font-size: 0.85rem;
-}
-
-.exploration-panel .scout-count {
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  margin-right: 0.4rem;
-}
-
-.exploration-panel .exploration-list-title {
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-  margin: 0.5rem 0 0.25rem 0;
-}
-
-.exploration-row {
-  background: rgba(26, 22, 20, 0.5);
-  padding: 0.3rem 0.5rem;
-  border-radius: 3px;
-  margin-bottom: 0.2rem;
-}
-
-.exploration-row .stat-label {
-  color: var(--text-primary);
-  font-size: 0.85rem;
-}
-
-.exploration-row .stat-value {
-  color: var(--accent-glow);
-  font-size: 0.8rem;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1082,71 +852,6 @@ body.phase-space .progress-fill {
   transition: background 0.2s, border-color 0.2s;
 }
 
-.mutation-card.mutation-purchased {
-  background: rgba(34, 197, 94, 0.08);
-  border-color: rgba(34, 197, 94, 0.25);
-  opacity: 0.7;
-}
-
-.mutation-card.mutation-locked {
-  background: rgba(255, 255, 255, 0.02);
-  border-color: rgba(255, 255, 255, 0.04);
-  opacity: 0.5;
-}
-
-.mutation-name {
-  font-weight: 600;
-  font-size: 0.9rem;
-  margin-bottom: 0.15rem;
-}
-
-.mutation-desc {
-  font-size: 0.78rem;
-  color: #22c55e;
-  margin-bottom: 0.35rem;
-}
-
-.mutation-cost {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.35rem;
-}
-
-.mutation-cost-icon {
-  font-size: 0.78rem;
-  color: #cbd5e1;
-}
-
-.mutation-prereq {
-  font-size: 0.72rem;
-  color: #f59e0b;
-  margin-bottom: 0.3rem;
-  font-style: italic;
-}
-
-.mutation-status {
-  display: block;
-  font-size: 0.78rem;
-  margin-top: 0.2rem;
-}
-
-.mutation-status.mutation-acquired {
-  color: #22c55e;
-  font-weight: 600;
-}
-
-.mutation-status.mutation-locked-status {
-  color: #64748b;
-}
-
-.mutation-card .mutation-buy-btn {
-  width: 100%;
-  margin-top: 0.3rem;
-  padding: 0.35rem 0.5rem;
-  font-size: 0.78rem;
-}
-
 /* ═══════════════════════════════════════════════════════════════
    PRESTIGE TREE — Permanent Upgrade Card Grid
    ═══════════════════════════════════════════════════════════════ */
@@ -1290,7 +995,6 @@ body.phase-space .progress-fill {
   margin-top: 0.5rem;
 }
 
-
 /* ═══════════════════════════════════════════════════════════════
    ONBOARDING TOOLTIP
    ═══════════════════════════════════════════════════════════════ */
@@ -1365,7 +1069,6 @@ body.phase-space .progress-fill {
   left: 50%;
   transform: translate(-50%, -50%) !important;
 }
-
 
 /* Story 1.6: a refused action flashes its control; the reason is in its title / data-refusal. */
 .action-refused {

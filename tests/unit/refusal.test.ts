@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { REFUSAL_REASONS } from '../../src/actions';
-import { REFUSAL_TEXT, explain } from '../../src/ui/components/refusal';
+import { REFUSAL_TEXT, explain } from '../../src/ui/panels/refusal';
 
 describe('refusals are explained on the control (Story 1.6)', () => {
   it('has words for every refusal reason', () => {
