@@ -1,0 +1,132 @@
+/*
+ * ui/primitives/Button (Story 1.11; DESIGN.md components primary-action,
+ * secondary-action, disabled; UX-DR11, UX-DR20). Phase colors only through
+ * the --color-* aliases of ui/styles/tokens.css. The focus outline is global
+ * (ui/styles/base.css).
+ */
+
+.swarm-btn {
+  appearance: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 2px;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  padding: 6px 12px;
+  border: 1.5px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-dim);
+  font-family: "Swarm Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.3;
+  text-align: left;
+  opacity: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.swarm-btn[data-variant="primary"] {
+  min-height: 50px;
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* Disabled (any button): dim label, 1 px dashed edge, no opacity fade. */
+.swarm-btn[data-variant="disabled"] {
+  border: 1px dashed var(--color-edge);
+  color: var(--color-dim);
+  cursor: default;
+}
+
+.swarm-btn[data-variant="disabled"][data-kind="primary"] {
+  min-height: 50px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* Pressed: inverse video from pointer-down until release. */
+.swarm-btn[data-pressed="true"] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.swarm-btn__line {
+  display: flex;
+  align-items: baseline;
+  max-width: 100%;
+  min-width: 0;
+  white-space: pre;
+}
+
+.swarm-btn__prefix,
+.swarm-btn__cursor {
+  flex: none;
+}
+
+/* The verb never shrinks; only the target gives way, with an ellipsis. */
+.swarm-btn__label {
+  display: flex;
+  column-gap: 1ch;
+  min-width: 0;
+}
+
+.swarm-btn__verb {
+  flex: none;
+  white-space: nowrap;
+}
+
+.swarm-btn__target {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Block cursor: 1 Hz for 5 cycles, then steady. Steady while pressed. */
+.swarm-btn__cursor {
+  animation: swarm-cursor-blink 1s steps(1, end) 5;
+}
+
+.swarm-btn__cursor[data-blink="false"] {
+  animation: none;
+}
+
+@keyframes swarm-cursor-blink {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Reduced motion in effect (setting or OS; ui/theme/reducedMotion.ts): always steady. */
+:root[data-reduced-motion="true"] .swarm-btn__cursor {
+  animation: none;
+}
+
+.swarm-btn__cost {
+  max-width: 100%;
+  font-size: 13px;
+  font-weight: 400;
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+
+.swarm-btn[data-variant="primary"] .swarm-btn__cost {
+  color: var(--color-dim);
+}
+
+.swarm-btn[data-pressed="true"] .swarm-btn__cost {
+  color: var(--color-on-accent);
+}
