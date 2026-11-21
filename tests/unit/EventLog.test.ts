@@ -189,8 +189,8 @@ describe('EventLog', () => {
   // ── Phase notifications (unchanged) ──
   describe('phase notifications', () => {
     it('logs colony phase once', () => {
-      bus.emit('phase_changed', { phase: Phase.COLONY });
-      bus.emit('phase_changed', { phase: Phase.COLONY }); // second should be ignored
+      bus.emit('phase_committed', { from: Phase.EGG_LAYING, to: Phase.COLONY });
+      bus.emit('phase_committed', { from: Phase.EGG_LAYING, to: Phase.COLONY }); // second should be ignored
       const entries = getEntries();
       const colonyEntries = entries.filter((e) => e.includes('colony takes shape'));
       expect(colonyEntries.length).toBe(1);

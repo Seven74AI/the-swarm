@@ -315,10 +315,8 @@ export class UIRoot {
       this.endTransition();
     });
 
-    // Listen for phase changes — body class toggling is now handled by PhaseContent.onPhaseEnter
-    this.bus.subscribe('phase_changed', () => {
-      // Body class is set by PhaseContent.onPhaseEnter via transition_start → onPhaseEnter
-    });
+    // Body class toggling on a phase commit is handled by PhaseContent.onPhaseEnter
+    // (transition_start → onPhaseEnter); main.tsx listens for phase_committed.
 
     // Listen for worker changes to trigger narrative events
     this.bus.subscribe('workers_changed', (payload: unknown) => {

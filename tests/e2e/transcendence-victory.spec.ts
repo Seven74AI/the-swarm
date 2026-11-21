@@ -1,12 +1,13 @@
 import { test, expect, type Page } from '@playwright/test';
 import { openTab } from './helpers/tabs';
+import { tapContinue } from './helpers/phase';
 
 /**
  * E2E: Transcendence Victory — Phase Transition, Overlay & Post-Victory.
  *
  * Seeds a colony in SPACE phase with voidCrystals≥2000, antimatter≥400,
  * darkMatter≥200 (matching the SPACE→TRANSCENDENCE guard in transitions.ts).
- * Waits for transition, then verifies the victory achievement, transcendence
+ * Taps CONTINUE, then verifies the victory achievement, transcendence
  * overlay/panel, post-victory game state, and TranscendencePanel stats.
  *
  * Report: GitHub Issue #144 section 3.2.
@@ -116,10 +117,10 @@ async function seedAndWaitForTranscendence(page: Page, overrides?: Record<string
   await page.goto('/');
   await page.waitForSelector('#panels', { timeout: 10000 });
 
-  // Advance time: game tick (50ms) checks transitions.
-  // The guard (VC≥2000, AM≥400, DM≥200) is met immediately.
-  // A few ticks should trigger the transition.
+  // Advance time: the first tick (50ms) latches the goal, which the seed meets.
+  // The phase changes only on CONTINUE (Story 1.19).
   await page.clock.runFor(500);
+  await tapContinue(page);
 
   // Wait for the phase transition cinematic + panel reveal (3500ms + margin)
   await page.clock.runFor(4000);

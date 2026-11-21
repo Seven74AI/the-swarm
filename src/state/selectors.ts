@@ -1,6 +1,6 @@
 import { computed, type ReadonlySignal } from '@preact/signals-core';
 import { gameState } from './gameSignal';
-import type { GameState } from './GameState';
+import type { GameState, PhaseGoal } from './GameState';
 import { getEffects } from '../systems/BuildingSystem';
 import { computeResourceRates } from '../systems/ResourceSystem';
 import { affordableKeys } from './affordances';
@@ -58,6 +58,7 @@ export const selectCombatResources = slice('combatResources');
 export const selectBattlesWon = slice('battlesWon');
 export const selectBattlesLost = slice('battlesLost');
 export const selectVictoryAchieved = slice('victoryAchieved');
+export const selectPhaseGoal = slice('phaseGoal');
 export const selectSpaceship = slice('spaceship');
 export const selectSpaceProbes = slice('spaceProbes');
 export const selectDiscoveries = slice('discoveries');
@@ -159,10 +160,24 @@ export const selectAffordableKeys = computed(() => affordableKeys(gameState.valu
  */
 export const selectGoal = computed<Transition | null>(() => goalFor(selectPhase.value));
 
-/** How close the goal is, 0..100 (100 only when every condition is met); 0 without a goal. */
+/**
+ * The latch (Story 1.19, D3): `state.phaseGoal` when it is latched on the current phase's goal, else
+ * null. It survives dips, so the meter keeps reading GOAL MET until CONTINUE.
+ */
+export const selectLatchedGoal = computed<PhaseGoal | null>(() => {
+  const latch = selectPhaseGoal.value;
+  const goal = selectGoal.value;
+  return latch?.latched === true && goal !== null && latch.phase === goal.to ? latch : null;
+});
+
+/** The phase goal has latched: GOAL MET, and NEST shows CONTINUE (Story 1.19). */
+export const selectGoalMet = computed(() => selectLatchedGoal.value !== null);
+
+/** How close the goal is, 0..100 (100 only when every condition is met, or the goal latched); 0 without a goal. */
 export const selectGoalPercent = computed(() => {
   const goal = selectGoal.value;
-  return goal ? goalPercent(goal, gameState.value) : 0;
+  if (!goal) return 0;
+  return selectGoalMet.value ? 100 : goalPercent(goal, gameState.value);
 });
 
 const conditionCurrents = new Map<GoalCondition, ReadonlySignal<number>>();

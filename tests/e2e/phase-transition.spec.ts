@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { openTab } from './helpers/tabs';
+import { tapContinue } from './helpers/phase';
 
 /**
  * E2E: Phase Transition Visual Spectacle.
  * Seeds a game state on the verge of EGG→COLONY transition,
- * fast-forwards to trigger the transition, and verifies
+ * fast-forwards until the goal is met, taps CONTINUE (Story 1.19), and verifies
  * the animated overlay, lore quote, panel reveal, and scroll behavior.
  */
 
@@ -102,6 +103,9 @@ test.describe('Phase Transition — Visual Spectacle', () => {
     // Actually: seed has 9 workers and 3 larvae. Each larvaPipeline tick
     // produces workers. Run the clock a few seconds to cross threshold.
     await page.clock.runFor(3000);
+    // The goal is met; the phase waits for CONTINUE (Story 1.19).
+    await expect(page.locator('#phase-indicator')).toContainText('The Lonely Queen');
+    await tapContinue(page);
 
     // Wait for the transition overlay to appear
     const overlay = page.locator('#phase-transition-overlay');
@@ -116,6 +120,8 @@ test.describe('Phase Transition — Visual Spectacle', () => {
 
   test('new panels appear after transition animation completes', async ({ page }) => {
     // Trigger transition
+    await page.clock.runFor(3000);
+    await tapContinue(page);
     await page.clock.runFor(3000);
 
     // Wait for the overlay to appear and then disappear (2s animation)
@@ -132,6 +138,8 @@ test.describe('Phase Transition — Visual Spectacle', () => {
 
   test('phase indicator reflects the new phase after transition', async ({ page }) => {
     // Trigger transition
+    await page.clock.runFor(3000);
+    await tapContinue(page);
     await page.clock.runFor(3000);
 
     // Wait for transition to complete

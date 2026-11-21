@@ -42,7 +42,7 @@ export const EVENT_SAMPLES: { [K in keyof SwarmEvents]: SwarmEvents[K] } = {
   },
   decision_chosen: { type: 'beetle', choice: 'Ignore' },
   decision_applied: { type: 'beetle', choice: 'sample' },
-  phase_changed: { phase: Phase.COLONY },
+  phase_committed: { from: Phase.EGG_LAYING, to: Phase.COLONY },
   narrative: { message: 'sample' },
   victory: {},
   transition_start: { phase: Phase.COLONY, quote: 'sample', skippable: false },

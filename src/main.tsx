@@ -30,7 +30,7 @@ import { render } from 'preact';
 import { UIRoot } from './ui/UIRoot';
 import { App } from './ui/App';
 import { createTabShell } from './ui/shell/tabShell';
-import { selectAffordableKeys, selectPhase } from './state/selectors';
+import { selectAffordableKeys, selectGoalMet, selectPhase } from './state/selectors';
 import { AudioSystem } from './ui/AudioSystem';
 import { SaveManager } from './persistence/SaveManager';
 import type { OfflineLoadInfo } from './persistence/SaveManager';
@@ -59,7 +59,7 @@ import { bindHapticFeedback, bindSoundSetting } from './platform/feedback';
  * Full game loop with persistence, phase state machine, and autosave.
  * Uses @preact/signals-core for reactive state (one signal; the UI reads it through state/selectors).
  * - Load saved state on startup (or start fresh)
- * - Each tick: systems → PhaseStateMachine.tick → one signal write → flush queued events
+ * - Each tick: systems → PhaseStateMachine.latch → one signal write → flush queued events
  * - Autosave every 30 seconds
  * - PhaseContent manages which panels are active
  * - Fixed 50ms timestep with rAF-based delta accumulator
@@ -96,6 +96,8 @@ export function bootstrap(): {
   const phaseContent = new PhaseContent();
   const mapSystem = new MapSystem();
   const territorySystem = new TerritorySystem();
+  // The phase flow: evaluate/latch every tick, commit only on CONTINUE (Story 1.19, D3)
+  const fsm = new PhaseStateMachine(TRANSITIONS);
 
   // Try to load saved state
   const saved = saveManager.load();
@@ -155,6 +157,8 @@ export function bootstrap(): {
           catchUpState, resourceSystem, soldierSystem, mapSystem, territorySystem, offlineEvents, dtSec,
           true, // skipDeterministicResources — handled by closed-form above
         );
+        // Catch-up never commits a phase, but the goal may latch (D2).
+        catchUpState = fsm.latch(catchUpState);
         offlineEvents.clear();
       }
 
@@ -176,9 +180,7 @@ export function bootstrap(): {
     }
   }
 
-  // Initialize PhaseStateMachine from current state
   const currentPhase = (gameState.value.phase as Phase) ?? Phase.EGG_LAYING;
-  const fsm = new PhaseStateMachine(currentPhase, TRANSITIONS);
 
   // One live tick (dtSec = 0.05 for 50ms ticks).
   // Events raised during the tick are queued on the tick context and flushed
@@ -353,16 +355,9 @@ export function bootstrap(): {
       events.emit('decision_event', decisionEvent);
     }
 
-    // Check phase transitions — sync FSM with potential external phase changes
-    // (e.g., prestige reset) before evaluating transitions
-    fsm.setPhase(newState.phase as Phase);
-    const tickResult = fsm.tick(newState, events);
-    if (tickResult.phase !== newState.phase) {
-      newState = {
-        ...tickResult.state,
-        phase: tickResult.phase,
-      };
-    }
+    // The phase never changes in a tick (Story 1.19, D3): a met goal only
+    // latches. The player commits it with CONTINUE (actions.continuePhase).
+    newState = fsm.latch(newState);
 
     return newState;
   };
@@ -392,7 +387,7 @@ export function bootstrap(): {
   // Every player intent goes through an action (Story 1.6): the UI never
   // writes state or touches a system. Decision choices are an action too,
   // not a listener: no listener writes state (AR18).
-  const actions = createActions({ bus, resourceSystem, soldierSystem, battleSystem, decisionSystem, territorySystem });
+  const actions = createActions({ bus, resourceSystem, soldierSystem, battleSystem, decisionSystem, territorySystem, phases: fsm });
 
   // One sheet at a time (Story 1.14, D7): every sheet is requested here, drawn by App.
   const sheets = createSheetController();
@@ -434,8 +429,9 @@ export function bootstrap(): {
     // The Preact root hosts the legacy UIRoot (Story 1.7). render() mounts it synchronously,
     // so the panels exist before the phase's panels are revealed below.
     // The tab shell (Story 1.15): tabs revealed by phase, `•` from what became affordable.
-    const shell = createTabShell({ phase: selectPhase, affordable: selectAffordableKeys });
-    render(<App legacy={ui} shell={shell} sheets={sheets} />, app);
+    // A latched goal (Story 1.19): `•` on NEST and CONTINUE as its primary action.
+    const shell = createTabShell({ phase: selectPhase, affordable: selectAffordableKeys, goalMet: selectGoalMet });
+    render(<App legacy={ui} shell={shell} sheets={sheets} onContinue={actions.continuePhase} />, app);
   }
 
   // Start onboarding tutorial for new players (persisted via localStorage)
@@ -455,7 +451,7 @@ export function bootstrap(): {
   });
 
   // Listen for phase changes to reveal new panels with transition animation
-  bus.subscribe('phase_changed', ({ phase }) => {
+  bus.subscribe('phase_committed', ({ to: phase }) => {
     const prestigeCount = gameState.value.prestige.count;
     phaseContent.triggerTransition(phase, bus, ui, prestigeCount);
   });

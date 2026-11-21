@@ -140,3 +140,45 @@ describe('Shell (Story 1.15)', () => {
   });
 });
 
+describe('Shell: CONTINUE (Story 1.19)', () => {
+  afterEach(() => cleanup());
+
+  function setupGoal(met: boolean) {
+    const goalMet = signal(met);
+    const shell = createTabShell({ phase: signal(Phase.COLONY), affordable: signal(''), goalMet });
+    const onContinue = vi.fn(() => ({ ok: true as const }));
+    const view = render(<Shell shell={shell} legacy={{ mount: vi.fn() }} onContinue={onContinue} />);
+    const cont = () => view.container.querySelector<HTMLButtonElement>('[data-action="continue"]');
+    const nestSlot = () => view.container.querySelector<HTMLElement>('[data-primary-for="nest"]')!;
+    return { goalMet, shell, onContinue, view, cont, nestSlot };
+  }
+
+  it('shows no CONTINUE while the goal is not met', () => {
+    const { cont, nestSlot } = setupGoal(false);
+    expect(cont()).toBeNull();
+    expect(nestSlot().hidden).toBe(false);
+  });
+
+  it("NEST's primary action becomes > CONTINUE once the goal is met", () => {
+    const { cont, nestSlot, goalMet } = setupGoal(false);
+    act(() => { goalMet.value = true; });
+    expect(cont()).not.toBeNull();
+    expect(cont()!.textContent).toContain('CONTINUE');
+    expect(cont()!.closest('[hidden]')).toBeNull();
+    expect(nestSlot().hidden).toBe(true);
+  });
+
+  it('tapping CONTINUE calls the action', () => {
+    const { cont, onContinue } = setupGoal(true);
+    const b = cont()!;
+    fireEvent.pointerDown(b, { pointerId: 1, button: 0 });
+    fireEvent.pointerUp(b, { pointerId: 1, button: 0 });
+    expect(onContinue).toHaveBeenCalledTimes(1);
+  });
+
+  it('CONTINUE belongs to NEST: other tabs keep their own primary zone', () => {
+    const { cont, view } = setupGoal(true);
+    fireEvent.click(view.container.querySelector('[data-tab="wrkr"]')!);
+    expect(cont()!.closest('[hidden]')).not.toBeNull();
+  });
+});

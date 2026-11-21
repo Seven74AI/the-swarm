@@ -5,6 +5,7 @@ import { hostsFromRoot, type ShellHosts } from './hosts';
 import { TabBar } from './TabBar';
 import { SegmentRow } from './SegmentRow';
 import { CondensedGoalMeter } from './GoalMeter';
+import { Button } from '../primitives/Button';
 import './shell.css';
 
 /** The part of the legacy `UIRoot` the shell needs: mount its panels into the shell's hosts. */
@@ -20,12 +21,21 @@ export interface LegacyUi {
  * Legacy panels mount into the empty host containers (they have no Preact
  * children, so re-renders never touch the legacy DOM). Only `hidden` changes.
  */
-export function Shell({ shell, legacy }: { shell: TabShell; legacy: LegacyUi }) {
+export interface ShellProps {
+  shell: TabShell;
+  legacy: LegacyUi;
+  /** CONTINUE: commit the latched phase goal (`actions.continuePhase`, Story 1.19). */
+  onContinue?: () => { readonly ok: boolean } | void;
+}
+
+export function Shell({ shell, legacy, onContinue }: ShellProps) {
   const root = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLElement>(null);
   const active = shell.active.value;
   const segment = shell.segment.value;
   const showBar = shell.showBar.value;
+  // A met goal makes CONTINUE NEST's primary action (Story 1.19, UX-DR14).
+  const goalMet = shell.goalMet.value && onContinue !== undefined;
 
   useLayoutEffect(() => {
     if (root.current) legacy.mount(hostsFromRoot(root.current));
@@ -94,8 +104,18 @@ export function Shell({ shell, legacy }: { shell: TabShell; legacy: LegacyUi }) 
       </main>
       <div class="shell-primary" data-primary-zone="">
         {TABS.map((t) => (
-          <div key={t.id} class="shell-primary-slot" data-primary-for={t.id} hidden={active !== t.id} />
+          <div
+            key={t.id}
+            class="shell-primary-slot"
+            data-primary-for={t.id}
+            hidden={active !== t.id || (t.id === 'nest' && goalMet)}
+          />
         ))}
+        {goalMet && (
+          <div class="shell-primary-slot" data-primary-continue="" hidden={active !== 'nest'}>
+            <Button variant="primary" verb="CONTINUE" data-action="continue" onPress={onContinue} />
+          </div>
+        )}
       </div>
       <TabBar shell={shell} onSelect={onTab} />
     </div>

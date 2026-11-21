@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { tapContinue } from './helpers/phase';
 
 test('click egg button increments counter and spawns particle', async ({ page }) => {
   // Suppress onboarding overlay — it intercepts clicks in E2E tests
@@ -77,10 +78,13 @@ test('phase transitions from egg_laying to colony', async ({ page }) => {
     localStorage.setItem('the_swarm_save', JSON.stringify(data));
   });
 
+  await page.addInitScript(() => { localStorage.setItem('the_swarm_onboarding', 'done'); });
   await page.goto('/');
-  // Wait for a tick to fire (50ms interval, transition within 1s)
-  await page.waitForTimeout(2000);
+  // The goal latches, but the phase waits for CONTINUE (Story 1.19).
+  await expect(page.locator('[data-action="continue"]')).toBeVisible({ timeout: 5000 });
   const indicator = page.locator('#phase-indicator');
+  await expect(indicator).toContainText('The Lonely Queen');
+  await tapContinue(page);
   await expect(indicator).toContainText('The Colony');
 });
 

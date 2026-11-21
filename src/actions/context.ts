@@ -5,6 +5,7 @@ import type { BattleSystem } from '../systems/BattleSystem';
 import type { DecisionSystem } from '../systems/DecisionSystem';
 import type { TerritorySystem } from '../systems/TerritorySystem';
 import type { StateStore } from './result';
+import type { PhaseStateMachine } from '../phases/PhaseStateMachine';
 
 /** What actions need from boot: the bus for their events and the stateful systems. */
 export interface ActionDeps {
@@ -14,6 +15,8 @@ export interface ActionDeps {
   battleSystem: BattleSystem;
   decisionSystem: DecisionSystem;
   territorySystem: TerritorySystem;
+  /** The phase flow CONTINUE commits through. Defaults to one built on `TRANSITIONS`. */
+  phases?: PhaseStateMachine;
   /** Defaults to the `gameState` signal. */
   store?: StateStore;
 }

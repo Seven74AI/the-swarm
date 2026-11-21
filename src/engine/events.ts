@@ -51,7 +51,8 @@ export interface SwarmEvents {
   decision_applied: { type: string; choice: string };
 
   // ── Phases and narrative ──
-  phase_changed: { phase: Phase };
+  /** CONTINUE entered the next phase (Story 1.19; replaces `phase_changed`). */
+  phase_committed: { from: Phase; to: Phase };
   narrative: { message: string };
   victory: NoPayload;
   transition_start: { phase: Phase; quote: string; skippable?: boolean; onSkip?: () => void };

@@ -19,12 +19,12 @@ export function bindHapticFeedback(bus: EventBus, haptics: Haptics): () => void 
   bus.subscribe('egg_clicked', onEgg);
   bus.subscribe('decision_event', onDecision);
   bus.subscribe('battle_completed', onBattle);
-  bus.subscribe('phase_changed', onPhase);
+  bus.subscribe('phase_committed', onPhase);
   return () => {
     bus.unsubscribe('egg_clicked', onEgg);
     bus.unsubscribe('decision_event', onDecision);
     bus.unsubscribe('battle_completed', onBattle);
-    bus.unsubscribe('phase_changed', onPhase);
+    bus.unsubscribe('phase_committed', onPhase);
   };
 }
 

@@ -118,3 +118,35 @@ describe('tab shell (Story 1.15)', () => {
     });
   });
 });
+
+describe('tab shell: the latched goal (Story 1.19)', () => {
+  function withGoal(met = false) {
+    const goalMet = signal(met);
+    const shell = createTabShell({ phase: signal(Phase.COLONY), affordable: signal(''), goalMet });
+    return { goalMet, shell };
+  }
+
+  it('NEST gets • while the goal is met and NEST is not open', () => {
+    const { goalMet, shell } = withGoal();
+    shell.select('wrkr');
+    expect(shell.dots.value.has('nest')).toBe(false);
+    goalMet.value = true;
+    expect(shell.dots.value.has('nest')).toBe(true);
+  });
+
+  it('the dot goes away on NEST and after the commit', () => {
+    const { goalMet, shell } = withGoal(true);
+    shell.select('wrkr');
+    expect(shell.dots.value.has('nest')).toBe(true);
+    shell.select('nest');
+    expect(shell.dots.value.has('nest')).toBe(false);
+    shell.select('wrkr');
+    goalMet.value = false;
+    expect(shell.dots.value.has('nest')).toBe(false);
+  });
+
+  it('exposes goalMet (false when not wired)', () => {
+    expect(withGoal(true).shell.goalMet.value).toBe(true);
+    expect(setup().shell.goalMet.value).toBe(false);
+  });
+});

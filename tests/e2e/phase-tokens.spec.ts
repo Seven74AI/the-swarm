@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { tapContinue } from './helpers/phase';
 
 /**
  * E2E: phase design tokens (Story 1.8).
@@ -63,6 +64,9 @@ test.describe('Phase tokens', () => {
       );
     });
     await page.goto('/');
+    // The goal is met; Colony is entered on CONTINUE (Story 1.19).
+    await expect(page.locator('html')).toHaveAttribute('data-phase', 'egg');
+    await tapContinue(page);
     await expect(page.locator('html')).toHaveAttribute('data-phase', 'colony');
     expect(await boundAliases(page)).toEqual(palette('colony'));
     // The aliases are not set inline: only the attribute moved.

@@ -5,7 +5,6 @@ import type { GameState } from '../../src/state/GameState';
 import { Phase } from '../../src/phases/phases';
 import { PhaseStateMachine } from '../../src/phases/PhaseStateMachine';
 import { TRANSITIONS } from '../../src/phases/transitions';
-import { EventBus } from '../../src/engine/EventBus';
 
 describe('SaveManager', () => {
   let saveManager: SaveManager;
@@ -68,7 +67,7 @@ describe('SaveManager', () => {
       const raw = localStorage.getItem('the_swarm_save');
       expect(raw).not.toBeNull();
       const parsed = JSON.parse(raw!);
-      expect(parsed.version).toBe(14);
+      expect(parsed.version).toBe(15);
       expect(parsed.timestamp).toBeGreaterThanOrEqual(before);
     });
   });
@@ -114,8 +113,9 @@ describe('SaveManager', () => {
       expect(loaded).not.toBeNull();
       expect(loaded!.gameState.phase).toBe(Phase.EXPANSION);
 
-      const sm = new PhaseStateMachine(Phase.EXPANSION, TRANSITIONS);
-      expect(sm.tick(loaded!.gameState, new EventBus()).phase).toBe(Phase.EXPANSION);
+      // No goal can latch out of EXPANSION back into another phase: only EXPANSION's own exit.
+      const sm = new PhaseStateMachine(TRANSITIONS);
+      expect(sm.evaluate(loaded!.gameState)?.from ?? Phase.EXPANSION).toBe(Phase.EXPANSION);
     });
   });
 

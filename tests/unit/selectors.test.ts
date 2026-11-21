@@ -93,6 +93,17 @@ describe('state selectors (#186)', () => {
     );
   });
 
+  it('selectGoalMet follows the phase goal latch, quiet on ticks that keep it', () => {
+    expect(selectors.selectGoalMet.value).toBe(false);
+    const s = gameState.value;
+    gameState.value = { ...s, phaseGoal: { phase: 'colony', latched: true, atMs: 0, reached: {} } };
+    expect(selectors.selectGoalMet.value).toBe(true);
+    const c = countRuns(() => selectors.selectGoalMet.value);
+    gameState.value = foodOnlyTick(gameState.value);
+    expect(c.runs()).toBe(1);
+    c.dispose();
+  });
+
   it('selectByPath reads a nested number and ignores unrelated writes', () => {
     const food = selectors.selectByPath('resources.food');
     expect(food.value).toBe(gameState.value.resources.food);

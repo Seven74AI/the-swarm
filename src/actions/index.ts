@@ -22,6 +22,7 @@ import * as expansion from './expansion';
 import * as space from './space';
 import * as prestige from './prestige';
 import { chooseDecision } from './decisions';
+import { continuePhase } from './phase';
 
 export type { ActionDeps } from './context';
 export type { ActionResult, RefusalReason, Refused, StateStore } from './result';
@@ -67,6 +68,8 @@ export function createActions(deps: ActionDeps) {
     buyPrestigeUpgrade: (id: PrestigeUpgradeId) => prestige.buyPrestigeUpgrade(deps, id),
     buyTemporalResonance: () => prestige.buyTemporalResonance(deps),
     buyChronoSynchronization: () => prestige.buyChronoSynchronization(deps),
+    // Phase flow
+    continuePhase: () => continuePhase(deps),
     // Decisions
     chooseDecision: (type: DecisionEvent['type'], choice: string) => chooseDecision(deps, type, choice),
   };

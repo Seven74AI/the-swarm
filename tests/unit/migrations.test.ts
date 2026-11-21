@@ -410,3 +410,35 @@ describe('migrateSave', () => {
     expect(Array.isArray(migratedState.mutations)).toBe(true);
   });
 });
+
+describe('v14 → v15: the phase goal latch (Story 1.19)', () => {
+  const v14 = (gs: Partial<GameState>): SaveData => {
+    const { phaseGoal: _omit, ...rest } = { ...createInitialState(), ...gs };
+    return { version: 14, timestamp: 0, playTimeMs: 0, gameState: rest as unknown as GameState };
+  };
+
+  it('adds phaseGoal: null when the save has not met its goal', () => {
+    const out = migrateSave(v14({}), 14, 15);
+    expect(out.version).toBe(15);
+    expect(out.gameState.phaseGoal).toBeNull();
+  });
+
+  it('latches the goal when the save already meets its guard, without changing the phase', () => {
+    const base = createInitialState();
+    const out = migrateSave(v14({ resources: { ...base.resources, workers: 1_000_000 } }), 14, 15);
+    expect(out.gameState.phase).toBe(base.phase);
+    expect(out.gameState.phaseGoal?.latched).toBe(true);
+    expect(out.gameState.phaseGoal?.phase).not.toBe(base.phase);
+  });
+
+  it('keeps a latch that is already there', () => {
+    const goal = { phase: 'colony', latched: true as const, atMs: 5, reached: {} };
+    const data: SaveData = { version: 14, timestamp: 0, playTimeMs: 0, gameState: { ...createInitialState(), phaseGoal: goal } };
+    expect(migrateSave(data, 14, 15).gameState.phaseGoal).toEqual(goal);
+  });
+
+  it('survives a partial v14 game state', () => {
+    const data = { version: 14, timestamp: 0, playTimeMs: 0, gameState: { phase: 'colony' } as unknown as GameState };
+    expect(migrateSave(data, 14, 15).gameState.phaseGoal).toBeNull();
+  });
+});

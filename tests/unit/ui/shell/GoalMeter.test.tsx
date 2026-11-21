@@ -5,7 +5,7 @@ import { gameState } from '../../../../src/state/gameSignal';
 import { createInitialState, type GameState } from '../../../../src/state/GameState';
 import { Phase, PHASE_ORDER } from '../../../../src/phases/phases';
 import { goalFor, type GoalCondition } from '../../../../src/phases/transitions';
-import { formatFull } from '../../../../src/utils/format';
+import { formatFull, formatTime } from '../../../../src/utils/format';
 import { GoalMeter, CondensedGoalMeter, PhaseLine, PHASE_TITLES, phaseClass } from '../../../../src/ui/shell/GoalMeter';
 
 /**
@@ -191,3 +191,71 @@ describe('PhaseLine (Story 1.18, replaces PhaseIndicator)', () => {
   });
 });
 
+
+describe('GoalMeter: the latched goal (Story 1.19)', () => {
+  afterEach(() => {
+    cleanup();
+    gameState.value = initial;
+  });
+
+  /** COLONY with its goal met and latched at `atMs`, then the workers dipped below target. */
+  function latchedThenDipped(atMs: number) {
+    const goal = goalFor(Phase.COLONY)!;
+    const workers = goal.conditions.find((c) => c.id === 'workers')!;
+    const met = inPhase(Phase.COLONY, (s) => ({
+      ...s,
+      resources: { ...s.resources, workers: workers.target(s) },
+      workersAssigned: { ...s.workersAssigned, guard: 1_000 },
+    }));
+    const reached = Object.fromEntries(goal.conditions.map((c) => [c.id, c.current(met)]));
+    gameState.value = {
+      ...met,
+      resources: { ...met.resources, workers: workers.target(met) - 1 },
+      phaseGoal: { phase: goal.to, latched: true, atMs, reached },
+    };
+    return { workers, reached };
+  }
+
+  it('reads GOAL MET and a full meter once latched, even after a dip', () => {
+    latchedThenDipped(0);
+    const { container } = render(<GoalMeter />);
+    expect(container.querySelector('[data-goal-next]')!.textContent).toMatch(/^GOAL MET/);
+    expect(container.querySelector('[data-goal-met]')).not.toBeNull();
+    const meter = container.querySelector('[role="progressbar"]')!;
+    expect(meter.getAttribute('aria-valuenow')).toBe(meter.getAttribute('aria-valuemax'));
+  });
+
+  it('a dipped row reads "<now> now, reached <value> at <time>"', () => {
+    const atMs = 13 * 60_000 + 2_000;
+    const { workers, reached } = latchedThenDipped(atMs);
+    const { container } = render(<GoalMeter />);
+    const row = container.querySelector<HTMLElement>('[data-condition="workers"]')!;
+    const now = workers.current(gameState.value);
+    expect(row.getAttribute('data-dipped')).toBe('true');
+    expect(row.getAttribute('data-met')).toBe('true');
+    expect(row.textContent).toContain(`${formatFull(now)} now, reached ${formatFull(reached.workers)} at ${formatTime(atMs)}`);
+  });
+
+  it('a row still at target reads normally', () => {
+    latchedThenDipped(0);
+    const { container } = render(<GoalMeter />);
+    const row = container.querySelector<HTMLElement>('[data-condition="guard"]')!;
+    expect(row.hasAttribute('data-dipped')).toBe(false);
+    expect(row.getAttribute('data-met')).toBe('true');
+  });
+
+  it('the condensed meter reads full too', () => {
+    latchedThenDipped(0);
+    const { container } = render(<CondensedGoalMeter />);
+    const meter = container.querySelector('[role="progressbar"]')!;
+    expect(meter.getAttribute('aria-valuenow')).toBe(meter.getAttribute('aria-valuemax'));
+  });
+
+  it('ignores a latch left over from another phase', () => {
+    const { workers } = latchedThenDipped(0);
+    gameState.value = { ...gameState.value, phaseGoal: { ...gameState.value.phaseGoal!, phase: Phase.COLONY } };
+    const { container } = render(<GoalMeter />);
+    expect(container.querySelector('[data-goal-next]')!.textContent).toMatch(/^NEXT: /);
+    void workers;
+  });
+});

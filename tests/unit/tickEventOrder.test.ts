@@ -5,7 +5,12 @@ import { Phase } from '../../src/phases/phases';
 import type { EventBus } from '../../src/engine/EventBus';
 import { EVENT_NAMES } from './helpers/eventSamples';
 
-type Swarm = { bus: EventBus; tick: (dtSec: number) => void; loop: { stop(): void } };
+type Swarm = {
+  bus: EventBus;
+  tick: (dtSec: number) => void;
+  loop: { stop(): void };
+  actions: { continuePhase(): { ok: boolean } };
+};
 
 /**
  * AR18: events raised during a tick are queued on the tick context and
@@ -20,7 +25,7 @@ describe('tick events arrive after the state they describe', () => {
     swarm.loop.stop();
   });
 
-  it('a phase_changed listener already reads the new phase from gameState', () => {
+  it('a met goal latches in the tick and never changes the phase on its own', () => {
     const base = createInitialState();
     // Satisfy the real EGG_LAYING → COLONY guard (transitions.ts).
     gameState.value = {
@@ -28,15 +33,37 @@ describe('tick events arrive after the state they describe', () => {
       phase: Phase.EGG_LAYING,
       resources: { ...base.resources, workers: 10_000 },
     };
+    let committed = 0;
+    const onCommit = () => committed++;
+    swarm.bus.subscribe('phase_committed', onCommit);
+    swarm.tick(0.05);
+    swarm.tick(0.05);
+    swarm.bus.unsubscribe('phase_committed', onCommit);
+
+    expect(gameState.value.phase).toBe(Phase.EGG_LAYING);
+    expect(gameState.value.phaseGoal?.latched).toBe(true);
+    expect(committed).toBe(0);
+  });
+
+  it('a phase_committed listener (after CONTINUE) already reads the new phase from gameState', () => {
+    const base = createInitialState();
+    gameState.value = {
+      ...base,
+      phase: Phase.EGG_LAYING,
+      resources: { ...base.resources, workers: 10_000 },
+    };
+    swarm.tick(0.05);
 
     const seen: { payload: Phase; statePhase: string }[] = [];
-    const onPhase = (p: { phase: Phase }) => seen.push({ payload: p.phase, statePhase: gameState.value.phase });
-    swarm.bus.subscribe('phase_changed', onPhase);
-    swarm.tick(0.05);
-    swarm.bus.unsubscribe('phase_changed', onPhase);
+    const onPhase = (p: { to: Phase }) => seen.push({ payload: p.to, statePhase: gameState.value.phase });
+    swarm.bus.subscribe('phase_committed', onPhase);
+    const r = swarm.actions.continuePhase();
+    swarm.bus.unsubscribe('phase_committed', onPhase);
 
-    expect(seen.length).toBeGreaterThan(0);
+    expect(r.ok).toBe(true);
+    expect(seen.length).toBe(1);
     for (const s of seen) expect(s.statePhase).toBe(s.payload);
+    expect(gameState.value.phaseGoal).toBeNull();
   });
 
   it('every event raised in a tick sees the final post-tick state', () => {

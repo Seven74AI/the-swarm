@@ -1,5 +1,6 @@
 import type { SaveData } from './SaveManager';
-import type { GameState } from '../state/GameState';
+import type { GameState, PhaseGoal } from '../state/GameState';
+import { PhaseStateMachine, reachedValues } from '../phases/PhaseStateMachine';
 
 /**
  * Migration system for save data version upgrades.
@@ -386,6 +387,28 @@ function migrateV13toV14(data: SaveData): SaveData {
   return { ...data, version: 14, gameState: out as unknown as GameState };
 }
 
+/**
+ * v14 → v15 (Story 1.19, D3): the phase goal latch. `phaseGoal` is null, or
+ * latched at once when the save already meets the guard out of its phase (an
+ * older save would have auto-transitioned on its next tick). The phase itself
+ * never changes here: the player still taps CONTINUE.
+ */
+function migrateV14toV15(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  if (gs.phaseGoal !== undefined) return { ...data, version: 15 };
+  let phaseGoal: PhaseGoal | null = null;
+  try {
+    const t = new PhaseStateMachine().evaluate(data.gameState);
+    if (t) {
+      const stats = gs.stats as { playTimeMs?: number } | undefined;
+      phaseGoal = { phase: t.to, latched: true, atMs: stats?.playTimeMs ?? data.playTimeMs ?? 0, reached: reachedValues(t, data.gameState) };
+    }
+  } catch {
+    // A partial save the guard can't read: SaveManager merges defaults in later; no latch.
+  }
+  return { ...data, version: 15, gameState: { ...gs, phaseGoal } as unknown as GameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -401,6 +424,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   11: migrateV11toV12,
   12: migrateV12toV13,
   13: migrateV13toV14,
+  14: migrateV14toV15,
 };
 
 /**

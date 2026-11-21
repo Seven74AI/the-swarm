@@ -525,3 +525,63 @@ describe('decisions', () => {
     expectRefused(actions.chooseDecision('no_such_event' as never, 'Nope'), 'unknown_id', before);
   });
 });
+
+describe('phase (Story 1.19: CONTINUE)', () => {
+  const latched = (s: GameState): GameState => ({
+    ...s,
+    phaseGoal: { phase: 'colony', latched: true, atMs: 0, reached: {} },
+  });
+
+  it('refuses CONTINUE while no goal is latched, even if the guard holds now', () => {
+    const before = given(rich({ phase: 'egg_laying' }));
+    expectRefused(actions.continuePhase(), 'not_ready', before);
+  });
+
+  it('commits the latched goal: next phase, latch cleared, phase_committed after the write', () => {
+    const before = given(latched(rich({ phase: 'egg_laying' })));
+    const seen: { to: string; statePhase: string }[] = [];
+    bus.subscribe('phase_committed', ({ to }) => seen.push({ to, statePhase: gameState.value.phase }));
+    const after = expectApplied(actions.continuePhase(), before);
+    expect(after.phase).not.toBe(before.phase);
+    expect(after.phase).toBe(before.phaseGoal!.phase);
+    expect(after.phaseGoal).toBeNull();
+    expect(seen).toEqual([{ to: after.phase, statePhase: after.phase }]);
+  });
+
+  it('still commits after the numbers dipped below target', () => {
+    const before = given(latched(poor({ phase: 'egg_laying' })));
+    const after = expectApplied(actions.continuePhase(), before);
+    expect(after.phase).toBe(before.phaseGoal!.phase);
+  });
+
+  it('commits once: a second CONTINUE is refused', () => {
+    given(latched(rich({ phase: 'egg_laying' })));
+    actions.continuePhase();
+    const after = gameState.value;
+    expectRefused(actions.continuePhase(), 'not_ready', after);
+  });
+
+  it('prestige clears the latch', () => {
+    const base = rich();
+    const before = given({
+      ...base,
+      phase: 'transcendence',
+      phaseGoal: { phase: 'transcendence', latched: true, atMs: 0, reached: {} },
+      buildings: {
+        ...base.buildings,
+        barracks: { level: 99, count: 1 },
+        walls: { level: 99 },
+        warehouse: { level: 99 },
+      },
+      prestige: {
+        ...base.prestige,
+        totalFoodProduced: LOTS,
+        totalWoodProduced: LOTS,
+        totalStoneProduced: LOTS,
+        totalNectarProduced: LOTS,
+      },
+    });
+    const after = expectApplied(actions.prestige(), before);
+    expect(after.phaseGoal).toBeNull();
+  });
+});

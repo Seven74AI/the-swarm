@@ -163,12 +163,11 @@ export class EventLog {
     bus.subscribe('building_complete', onBuildingCb);
     this.unsubscribeHandles.push(() => bus.unsubscribe('building_complete', onBuildingCb));
 
-    const onPhaseCb = (payload: unknown) => {
-      const p = payload as { phase: string };
-      this.onPhaseChanged(p.phase);
+    const onPhaseCb = ({ to }: { to: string }) => {
+      this.onPhaseChanged(to);
     };
-    bus.subscribe('phase_changed', onPhaseCb);
-    this.unsubscribeHandles.push(() => bus.unsubscribe('phase_changed', onPhaseCb));
+    bus.subscribe('phase_committed', onPhaseCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('phase_committed', onPhaseCb));
 
     const onExplorationReturnCb = (payload: unknown) => {
       const p = payload as { destination: string; result: string; voidCrystals: number; antimatter: number; darkMatter: number };

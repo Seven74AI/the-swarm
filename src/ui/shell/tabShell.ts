@@ -25,8 +25,10 @@ export interface TabShell {
   readonly segments: ReadonlySignal<readonly SegmentId[]>;
   /** The open FRONT segment, or null before Combat. */
   readonly segment: ReadonlySignal<SegmentId | null>;
-  /** Tabs where something became affordable since the last visit. */
+  /** Tabs where something became affordable since the last visit, and NEST while the goal is met elsewhere. */
   readonly dots: ReadonlySignal<ReadonlySet<TabId>>;
+  /** The phase goal is latched: NEST's primary action is CONTINUE (Story 1.19). */
+  readonly goalMet: ReadonlySignal<boolean>;
   /** Open a tab. Tapping the open tab returns 'top': the caller scrolls it to the top. */
   select(tab: TabId): 'switched' | 'top' | 'locked';
   selectSegment(segment: SegmentId): void;
@@ -40,9 +42,12 @@ export interface TabShellDeps {
   phase: ReadonlySignal<string>;
   /** `selectAffordableKeys`: `<panelId>:<item>` keys joined by `|`. */
   affordable: ReadonlySignal<string>;
+  /** `selectGoalMet`: the phase goal has latched (Story 1.19). Default: never. */
+  goalMet?: ReadonlySignal<boolean>;
 }
 
-export function createTabShell({ phase: rawPhase, affordable }: TabShellDeps): TabShell {
+export function createTabShell({ phase: rawPhase, affordable, goalMet: rawGoalMet }: TabShellDeps): TabShell {
+  const goalMet = computed(() => rawGoalMet?.value ?? false);
   const phase = computed(() => rawPhase.value as Phase);
   const tabs = computed(() => tabsForPhase(phase.value));
   const showBar = computed(() => showsTabBar(phase.value));
@@ -59,7 +64,13 @@ export function createTabShell({ phase: rawPhase, affordable }: TabShellDeps): T
   });
 
   const scroll = new Map<TabId, number>();
-  const dots = signal<ReadonlySet<TabId>>(new Set());
+  const affordDots = signal<ReadonlySet<TabId>>(new Set());
+  // A met goal puts `•` on NEST while another tab is open (Story 1.19, UX-DR14).
+  const dots = computed<ReadonlySet<TabId>>(() => {
+    const base = affordDots.value;
+    if (!goalMet.value || active.value === 'nest' || base.has('nest')) return base;
+    return new Set([...base, 'nest']);
+  });
 
   // FRONT opens on the newest segment whenever the row grows.
   let segmentCount = untracked(() => segments.value.length);
@@ -90,7 +101,7 @@ export function createTabShell({ phase: rawPhase, affordable }: TabShellDeps): T
     const current = keysByTab();
     const open = active.value;
     untracked(() => {
-      const next = new Set(dots.value);
+      const next = new Set(affordDots.value);
       for (const [tab, keys] of current) {
         if (tab === open) continue;
         const before = previous.get(tab);
@@ -103,7 +114,8 @@ export function createTabShell({ phase: rawPhase, affordable }: TabShellDeps): T
       }
       next.delete(open);
       previous = current;
-      if (next.size !== dots.value.size || [...next].some((t) => !dots.value.has(t))) dots.value = next;
+      const was = affordDots.value;
+      if (next.size !== was.size || [...next].some((t) => !was.has(t))) affordDots.value = next;
     });
   });
 
@@ -114,6 +126,7 @@ export function createTabShell({ phase: rawPhase, affordable }: TabShellDeps): T
     segments,
     segment,
     dots,
+    goalMet,
     select(tab) {
       if (!tabs.peek().includes(tab)) return 'locked';
       if (active.peek() === tab) return 'top';

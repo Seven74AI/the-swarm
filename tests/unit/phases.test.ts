@@ -92,18 +92,13 @@ describe('Transition EGG_LAYING → COLONY', () => {
     expect(EGG_TO_COLONY.guard(state)).toBe(false);
   });
 
-  it('onEnter emits phase_changed event', () => {
-    const state = createInitialState();
+  it('committing it emits phase_committed with its from and to', () => {
+    const state = { ...createInitialState(), phase: EGG_TO_COLONY.from };
     const bus = new EventBus();
-    let emitted = false;
-    let phasePayload: string | null = null;
-    bus.subscribe('phase_changed', (payload: unknown) => {
-      emitted = true;
-      phasePayload = (payload as { phase: string }).phase;
-    });
-    EGG_TO_COLONY.onEnter!(state, bus);
-    expect(emitted).toBe(true);
-    expect(phasePayload).toBe(Phase.COLONY);
+    const heard: { from: Phase; to: Phase }[] = [];
+    bus.subscribe('phase_committed', (p) => heard.push(p));
+    new PhaseStateMachine().commit(EGG_TO_COLONY, state, bus);
+    expect(heard).toEqual([{ from: EGG_TO_COLONY.from, to: EGG_TO_COLONY.to }]);
   });
 });
 
@@ -134,18 +129,13 @@ describe('Transition COLONY → COMBAT', () => {
     expect(COLONY_TO_COMBAT.guard(state)).toBe(true);
   });
 
-  it('onEnter emits phase_changed event with COMBAT', () => {
-    const state = createInitialState();
+  it('committing it emits phase_committed with its from and to', () => {
+    const state = { ...createInitialState(), phase: COLONY_TO_COMBAT.from };
     const bus = new EventBus();
-    let emitted = false;
-    let phasePayload: string | null = null;
-    bus.subscribe('phase_changed', (payload: unknown) => {
-      emitted = true;
-      phasePayload = (payload as { phase: string }).phase;
-    });
-    COLONY_TO_COMBAT.onEnter!(state, bus);
-    expect(emitted).toBe(true);
-    expect(phasePayload).toBe(Phase.COMBAT);
+    const heard: { from: Phase; to: Phase }[] = [];
+    bus.subscribe('phase_committed', (p) => heard.push(p));
+    new PhaseStateMachine().commit(COLONY_TO_COMBAT, state, bus);
+    expect(heard).toEqual([{ from: COLONY_TO_COMBAT.from, to: COLONY_TO_COMBAT.to }]);
   });
 });
 
@@ -181,18 +171,13 @@ describe('Transition COMBAT → EXPANSION', () => {
     expect(COMBAT_TO_EXPANSION.guard(state)).toBe(false);
   });
 
-  it('onEnter emits phase_changed event with EXPANSION', () => {
-    const state = createInitialState();
+  it('committing it emits phase_committed with its from and to', () => {
+    const state = { ...createInitialState(), phase: COMBAT_TO_EXPANSION.from };
     const bus = new EventBus();
-    let emitted = false;
-    let phasePayload: string | null = null;
-    bus.subscribe('phase_changed', (payload: unknown) => {
-      emitted = true;
-      phasePayload = (payload as { phase: string }).phase;
-    });
-    COMBAT_TO_EXPANSION.onEnter!(state, bus);
-    expect(emitted).toBe(true);
-    expect(phasePayload).toBe(Phase.EXPANSION);
+    const heard: { from: Phase; to: Phase }[] = [];
+    bus.subscribe('phase_committed', (p) => heard.push(p));
+    new PhaseStateMachine().commit(COMBAT_TO_EXPANSION, state, bus);
+    expect(heard).toEqual([{ from: COMBAT_TO_EXPANSION.from, to: COMBAT_TO_EXPANSION.to }]);
   });
 });
 
@@ -227,8 +212,9 @@ describe('Phase graph — Combat is the only way into Expansion', () => {
     state.resources.workers = 10_000;
     state.resources.food = 10_000_000;
     state.workersAssigned.guard = 0;
-    const sm = new PhaseStateMachine(Phase.COLONY, TRANSITIONS);
-    expect(sm.tick(state, new EventBus()).phase).toBe(Phase.COLONY);
+    state.phase = Phase.COLONY;
+    const sm = new PhaseStateMachine(TRANSITIONS);
+    expect(sm.evaluate(state)).toBeNull();
   });
 });
 
@@ -264,18 +250,13 @@ describe('Transition EXPANSION → SPACE', () => {
     expect(EXPANSION_TO_SPACE.guard(state)).toBe(false);
   });
 
-  it('onEnter emits phase_changed event with SPACE', () => {
-    const state = createInitialState();
+  it('committing it emits phase_committed with its from and to', () => {
+    const state = { ...createInitialState(), phase: EXPANSION_TO_SPACE.from };
     const bus = new EventBus();
-    let emitted = false;
-    let phasePayload: string | null = null;
-    bus.subscribe('phase_changed', (payload: unknown) => {
-      emitted = true;
-      phasePayload = (payload as { phase: string }).phase;
-    });
-    EXPANSION_TO_SPACE.onEnter!(state, bus);
-    expect(emitted).toBe(true);
-    expect(phasePayload).toBe(Phase.SPACE);
+    const heard: { from: Phase; to: Phase }[] = [];
+    bus.subscribe('phase_committed', (p) => heard.push(p));
+    new PhaseStateMachine().commit(EXPANSION_TO_SPACE, state, bus);
+    expect(heard).toEqual([{ from: EXPANSION_TO_SPACE.from, to: EXPANSION_TO_SPACE.to }]);
   });
 });
 
@@ -322,18 +303,13 @@ describe('Transition SPACE → TRANSCENDENCE', () => {
     expect(SPACE_TO_TRANSCENDENCE.guard(state)).toBe(false);
   });
 
-  it('onEnter emits phase_changed event with TRANSCENDENCE', () => {
-    const state = createInitialState();
+  it('committing it emits phase_committed with its from and to', () => {
+    const state = { ...createInitialState(), phase: SPACE_TO_TRANSCENDENCE.from };
     const bus = new EventBus();
-    let emitted = false;
-    let phasePayload: string | null = null;
-    bus.subscribe('phase_changed', (payload: unknown) => {
-      emitted = true;
-      phasePayload = (payload as { phase: string }).phase;
-    });
-    SPACE_TO_TRANSCENDENCE.onEnter!(state, bus);
-    expect(emitted).toBe(true);
-    expect(phasePayload).toBe(Phase.TRANSCENDENCE);
+    const heard: { from: Phase; to: Phase }[] = [];
+    bus.subscribe('phase_committed', (p) => heard.push(p));
+    new PhaseStateMachine().commit(SPACE_TO_TRANSCENDENCE, state, bus);
+    expect(heard).toEqual([{ from: SPACE_TO_TRANSCENDENCE.from, to: SPACE_TO_TRANSCENDENCE.to }]);
   });
 
   it('onEnter emits victory event', () => {
