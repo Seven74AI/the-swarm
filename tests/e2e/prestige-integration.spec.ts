@@ -280,10 +280,9 @@ test.describe('Prestige Integration — Slice 5', () => {
     // Verify clicks work and production runs (eggs hatch fast with 50-pipeline from Royal Cache)
     await clickTimes(page, 3);
     await page.waitForTimeout(500);
-    const clicksText = await page.locator('#click-egg').evaluate((el) => {
-      return (el.parentElement as HTMLElement)?.textContent || '';
-    });
-    expect(clicksText).toMatch(/Clicks:\s*[1-9]/);
+    // Story 1.22 removed the legacy "Clicks:" counter: read the clicks from state.
+    const clicks = await page.evaluate(() => (window as any).__swarm.manager.getState().stats.totalClicks);
+    expect(clicks).toBeGreaterThan(0);
 
     // Let pipeline produce workers + food (5x pacing nerf needs longer wait)
     await page.waitForTimeout(8000);

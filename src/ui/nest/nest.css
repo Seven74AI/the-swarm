@@ -1,0 +1,124 @@
+/*
+ * NEST (Story 1.22; EXPERIENCE.md → What the NEST shows; DESIGN.md → Layout
+ * skeleton). Order top to bottom: strip, phase line and goal meter, scene
+ * area, event lines, Click Power card (Phase 1); the primary action is pinned
+ * in the primary zone. Colors only through the --color-* aliases (tokens.css).
+ */
+
+/* The primary action fills the primary zone: one full-width row. */
+.nest-primary-host,
+.nest-primary {
+  height: 100%;
+}
+
+.nest-primary {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 7px var(--shell-margin, 14px);
+}
+
+.nest-primary .lay-egg,
+.nest-primary .next-action {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.nest-primary .swarm-btn,
+.shell-primary [data-primary-continue] .swarm-btn {
+  width: 100%;
+}
+
+.shell-primary [data-primary-continue] {
+  box-sizing: border-box;
+  padding: 7px var(--shell-margin, 14px);
+}
+
+.next-affordable {
+  margin: 0;
+  color: var(--color-dim);
+  font-size: 0.8125rem;
+}
+
+/* LAY EGG and its +N particles. */
+.lay-egg {
+  position: relative;
+  display: flex;
+}
+
+.lay-egg .swarm-btn {
+  flex: 1 1 auto;
+}
+
+.lay-egg__button.click-button-at-capacity {
+  border-style: dashed;
+  border-color: var(--color-edge);
+}
+
+.click-particle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  color: var(--color-accent);
+  font-size: 0.875rem;
+  font-weight: 700;
+  pointer-events: none;
+  white-space: nowrap;
+  animation: lay-egg-float 0.9s ease-out forwards;
+}
+
+@keyframes lay-egg-float {
+  0% { opacity: 0; transform: translateY(-50%); }
+  15% { opacity: 1; transform: translateY(calc(-50% - 6px)); }
+  100% { opacity: 0; transform: translateY(calc(-50% - 40px)); }
+}
+
+:root[data-reduced-motion="true"] .click-particle {
+  animation: none;
+  transform: translateY(-50%);
+}
+
+/* The scene area: a placeholder until Story 8.5 draws the nest. Flexible: smaller on short screens. */
+.nest-scene {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: clamp(72px, 22dvh, 180px);
+  margin: 0.5rem 0;
+  border: 1px dashed var(--color-line);
+}
+
+.nest-scene__caption {
+  margin: 0;
+  color: var(--color-dim);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+
+.nest-scene__queen {
+  width: min(100%, 240px);
+}
+
+/* Event lines: the newest 3, newest `> ` in accent, older `· ` in dim (UX-DR30). */
+.event-lines {
+  margin: 0.25rem 0;
+}
+
+.event-line {
+  margin: 2px 0;
+  color: var(--color-dim);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.event-line[data-newest="true"] {
+  color: var(--color-accent);
+}
+
+@media (max-height: 559.98px) {
+  .event-line[data-newest="false"] {
+    display: none;
+  }
+}

@@ -2,7 +2,6 @@ import type { EventBus } from '../engine/EventBus';
 import type { SaveManager } from '../persistence/SaveManager';
 import type { GameState } from '../state/GameState';
 import type { GameLoop } from '../engine/GameLoop';
-import { ClickButton } from './components/ClickButton';
 import { EventLog } from './panels/EventLog';
 import { WorkerAssignment } from './panels/WorkerAssignment';
 import { SoldierPanel } from './panels/SoldierPanel';
@@ -31,6 +30,16 @@ import type { ReadonlySignal } from '@preact/signals-core';
 import type { ConfirmSettings } from './primitives/HoldToConfirm';
 import type { ShellHosts } from './shell/hosts';
 import { PANEL_PLACEMENT, placementOf } from '../data/content/tabs';
+
+/** Where main renders NEST's Preact parts (Story 1.22). */
+export interface NestMounts {
+  /** The primary action, in NEST's primary zone. */
+  primary(host: HTMLElement): void;
+  /** The scene area, under the phase line. */
+  scene(host: HTMLElement): void;
+  /** The Click Power card, under the event lines. */
+  clickPower(host: HTMLElement): void;
+}
 
 /**
  * Root UI controller. Mounts all panels into #app.
@@ -66,6 +75,7 @@ export class UIRoot {
   /** Draws the resource strip into its host (Story 1.16; main renders the Preact strip there). */
   private mountStrip?: (host: HTMLElement) => void;
   private mountPhaseLine?: (host: HTMLElement) => void;
+  private mountNest?: NestMounts;
 
   /** Registry mapping panelId → factory function. Populated in constructor. */
   private panelRegistry: Map<string, () => HTMLElement> = new Map();
@@ -83,6 +93,8 @@ export class UIRoot {
     mountStrip?: (host: HTMLElement) => void;
     /** Renders the phase line and goal meter into NEST's `#phase-indicator` host (Story 1.18). */
     mountPhaseLine?: (host: HTMLElement) => void;
+    /** Renders NEST's primary action, scene area and Click Power card into their hosts (Story 1.22). */
+    mountNest?: NestMounts;
   }) {
     this.bus = deps.bus;
     this.actions = deps.actions;
@@ -94,14 +106,13 @@ export class UIRoot {
     this.confirmSettings = deps.confirmSettings;
     this.mountStrip = deps.mountStrip;
     this.mountPhaseLine = deps.mountPhaseLine;
+    this.mountNest = deps.mountNest;
 
     // ── Populate panel registry with factory functions ──
     // Phase 1 panels (mounted at boot for always-visible UI)
     this.panelRegistry.set('resource_panel', () => this.createStripHost());
     this.panelRegistry.set('phase_indicator', () => this.createPhaseLineHost());
-    this.panelRegistry.set('click_button', () => new ClickButton(
-      this.bus, this.actions, this.saveManager, this.getState, deps.audio,
-    ).getElement());
+    this.panelRegistry.set('click_button', () => this.createNestPrimaryHost());
     this.panelRegistry.set('event_log', () => {
       const el = this.eventLog.getElement();
       el.id = 'activity-log';
@@ -262,22 +273,22 @@ export class UIRoot {
     hosts.host(PANEL_PLACEMENT.phase_indicator).appendChild(phaseLine);
     this.panelElements.set('phase_indicator', phaseLine);
 
-    // Click button — NEST's primary action, pinned in the primary zone
-    const clickBtn = new ClickButton(
-      this.bus,
-      this.actions,
-      this.saveManager,
-      this.getState,
-      this.audio,
-    );
-    hosts.host(PANEL_PLACEMENT.click_button).appendChild(clickBtn.getElement());
-    this.panelElements.set('click_button', clickBtn.getElement());
+    // NEST, top to bottom (Story 1.22): phase line and goal meter (above),
+    // the scene area, the event lines, then the Click Power card (Phase 1).
+    hosts.host(PANEL_PLACEMENT.phase_indicator).appendChild(this.createNestHost('scene', this.mountNest?.scene));
 
-    // Activity log — boot panel (Phase 1), NEST
+    // Event lines — boot panel (Phase 1), NEST
     const logEl = this.eventLog.getElement();
     logEl.id = 'activity-log';
     hosts.host(PANEL_PLACEMENT.event_log).appendChild(logEl);
     this.panelElements.set('event_log', logEl);
+
+    hosts.host(PANEL_PLACEMENT.phase_indicator).appendChild(this.createNestHost('click-power', this.mountNest?.clickPower));
+
+    // NEST's primary action (LAY EGG in Phase 1, then the next action), pinned in the primary zone
+    const primary = this.createNestPrimaryHost();
+    hosts.host(PANEL_PLACEMENT.click_button).appendChild(primary);
+    this.panelElements.set('click_button', primary);
 
     // The shell's scroll area is #panels.
     this.panelsContainer = hosts.scroll;
@@ -373,6 +384,23 @@ export class UIRoot {
     host.id = 'phase-indicator';
     host.className = 'phase-indicator';
     this.mountPhaseLine?.(host);
+    return host;
+  }
+
+  /** NEST's primary-action host (`click_button`, Story 1.22): LAY EGG, then the next-action button. */
+  private createNestPrimaryHost(): HTMLElement {
+    const host = document.createElement('div');
+    host.className = 'nest-primary-host';
+    host.setAttribute('data-nest-primary', '');
+    this.mountNest?.primary(host);
+    return host;
+  }
+
+  /** A NEST content host (`[data-nest-host=<name>]`) that main renders into. */
+  private createNestHost(name: string, mount?: (host: HTMLElement) => void): HTMLElement {
+    const host = document.createElement('div');
+    host.setAttribute('data-nest-host', name);
+    mount?.(host);
     return host;
   }
 

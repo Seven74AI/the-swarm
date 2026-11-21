@@ -13,29 +13,9 @@ test('click egg button spawns visible floating particle', async ({ page }) => {
   const particle = page.locator('.click-particle');
   await expect(particle.first()).toBeVisible({ timeout: 1000 });
 
-  // Should contain "+1" and egg emoji
+  // Story 1.22: the particle reads "+N EGG" (N = eggs laid by the tap).
   await expect(particle.first()).toContainText('+1');
-  await expect(particle.first()).toContainText('🥚');
-});
-
-test('click egg button spawns burst particles', async ({ page }) => {
-  // Suppress onboarding overlay — it intercepts clicks in E2E tests
-  await page.addInitScript(() => { localStorage.setItem('the_swarm_onboarding', 'done'); });
-  await page.goto('/');
-
-  // No burst particles before click
-  await expect(page.locator('.burst-particle')).toHaveCount(0);
-
-  // Click the egg button
-  await page.locator('#click-egg').click();
-
-  // Burst particles should appear (fixed position, in body)
-  const burst = page.locator('.burst-particle');
-  await expect(burst.first()).toBeVisible({ timeout: 500 });
-
-  // Multiple burst particles should spawn
-  const count = await burst.count();
-  expect(count).toBeGreaterThan(1);
+  await expect(particle.first()).toContainText('EGG');
 });
 
 test('resource increment triggers smooth tween animation', async ({ page }) => {

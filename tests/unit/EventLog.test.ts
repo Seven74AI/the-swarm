@@ -224,37 +224,53 @@ describe('EventLog', () => {
     });
   });
 
-  // ── Virtual scrolling (from PR #168, adapted to avoid soldier_recruited) ──
-  describe('virtual scrolling (render window of ~15 entries)', () => {
-    it('limits DOM entries to RENDER_WINDOW_SIZE when entries exceed window', () => {
-      // Add 20 entries using building_complete (soldier_recruited handler removed)
-      for (let i = 0; i < 20; i++) {
-        bus.emit('building_complete', { building: 'nest', level: i + 1 });
+  // ── NEST event lines (Story 1.22, UX-DR30) ──
+  describe('NEST event lines', () => {
+    const lines = () => Array.from(log.getElement().querySelectorAll<HTMLElement>('.log-entry'));
+
+    it('shows only the newest 3 lines, newest first', () => {
+      for (let i = 0; i < 5; i++) {
+        bus.emit('building_complete', { building: 'nest', level: i + 2 });
       }
-      const entries = log.getElement().querySelectorAll('.log-entry');
-      // RENDER_WINDOW_SIZE=15, scrollTop=0 → renderStart=0, renderEnd=15
-      expect(entries.length).toBeLessThanOrEqual(15);
+      expect(lines()).toHaveLength(3);
+      expect(lines()[0].textContent).toContain('level 6');
+      expect(lines()[1].textContent).toContain('level 5');
+      expect(lines()[2].textContent).toContain('level 4');
     });
 
-    it('renders most recent entries at top when scrolled to top', () => {
-      // Use building_complete with distinct levels to verify ordering
-      bus.emit('building_complete', { building: 'nest', level: 5 });
-      bus.emit('building_complete', { building: 'hatchery', level: 4 });
-      bus.emit('building_complete', { building: 'barracks', level: 3 });
-      const entries = getEntries();
-      // scrollTop=0 in jsdom → renderStart=0, newest entries first
-      expect(entries[0]).toContain('Barracks upgraded to level 3');
-      expect(entries[1]).toContain('Hatchery upgraded to level 4');
-      expect(entries[2]).toContain('Nest upgraded to level 5');
+    it('prefixes the newest line with "> " and older ones with "· "', () => {
+      bus.emit('building_complete', { building: 'nest', level: 2 });
+      bus.emit('building_complete', { building: 'nest', level: 3 });
+      const [newest, ...older] = lines();
+      expect(newest.dataset.newest).toBe('true');
+      expect(newest.querySelector('[data-line-prefix]')?.textContent).toBe('> ');
+      for (const line of older) {
+        expect(line.dataset.newest).toBe('false');
+        expect(line.querySelector('[data-line-prefix]')?.textContent).toBe('· ');
+      }
     });
 
-    it('renders all entries when total is under RENDER_WINDOW_SIZE', () => {
-      for (let i = 0; i < 3; i++) {
-        bus.emit('building_complete', { building: 'nest', level: i + 1 });
+    it('keeps the phase line newest over the panel reveals of the same commit', () => {
+      bus.emit('phase_committed', { from: Phase.EXPANSION, to: Phase.SPACE });
+      bus.emit('panel_revealed', { panelId: 'spaceship_panel' });
+      bus.emit('panel_revealed', { panelId: 'expedition_panel' });
+      bus.emit('panel_revealed', { panelId: 'soldier_panel' });
+      expect(lines()[0].textContent).toContain('looks to the stars');
+      expect(log.entries()).toHaveLength(5);
+    });
+
+    it('a later panel reveal is newest again', async () => {
+      bus.emit('phase_committed', { from: Phase.EXPANSION, to: Phase.SPACE });
+      await Promise.resolve();
+      bus.emit('panel_revealed', { panelId: 'spaceship_panel' });
+      expect(lines()[0].textContent).toContain('Spaceship');
+    });
+
+    it('keeps older entries in memory for the LOG tab', () => {
+      for (let i = 0; i < 5; i++) {
+        bus.emit('building_complete', { building: 'nest', level: i + 2 });
       }
-      const entries = log.getElement().querySelectorAll('.log-entry');
-      // 3 new + 1 initial = 4 total, all under RENDER_WINDOW_SIZE=15
-      expect(entries.length).toBe(4);
+      expect(log.entries().length).toBeGreaterThan(lines().length);
     });
   });
 });

@@ -14,7 +14,9 @@ export {
   EGG_HATCH_TIME,
   LARVA_MATURE_TIME,
   computeResourceRates,
+  eggsPerTap,
   getAssignedWorkers,
+  getUpgradeCost,
   type WorkerRole,
 } from '../systems/ResourceSystem';
 export {

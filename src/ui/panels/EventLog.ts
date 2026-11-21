@@ -1,25 +1,28 @@
 import type { EventBus } from '../../engine/EventBus';
 
-interface LogEntry {
+export interface LogEntry {
   message: string;
   timestamp: number;
 }
 
+/** Entries kept in memory (the LOG tab reads them; Story 2.x persists them). */
 const MAX_ENTRIES = 100;
-/** Number of entries to render in the DOM at once (visible + overscan). */
-const RENDER_WINDOW_SIZE = 15;
-/** Estimated height of a single log-entry in pixels (0.85rem × 1.6 line-height + padding + border). */
-const ENTRY_HEIGHT_PX = 26;
+/** NEST shows this many newest lines; CSS keeps only the newest below 560 px viewport height (UX-DR30). */
+export const NEST_LINES = 3;
 
 /**
- * Scrolling activity log. Listens for game events and shows milestone-based narrative messages.
- * Uses virtual scrolling: maintains 100 entries in memory but only renders ~15 DOM elements
- * based on scroll position, reducing DOM operations by ~85%.
- * Newest entry at top, max 100 entries.
+ * The colony's event lines. Listens for game events and writes
+ * milestone-based narrative messages, newest first, keeping the last
+ * `MAX_ENTRIES` in memory (`entries()`).
+ *
+ * On NEST (Story 1.22, UX-DR30) it shows only the newest `NEST_LINES`: the
+ * newest prefixed `> ` in accent, older ones `· ` in dim. The full log is
+ * the LOG tab's. Hooks kept: `#activity-log` (set by UIRoot), `.log-entry`
+ * per line; new: `[data-newest]`, `[data-line-prefix]`.
  */
 export class EventLog {
   private container: HTMLDivElement;
-  private entries: LogEntry[] = [];
+  private entriesList: LogEntry[] = [];
   private logEl: HTMLDivElement;
   private firstClickFired = false;
   private firstWorkerFired = false;
@@ -35,28 +38,15 @@ export class EventLog {
 
   /** Stored callback references for unsubscribe. */
   private unsubscribeHandles: Array<() => void> = [];
-  /** Bound scroll handler for virtual scrolling (stored for removeEventListener). */
-  private boundScrollHandler: (() => void) | null = null;
-
-  /** Re-entrancy guard: prevents recursive render() calls. */
-  private _rendering = false;
-
   constructor(private bus: EventBus) {
     this.container = document.createElement('div');
-    this.container.className = 'panel event-log';
-
-    const title = document.createElement('div');
-    title.className = 'panel-title';
-    title.textContent = 'Activity Log';
-    this.container.appendChild(title);
+    this.container.className = 'event-log event-lines';
 
     this.logEl = document.createElement('div');
-    this.logEl.className = 'event-log-entries';
+    this.logEl.className = 'event-lines__list';
+    this.logEl.setAttribute('role', 'log');
+    this.logEl.setAttribute('aria-label', 'Latest events');
     this.container.appendChild(this.logEl);
-
-    // Bind scroll handler for virtual scrolling
-    this.boundScrollHandler = this.onScroll.bind(this);
-    this.logEl.addEventListener('scroll', this.boundScrollHandler, { passive: true });
 
     // Initial message
     this.addEntry('You are an ant queen. Your purpose is clear.');
@@ -227,74 +217,48 @@ export class EventLog {
       unsub();
     }
     this.unsubscribeHandles = [];
-    if (this.boundScrollHandler) {
-      this.logEl.removeEventListener('scroll', this.boundScrollHandler);
-      this.boundScrollHandler = null;
-    }
   }
 
-  private addEntry(message: string): void {
-    this.entries.unshift({ message, timestamp: Date.now() });
-    if (this.entries.length > MAX_ENTRIES) {
-      this.entries.pop();
+  /** Every kept entry, newest first (for the LOG tab). */
+  entries(): readonly LogEntry[] {
+    return this.entriesList;
+  }
+
+  /**
+   * True from a phase line until the current dispatch ends. A commit reveals
+   * the phase's panels in the same synchronous dispatch, and their lines go
+   * under the phase line, so NEST's newest line is the phase change.
+   */
+  private phaseLineOnTop = false;
+  /** Entries ever added (the list itself stops growing at `MAX_ENTRIES`). */
+  private added = 0;
+
+  private addEntry(message: string, under = false): void {
+    const at = under && this.phaseLineOnTop ? 1 : 0;
+    this.added++;
+    this.entriesList.splice(at, 0, { message, timestamp: Date.now() });
+    if (this.entriesList.length > MAX_ENTRIES) {
+      this.entriesList.pop();
     }
     this.render();
   }
 
+  /** Draw the newest `NEST_LINES` entries, newest first. */
   private render(): void {
-    // Re-entrancy guard: prevent recursive calls.
-    // In real browsers, DOM manipulation can trigger scroll events
-    // which may re-invoke render() via onScroll handlers.
-    if (this._rendering) return;
-    this._rendering = true;
-    try {
-      // Save scroll position — textContent='' resets scrollTop to 0
-      const savedScrollTop = this.logEl.scrollTop || 0;
-
-      // Compute which entries are in/near the viewport
-      const visibleStart = Math.floor(savedScrollTop / ENTRY_HEIGHT_PX);
-      const renderStart = Math.max(0, visibleStart - Math.floor(RENDER_WINDOW_SIZE / 3));
-      const renderEnd = Math.min(this.entries.length, renderStart + RENDER_WINDOW_SIZE);
-
-      // Clear and rebuild only the visible window + spacers
-      this.logEl.textContent = '';
-
-      // Top spacer: entries above the render window
-      if (renderStart > 0) {
-        const topSpacer = document.createElement('div');
-        topSpacer.className = 'log-spacer';
-        topSpacer.style.height = `${renderStart * ENTRY_HEIGHT_PX}px`;
-        this.logEl.appendChild(topSpacer);
-      }
-
-      // Visible entries
-      for (let i = renderStart; i < renderEnd; i++) {
-        const entry = this.entries[i];
-        const div = document.createElement('div');
-        div.className = 'log-entry';
-        div.textContent = entry.message;
-        this.logEl.appendChild(div);
-      }
-
-      // Bottom spacer: entries below the render window
-      const afterCount = this.entries.length - renderEnd;
-      if (afterCount > 0) {
-        const bottomSpacer = document.createElement('div');
-        bottomSpacer.className = 'log-spacer';
-        bottomSpacer.style.height = `${afterCount * ENTRY_HEIGHT_PX}px`;
-        this.logEl.appendChild(bottomSpacer);
-      }
-
-      // Restore scroll position (after all content is in place)
-      this.logEl.scrollTop = savedScrollTop;
-    } finally {
-      this._rendering = false;
-    }
-  }
-
-  /** Re-render on scroll to update the visible window. */
-  private onScroll(): void {
-    this.render();
+    this.logEl.textContent = '';
+    this.entriesList.slice(0, NEST_LINES).forEach((entry, i) => {
+      const line = document.createElement('p');
+      line.className = 'log-entry event-line';
+      line.dataset.newest = i === 0 ? 'true' : 'false';
+      const prefix = document.createElement('span');
+      prefix.className = 'event-line__prefix';
+      prefix.setAttribute('data-line-prefix', '');
+      prefix.setAttribute('aria-hidden', 'true');
+      prefix.textContent = i === 0 ? '> ' : '· ';
+      line.appendChild(prefix);
+      line.appendChild(document.createTextNode(entry.message));
+      this.logEl.appendChild(line);
+    });
   }
 
   private onClick(): void {
@@ -340,6 +304,7 @@ export class EventLog {
   }
 
   private onPhaseChanged(phase: string): void {
+    const before = this.added;
     if (phase === 'colony' && !this.colonyUnlockedFired) {
       this.colonyUnlockedFired = true;
       this.addEntry('The colony takes shape. Worker ants now serve a purpose — assign them.');
@@ -356,18 +321,24 @@ export class EventLog {
       this.spaceUnlockedFired = true;
       this.addEntry('🚀 The swarm looks to the stars. New resources await in the void.');
     }
+    if (this.added !== before) {
+      this.phaseLineOnTop = true;
+      queueMicrotask(() => {
+        this.phaseLineOnTop = false;
+      });
+    }
   }
 
   private onPanelRevealed(panelId: string): void {
     if (panelId === 'soldier_panel') {
-      this.addEntry('⚔️ Soldier Command is now available — recruit and equip your army.');
+      this.addEntry('⚔️ Soldier Command is now available — recruit and equip your army.', true);
     } else if (panelId === 'building_panel' && !this.firstBuildingFired) {
       this.firstBuildingFired = true;
-      this.addEntry('🏗️ Construction unlocked — buildings strengthen the colony.');
+      this.addEntry('🏗️ Construction unlocked — buildings strengthen the colony.', true);
     } else if (panelId === 'expedition_panel') {
-      this.addEntry('🗺️ Expeditions are now available — send scouts to gather resources.');
+      this.addEntry('🗺️ Expeditions are now available — send scouts to gather resources.', true);
     } else if (panelId === 'spaceship_panel') {
-      this.addEntry('🚀 Spaceship construction unlocked — build your vessel to the stars.');
+      this.addEntry('🚀 Spaceship construction unlocked — build your vessel to the stars.', true);
     }
   }
 

@@ -35,7 +35,7 @@ describe('UIRoot in the tab shell', () => {
     }
     expect(container.querySelector('[data-tab-panel="wrkr"] #worker-assignment')).not.toBeNull();
     expect(container.querySelector('[data-segment-panel="stars"] #spaceship-panel')).not.toBeNull();
-    expect(container.querySelector('[data-primary-for="nest"] #click-egg')).not.toBeNull();
+    expect(container.querySelector('[data-primary-for="nest"] [data-nest-primary]')).not.toBeNull();
     expect(container.querySelector('[data-shell-strip] #top-bar')).not.toBeNull();
   });
 
@@ -60,5 +60,32 @@ describe('UIRoot in the tab shell', () => {
     expect(host!.classList.contains('phase-indicator')).toBe(true);
     expect(mounted).toContain(host);
   });
-});
 
+  it('lays NEST out top to bottom: phase line, scene, event lines, Click Power card; LAY EGG in the primary zone (Story 1.22)', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    let state = createInitialState();
+    const bus = new EventBus();
+    const mounted: Record<string, HTMLElement> = {};
+    const ui = new UIRoot({
+      bus,
+      actions: testActions(bus, () => state, (s: GameState) => { state = s; }),
+      saveManager: new SaveManager(),
+      getState: () => state,
+      loop: new GameLoop(new Ticker()),
+      confirmSettings: confirmSettings(),
+      mountNest: {
+        primary: (host) => { mounted.primary = host; },
+        scene: (host) => { mounted.scene = host; },
+        clickPower: (host) => { mounted.clickPower = host; },
+      },
+    });
+    ui.mount(shellHosts(container));
+    const nest = container.querySelector<HTMLElement>('[data-tab-content="nest"]')!;
+    const order = Array.from(nest.children).map((el) => el.id || el.getAttribute('data-nest-host'));
+    expect(order).toEqual(['phase-indicator', 'scene', 'activity-log', 'click-power']);
+    expect(mounted.scene).toBe(nest.querySelector('[data-nest-host="scene"]'));
+    expect(mounted.clickPower).toBe(nest.querySelector('[data-nest-host="click-power"]'));
+    expect(mounted.primary).toBe(container.querySelector('[data-primary-for="nest"] [data-nest-primary]'));
+  });
+});

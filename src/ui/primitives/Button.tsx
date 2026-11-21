@@ -26,6 +26,10 @@ export interface ButtonProps {
   disabled?: string | false;
   /** The cost line under the label (ignored while `disabled` gives a reason). */
   cost?: ComponentChildren;
+  /** An id kept from a legacy control (`#click-egg`, Story 1.22). */
+  id?: string;
+  /** Extra classes kept from a legacy control as hooks (`click-button-at-capacity`). */
+  className?: string;
   /** Stable E2E hooks (`data-action`, …) go straight onto the `<button>`. */
   [hook: `data-${string}`]: string | undefined;
 }
@@ -58,7 +62,7 @@ interface Hold {
  *   3 luminance changes per second (flash rule, UX-DR38).
  */
 export function Button(props: ButtonProps) {
-  const { variant = 'secondary', verb, target, label, onPress, repeat = false, disabled = false, cost, ...hooks } = props;
+  const { variant = 'secondary', verb, target, label, onPress, repeat = false, disabled = false, cost, id, className, ...hooks } = props;
   const pressed = useSignal(false);
   const blink = useComputed(() => String(!pressed.value));
   const [blinkRun, setBlinkRun] = useState(0);
@@ -140,7 +144,8 @@ export function Button(props: ButtonProps) {
   return (
     <button
       type="button"
-      class="swarm-btn"
+      id={id}
+      class={className ? `swarm-btn ${className}` : 'swarm-btn'}
       data-variant={isDisabled ? 'disabled' : variant}
       data-kind={variant}
       data-pressed={pressed}

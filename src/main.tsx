@@ -27,6 +27,7 @@ import { tickAutoProduction } from './engine/AutoProductionLoop';
 import { processTick } from './engine/processTick';
 import { getPrestigeBonuses } from './systems/PrestigeBonusSystem';
 import { render } from 'preact';
+import { computed } from '@preact/signals-core';
 import { UIRoot } from './ui/UIRoot';
 import { App } from './ui/App';
 import { createTabShell } from './ui/shell/tabShell';
@@ -44,6 +45,9 @@ import { ResourceStrip } from './ui/shell/ResourceStrip';
 import { PhaseLine } from './ui/shell/GoalMeter';
 import { createOverlayController, type OverlayController } from './ui/shell/OverlayController';
 import { bindPhaseReveal } from './ui/overlays/PhaseReveal';
+import { NestPrimary } from './ui/nest/NestPrimary';
+import { NestScene } from './ui/nest/NestScene';
+import { ClickPowerCard } from './ui/nest/ClickPowerCard';
 import { PhaseStateMachine } from './phases/PhaseStateMachine';
 import { Phase, PHASE_ORDER } from './phases/phases';
 import { PhaseContent } from './ui/PhaseContent';
@@ -406,6 +410,8 @@ export function bootstrap(): {
   });
   bindDecisionSheets({ bus, sheets, choose: (type, choice) => actions.chooseDecision(type, choice) });
   const resourceFeed = createResourceFeed();
+  // The lay-mode setting (hold / toggle) for NEST's LAY EGG (Story 1.22).
+  const layMode = computed(() => platform.settings.settings.value.layMode);
 
   // After 3 failed ticks (Story 1.17): keep the last good snapshot as THE save
   // (stop autosave, write it now, and every later save writes it too), then
@@ -437,6 +443,12 @@ export function bootstrap(): {
     mountStrip: (host) => render(<ResourceStrip feed={resourceFeed} sheets={sheets} />, host),
     // NEST's phase line and goal meter (Story 1.18), from the conditions in transitions.ts.
     mountPhaseLine: (host) => render(<PhaseLine host={host} />, host),
+    // NEST (Story 1.22): LAY EGG in Phase 1, then the next action; the scene area; the Click Power card.
+    mountNest: {
+      primary: (host) => render(<NestPrimary actions={actions} layMode={layMode} />, host),
+      scene: (host) => render(<NestScene lay={actions.layEgg} />, host),
+      clickPower: (host) => render(<ClickPowerCard buy={() => actions.buyUpgrade('click_power')} />, host),
+    },
   });
   if (app) {
     // The Preact root hosts the legacy UIRoot (Story 1.7). render() mounts it synchronously,
@@ -482,6 +494,10 @@ export function bootstrap(): {
   bus.subscribe('battle_engage', () => {
     audio.play('battle');
   });
+  // A laid egg: the key click (the light haptic is bound above, Story 1.22).
+  bus.subscribe('egg_clicked', () => {
+    audio.play('click');
+  });
   bus.subscribe('expedition_return', () => {
     audio.play('discovery');
   });
@@ -518,6 +534,7 @@ export function bootstrap(): {
   };
 
   bus.subscribe('battle_completed', actionSave);
+  bus.subscribe('egg_clicked', actionSave);
   bus.subscribe('prestige_triggered', actionSave);
   bus.subscribe('upgrade_purchased', actionSave);
   bus.subscribe('prestige_upgrade_purchased', actionSave);
