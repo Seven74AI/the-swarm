@@ -35,7 +35,9 @@ holds:
 
 - it is a draft, or its head branch is on a fork;
 - it has one of the labels `ready-for-human`, `needs-info`, `wontfix`. Those are the owner's hold: don't touch it;
-- it was updated less than 1 hour ago, so its CI may still be running;
+- its CI is still running: a check run on its head commit is `queued` or `in_progress`
+  (`gh api repos/Seven74AI/the-swarm/commits/<head sha>/check-runs`). Age doesn't matter: a PR opened minutes ago
+  whose checks have finished is fair game;
 - it is armed (`auto_merge` set), green and mergeable. It will merge by itself;
 - an earlier sweep comment says it gave up, and neither its head nor `main` has moved since.
 
