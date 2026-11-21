@@ -304,10 +304,10 @@ describe('PrestigeSystem', () => {
     it('resets expeditions and space explorations', () => {
       const s = makeRichState();
       s.expeditions = [
-        { id: 'exp-1', scouts: 2, warriors: 1, destination: 'cave', ticksRemaining: 5, risk: 0.3 },
+        { id: 'exp-1', scouts: 2, warriors: 1, destination: 'cave', status: 'running' as const, remainingMs: 250, durationMs: 250, risk: 0.3 },
       ];
       s.spaceExplorations = [
-        { id: 'spex-1', destination: 'mars', ticksRemaining: 10, risk: 0.5 },
+        { id: 'spex-1', destination: 'mars', status: 'running' as const, remainingMs: 500, durationMs: 500, risk: 0.5 },
       ];
       const result = prestige(s);
 
@@ -320,17 +320,18 @@ describe('PrestigeSystem', () => {
       s.combatSoldiers = 10;
       s.combatResources = { chitin: 20, silk: 15, venom: 8 };
       s.lastBattle = {
+        status: 'done',
         enemyType: 'beetle',
         result: 'victory',
         soldiersLost: 2,
         foodGained: 50,
-        timestamp: 12345,
+        atMs: 12345,
       };
       const result = prestige(s);
 
       expect(result.combatSoldiers).toBe(0);
       expect(result.combatResources).toEqual({ chitin: 0, silk: 0, venom: 0 });
-      expect(result.lastBattle).toBeNull();
+      expect(result.lastBattle).toEqual({ status: 'idle' });
     });
 
     it('resets spaceship state', () => {

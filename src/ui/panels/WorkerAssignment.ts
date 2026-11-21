@@ -7,7 +7,8 @@ import {
   selectWorkersAssigned,
 } from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
-import type { ResourceSystem } from '../../systems/ResourceSystem';
+import type { Actions } from '../../actions';
+import { explain } from '../components/refusal';
 import type { GameState } from '../../state/GameState';
 
 type Role = 'gather' | 'tend' | 'dig' | 'guard';
@@ -31,9 +32,8 @@ export class WorkerAssignment {
 
   constructor(
     private bus: EventBus,
-    private resourceSystem: ResourceSystem,
+    private actions: Actions,
     private getState: () => GameState,
-    private setState: (state: GameState) => void,
   ) {
     this.container = document.createElement('div');
     this.container.id = 'worker-assignment';
@@ -123,9 +123,7 @@ export class WorkerAssignment {
     minusBtn.className = 'btn btn-sm';
     minusBtn.textContent = '−';
     minusBtn.addEventListener('click', () => {
-      const state = this.getState();
-      const updated = this.resourceSystem.unassignWorker(state, role);
-      this.setState(updated);
+      explain(minusBtn, this.actions.unassignWorker(role));
     });
 
     const countSpan = document.createElement('span');
@@ -136,9 +134,7 @@ export class WorkerAssignment {
     plusBtn.className = 'btn btn-sm';
     plusBtn.textContent = '+';
     plusBtn.addEventListener('click', () => {
-      const state = this.getState();
-      const updated = this.resourceSystem.assignWorker(state, role);
-      this.setState(updated);
+      explain(plusBtn, this.actions.assignWorker(role));
     });
 
     controls.appendChild(minusBtn);

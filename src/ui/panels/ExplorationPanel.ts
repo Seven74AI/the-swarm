@@ -9,9 +9,9 @@ import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import { formatNumber } from '../../utils/format';
 import { PLANETS } from '../../data/planets';
-import { PROBE_SWARM_THRESHOLD } from '../../systems/ExplorationSystem';
-
-const MAX_PROBES = 3;
+import { MAX_PROBES, PROBE_SWARM_THRESHOLD } from '../../state/queries';
+import type { Actions } from '../../actions';
+import { explain } from '../components/refusal';
 
 export class ExplorationPanel {
   private container: HTMLDivElement;
@@ -19,7 +19,7 @@ export class ExplorationPanel {
   constructor(
     private bus: EventBus,
     private getState: () => GameState,
-    private setState: (state: GameState) => void,
+    private actions: Actions,
   ) {
     this.container = document.createElement('div');
     this.container.id = 'exploration-panel';
@@ -80,22 +80,8 @@ export class ExplorationPanel {
       btn.textContent = '🚀 Launch';
       btn.disabled = !canLaunch;
       btn.addEventListener('click', () => {
-        const s = this.getState();
-        if (s.spaceship.level > 0 && s.soldiers.scouts > 0 && s.spaceProbes.length < MAX_PROBES) {
-          const scouts = 1;
-          const probe = {
-            id: `probe_${Date.now()}`,
-            destination: planet.name,
-            ticksRemaining: 50 + Math.floor(Math.random() * 50),
-            scouts,
-          };
-          this.bus.emit('probe_launch', probe);
-          this.setState({
-            ...s,
-            soldiers: { ...s.soldiers, scouts: s.soldiers.scouts - scouts },
-            spaceProbes: [...s.spaceProbes, probe],
-          });
-        }
+        // The action raises probe_launch after its write.
+        explain(btn, this.actions.launchProbe(planet.name));
       });
       card.appendChild(btn);
       grid.appendChild(card);
@@ -125,7 +111,7 @@ export class ExplorationPanel {
         row.appendChild(rowInfo);
         const rowStatus = document.createElement('div');
         rowStatus.className = 'expedition-row-status';
-        rowStatus.textContent = `⏳ ${probe.ticksRemaining}s`;
+        rowStatus.textContent = `⏳ ${Math.max(0, Math.ceil(probe.remainingMs / 1000))}s`;
         row.appendChild(rowStatus);
         this.container.appendChild(row);
       }

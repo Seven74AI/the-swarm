@@ -9,9 +9,9 @@ import {
 } from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
-import type { SoldierSystem, getSoldierStrength, getSoldierDefense, getSoldierSpeed, getSoldierMaxHp } from '../../systems/SoldierSystem';
-import type { BattleSystem, BattleResult } from '../../systems/BattleSystem';
-import { getRandomEnemy, scaleEnemy, type EnemyDef } from '../../systems/EnemySystem';
+import type { Actions } from '../../actions';
+import { getRandomEnemy, scaleEnemy, type BattleResult, type EnemyDef } from '../../state/queries';
+import { explain } from '../components/refusal';
 import { formatNumber } from '../../utils/format';
 
 /**
@@ -51,10 +51,8 @@ export class BattlePanel {
 
   constructor(
     private bus: EventBus,
-    private soldierSystem: SoldierSystem,
-    private battleSystem: BattleSystem,
+    private actions: Actions,
     private getState: () => GameState,
-    private setState: (s: GameState) => void,
   ) {
     this.container = document.createElement('div');
     this.container.id = 'battle-panel';
@@ -309,14 +307,12 @@ export class BattlePanel {
   }
 
   private onEngage(): void {
-    const state = this.getState();
-    if (!this.scoutedEnemy || state.combatSoldiers <= 0) return;
+    if (!this.scoutedEnemy) return;
 
-    this.bus.emit('battle_engage', { enemyType: this.scoutedEnemy.type });
-
-    const { result, newState } = this.battleSystem.resolveBattle(state);
-    this.battleResult = result;
-    this.setState(newState);
+    // The action raises battle_engage, then resolves and writes the battle.
+    const fought = explain(this.engageBtn, this.actions.fight(this.scoutedEnemy.type));
+    if (!fought.ok) return;
+    this.battleResult = fought.value;
 
     this.showResult();
   }

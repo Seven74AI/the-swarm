@@ -2,9 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { gameState } from '../../src/state/gameSignal';
 import { ResourcePanel } from '../../src/ui/panels/ResourcePanel';
 
-const mockResourceSystem = {
-} as unknown as import('../../src/systems/ResourceSystem').ResourceSystem;
-
 /**
  * ResourcePanel color flash tests.
  *
@@ -24,7 +21,7 @@ describe('ResourcePanel — color flash tweens', () => {
   });
 
   it('critical values exist in the panel', () => {
-    const panel = new ResourcePanel(mockResourceSystem);
+    const panel = new ResourcePanel();
     const el = panel.getElement();
 
     const eggs = el.querySelector('[data-stat="resources.eggs"] .critical-value');
@@ -35,7 +32,7 @@ describe('ResourcePanel — color flash tweens', () => {
   });
 
   it('critical-value has CSS transition for color', () => {
-    const panel = new ResourcePanel(mockResourceSystem);
+    const panel = new ResourcePanel();
     const el = panel.getElement();
 
     const val = el.querySelector('.critical-value') as HTMLElement;
@@ -48,7 +45,7 @@ describe('ResourcePanel — color flash tweens', () => {
   });
 
   it('flash classes are not present before first value change', () => {
-    const panel = new ResourcePanel(mockResourceSystem);
+    const panel = new ResourcePanel();
     const el = panel.getElement();
 
     const val = el.querySelector('.critical-value') as HTMLElement;

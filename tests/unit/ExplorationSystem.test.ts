@@ -56,13 +56,13 @@ describe('ExplorationSystem — recursive scaling', () => {
     it('starts exploration with scaled distance based on surveyData', () => {
       const d0 = launchExploration(state, 'MARS');
       expect(d0.spaceExplorations).toHaveLength(1);
-      const dist0 = d0.spaceExplorations[0].ticksRemaining;
+      const dist0 = d0.spaceExplorations[0].remainingMs;
 
       // With surveyData, distance should be shorter
       const rich = { ...state, resources: { ...state.resources, surveyData: 20 } };
       const d20 = launchExploration(rich, 'MARS');
       expect(d20.spaceExplorations).toHaveLength(1);
-      const dist20 = d20.spaceExplorations[0].ticksRemaining;
+      const dist20 = d20.spaceExplorations[0].remainingMs;
 
       expect(dist20).toBeLessThan(dist0);
     });
@@ -88,10 +88,10 @@ describe('ExplorationSystem — recursive scaling', () => {
       const exp = launched.spaceExplorations[0];
       // Tick it down to completion
       let ticked = launched;
-      for (let i = 0; i < exp.ticksRemaining; i++) {
-        ticked = tickExplorations(ticked);
+      for (let i = 0; i < exp.remainingMs; i++) {
+        ticked = tickExplorations(ticked, 0.05);
       }
-      const resolved = resolveExploration(ticked, { ...ticked.spaceExplorations[0], ticksRemaining: 0 });
+      const resolved = resolveExploration(ticked, { ...ticked.spaceExplorations[0], status: 'running' as const, remainingMs: 0, durationMs: 0 });
       expect(resolved.resources.surveyData).toBeGreaterThanOrEqual(1);
     });
 
@@ -101,10 +101,10 @@ describe('ExplorationSystem — recursive scaling', () => {
       for (let j = 0; j < 3; j++) {
         s = launchExploration(s, 'MARS');
         const exp = s.spaceExplorations[0];
-        for (let i = 0; i < exp.ticksRemaining; i++) {
-          s = tickExplorations(s);
+        for (let i = 0; i < exp.remainingMs; i++) {
+          s = tickExplorations(s, 0.05);
         }
-        s = resolveExploration(s, { ...s.spaceExplorations[0], ticksRemaining: 0 });
+        s = resolveExploration(s, { ...s.spaceExplorations[0], status: 'running' as const, remainingMs: 0, durationMs: 0 });
       }
       // At least 3 surveyData from 3 full successes
       expect(s.resources.surveyData).toBeGreaterThanOrEqual(3);
@@ -115,11 +115,11 @@ describe('ExplorationSystem — recursive scaling', () => {
       const launched = launchExploration(state, 'MARS');
       const exp = launched.spaceExplorations[0];
       let ticked = launched;
-      for (let i = 0; i < exp.ticksRemaining; i++) {
-        ticked = tickExplorations(ticked);
+      for (let i = 0; i < exp.remainingMs; i++) {
+        ticked = tickExplorations(ticked, 0.05);
       }
       vi.mocked(Math.random).mockReturnValue(0.1); // failure roll too
-      const resolved = resolveExploration(ticked, { ...ticked.spaceExplorations[0], ticksRemaining: 0 });
+      const resolved = resolveExploration(ticked, { ...ticked.spaceExplorations[0], status: 'running' as const, remainingMs: 0, durationMs: 0 });
       expect(resolved.resources.surveyData).toBe(0);
     });
   });
@@ -163,20 +163,20 @@ describe('ExplorationSystem — recursive scaling', () => {
     it('exploring reduces future exploration distance (recursive scaling)', () => {
       // First exploration with 0 surveyData
       const first = launchExploration(state, 'EUROPA');
-      const firstDist = first.spaceExplorations[0].ticksRemaining;
+      const firstDist = first.spaceExplorations[0].remainingMs;
 
       // Simulate completing it (full success)
       let s = first;
       for (let i = 0; i < firstDist; i++) {
-        s = tickExplorations(s);
+        s = tickExplorations(s, 0.05);
       }
-      s = resolveExploration(s, { ...s.spaceExplorations[0], ticksRemaining: 0 });
+      s = resolveExploration(s, { ...s.spaceExplorations[0], status: 'running' as const, remainingMs: 0, durationMs: 0 });
       // surveyData should have increased
       expect(s.resources.surveyData).toBeGreaterThan(0);
 
       // Second exploration should be faster
       const second = launchExploration(s, 'EUROPA');
-      const secondDist = second.spaceExplorations[0].ticksRemaining;
+      const secondDist = second.spaceExplorations[0].remainingMs;
 
       expect(secondDist).toBeLessThan(firstDist);
     });
@@ -193,19 +193,19 @@ describe('ExplorationSystem — base behavior preserved', () => {
 
   it('tickExplorations decrements ticksRemaining', () => {
     const launched = launchExploration(state, 'MARS');
-    const ticked = tickExplorations(launched);
-    expect(ticked.spaceExplorations[0].ticksRemaining)
-      .toBe(launched.spaceExplorations[0].ticksRemaining - 1);
+    const ticked = tickExplorations(launched, 0.05);
+    expect(ticked.spaceExplorations[0].remainingMs)
+      .toBe(launched.spaceExplorations[0].remainingMs - 50);
   });
 
   it('resolveExploration removes the exploration', () => {
     const launched = launchExploration(state, 'MARS');
     const exp = launched.spaceExplorations[0];
     let ticked = launched;
-    for (let i = 0; i < exp.ticksRemaining; i++) {
-      ticked = tickExplorations(ticked);
+    for (let i = 0; i < exp.remainingMs; i++) {
+      ticked = tickExplorations(ticked, 0.05);
     }
-    const resolved = resolveExploration(ticked, { ...ticked.spaceExplorations[0], ticksRemaining: 0 });
+    const resolved = resolveExploration(ticked, { ...ticked.spaceExplorations[0], status: 'running' as const, remainingMs: 0, durationMs: 0 });
     expect(resolved.spaceExplorations).toHaveLength(0);
   });
 

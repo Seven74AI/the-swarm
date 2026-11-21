@@ -86,6 +86,21 @@ const UPGRADES: Record<string, UpgradeDef> = {
   click_power: { baseCost: 10, costMultiplier: 1.15 },
 };
 
+/** Food cost of an egg-chamber upgrade at its current level, or null for an unknown upgrade. */
+export function getUpgradeCost(upgradeId: string, level: number): number | null {
+  const def = UPGRADES[upgradeId];
+  return def ? upgradeCost(def.baseCost, def.costMultiplier, level) : null;
+}
+
+/** A worker job the player can assign. */
+export type WorkerRole = 'gather' | 'tend' | 'dig' | 'guard';
+
+/** Workers on a job (researchers are tracked apart; see ResearchSystem). */
+export function getAssignedWorkers(state: GameState): number {
+  const a = state.workersAssigned;
+  return a.gather + a.tend + a.dig + a.guard;
+}
+
 export const EGG_HATCH_TIME = 50; // ticks (at 1s per tick equivalent, 5x pacing nerf)
 export const LARVA_MATURE_TIME = 50; // ticks (5x pacing nerf)
 const FOOD_PER_WORKER = 1;
@@ -301,11 +316,9 @@ export class ResourceSystem {
   }
 
   buyUpgrade(state: GameState, upgradeId: string): GameState {
-    const def = UPGRADES[upgradeId];
-    if (!def) return state;
-
     const currentLevel = state.upgrades[upgradeId] ?? 0;
-    const cost = upgradeCost(def.baseCost, def.costMultiplier, currentLevel);
+    const cost = getUpgradeCost(upgradeId, currentLevel);
+    if (cost === null) return state;
     if (state.resources.food < cost) return state;
 
     const result: GameState = {
@@ -318,10 +331,9 @@ export class ResourceSystem {
     return result;
   }
 
-  assignWorker(state: GameState, role: 'gather' | 'tend' | 'dig' | 'guard'): GameState {
+  assignWorker(state: GameState, role: WorkerRole): GameState {
     const assigned = state.workersAssigned;
-    const totalAssigned = assigned.gather + assigned.tend + assigned.dig + assigned.guard;
-    if (totalAssigned >= state.resources.workers) return state;
+    if (getAssignedWorkers(state) >= state.resources.workers) return state;
 
     const result: GameState = {
       ...state,
@@ -332,7 +344,7 @@ export class ResourceSystem {
     return result;
   }
 
-  unassignWorker(state: GameState, role: 'gather' | 'tend' | 'dig' | 'guard'): GameState {
+  unassignWorker(state: GameState, role: WorkerRole): GameState {
     const assigned = state.workersAssigned;
     if (assigned[role] <= 0) return state;
 

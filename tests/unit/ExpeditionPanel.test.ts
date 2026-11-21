@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { testActions } from './helpers/actions';
 import { gameState } from '../../src/state/gameSignal';
 import { ExpeditionPanel } from '../../src/ui/panels/ExpeditionPanel';
 import { EventBus } from '../../src/engine/EventBus';
@@ -12,11 +13,7 @@ describe('ExpeditionPanel', () => {
   beforeEach(() => {
     bus = new EventBus();
     currentState = createInitialState();
-    panel = new ExpeditionPanel(
-      bus,
-      () => currentState,
-      (s: GameState) => { currentState = s; },
-    );
+    panel = new ExpeditionPanel(bus, () => currentState, testActions(bus, () => currentState, (s: GameState) => { currentState = s; }));
   });
 
   it('creates a panel element', () => {
@@ -47,8 +44,8 @@ describe('ExpeditionPanel', () => {
     currentState = {
       ...currentState,
       expeditions: [
-        { id: 'exp_1', scouts: 1, warriors: 0, destination: 'FOREST', ticksRemaining: 45, risk: 0.3 },
-        { id: 'exp_2', scouts: 2, warriors: 1, destination: 'MOUNTAIN', ticksRemaining: 30, risk: 0.25 },
+        { id: 'exp_1', scouts: 1, warriors: 0, destination: 'FOREST', status: 'running' as const, remainingMs: 45_000, durationMs: 45_000, risk: 0.3 },
+        { id: 'exp_2', scouts: 2, warriors: 1, destination: 'MOUNTAIN', status: 'running' as const, remainingMs: 30_000, durationMs: 30_000, risk: 0.25 },
       ],
     };
     panel.refresh();

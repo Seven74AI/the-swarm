@@ -15,7 +15,6 @@ describe('CosmicPanel', () => {
     panel = new CosmicPanel(
       bus,
       () => currentState,
-      (s: GameState) => { currentState = s; },
     );
   });
 

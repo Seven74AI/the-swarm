@@ -144,12 +144,14 @@ describe('BattleSystem', () => {
     it('lastBattle is populated after battle', () => {
       setupStrongArmy(100);
       const { newState } = system.resolveBattle(state);
-      expect(newState.lastBattle).not.toBeNull();
-      expect(newState.lastBattle!.enemyType).toBeTruthy();
-      expect(['victory', 'defeat']).toContain(newState.lastBattle!.result);
-      expect(newState.lastBattle!.soldiersLost).toBeGreaterThanOrEqual(0);
-      expect(newState.lastBattle!.foodGained).toBeGreaterThanOrEqual(0);
-      expect(newState.lastBattle!.timestamp).toBeGreaterThan(0);
+      const last = newState.lastBattle;
+      expect(last.status).toBe('done');
+      if (last.status !== 'done') return;
+      expect(last.enemyType).toBeTruthy();
+      expect(['victory', 'defeat', 'draw']).toContain(last.result);
+      expect(last.soldiersLost).toBeGreaterThanOrEqual(0);
+      expect(last.foodGained).toBeGreaterThanOrEqual(0);
+      expect(last.atMs).toBe(state.stats.playTimeMs);
     });
 
     it('battlesWon increments on victory', () => {
@@ -181,7 +183,9 @@ describe('BattleSystem', () => {
       const { newState: state1 } = system.resolveBattle(state);
       // The number of soldiers should be reduced by soldiersLost
       expect(state1.combatSoldiers).toBeLessThanOrEqual(state.combatSoldiers);
-      expect(state1.combatSoldiers).toBe(state.combatSoldiers - state1.lastBattle!.soldiersLost);
+      const last = state1.lastBattle;
+      expect(last.status).toBe('done');
+      if (last.status === 'done') expect(state1.combatSoldiers).toBe(state.combatSoldiers - last.soldiersLost);
     });
 
     it('emits battle_completed event', () => {

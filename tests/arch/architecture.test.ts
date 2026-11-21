@@ -111,6 +111,20 @@ function platformViolations(files: SourceFile[]): Violation[] {
   return out;
 }
 
+/**
+ * Rule 2 (Story 1.6): ui/ changes state only through actions/ and reads it
+ * through state/. It never imports systems/, not even a type.
+ */
+function uiSystemsImports(files: SourceFile[]): Violation[] {
+  const out: Violation[] = [];
+  for (const f of files.filter((x) => layerOf(x.rel) === 'ui')) {
+    for (const t of importTargets(f)) {
+      if (t.layer === 'systems') out.push(`${f.rel}:${t.line} imports systems/ ('${t.specifier}'); call an action or read state/ instead`);
+    }
+  }
+  return out;
+}
+
 function mathRandomCounts(files: SourceFile[]): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const f of files.filter((x) => inLayer(x, SEEDED_LAYERS))) {
@@ -195,6 +209,10 @@ describe('architecture boundaries (AR21)', () => {
 
   it('no event listener writes gameState.value', () => {
     expect(listenerGameStateWrites(files)).toEqual([]);
+  });
+
+  it('ui/ never imports systems/', () => {
+    expect(uiSystemsImports(files)).toEqual([]);
   });
 
   it('no file under ui/ writes gameState.value', () => {
@@ -290,6 +308,19 @@ describe('architecture boundaries (AR21)', () => {
         fake('ui/D.ts', 'const jitter = Math.random();'),
       ]);
       expect(counts).toEqual({ 'systems/A.ts': 2, 'sim/B.ts': 1 });
+    });
+
+    it('flags any systems/ import under ui/, type-only included', () => {
+      const v = uiSystemsImports([
+        fake('ui/a.ts', "import { build } from '../systems/BuildingSystem';"),
+        fake('ui/panels/b.ts', "import type { BuildingType } from '../../systems/BuildingSystem';"),
+        fake('ui/c.ts', "export { getEffects } from '../systems/BuildingSystem';"),
+        fake('ui/d.ts', "const m = await import('../systems/BattleSystem');"),
+        fake('ui/e.ts', "import { createActions } from '../actions';\nimport { getBuildCost } from '../state/queries';"),
+        fake('actions/f.ts', "import { build } from '../systems/BuildingSystem';"),
+        fake('state/g.ts', "export { getEffects } from '../systems/BuildingSystem';"),
+      ]);
+      expect(v.map((x) => x.split(':')[0])).toEqual(['ui/a.ts', 'ui/panels/b.ts', 'ui/c.ts', 'ui/d.ts']);
     });
 
     it('flags gameState.value writes under ui/, not reads or comparisons', () => {

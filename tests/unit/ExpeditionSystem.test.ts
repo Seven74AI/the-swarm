@@ -34,12 +34,12 @@ describe('ExpeditionSystem', () => {
       expect(result.expeditions[0].destination).toBe('mountain_tile_1');
     });
 
-    it('sets ticksRemaining in range 30-90', () => {
+    it('sets a game-time length of 30-90 ticks', () => {
       state.soldiers.scouts = 1;
       state.soldiers.warriors = 1;
       const result = launchExpedition(state, 1, 1, 'meadow');
-      expect(result.expeditions[0].ticksRemaining).toBeGreaterThanOrEqual(30);
-      expect(result.expeditions[0].ticksRemaining).toBeLessThanOrEqual(90);
+      expect(result.expeditions[0].remainingMs).toBeGreaterThanOrEqual(30 * 50);
+      expect(result.expeditions[0].remainingMs).toBeLessThanOrEqual(90 * 50);
     });
 
     it('sets risk clamped between 0.1 and 0.9', () => {
@@ -71,7 +71,7 @@ describe('ExpeditionSystem', () => {
           scouts: 1,
           warriors: 0,
           destination: `zone_${i}`,
-          ticksRemaining: 30,
+          status: 'running' as const, remainingMs: 1500, durationMs: 1500,
           risk: 0.3,
         });
       }
@@ -115,24 +115,24 @@ describe('ExpeditionSystem', () => {
 
   describe('tickExpeditions', () => {
     it('decrements all expedition timers from their current value', () => {
-      const exp1 = { id: 'e1', scouts: 1, warriors: 0, destination: 'a', ticksRemaining: 45, risk: 0.3 };
-      const exp2 = { id: 'e2', scouts: 2, warriors: 1, destination: 'b', ticksRemaining: 60, risk: 0.2 };
+      const exp1 = { id: 'e1', scouts: 1, warriors: 0, destination: 'a', status: 'running' as const, remainingMs: 2250, durationMs: 2250, risk: 0.3 };
+      const exp2 = { id: 'e2', scouts: 2, warriors: 1, destination: 'b', status: 'running' as const, remainingMs: 3000, durationMs: 3000, risk: 0.2 };
       state.expeditions = [exp1, exp2];
-      const result = tickExpeditions(state);
-      expect(result.expeditions[0].ticksRemaining).toBe(exp1.ticksRemaining - 1);
-      expect(result.expeditions[1].ticksRemaining).toBe(exp2.ticksRemaining - 1);
+      const result = tickExpeditions(state, 0.05);
+      expect(result.expeditions[0].remainingMs).toBe(exp1.remainingMs - 50);
+      expect(result.expeditions[1].remainingMs).toBe(exp2.remainingMs - 50);
     });
 
     it('returns same state if no expeditions', () => {
-      const result = tickExpeditions(state);
+      const result = tickExpeditions(state, 0.05);
       expect(result.expeditions).toEqual([]);
     });
 
     it('decrements to zero correctly (expedition completes when ticksRemaining reaches 0)', () => {
-      const exp = { id: 'e1', scouts: 1, warriors: 0, destination: 'a', ticksRemaining: 1, risk: 0.3 };
+      const exp = { id: 'e1', scouts: 1, warriors: 0, destination: 'a', status: 'running' as const, remainingMs: 50, durationMs: 50, risk: 0.3 };
       state.expeditions = [exp];
-      const result = tickExpeditions(state);
-      expect(result.expeditions[0].ticksRemaining).toBe(0);
+      const result = tickExpeditions(state, 0.05);
+      expect(result.expeditions[0].remainingMs).toBe(0);
     });
   });
 
@@ -140,7 +140,7 @@ describe('ExpeditionSystem', () => {
     it('on success, adds loot, returns soldiers, and discovers tiles', () => {
       // Guarantee full success (roll >= 0.21 for risk=0.01)
       vi.spyOn(Math, 'random').mockReturnValue(1.0);
-      const exp = { id: 'e1', scouts: 2, warriors: 1, destination: 'forest_tile', ticksRemaining: 1, risk: 0.01 };
+      const exp = { id: 'e1', scouts: 2, warriors: 1, destination: 'forest_tile', status: 'running' as const, remainingMs: 50, durationMs: 50, risk: 0.01 };
       state.expeditions = [exp];
       state.soldiers.scouts = 0;
       state.soldiers.warriors = 0;
@@ -169,7 +169,7 @@ describe('ExpeditionSystem', () => {
     });
 
     it('high risk expedition can fail with casualties', () => {
-      const exp = { id: 'e1', scouts: 1, warriors: 0, destination: 'danger_zone', ticksRemaining: 1, risk: 0.9 };
+      const exp = { id: 'e1', scouts: 1, warriors: 0, destination: 'danger_zone', status: 'running' as const, remainingMs: 50, durationMs: 50, risk: 0.9 };
       state.expeditions = [exp];
       state.soldiers.scouts = 0;
       state.soldiers.warriors = 0;
@@ -201,7 +201,7 @@ describe('ExpeditionSystem', () => {
     });
 
     it('FOREST zone yields extra wood', () => {
-      const exp = { id: 'e1', scouts: 1, warriors: 0, destination: 'FOREST', ticksRemaining: 1, risk: 0.01 };
+      const exp = { id: 'e1', scouts: 1, warriors: 0, destination: 'FOREST', status: 'running' as const, remainingMs: 50, durationMs: 50, risk: 0.01 };
       state.expeditions = [exp];
       vi.spyOn(Math, 'random').mockReturnValue(0.5);
       const beforeWood = state.resources.wood;
@@ -211,7 +211,7 @@ describe('ExpeditionSystem', () => {
     });
 
     it('MOUNTAIN zone yields extra stone', () => {
-      const exp = { id: 'e1', scouts: 1, warriors: 0, destination: 'MOUNTAIN', ticksRemaining: 1, risk: 0.01 };
+      const exp = { id: 'e1', scouts: 1, warriors: 0, destination: 'MOUNTAIN', status: 'running' as const, remainingMs: 50, durationMs: 50, risk: 0.01 };
       state.expeditions = [exp];
       vi.spyOn(Math, 'random').mockReturnValue(0.5);
       const beforeStone = state.resources.stone;
@@ -220,7 +220,7 @@ describe('ExpeditionSystem', () => {
     });
 
     it('MEADOW zone yields nectar', () => {
-      const exp = { id: 'e1', scouts: 1, warriors: 0, destination: 'MEADOW', ticksRemaining: 1, risk: 0.01 };
+      const exp = { id: 'e1', scouts: 1, warriors: 0, destination: 'MEADOW', status: 'running' as const, remainingMs: 50, durationMs: 50, risk: 0.01 };
       state.expeditions = [exp];
       vi.spyOn(Math, 'random').mockReturnValue(0.5);
       const beforeNectar = state.resources.nectar;
@@ -229,7 +229,7 @@ describe('ExpeditionSystem', () => {
     });
 
     it('returns state unchanged if expedition not found', () => {
-      const exp = { id: 'nonexistent', scouts: 1, warriors: 0, destination: 'x', ticksRemaining: 1, risk: 0.5 };
+      const exp = { id: 'nonexistent', scouts: 1, warriors: 0, destination: 'x', status: 'running' as const, remainingMs: 50, durationMs: 50, risk: 0.5 };
       const result = resolveExpedition(state, exp);
       expect(result).toBe(state);
     });
@@ -237,7 +237,7 @@ describe('ExpeditionSystem', () => {
     it('warriors-only expedition partial success does not produce negative scouts', () => {
       // Force roll into partial success window
       vi.spyOn(Math, 'random').mockReturnValue(0.5);
-      const exp = { id: 'e1', scouts: 0, warriors: 3, destination: 'forest', ticksRemaining: 1, risk: 0.4 };
+      const exp = { id: 'e1', scouts: 0, warriors: 3, destination: 'forest', status: 'running' as const, remainingMs: 50, durationMs: 50, risk: 0.4 };
       state.expeditions = [exp];
       state.soldiers.scouts = 0;
       state.soldiers.warriors = 0;
@@ -257,7 +257,7 @@ describe('ExpeditionSystem', () => {
     it('failure does not produce any loot', () => {
       // Force failure: risk=0.5, roll=0.3 (< 0.5 = failure)
       vi.spyOn(Math, 'random').mockReturnValue(0.3);
-      const exp = { id: 'e1', scouts: 2, warriors: 1, destination: 'danger_zone', ticksRemaining: 1, risk: 0.5 };
+      const exp = { id: 'e1', scouts: 2, warriors: 1, destination: 'danger_zone', status: 'running' as const, remainingMs: 50, durationMs: 50, risk: 0.5 };
       state.expeditions = [exp];
       state.soldiers.scouts = 0;
       state.soldiers.warriors = 0;
@@ -281,7 +281,7 @@ describe('ExpeditionSystem', () => {
       // Force full success: risk=0.3, roll 0.5 > 0.3+0.2=0.5 → edge of full success... 
       // Use roll=0.51 for full success (0.51 > 0.3+0.2=0.5)
       vi.spyOn(Math, 'random').mockReturnValue(0.51);
-      const exp = { id: 'e1', scouts: 3, warriors: 2, destination: 'meadow', ticksRemaining: 1, risk: 0.3 };
+      const exp = { id: 'e1', scouts: 3, warriors: 2, destination: 'meadow', status: 'running' as const, remainingMs: 50, durationMs: 50, risk: 0.3 };
       state.expeditions = [exp];
       state.soldiers.scouts = 0;
       state.soldiers.warriors = 0;
@@ -296,7 +296,7 @@ describe('ExpeditionSystem', () => {
     });
 
     it('empty expedition list + resolve returns state unchanged', () => {
-      const exp = { id: 'e1', scouts: 1, warriors: 0, destination: 'a', ticksRemaining: 1, risk: 0.5 };
+      const exp = { id: 'e1', scouts: 1, warriors: 0, destination: 'a', status: 'running' as const, remainingMs: 50, durationMs: 50, risk: 0.5 };
       // No expeditions in state
       const result = resolveExpedition(state, exp);
       expect(result).toBe(state);
@@ -312,7 +312,7 @@ describe('ExpeditionSystem', () => {
       state.resources.antimatter = 0;
       state.resources.darkMatter = 0;
 
-      const exp = { id: 'e1', scouts: 1, warriors: 1, destination: 'FOREST', ticksRemaining: 1, risk: 0.01 };
+      const exp = { id: 'e1', scouts: 1, warriors: 1, destination: 'FOREST', status: 'running' as const, remainingMs: 50, durationMs: 50, risk: 0.01 };
       state.expeditions = [exp];
       state.soldiers.scouts = 1;
       state.soldiers.warriors = 1;
@@ -340,7 +340,7 @@ describe('ExpeditionSystem', () => {
 
     it('loot amounts are integers (no fractional resources)', () => {
       vi.spyOn(Math, 'random').mockReturnValue(0.5);
-      const exp = { id: 'e1', scouts: 1, warriors: 0, destination: 'FOREST', ticksRemaining: 1, risk: 0.01 };
+      const exp = { id: 'e1', scouts: 1, warriors: 0, destination: 'FOREST', status: 'running' as const, remainingMs: 50, durationMs: 50, risk: 0.01 };
       state.expeditions = [exp];
 
       const result = resolveExpedition(state, exp);

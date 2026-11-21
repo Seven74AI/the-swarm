@@ -8,9 +8,6 @@ import { ResourcePanel } from '../../src/ui/panels/ResourcePanel';
 import { Phase } from '../../src/phases/phases';
 import { createInitialState } from '../../src/state/GameState';
 
-const mockResourceSystem = {
-} as unknown as import('../../src/systems/ResourceSystem').ResourceSystem;
-
 describe('ResourcePanel — Scannable HUD', () => {
   let panel: ResourcePanel;
   let el: HTMLDivElement;
@@ -35,7 +32,7 @@ describe('ResourcePanel — Scannable HUD', () => {
     // Clear localStorage between tests
     localStorage.clear();
 
-    panel = new ResourcePanel(mockResourceSystem);
+    panel = new ResourcePanel();
     el = panel.getElement();
   });
 
@@ -161,7 +158,7 @@ describe('ResourcePanel — Scannable HUD', () => {
       // Pre-set colony as collapsed in localStorage
       localStorage.setItem('swarm_hud_sections', JSON.stringify({ colony: false }));
 
-      const panel2 = new ResourcePanel(mockResourceSystem);
+      const panel2 = new ResourcePanel();
       const el2 = panel2.getElement();
       const colonySection = el2.querySelector('.hud-section.colony-section');
       const toggle = colonySection?.querySelector('.section-toggle');
@@ -208,7 +205,7 @@ describe('ResourcePanel — Scannable HUD', () => {
       state.resources.darkMatter = 2;
       gameState.value = { ...state };
 
-      const panel2 = new ResourcePanel(mockResourceSystem);
+      const panel2 = new ResourcePanel();
       const el2 = panel2.getElement();
       const spaceSection = el2.querySelector('.hud-section.space-section');
       expect(spaceSection).not.toBeNull();
@@ -224,7 +221,7 @@ describe('ResourcePanel — Scannable HUD', () => {
       state.phase = Phase.TRANSCENDENCE;
       gameState.value = { ...state };
 
-      const panel2 = new ResourcePanel(mockResourceSystem);
+      const panel2 = new ResourcePanel();
       const el2 = panel2.getElement();
       const prestigeSection = el2.querySelector('.hud-section.prestige-section');
       expect(prestigeSection).not.toBeNull();
@@ -247,7 +244,7 @@ describe('ResourcePanel — Scannable HUD', () => {
       state.resources.voidCrystals = 10;
       gameState.value = { ...state };
 
-      const panel2 = new ResourcePanel(mockResourceSystem);
+      const panel2 = new ResourcePanel();
       const el2 = panel2.getElement();
       const spaceSection = el2.querySelector('.hud-section.space-section') as HTMLElement;
       expect(spaceSection).not.toBeNull();
@@ -259,7 +256,7 @@ describe('ResourcePanel — Scannable HUD', () => {
       state.phase = Phase.TRANSCENDENCE;
       gameState.value = { ...state };
 
-      const panel2 = new ResourcePanel(mockResourceSystem);
+      const panel2 = new ResourcePanel();
       const el2 = panel2.getElement();
       const prestigeSection = el2.querySelector('.hud-section.prestige-section') as HTMLElement;
       expect(prestigeSection).not.toBeNull();
@@ -282,18 +279,18 @@ describe('ResourcePanel — Scannable HUD', () => {
     it('conversion section visible in space body when phase is SPACE', () => {
       const state = createInitialState();
       state.phase = Phase.SPACE;
-      state.research.projects.voidCrystalSynthesis = { state: 'completed', progress: 600 };
-      state.research.projects.antimatterContainment = { state: 'completed', progress: 1500 };
-      state.research.projects.darkMatterDetection = { state: 'completed', progress: 3000 };
+      state.research.projects.voidCrystalSynthesis = { status: 'done' };
+      state.research.projects.antimatterContainment = { status: 'done' };
+      state.research.projects.darkMatterDetection = { status: 'done' };
       state.conversions.particleLab = 1;
-      state.spaceExplorations = [{ id: 'spc_1', destination: 'MARS', ticksRemaining: 50, risk: 0.3 }];
+      state.spaceExplorations = [{ id: 'spc_1', destination: 'MARS', status: 'running' as const, remainingMs: 2500, durationMs: 2500, risk: 0.3 }];
       state.workersAssigned.researchers = 10;
       state.resources.voidCrystals = 10;
       state.resources.antimatter = 5;
       state.resources.darkMatter = 2;
       gameState.value = { ...state };
 
-      const panel2 = new ResourcePanel(mockResourceSystem);
+      const panel2 = new ResourcePanel();
       const el2 = panel2.getElement();
       const convBody = el2.querySelector('.conversions-body');
       expect(convBody).not.toBeNull();
@@ -302,18 +299,18 @@ describe('ResourcePanel — Scannable HUD', () => {
     it('shows all three conversion chain names', () => {
       const state = createInitialState();
       state.phase = Phase.SPACE;
-      state.research.projects.voidCrystalSynthesis = { state: 'completed', progress: 600 };
-      state.research.projects.antimatterContainment = { state: 'completed', progress: 1500 };
-      state.research.projects.darkMatterDetection = { state: 'completed', progress: 3000 };
+      state.research.projects.voidCrystalSynthesis = { status: 'done' };
+      state.research.projects.antimatterContainment = { status: 'done' };
+      state.research.projects.darkMatterDetection = { status: 'done' };
       state.conversions.particleLab = 1;
-      state.spaceExplorations = [{ id: 'spc_1', destination: 'MARS', ticksRemaining: 50, risk: 0.3 }];
+      state.spaceExplorations = [{ id: 'spc_1', destination: 'MARS', status: 'running' as const, remainingMs: 2500, durationMs: 2500, risk: 0.3 }];
       state.workersAssigned.researchers = 10;
       state.resources.voidCrystals = 10;
       state.resources.antimatter = 5;
       state.resources.darkMatter = 2;
       gameState.value = { ...state };
 
-      const panel2 = new ResourcePanel(mockResourceSystem);
+      const panel2 = new ResourcePanel();
       const el2 = panel2.getElement();
       const convBody = el2.querySelector('.conversions-body');
       const text = convBody?.textContent || '';
@@ -326,13 +323,13 @@ describe('ResourcePanel — Scannable HUD', () => {
     it('shows rate and cap indicators for active conversions', () => {
       const state = createInitialState();
       state.phase = Phase.SPACE;
-      state.research.projects.voidCrystalSynthesis = { state: 'completed', progress: 600 };
-      state.research.projects.antimatterContainment = { state: 'completed', progress: 1500 };
-      state.research.projects.darkMatterDetection = { state: 'completed', progress: 3000 };
+      state.research.projects.voidCrystalSynthesis = { status: 'done' };
+      state.research.projects.antimatterContainment = { status: 'done' };
+      state.research.projects.darkMatterDetection = { status: 'done' };
       state.conversions.particleLab = 3;
       state.spaceExplorations = [
-        { id: 'spc_1', destination: 'MARS', ticksRemaining: 50, risk: 0.3 },
-        { id: 'spc_2', destination: 'VENUS', ticksRemaining: 30, risk: 0.2 },
+        { id: 'spc_1', destination: 'MARS', status: 'running' as const, remainingMs: 2500, durationMs: 2500, risk: 0.3 },
+        { id: 'spc_2', destination: 'VENUS', status: 'running' as const, remainingMs: 1500, durationMs: 1500, risk: 0.2 },
       ];
       state.workersAssigned.researchers = 40;
       state.resources.voidCrystals = 10;
@@ -340,7 +337,7 @@ describe('ResourcePanel — Scannable HUD', () => {
       state.resources.darkMatter = 2;
       gameState.value = { ...state };
 
-      const panel2 = new ResourcePanel(mockResourceSystem);
+      const panel2 = new ResourcePanel();
       const el2 = panel2.getElement();
       const convBody = el2.querySelector('.conversions-body');
       const text = convBody?.textContent || '';

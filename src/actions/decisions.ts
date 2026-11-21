@@ -1,5 +1,6 @@
-import { gameState } from '../state/gameSignal';
-import type { DecisionEvent, DecisionSystem } from '../systems/DecisionSystem';
+import type { DecisionEvent } from '../systems/DecisionSystem';
+import type { ActionDeps } from './context';
+import { commit, current, refuse, type ActionResult } from './result';
 
 /**
  * Player intent: pick a choice on a decision popup.
@@ -7,9 +8,11 @@ import type { DecisionEvent, DecisionSystem } from '../systems/DecisionSystem';
  * a `decision_chosen` listener; listeners must not write state (AR18).
  */
 export function chooseDecision(
-  system: DecisionSystem,
+  deps: ActionDeps,
   type: DecisionEvent['type'],
   choice: string,
-): void {
-  gameState.value = system.applyChoice(gameState.value, type, choice);
+): ActionResult {
+  const s = current(deps);
+  if (!deps.decisionSystem.hasChoice(type, choice)) return refuse('unknown_id');
+  return commit(deps, s, deps.decisionSystem.applyChoice(s, type, choice));
 }

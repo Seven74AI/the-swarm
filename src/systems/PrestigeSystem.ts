@@ -160,7 +160,7 @@ export function prestige(state: GameState): GameState {
     spaceships: [],
     upgrades: {},
     combatSoldiers: 0,
-    lastBattle: null,
+    lastBattle: { status: 'idle' },
     combatResources: {
       chitin: 0,
       silk: 0,

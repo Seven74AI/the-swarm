@@ -1,5 +1,5 @@
 import { effect } from '@preact/signals-core';
-import { selectLastBattle } from '../../state/selectors';
+import { selectLastBattle, selectStats } from '../../state/selectors';
 import { formatNumber } from '../../utils/format';
 
 /**
@@ -117,10 +117,11 @@ export class CombatLogPanel {
   }
 
   /**
-   * Format a timestamp as relative time (e.g. "Just now", "2 min ago").
+   * Format a game-time stamp as relative time (e.g. "Just now", "2 min ago").
    */
-  private formatTimeAgo(ts: number): string {
-    const diffSec = Math.round((Date.now() - ts) / 1000);
+  private formatTimeAgo(atMs: number): string {
+    // peek: the log refreshes when the battle changes, not on every tick.
+    const diffSec = Math.round(Math.max(0, selectStats.peek().playTimeMs - atMs) / 1000);
     if (diffSec < 10) return 'Just now';
     if (diffSec < 60) return `${diffSec}s ago`;
     const diffMin = Math.floor(diffSec / 60);
@@ -138,6 +139,7 @@ export class CombatLogPanel {
     switch (result) {
       case 'victory': return '🏆 Victory';
       case 'defeat': return '💀 Defeat';
+      case 'draw': return '🤝 Draw';
       default: return result;
     }
   }
@@ -145,7 +147,7 @@ export class CombatLogPanel {
   private refresh(): void {
     const lastBattle = selectLastBattle.value;
 
-    if (!lastBattle) {
+    if (lastBattle.status !== 'done') {
       this.emptyState.style.display = '';
       this.contentArea.style.display = 'none';
       return;
@@ -154,11 +156,11 @@ export class CombatLogPanel {
     this.emptyState.style.display = 'none';
     this.contentArea.style.display = '';
 
-    this.enemyTypeEl.textContent = lastBattle.enemyType ?? 'Unknown';
+    this.enemyTypeEl.textContent = lastBattle.enemyType || 'Unknown';
     this.resultEl.textContent = this.formatResult(lastBattle.result);
     this.soldiersLostEl.textContent = formatNumber(lastBattle.soldiersLost);
     this.foodGainedEl.textContent = `+${formatNumber(lastBattle.foodGained)}`;
-    this.timestampEl.textContent = this.formatTimeAgo(lastBattle.timestamp);
+    this.timestampEl.textContent = this.formatTimeAgo(lastBattle.atMs);
   }
 
   getElement(): HTMLDivElement {

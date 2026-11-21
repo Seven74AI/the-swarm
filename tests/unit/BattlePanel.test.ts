@@ -1,15 +1,12 @@
+import { testActions } from './helpers/actions';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EventBus } from '../../src/engine/EventBus';
 import { gameState } from '../../src/state/gameSignal';
-import { SoldierSystem } from '../../src/systems/SoldierSystem';
-import { BattleSystem } from '../../src/systems/BattleSystem';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 import { BattlePanel } from '../../src/ui/panels/BattlePanel';
 
 describe('BattlePanel', () => {
   let bus: EventBus;
-  let soldierSystem: SoldierSystem;
-  let battleSystem: BattleSystem;
   let state: GameState;
   let getState: () => GameState;
   let setState: (s: GameState) => void;
@@ -19,14 +16,12 @@ describe('BattlePanel', () => {
     bus = new EventBus();
     state = createInitialState();
     gameState.value = state;
-    soldierSystem = new SoldierSystem(bus);
-    battleSystem = new BattleSystem(bus);
     getState = () => gameState.value;
     setState = (s: GameState) => { gameState.value = s; };
   });
 
   function createPanel(): BattlePanel {
-    return new BattlePanel(bus, soldierSystem, battleSystem, getState, setState);
+    return new BattlePanel(bus, testActions(bus, getState, setState), getState);
   }
 
   describe('rendering', () => {

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { testActions } from './helpers/actions';
 import { gameState } from '../../src/state/gameSignal';
 import { ExplorationPanel } from '../../src/ui/panels/ExplorationPanel';
 import { EventBus } from '../../src/engine/EventBus';
@@ -12,11 +13,7 @@ describe('ExplorationPanel', () => {
   beforeEach(() => {
     bus = new EventBus();
     currentState = createInitialState();
-    panel = new ExplorationPanel(
-      bus,
-      () => currentState,
-      (s: GameState) => { currentState = s; },
-    );
+    panel = new ExplorationPanel(bus, () => currentState, testActions(bus, () => currentState, (s: GameState) => { currentState = s; }));
   });
 
   it('creates a panel element', () => {
@@ -49,8 +46,8 @@ describe('ExplorationPanel', () => {
       spaceship: { level: 1, fuel: 50, maxFuel: 100 },
       soldiers: { scouts: 5, warriors: 0, totalKilled: 0 },
       spaceProbes: [
-        { id: 'probe_1', destination: 'Alpha Centauri', ticksRemaining: 30, scouts: 2 },
-        { id: 'probe_2', destination: 'Sirius', ticksRemaining: 45, scouts: 1 },
+        { id: 'probe_1', destination: 'Alpha Centauri', status: 'running' as const, remainingMs: 30_000, durationMs: 30_000, scouts: 2 },
+        { id: 'probe_2', destination: 'Sirius', status: 'running' as const, remainingMs: 45_000, durationMs: 45_000, scouts: 1 },
       ],
     };
     panel.refresh();

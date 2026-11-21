@@ -1,7 +1,13 @@
-import type { GameState } from '../state/GameState';
+import type { GameState, SpaceExploration, SpaceProbe } from '../state/GameState';
 import { PLANETS, type PlanetDef } from '../data/planets';
 
 export const MAX_ACTIVE_EXPLORATIONS = 3;
+
+/** Probes the player can have out at once. */
+export const MAX_PROBES = 3;
+
+/** Game-time length of one simulation tick; distances below are counted in ticks. */
+const TICK_MS = 50;
 
 /** Survey data scaling: each point gives 5% speed boost to exploration distance. */
 export const SURVEY_DATA_SPEED_MULTIPLIER = 0.05;
@@ -12,16 +18,6 @@ export const PROBE_SWARM_THRESHOLD = 10;
 /** Survey data gained per successful exploration completion. */
 export const SURVEY_DATA_PER_EXPLORATION = 1;
 
-interface SpaceExploration {
-  id: string;
-  destination: string;
-  ticksRemaining: number;
-  risk: number;
-}
-
-function generateId(state: GameState): string {
-  return `spc_${Date.now()}_${state.nextIds.exploration}`;
-}
 
 function getPlanetType(destination: string): PlanetDef['type'] | null {
   const planet = PLANETS.find((p) => p.name === destination);
@@ -61,6 +57,50 @@ export function getScaledDistance(destination: string, surveyData: number): numb
   return Math.max(10, Math.floor(baseDistance / multiplier));
 }
 
+/** Pure factory: a new running exploration with the next sequential id. */
+export function createExploration(state: GameState, destination: string): SpaceExploration {
+  const durationMs = getScaledDistance(destination, state.resources.surveyData) * TICK_MS;
+  return {
+    id: `spc_${state.nextIds.exploration}`,
+    status: 'running',
+    destination,
+    remainingMs: durationMs,
+    durationMs,
+    risk: calculateRisk(destination),
+  };
+}
+
+/** Pure factory: a new running probe with the next sequential id. */
+export function createProbe(state: GameState, destination: string, scouts: number): SpaceProbe {
+  const durationMs = getScaledDistance(destination, state.resources.surveyData) * TICK_MS;
+  return {
+    id: `probe_${state.nextIds.probe}`,
+    status: 'running',
+    destination,
+    scouts,
+    remainingMs: durationMs,
+    durationMs,
+  };
+}
+
+/**
+ * Send a probe: needs the ship, a scout and a free probe slot. Returns the
+ * same state when it can't launch.
+ */
+export function launchProbe(state: GameState, destination: string): GameState {
+  const scouts = 1;
+  if (state.spaceship.level <= 0) return state;
+  if (state.soldiers.scouts < scouts) return state;
+  if (state.spaceProbes.length >= MAX_PROBES) return state;
+
+  return {
+    ...state,
+    nextIds: { ...state.nextIds, probe: state.nextIds.probe + 1 },
+    soldiers: { ...state.soldiers, scouts: state.soldiers.scouts - scouts },
+    spaceProbes: [...state.spaceProbes, createProbe(state, destination, scouts)],
+  };
+}
+
 export function launchExploration(
   state: GameState,
   destination: string,
@@ -68,15 +108,7 @@ export function launchExploration(
   // Max explorations check
   if (state.spaceExplorations.length >= MAX_ACTIVE_EXPLORATIONS) return state;
 
-  const risk = calculateRisk(destination);
-  const distance = getScaledDistance(destination, state.resources.surveyData);
-
-  const exploration: SpaceExploration = {
-    id: generateId(state),
-    destination,
-    ticksRemaining: distance,
-    risk,
-  };
+  const exploration = createExploration(state, destination);
 
   const discoveredPlanets = state.discoveredPlanets.includes(destination)
     ? state.discoveredPlanets
@@ -90,14 +122,16 @@ export function launchExploration(
   };
 }
 
-export function tickExplorations(state: GameState): GameState {
+/** Count every running exploration down by the tick's game time. */
+export function tickExplorations(state: GameState, dtSec: number): GameState {
   if (state.spaceExplorations.length === 0) return state;
+  const dtMs = Math.round(dtSec * 1000);
 
   return {
     ...state,
     spaceExplorations: state.spaceExplorations.map((exp) => ({
       ...exp,
-      ticksRemaining: exp.ticksRemaining - 1,
+      remainingMs: exp.remainingMs - dtMs,
     })),
   };
 }

@@ -10,13 +10,17 @@ import {
   getProjects,
   getProjectStatus,
   canStartProject,
-  startProject,
-  cancelProject,
-  assignResearcher,
-  unassignResearcher,
   getAssignedResearchers,
   type ResearchProjectDef,
-} from '../../systems/ResearchSystem';
+} from '../../state/queries';
+import type { Actions } from '../../actions';
+import { explain } from '../components/refusal';
+
+/** Game-time progress of a project, in ms (0 unless it is running). */
+function progressMs(state: GameState, id: ResearchProjectId): number {
+  const p = state.research.projects[id];
+  return p?.status === 'running' ? p.progressMs : 0;
+}
 
 /**
  * ResearchPanel — UI for the tick-based Research system.
@@ -31,7 +35,7 @@ export class ResearchPanel {
   constructor(
     private bus: EventBus,
     private getState: () => GameState,
-    private setState: (state: GameState) => void,
+    private actions: Actions,
   ) {
     this.container = document.createElement('div');
     this.container.id = 'research-panel';
@@ -77,7 +81,7 @@ export class ResearchPanel {
     hashParts.push(`researchers:${getAssignedResearchers(state)}`);
     for (const p of projects) {
       const status = getProjectStatus(state, p.id);
-      const progress = status === 'in_progress' ? state.research.projects[p.id]?.progress ?? 0 : 0;
+      const progress = progressMs(state, p.id);
       hashParts.push(`${p.id}:${status}:${progress}`);
     }
 
@@ -106,8 +110,7 @@ export class ResearchPanel {
     minusBtn.className = 'btn btn-sm';
     minusBtn.textContent = '−';
     minusBtn.addEventListener('click', () => {
-      const s = this.getState();
-      this.setState(unassignResearcher(s));
+      explain(minusBtn, this.actions.unassignResearcher());
     });
     researcherSection.appendChild(minusBtn);
 
@@ -120,8 +123,7 @@ export class ResearchPanel {
     plusBtn.className = 'btn btn-sm';
     plusBtn.textContent = '+';
     plusBtn.addEventListener('click', () => {
-      const s = this.getState();
-      this.setState(assignResearcher(s));
+      explain(plusBtn, this.actions.assignResearcher());
     });
     researcherSection.appendChild(plusBtn);
 
@@ -188,7 +190,7 @@ export class ResearchPanel {
       // ── Requirements ──
       const reqEl = document.createElement('div');
       reqEl.className = 'research-requirements';
-      reqEl.textContent = `Researchers: ${assigned}/${project.requiredResearchers} | Ticks: ${project.totalTicks}`;
+      reqEl.textContent = `Researchers: ${assigned}/${project.requiredResearchers} | Time: ${Math.round(project.durationMs / 1000)}s`;
       card.appendChild(reqEl);
     }
 
@@ -201,7 +203,7 @@ export class ResearchPanel {
       progressFill.className = 'progress-bar-fill';
       const pct = Math.min(
         100,
-        Math.round((state.research.projects[project.id].progress / project.totalTicks) * 100),
+        Math.round((progressMs(state, project.id) / project.durationMs) * 100),
       );
       progressFill.style.width = `${pct}%`;
       progressFill.setAttribute('role', 'progressbar');
@@ -212,7 +214,7 @@ export class ResearchPanel {
 
       const progressText = document.createElement('div');
       progressText.className = 'research-progress-text';
-      progressText.textContent = `${state.research.projects[project.id].progress} / ${project.totalTicks} ticks`;
+      progressText.textContent = `${Math.floor(progressMs(state, project.id) / 1000)}s / ${Math.round(project.durationMs / 1000)}s`;
       card.appendChild(progressText);
     }
 
@@ -227,8 +229,7 @@ export class ResearchPanel {
       startBtn.textContent = 'Start';
       startBtn.disabled = !canStart;
       startBtn.addEventListener('click', () => {
-        const s = this.getState();
-        this.setState(startProject(s, project.id));
+        explain(startBtn, this.actions.startResearch(project.id));
       });
       actions.appendChild(startBtn);
     }
@@ -238,8 +239,7 @@ export class ResearchPanel {
       cancelBtn.className = 'btn btn-sm btn-danger';
       cancelBtn.textContent = 'Cancel (50% refund)';
       cancelBtn.addEventListener('click', () => {
-        const s = this.getState();
-        this.setState(cancelProject(s, project.id));
+        explain(cancelBtn, this.actions.cancelResearch(project.id));
       });
       actions.appendChild(cancelBtn);
     }

@@ -6,17 +6,9 @@ import {
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 
-/** Spaceship build costs per level. Lv.1 uses only basic resources.
- *  Costs flattened for smoother progression: T1→T4 ratio ~2.5-3x (was 4-5x).
- *  See ADR-004 for cost cliff rationale. */
-const SHIP_COSTS: Array<{ food: number; wood: number; stone: number; nectar: number; voidCrystals: number; antimatter: number; darkMatter: number }> = [
-  { food: 2000, wood: 500, stone: 500, nectar: 200, voidCrystals: 0, antimatter: 0, darkMatter: 0 },
-  { food: 2800, wood: 700, stone: 700, nectar: 320, voidCrystals: 40, antimatter: 20, darkMatter: 4 },
-  { food: 3800, wood: 1000, stone: 1000, nectar: 450, voidCrystals: 80, antimatter: 40, darkMatter: 8 },
-  { food: 5000, wood: 1400, stone: 1400, nectar: 600, voidCrystals: 120, antimatter: 60, darkMatter: 12 },
-];
-
-const MAX_SHIP_LEVEL = 5;
+import type { Actions } from '../../actions';
+import { explain } from '../components/refusal';
+import { MAX_SHIP_LEVEL, canAffordShipCost, getShipCost } from '../../state/queries';
 
 export class SpaceshipPanel {
   private container: HTMLDivElement;
@@ -25,7 +17,7 @@ export class SpaceshipPanel {
   constructor(
     private bus: EventBus,
     private getState: () => GameState,
-    private setState: (state: GameState) => void,
+    private actions: Actions,
   ) {
     this.container = document.createElement('div');
     this.container.id = 'spaceship-panel';
@@ -74,11 +66,8 @@ export class SpaceshipPanel {
   }
 
   private renderBuildSection(state: GameState): void {
-    const cost = SHIP_COSTS[0];
-    const r = state.resources;
-    const canBuild =
-      r.food >= cost.food && r.wood >= cost.wood && r.stone >= cost.stone && r.nectar >= cost.nectar &&
-      r.voidCrystals >= cost.voidCrystals && r.antimatter >= cost.antimatter && r.darkMatter >= cost.darkMatter;
+    const cost = getShipCost(0);
+    const canBuild = canAffordShipCost(state, cost);
 
     const info = document.createElement('div');
     info.className = 'spaceship-info';
@@ -98,33 +87,8 @@ export class SpaceshipPanel {
     btn.disabled = !canBuild;
 
     btn.addEventListener('click', () => {
-      const s = this.getState();
-      if (
-        s.resources.food >= cost.food && s.resources.wood >= cost.wood &&
-        s.resources.stone >= cost.stone && s.resources.nectar >= cost.nectar &&
-        s.resources.voidCrystals >= cost.voidCrystals && s.resources.antimatter >= cost.antimatter &&
-        s.resources.darkMatter >= cost.darkMatter
-      ) {
-        this.bus.emit('spaceship_build', { level: 1 });
-        this.setState({
-          ...s,
-          resources: {
-            ...s.resources,
-            food: s.resources.food - cost.food,
-            wood: s.resources.wood - cost.wood,
-            stone: s.resources.stone - cost.stone,
-            nectar: s.resources.nectar - cost.nectar,
-            voidCrystals: s.resources.voidCrystals - cost.voidCrystals,
-            antimatter: s.resources.antimatter - cost.antimatter,
-            darkMatter: s.resources.darkMatter - cost.darkMatter,
-          },
-          spaceship: {
-            level: 1,
-            fuel: 100,
-            maxFuel: 100,
-          },
-        });
-      }
+      // The action raises spaceship_build after its write.
+      explain(btn, this.actions.buildShip());
     });
 
     this.container.appendChild(btn);
@@ -132,14 +96,8 @@ export class SpaceshipPanel {
 
   private renderShipStats(state: GameState): void {
     const ship = state.spaceship;
-    const costIdx = Math.min(ship.level, SHIP_COSTS.length - 1);
-    const cost = SHIP_COSTS[costIdx];
-    const r = state.resources;
-    const canUpgrade =
-      ship.level < MAX_SHIP_LEVEL &&
-      r.voidCrystals >= cost.voidCrystals &&
-      r.antimatter >= cost.antimatter &&
-      r.darkMatter >= cost.darkMatter;
+    const cost = getShipCost(ship.level);
+    const canUpgrade = ship.level < MAX_SHIP_LEVEL && canAffordShipCost(state, cost);
 
     const levelEl = document.createElement('div');
     levelEl.className = 'spaceship-level';
@@ -164,31 +122,8 @@ export class SpaceshipPanel {
       btn.disabled = !canUpgrade;
 
       btn.addEventListener('click', () => {
-        const s = this.getState();
-        if (
-          s.spaceship.level < MAX_SHIP_LEVEL &&
-          s.resources.voidCrystals >= cost.voidCrystals &&
-          s.resources.antimatter >= cost.antimatter &&
-          s.resources.darkMatter >= cost.darkMatter
-        ) {
-          const newLevel = s.spaceship.level + 1;
-          const newMaxFuel = 100 + (newLevel - 1) * 100;
-          this.bus.emit('spaceship_upgrade', { level: newLevel });
-          this.setState({
-            ...s,
-            resources: {
-              ...s.resources,
-              voidCrystals: s.resources.voidCrystals - cost.voidCrystals,
-              antimatter: s.resources.antimatter - cost.antimatter,
-              darkMatter: s.resources.darkMatter - cost.darkMatter,
-            },
-            spaceship: {
-              level: newLevel,
-              fuel: s.spaceship.fuel,
-              maxFuel: newMaxFuel,
-            },
-          });
-        }
+        // The action raises spaceship_upgrade after its write.
+        explain(btn, this.actions.upgradeShip());
       });
 
       this.container.appendChild(btn);

@@ -170,7 +170,7 @@ test.describe('Research System', () => {
     const barCount = await progressBar.count();
     expect(barCount).toBeGreaterThan(0);
 
-    await expect(vcsCard).toContainText('ticks');
+    await expect(vcsCard).toContainText(/\d+s \/ \d+s/);
   });
 
   test('completed project shows unlock and Completed status', async ({ page }) => {

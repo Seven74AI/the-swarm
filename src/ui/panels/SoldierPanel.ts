@@ -11,7 +11,8 @@ import {
 } from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
-import type { SoldierSystem } from '../../systems/SoldierSystem';
+import type { Actions } from '../../actions';
+import { explain } from '../components/refusal';
 import {
   SOLDIER_COST_FOOD,
   SOLDIER_TRAIN_TIME,
@@ -20,8 +21,8 @@ import {
   getSoldierDefense,
   getSoldierSpeed,
   getSoldierMaxHp,
-} from '../../systems/SoldierSystem';
-import { upgradeCost } from '../../utils/math';
+  getEquipmentUpgradeCost,
+} from '../../state/queries';
 import { formatNumber, formatRate } from '../../utils/format';
 
 /** Track previous display values to avoid redundant DOM writes. */
@@ -87,9 +88,8 @@ export class SoldierPanel {
 
   constructor(
     private bus: EventBus,
-    private soldierSystem: SoldierSystem,
+    private actions: Actions,
     private getState: () => GameState,
-    private setState: (state: GameState) => void,
   ) {
     this.container = document.createElement('div');
     this.container.id = 'soldier-panel';
@@ -135,11 +135,7 @@ export class SoldierPanel {
     this.recruitBtn.className = 'btn btn-primary';
     this.recruitBtn.textContent = `Recruit Soldier (${SOLDIER_COST_FOOD} food, ${SOLDIER_TRAIN_TIME}s)`;
     this.recruitBtn.addEventListener('click', () => {
-      const state = this.getState();
-      const updated = this.soldierSystem.recruitSoldier(state);
-      if (updated !== state) {
-        this.setState(updated);
-      }
+      explain(this.recruitBtn, this.actions.trainSoldier());
     });
     recruitRow.appendChild(this.recruitBtn);
     this.container.appendChild(recruitRow);
@@ -159,11 +155,7 @@ export class SoldierPanel {
     this.weaponBtn.className = 'btn btn-sm';
     this.weaponBtn.textContent = 'Upgrade';
     this.weaponBtn.addEventListener('click', () => {
-      const state = this.getState();
-      const updated = this.soldierSystem.upgradeWeapon(state);
-      if (updated !== state) {
-        this.setState(updated);
-      }
+      explain(this.weaponBtn, this.actions.upgradeWeapon());
     });
     this.weaponCostDisplay = document.createElement('span');
     this.weaponCostDisplay.className = 'stat-sub';
@@ -181,11 +173,7 @@ export class SoldierPanel {
     this.armorBtn.className = 'btn btn-sm';
     this.armorBtn.textContent = 'Upgrade';
     this.armorBtn.addEventListener('click', () => {
-      const state = this.getState();
-      const updated = this.soldierSystem.upgradeArmor(state);
-      if (updated !== state) {
-        this.setState(updated);
-      }
+      explain(this.armorBtn, this.actions.upgradeArmor());
     });
     this.armorCostDisplay = document.createElement('span');
     this.armorCostDisplay.className = 'stat-sub';
@@ -297,7 +285,7 @@ export class SoldierPanel {
     }
 
     // Weapon cost
-    const weaponCostNum = weapon >= MAX_EQUIPMENT_LEVEL ? 0 : upgradeCost(10, 1.20, weapon);
+    const weaponCostNum = weapon >= MAX_EQUIPMENT_LEVEL ? 0 : getEquipmentUpgradeCost(weapon);
     const chitin = state.combatResources.chitin;
     const hasChitinArmory = (state.buildings.chitin_armory?.level ?? 0) >= 1;
     const weaponCostText = weapon >= MAX_EQUIPMENT_LEVEL ? '' : ` ${formatNumber(weaponCostNum)} chitin`;
@@ -339,7 +327,7 @@ export class SoldierPanel {
     }
 
     // Armor cost
-    const armorCostNum = armor >= MAX_EQUIPMENT_LEVEL ? 0 : upgradeCost(10, 1.20, armor);
+    const armorCostNum = armor >= MAX_EQUIPMENT_LEVEL ? 0 : getEquipmentUpgradeCost(armor);
     const silk = state.combatResources.silk;
     const hasSilkWeaving = (state.buildings.silk_weaving?.level ?? 0) >= 1;
     const armorCostText = armor >= MAX_EQUIPMENT_LEVEL ? '' : ` ${formatNumber(armorCostNum)} silk`;

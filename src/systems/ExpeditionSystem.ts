@@ -1,20 +1,10 @@
-import type { GameState } from '../state/GameState';
+import type { Expedition, GameState } from '../state/GameState';
 import { clamp } from '../utils/math';
 
 export const MAX_ACTIVE_EXPEDITIONS = 3;
 
-function generateId(state: GameState): string {
-  return `exp_${Date.now()}_${state.nextIds.expedition}`;
-}
-
-interface Expedition {
-  id: string;
-  scouts: number;
-  warriors: number;
-  destination: string;
-  ticksRemaining: number;
-  risk: number;
-}
+/** Game-time length of one simulation tick; distances below are counted in ticks. */
+const TICK_MS = 50;
 
 function calculateRisk(
   warriors: number,
@@ -40,6 +30,29 @@ function calculateDistance(destination: string): number {
   return 30 + (hash % 61); // 30 to 90
 }
 
+/**
+ * Pure factory: a new running expedition with the next sequential id.
+ * Does not check soldiers or slots; `launchExpedition` does.
+ */
+export function createExpedition(
+  state: GameState,
+  scouts: number,
+  warriors: number,
+  destination: string,
+): Expedition {
+  const durationMs = calculateDistance(destination) * TICK_MS;
+  return {
+    id: `exp_${state.nextIds.expedition}`,
+    status: 'running',
+    scouts,
+    warriors,
+    destination,
+    remainingMs: durationMs,
+    durationMs,
+    risk: calculateRisk(warriors, state.buildings.walls.level, destination),
+  };
+}
+
 export function launchExpedition(
   state: GameState,
   scouts: number,
@@ -56,17 +69,7 @@ export function launchExpedition(
   if (scouts < 0 || warriors < 0) return state;
   if (scouts === 0 && warriors === 0) return state;
 
-  const risk = calculateRisk(warriors, state.buildings.walls.level, destination);
-  const distance = calculateDistance(destination);
-
-  const expedition: Expedition = {
-    id: generateId(state),
-    scouts,
-    warriors,
-    destination,
-    ticksRemaining: distance,
-    risk,
-  };
+  const expedition = createExpedition(state, scouts, warriors, destination);
 
   return {
     ...state,
@@ -80,14 +83,16 @@ export function launchExpedition(
   };
 }
 
-export function tickExpeditions(state: GameState): GameState {
+/** Count every running expedition down by the tick's game time. */
+export function tickExpeditions(state: GameState, dtSec: number): GameState {
   if (state.expeditions.length === 0) return state;
+  const dtMs = Math.round(dtSec * 1000);
 
   return {
     ...state,
     expeditions: state.expeditions.map((exp) => ({
       ...exp,
-      ticksRemaining: exp.ticksRemaining - 1,
+      remainingMs: exp.remainingMs - dtMs,
     })),
   };
 }

@@ -1,4 +1,4 @@
-import type { GameState, ResearchProjectId, ResearchProjectStatus } from '../state/GameState';
+import type { GameState, ResearchProject, ResearchProjectId, ResearchProjectStatus } from '../state/GameState';
 
 export type { ResearchProjectId } from '../state/GameState';
 
@@ -8,7 +8,8 @@ export interface ResearchProjectDef {
   description: string;
   cost: Partial<Record<keyof GameState['resources'], number>>;
   requiredResearchers: number;
-  totalTicks: number;
+  /** Game-time length of the project while staffed. */
+  durationMs: number;
   unlock: string;
   prerequisite: ResearchProjectId | null;
 }
@@ -20,7 +21,7 @@ const PROJECTS: ResearchProjectDef[] = [
     description: 'Synthesize void crystals from stone and nectar using concentrated worker energy.',
     cost: { stone: 500, nectar: 200 },
     requiredResearchers: 50,
-    totalTicks: 600,
+    durationMs: 30_000, // 600 ticks
     unlock: 'voidCrystal',
     prerequisite: null,
   },
@@ -30,7 +31,7 @@ const PROJECTS: ResearchProjectDef[] = [
     description: 'Contain antimatter using void crystal lattices. Requires a particle lab.',
     cost: { voidCrystals: 5 },
     requiredResearchers: 30,
-    totalTicks: 1500,
+    durationMs: 75_000, // 1500 ticks
     unlock: 'antimatter + particle lab',
     prerequisite: 'voidCrystalSynthesis',
   },
@@ -40,7 +41,7 @@ const PROJECTS: ResearchProjectDef[] = [
     description: 'Detect dark matter signatures using antimatter annihilation sensors.',
     cost: { antimatter: 0.1 },
     requiredResearchers: 20,
-    totalTicks: 3000,
+    durationMs: 150_000, // 3000 ticks
     unlock: 'darkMatter from expeditions',
     prerequisite: 'antimatterContainment',
   },
@@ -65,15 +66,15 @@ export function getProjectStatus(
 ): ResearchProjectStatus {
   const projectState = state.research.projects[projectId];
 
-  // State already set
-  if (projectState.state === 'in_progress') return 'in_progress';
-  if (projectState.state === 'completed') return 'completed';
+  // Lifecycle already moved on
+  if (projectState.status === 'running') return 'in_progress';
+  if (projectState.status === 'done') return 'completed';
 
   // Check prerequisite
   const def = getProjectDef(projectId);
   if (def.prerequisite) {
     const prereqState = state.research.projects[def.prerequisite];
-    if (!prereqState || prereqState.state !== 'completed') {
+    if (!prereqState || prereqState.status !== 'done') {
       return 'locked';
     }
   }
@@ -126,10 +127,7 @@ export function startProject(
       ...state.research,
       projects: {
         ...state.research.projects,
-        [projectId]: {
-          state: 'in_progress' as const,
-          progress: 0,
-        },
+        [projectId]: { status: 'running', progressMs: 0, durationMs: def.durationMs },
       },
     },
   };
@@ -141,7 +139,7 @@ export function cancelProject(
   projectId: ResearchProjectId,
 ): GameState {
   const projectState = state.research.projects[projectId];
-  if (projectState.state !== 'in_progress') return state;
+  if (projectState.status !== 'running') return state;
 
   const def = getProjectDef(projectId);
 
@@ -162,86 +160,38 @@ export function cancelProject(
       ...state.research,
       projects: {
         ...state.research.projects,
-        [projectId]: {
-          state: 'available' as const,
-          progress: 0,
-        },
+        [projectId]: { status: 'idle' },
       },
     },
   };
 }
 
-/** Advance research progress for each in-progress project. */
-export function tickResearch(state: GameState): GameState {
+/**
+ * Advance every running project by the tick's game time. A project advances
+ * only while its own researcher requirement is met; it ends `done`.
+ */
+export function tickResearch(state: GameState, dtSec: number): GameState {
   // Guard: no-op if research state doesn't exist yet (backward compat with old saves)
   if (!state.research || !state.research.projects) return state;
 
   const researchers = getAssignedResearchers(state);
+  const dtMs = Math.round(dtSec * 1000);
+  const ids = Object.keys(state.research.projects) as ResearchProjectId[];
 
-  // Sum required researchers across all in-progress projects
-  const inProgressIds = (Object.keys(state.research.projects) as ResearchProjectId[])
-    .filter((id) => state.research.projects[id].state === 'in_progress');
-
-  if (inProgressIds.length === 0) return state;
-
-  // Check if we have enough researchers total (distributed across projects)
-  const totalRequired = inProgressIds.reduce(
-    (sum, id) => sum + getProjectDef(id).requiredResearchers,
-    0,
-  );
-
-  if (researchers < totalRequired) {
-    // Not enough researchers — only projects with their individual requirement met advance
-    let projects = { ...state.research.projects };
-    let anyAdvanced = false;
-
-    for (const id of inProgressIds) {
-      const def = getProjectDef(id);
-      if (researchers >= def.requiredResearchers) {
-        const current = projects[id];
-        const newProgress = current.progress + 1;
-        anyAdvanced = true;
-        projects = {
-          ...projects,
-          [id]: newProgress >= def.totalTicks
-            ? { state: 'completed' as const, progress: def.totalTicks }
-            : { ...current, progress: newProgress },
-        };
-      }
-    }
-
-    if (!anyAdvanced) return state;
-
-    return {
-      ...state,
-      research: {
-        ...state.research,
-        projects,
-      },
-    };
+  let projects: Record<ResearchProjectId, ResearchProject> | null = null;
+  for (const id of ids) {
+    const current = state.research.projects[id];
+    if (current.status !== 'running') continue;
+    if (researchers < getProjectDef(id).requiredResearchers) continue;
+    const progressMs = current.progressMs + dtMs;
+    const next: ResearchProject = progressMs >= current.durationMs
+      ? { status: 'done' }
+      : { ...current, progressMs };
+    projects = { ...(projects ?? state.research.projects), [id]: next };
   }
 
-  // Enough researchers — all in-progress projects advance
-  let projects = { ...state.research.projects };
-  for (const id of inProgressIds) {
-    const def = getProjectDef(id);
-    const current = projects[id];
-    const newProgress = current.progress + 1;
-    projects = {
-      ...projects,
-      [id]: newProgress >= def.totalTicks
-        ? { state: 'completed' as const, progress: def.totalTicks }
-        : { ...current, progress: newProgress },
-    };
-  }
-
-  return {
-    ...state,
-    research: {
-      ...state.research,
-      projects,
-    },
-  };
+  if (!projects) return state;
+  return { ...state, research: { ...state.research, projects } };
 }
 
 /** Assign one worker as researcher. */
@@ -283,10 +233,10 @@ export function getAssignedResearchers(state: GameState): number {
   return state.workersAssigned?.researchers ?? 0;
 }
 
-/** Get total progress across all projects. */
+/** Get total game-time progress (ms) across running projects. */
 export function getTotalProgress(state: GameState): number {
-  return (Object.values(state.research.projects) as Array<{ progress: number }>)
-    .reduce((sum, p) => sum + p.progress, 0);
+  return Object.values(state.research.projects)
+    .reduce((sum, p) => sum + (p.status === 'running' ? p.progressMs : 0), 0);
 }
 
 /** Check if a project is completed. */
@@ -294,5 +244,5 @@ export function isProjectCompleted(
   state: GameState,
   projectId: ResearchProjectId,
 ): boolean {
-  return state.research.projects[projectId].state === 'completed';
+  return state.research.projects[projectId].status === 'done';
 }

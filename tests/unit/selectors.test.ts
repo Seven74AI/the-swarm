@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { testActions } from './helpers/actions';
 import { effect } from '@preact/signals-core';
 import { gameState } from '../../src/state/gameSignal';
 import { createInitialState, type GameState } from '../../src/state/GameState';
@@ -114,7 +115,7 @@ describe('UI effects depend on selectors, not on the whole state', () => {
   it('a panel that shows no food does not re-render on a food-only tick', () => {
     const bus = new EventBus();
     // Production wiring: getState reads the live signal, which must not subscribe the panel's effect.
-    const panel = new PrestigeTreePanel(bus, () => gameState.value, (s) => { gameState.value = s; });
+    const panel = new PrestigeTreePanel(bus, () => gameState.value, testActions(bus, () => gameState.value, (s) => { gameState.value = s; }));
     const render = vi.spyOn(panel as unknown as { render: () => void }, 'render');
     gameState.value = foodOnlyTick(gameState.value);
     gameState.value = foodOnlyTick(gameState.value);

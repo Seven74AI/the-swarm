@@ -15,10 +15,7 @@ import {
   selectWorkersAssigned,
 } from '../../state/selectors';
 import { Phase, PHASE_ORDER } from '../../phases/phases';
-import { EGG_HATCH_TIME, LARVA_MATURE_TIME } from '../../systems/ResourceSystem';
-import { getConversionDefs } from '../../systems/ResourceConversionSystem';
-import type { ConversionId } from '../../systems/ResourceConversionSystem';
-import type { ResourceSystem } from '../../systems/ResourceSystem';
+import { EGG_HATCH_TIME, LARVA_MATURE_TIME, getConversionDefs, type ConversionId } from '../../state/queries';
 import { formatNumber, formatRate } from '../../utils/format';
 import { ProgressBar } from '../components/ProgressBar';
 
@@ -102,7 +99,7 @@ export class ResourcePanel {
   // Colony section progress bars
   private nestCapacityBar!: ProgressBar;
 
-  constructor(private resourceSystem: ResourceSystem) {
+  constructor() {
     this.sectionState = loadSectionState();
 
     this.container = document.createElement('div');

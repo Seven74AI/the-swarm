@@ -2,15 +2,11 @@
  * UIRoot.createPanel() tests — lazy panel creation system.
  * Tests createPanel adds DOM, is idempotent, and throws for unknown IDs.
  */
+import { testActions } from './helpers/actions';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { EventBus } from '../../src/engine/EventBus';
 import { UIRoot } from '../../src/ui/UIRoot';
-import { ResourceSystem } from '../../src/systems/ResourceSystem';
-import { SoldierSystem } from '../../src/systems/SoldierSystem';
-import { BattleSystem } from '../../src/systems/BattleSystem';
 import { SaveManager } from '../../src/persistence/SaveManager';
-import { MapSystem } from '../../src/systems/MapSystem';
-import { TerritorySystem } from '../../src/systems/TerritorySystem';
 import { createInitialState } from '../../src/state/GameState';
 import type { GameState } from '../../src/state/GameState';
 import { Ticker } from '../../src/engine/Ticker';
@@ -28,26 +24,16 @@ describe('UIRoot — createPanel lazy loading', () => {
     container.id = 'app';
     document.body.appendChild(container);
 
-    const resourceSystem = new ResourceSystem(bus);
-    const soldierSystem = new SoldierSystem(bus);
-    const battleSystem = new BattleSystem(bus);
     const saveManager = new SaveManager();
-    const mapSystem = new MapSystem();
-    const territorySystem = new TerritorySystem();
     const ticker = new Ticker();
     loop = new GameLoop(ticker);
     let state = createInitialState();
 
     ui = new UIRoot({
       bus,
-      resourceSystem,
-      soldierSystem,
-      battleSystem,
+      actions: testActions(bus, () => state, (s: GameState) => { state = s; }),
       saveManager,
-      mapSystem,
-      territorySystem,
       getState: () => state,
-      setState: (s: GameState) => { state = s; },
       loop,
     });
   });

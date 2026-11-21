@@ -16,7 +16,6 @@ describe('StarmapPanel', () => {
     panel = new StarmapPanel(
       bus,
       () => currentState,
-      (s: GameState) => { currentState = s; },
     );
   });
 
@@ -142,8 +141,8 @@ describe('StarmapPanel', () => {
       ...currentState,
       spaceship: { level: 1, fuel: 50, maxFuel: 100 },
       spaceProbes: [
-        { id: 'probe_1', destination: 'Proxima B', ticksRemaining: 42, scouts: 3 },
-        { id: 'probe_2', destination: 'Betelgeuse', ticksRemaining: 78, scouts: 1 },
+        { id: 'probe_1', destination: 'Proxima B', status: 'running' as const, remainingMs: 42_000, durationMs: 42_000, scouts: 3 },
+        { id: 'probe_2', destination: 'Betelgeuse', status: 'running' as const, remainingMs: 78_000, durationMs: 78_000, scouts: 1 },
       ],
     };
     panel.refresh();

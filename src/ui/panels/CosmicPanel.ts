@@ -12,7 +12,6 @@ export class CosmicPanel {
   constructor(
     private bus: EventBus,
     private getState: () => GameState,
-    private setState: (state: GameState) => void,
   ) {
     this.container = document.createElement('div');
     this.container.id = 'cosmic-panel';

@@ -12,14 +12,13 @@ import {
   getUnmetRequirements,
   calculateLegacyPoints,
   getPhaseScore,
-  prestige as doPrestige,
   canBuyTemporalResonance,
-  buyTemporalResonance,
   TEMPORAL_RESONANCE_COST,
   canBuyChronoSynchronization,
-  buyChronoSynchronization,
   CHRONO_SYNCHRONIZATION_COST,
-} from '../../systems/PrestigeSystem';
+} from '../../state/queries';
+import type { Actions } from '../../actions';
+import { explain } from '../components/refusal';
 
 /**
  * PrestigePanel — Legacy Layer UI.
@@ -39,7 +38,7 @@ export class PrestigePanel {
   constructor(
     private bus: EventBus,
     private getState: () => GameState,
-    private setState: (state: GameState) => void,
+    private actions: Actions,
   ) {
     this.container = document.createElement('div');
     this.container.id = 'prestige-panel';
@@ -160,8 +159,7 @@ export class PrestigePanel {
     trBtn.disabled = !canBuyTR;
     if (canBuyTR) {
       trBtn.addEventListener('click', () => {
-        const result = buyTemporalResonance(this.getState());
-        if (result) this.setState(result);
+        explain(trBtn, this.actions.buyTemporalResonance());
       });
     } else if (state.offlineEfficiency !== 0.5) {
       trBtn.setAttribute('title', 'Already purchased');
@@ -178,8 +176,7 @@ export class PrestigePanel {
     csBtn.disabled = !canBuyCS;
     if (canBuyCS) {
       csBtn.addEventListener('click', () => {
-        const result = buyChronoSynchronization(this.getState());
-        if (result) this.setState(result);
+        explain(csBtn, this.actions.buyChronoSynchronization());
       });
     } else if (state.offlineEfficiency === 1.0) {
       csBtn.setAttribute('title', 'Max efficiency reached');
@@ -221,16 +218,8 @@ export class PrestigePanel {
     }
 
     btn.addEventListener('click', () => {
-      if (!available) return;
-      const current = this.getState();
-      const reset = doPrestige(current);
-      this.setState(reset);
-      this.bus.emit('prestige_triggered', {
-        fromCount: current.prestige.count,
-        toCount: reset.prestige.count,
-        legacyPointsGained: reset.prestige.legacyPoints - current.prestige.legacyPoints,
-        totalLegacyPoints: reset.prestige.legacyPoints,
-      });
+      // The action raises prestige_triggered after its write.
+      explain(btn, this.actions.prestige());
     });
 
     root.appendChild(btn);

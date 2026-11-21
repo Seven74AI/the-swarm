@@ -1,25 +1,22 @@
+import { testActions } from './helpers/actions';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { gameState } from '../../src/state/gameSignal';
 import { WorkerAssignment } from '../../src/ui/panels/WorkerAssignment';
 import { EventBus } from '../../src/engine/EventBus';
-import { ResourceSystem } from '../../src/systems/ResourceSystem';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 
 describe('WorkerAssignment', () => {
   let bus: EventBus;
-  let resourceSystem: ResourceSystem;
   let panel: WorkerAssignment;
   let currentState: GameState;
 
   beforeEach(() => {
     bus = new EventBus();
-    resourceSystem = new ResourceSystem(bus);
     currentState = createInitialState();
     panel = new WorkerAssignment(
       bus,
-      resourceSystem,
+      testActions(bus, () => currentState, (s: GameState) => { currentState = s; }),
       () => currentState,
-      (s: GameState) => { currentState = s; },
     );
   });
 
