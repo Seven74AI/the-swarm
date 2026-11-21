@@ -1,0 +1,23 @@
+/* Automation target row (Story 4.10, UX-DR16). DESIGN.md → Automation target row; colours only from the phase aliases. */
+.automation-row { display: flex; flex-direction: column; gap: 0.25rem; margin: 0.5rem 0; }
+.automation-row__line { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.5rem; min-height: 2.75rem; }
+.automation-row__keep,
+.automation-row__what { align-self: center; color: var(--color-accent); }
+.automation-row__auto {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0 0.5rem;
+  font: inherit;
+  color: var(--color-accent);
+  background: transparent;
+  border: 1px solid var(--color-edge);
+  border-radius: 0;
+}
+/* Inverse when on (UX-DR16). */
+.automation-row__auto[aria-pressed='true'] {
+  color: var(--color-on-accent);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+.automation-row__status { margin: 0; color: var(--color-dim); }
+.automation-row__status[data-warn] { color: var(--color-warn); }

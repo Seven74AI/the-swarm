@@ -22,4 +22,19 @@ export const automationBalance = {
   hatcheryMultiplierPerLevel: 0.2,
   /** Queen's Chamber: efficiency share per level. */
   queensChamberEfficiencyPerLevel: 0.1,
+  /**
+   * Automation targets (Story 4.10, FR16): a verb is automatable after this
+   * many manual performances (or from the phase after its own), the row
+   * starts at `defaultTarget` with AUTO off, and a target goes no higher
+   * than `maxTarget`. Automatic laying is the queen laying on her own at
+   * `layTapsPerSec` taps a second (each worth one tap's eggs, so Click Power
+   * still counts), far slower than a player's taps: it keeps a brood topped
+   * up, it doesn't replace Phase 1's tapping.
+   */
+  targets: {
+    unlockAfterManual: 10,
+    defaultTarget: 10,
+    maxTarget: 999,
+    layTapsPerSec: 0.25,
+  },
 } as const;

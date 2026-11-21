@@ -1,5 +1,5 @@
 import type { SaveData } from './SaveManager';
-import type { GameState, OpenDecision, PhaseGoal } from '../state/GameState';
+import { initialAutomation, type GameState, type OpenDecision, type PhaseGoal } from '../state/GameState';
 import { isDecisionId } from '../data/content/decisions';
 import { PhaseStateMachine, reachedValues } from '../phases/PhaseStateMachine';
 import { normalizeChronicle, type ChronicleSave } from '../state/chronicle';
@@ -740,6 +740,24 @@ function migrateV28toV29(data: SaveData): SaveData {
   return { ...data, version: 29, gameState: { ...gs, buildings: { ...b, midden: { level: 0 } } } as unknown as GameState };
 }
 
+/**
+ * v29 → v30 (Story 4.10, FR16): automation targets (`gameState.automation`).
+ * Every row starts off at its default target. The taps the save already
+ * counted (`stats.totalClicks`) are laying done by hand, so a player who has
+ * tapped keeps the right to automate it; the other verbs start at 0 (the
+ * phase rule opens them for a save that is already past them). A save that
+ * holds an automation block keeps it; one without stats is left for
+ * SaveManager's defaults.
+ */
+function migrateV29toV30(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  if (gs.automation !== undefined && gs.automation !== null && typeof gs.automation === 'object') return { ...data, version: 30 };
+  if (gs.stats === undefined || gs.stats === null || typeof gs.stats !== 'object') return { ...data, version: 30 };
+  const automation = initialAutomation();
+  automation.performed.lay = wholeCount((gs.stats as Record<string, unknown>).totalClicks);
+  return { ...data, version: 30, gameState: { ...gs, automation } as unknown as GameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -770,6 +788,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   26: migrateV26toV27,
   27: migrateV27toV28,
   28: migrateV28toV29,
+  29: migrateV29toV30,
 };
 
 /**

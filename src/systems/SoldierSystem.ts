@@ -19,6 +19,27 @@ export function getEquipmentUpgradeCost(level: number): number {
   return upgradeCost(B.equipmentUpgrade.baseCost, B.equipmentUpgrade.costMultiplier, level);
 }
 
+/**
+ * `n` soldiers into training at once, paid as TRAIN SOLDIER pays: the workers
+ * leave now and the food is spent (Story 4.4). The caller checks that the
+ * colony can pay; automation (Story 4.10) and the action share this write.
+ */
+export function trainSoldiers(state: GameState, n: number): GameState {
+  if (n <= 0) return state;
+  return {
+    ...state,
+    resources: {
+      ...state.resources,
+      workers: state.resources.workers - n * combatBalance.army.workersPerSoldier,
+      food: state.resources.food - n * B.costFood,
+    },
+    soldierPipeline: {
+      count: state.soldierPipeline.count + n,
+      progress: state.soldierPipeline.progress,
+    },
+  };
+}
+
 export class SoldierSystem {
   constructor(private bus: EventBus) {}
 
@@ -32,19 +53,7 @@ export class SoldierSystem {
     if (state.resources.workers < workers) return state;
     if (state.resources.food < B.costFood) return state;
 
-    const result: GameState = {
-      ...state,
-      resources: {
-        ...state.resources,
-        workers: state.resources.workers - workers,
-        food: state.resources.food - B.costFood,
-      },
-      soldierPipeline: {
-        count: state.soldierPipeline.count + 1,
-        progress: state.soldierPipeline.progress,
-      },
-    };
-
+    const result = trainSoldiers(state, 1);
     this.bus.emit('soldiers_changed', { soldiers: result.combatSoldiers });
     return result;
   }

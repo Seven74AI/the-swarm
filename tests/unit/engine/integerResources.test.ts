@@ -1,3 +1,5 @@
+import { AUTOMATION_VERB_IDS } from '../../../src/data/content/automation';
+import { automationBalance } from '../../../src/data/balance/automation';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 import { createEmptyMap, createInitialState, TileType, type GameState, type ResearchProjectId } from '../../../src/state/GameState';
@@ -100,6 +102,8 @@ const arbState: fc.Arbitrary<GameState> = fc
     colonyShip: amount(3),
     prestigeReady: fc.boolean(),
     rng: fc.integer({ min: 0, max: 2 ** 32 - 1 }),
+    // Story 4.10: some colonies have learned every verb (the target rows are open).
+    learned: fc.boolean(),
   })
   .map((r) => {
     const s = createInitialState();
@@ -153,6 +157,10 @@ const arbState: fc.Arbitrary<GameState> = fc
         status === 'running' ? { status: 'running', progressMs: 0, durationMs: 1_000 } : { status } as { status: 'idle' | 'done' };
     });
     s.conversions = { ...s.conversions, particleLab: r.particleLab };
+    if (r.learned) {
+      const n = automationBalance.targets.unlockAfterManual;
+      s.automation = { ...s.automation, performed: { lay: n, train: n, scout: n, warrior: n } };
+    }
     if (r.autoEggs) {
       s.autoProduction.enabled = true;
       s.autoProduction.researches = { basic_incubation: true };
@@ -243,6 +251,13 @@ const arbAction: fc.Arbitrary<Command> = fc.oneof(
     (id): Command => ({ kind: 'action', name: `buyPrestigeUpgrade ${id}`, run: (a) => a.buyPrestigeUpgrade(id as never) }),
   ),
   act('continuePhase', (a) => a.continuePhase()),
+  // Story 4.10: the automation target rows ([−] N [+] and [AUTO]).
+  fc.tuple(fc.constantFrom(...AUTOMATION_VERB_IDS), fc.integer({ min: -5, max: 300 })).map(
+    ([verb, n]): Command => ({ kind: 'action', name: `setAutomationTarget ${verb} ${n}`, run: (a) => a.setAutomationTarget(verb, n) }),
+  ),
+  fc.tuple(fc.constantFrom(...AUTOMATION_VERB_IDS), fc.boolean()).map(
+    ([verb, on]): Command => ({ kind: 'action', name: `setAutomation ${verb} ${on}`, run: (a) => a.setAutomation(verb, on) }),
+  ),
   act('chooseDecision', (a, s) => {
     const open = s.decision.open;
     const def = open ? DECISIONS.find((d) => d.id === open.id) : undefined;

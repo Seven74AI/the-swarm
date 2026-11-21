@@ -8,6 +8,7 @@ import type { BattleResult } from '../systems/BattleSystem';
 import { MUTATIONS, purchaseMutation } from '../systems/MutationSystem';
 import { isEnemyType } from '../data/content/enemies';
 import { freeWorkers } from '../systems/Workforce';
+import { recordManual } from '../systems/AutomationTargets';
 import {
   SCOUT_BARRACKS_LEVEL,
   SCOUT_FOOD_COST,
@@ -30,7 +31,9 @@ export function trainSoldier(deps: ActionDeps): ActionResult {
   if (s.resources.workers < workers || freeWorkers(s) < workers) return refuse('no_free_workers');
   if (isStarving(s, deps.territorySystem.getBonuses(s))) return refuse('starving');
   if (s.resources.food < soldierBalance.costFood) return refuse('cannot_afford');
-  return commit(deps, s, deps.soldierSystem.recruitSoldier(s));
+  // Each manual TRAIN counts toward automating it (Story 4.10), in the same write.
+  const next = deps.soldierSystem.recruitSoldier(s);
+  return commit(deps, s, next === s ? s : recordManual(next, 'train'));
 }
 
 /** Raise weapons one level (needs a Chitin Armory). */
@@ -89,7 +92,8 @@ export function recruitScout(deps: ActionDeps): ActionResult {
   if (s.soldiers.scouts >= getMaxScouts(s)) return refuse('at_capacity');
   if (s.resources.workers < 1) return refuse('no_free_workers');
   if (s.resources.food < SCOUT_FOOD_COST) return refuse('cannot_afford');
-  return commit(deps, s, recruitScoutFrom(s));
+  const next = recruitScoutFrom(s);
+  return commit(deps, s, next === s ? s : recordManual(next, 'scout'));
 }
 
 /** Recruit a warrior from the workers (needs barracks Lv.2). */
@@ -99,6 +103,7 @@ export function recruitWarrior(deps: ActionDeps): ActionResult {
   if (s.soldiers.warriors >= getMaxWarriors(s)) return refuse('at_capacity');
   if (s.resources.workers < 1) return refuse('no_free_workers');
   if (s.resources.food < WARRIOR_FOOD_COST) return refuse('cannot_afford');
-  return commit(deps, s, recruitWarriorFrom(s));
+  const next = recruitWarriorFrom(s);
+  return commit(deps, s, next === s ? s : recordManual(next, 'warrior'));
 }
 

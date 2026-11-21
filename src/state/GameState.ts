@@ -4,6 +4,8 @@ import { rngFromSeed } from '../utils/rng';
 import { peekEnemy } from '../systems/EnemySystem';
 import type { EnemyType } from '../data/content/enemies';
 import type { DecisionId } from '../data/content/decisions';
+import type { AutomationVerb } from '../data/content/automation';
+import { automationBalance } from '../data/balance/automation';
 export enum TileType {
   EMPTY = 'empty',
   FOREST = 'forest',
@@ -62,6 +64,29 @@ export interface PhaseGoal {
   atMs: number;
   /** Each condition's value when the goal was first met, by condition id (for `reached <value> at <time>`). */
   reached: Readonly<Record<string, number>>;
+}
+
+/** One automation target row: keep `target` (whole, ≥ 0), worked toward only while `on`. */
+export interface AutomationTarget {
+  target: number;
+  on: boolean;
+}
+
+/** Story 4.10: what the colony has learned by hand, and what it keeps. */
+export interface AutomationState {
+  performed: Record<AutomationVerb, number>;
+  targets: Record<AutomationVerb, AutomationTarget>;
+  layProgress: number;
+}
+
+/** No verb learned, every row at its default target with AUTO off. */
+export function initialAutomation(): AutomationState {
+  const t = (): AutomationTarget => ({ target: automationBalance.targets.defaultTarget, on: false });
+  return {
+    performed: { lay: 0, train: 0, scout: 0, warrior: 0 },
+    targets: { lay: t(), train: t(), scout: t(), warrior: t() },
+    layProgress: 0,
+  };
 }
 
 export interface GameState {
@@ -248,6 +273,14 @@ export interface GameState {
     /** Lifetime total nectar produced (never reset). */
     totalNectarProduced: number;
   };
+  /**
+   * Automation targets (Story 4.10, FR16, ADR 0039). `performed` counts each
+   * verb done by hand (the unlock rule; prestige keeps it, the player has
+   * learned the verb). `targets` holds each row's `KEEP N` and its AUTO
+   * switch. `layProgress` is the fraction of an egg the queen has laid on
+   * her own toward the next one.
+   */
+  automation: AutomationState;
   /** Automation system — research tree, buildings, auto-production (GM-3). */
   autoProduction: {
     enabled: boolean;
@@ -485,6 +518,7 @@ export function createInitialState(): GameState {
       totalStoneProduced: 0,
       totalNectarProduced: 0,
     },
+    automation: initialAutomation(),
     autoProduction: {
       enabled: false,
       researches: {},

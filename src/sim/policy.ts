@@ -10,6 +10,9 @@ import { combatBalance } from '../data/balance/combat';
 import { isStarving, type WorkerRole } from '../systems/ResourceSystem';
 import { TerritorySystem } from '../systems/TerritorySystem';
 import type { RoleId } from '../data/content/roles';
+import type { AutomationVerb } from '../data/content/automation';
+import { automationCount, isAutomationActive, isAutomationShown, maxAutomationTarget } from '../systems/AutomationTargets';
+import { getEffects } from '../systems/BuildingSystem';
 
 /**
  * One move of the simulated player (Story 3.7, AR15). Each names the action
@@ -25,7 +28,11 @@ export type SimMove =
   | { readonly kind: 'moveWorkers'; readonly from: MoveSource; readonly to: RoleId; readonly count: number }
   | { readonly kind: 'trainSoldier' }
   /** FIGHT the enemy on the card. */
-  | { readonly kind: 'fight'; readonly enemyType: string };
+  | { readonly kind: 'fight'; readonly enemyType: string }
+  /** A target row's `[−] N [+]` (`actions.setAutomationTarget`, Story 4.10). */
+  | { readonly kind: 'setAutomationTarget'; readonly verb: AutomationVerb; readonly target: number }
+  /** A target row's `[AUTO]` (`actions.setAutomation`). */
+  | { readonly kind: 'setAutomation'; readonly verb: AutomationVerb; readonly on: boolean };
 
 /** What the runner tells the policy about this look: the taps it has time for (only on its first look of a step). */
 export interface PolicyTurn {
@@ -74,6 +81,8 @@ function needsWorkers(s: GameState): boolean {
   const c = goalFor(s.phase)?.conditions.find((x) => x.id === 'workers');
   if (!c || conditionMet(c, s)) return false;
   if (s.phase === Phase.EGG_LAYING) return true;
+  // Once the queen lays on her own (Story 4.10), the player stops tapping.
+  if (isAutomationActive(s, 'lay')) return false;
   return s.resources.workers + s.resources.eggs + s.resources.larvae < c.target(s);
 }
 
@@ -86,6 +95,20 @@ function soldiersNeeded(s: GameState, enemy: EnemyDef, most: number): number | n
     if (assessMatchup(s, enemy, n) !== 'dangerous') return n;
   }
   return null;
+}
+
+/**
+ * One more soldier (Story 4.10): TRAIN by hand until the training row
+ * appears, then one more on its target (the colony trains it, and keeps the
+ * army there after losses).
+ */
+function trainOne(s: GameState): SimMove[] {
+  if (!isAutomationShown(s, 'train')) return [{ kind: 'trainSoldier' }];
+  const row = s.automation.targets.train;
+  const army = automationCount(s, 'train');
+  // A target the colony is still working toward: wait for it.
+  if (row.on && row.target > army) return [];
+  return keep(s, 'train', army + 1);
 }
 
 /**
@@ -102,7 +125,7 @@ function combatMoves(s: GameState): SimMove[] {
   const canTrain = freeWorkers(s) > 0 && s.resources.food >= soldierBalance.costFood && !isFoodCritical(s);
   if (army > 0 && assessMatchup(s, enemy) !== 'dangerous') return [{ kind: 'fight', enemyType: enemy.type }];
   const needed = soldiersNeeded(s, enemy, coming + freeWorkers(s));
-  if (canTrain && (needed === null || coming < needed)) return [{ kind: 'trainSoldier' }];
+  if (canTrain && (needed === null || coming < needed)) return trainOne(s);
   if (army > 0 && s.soldierPipeline.count === 0 && !canTrain) return [{ kind: 'fight', enemyType: enemy.type }];
   return [];
 }
@@ -122,9 +145,34 @@ function digWhenFed(s: GameState): SimMove[] {
   return [{ kind: 'moveWorkers', from: 'gather', to: 'dig', count: 1 }];
 }
 
+/** The effective nest capacity (dug rooms plus the warehouse). */
+function nestCapacity(s: GameState): number {
+  return s.resources.nestCapacity + (getEffects('warehouse', s.buildings.warehouse.level).nestCapacity ?? 0);
+}
+
+/** Set a row to `target` and turn it on: only the moves that change something (an unchanged row is no move). */
+function keep(s: GameState, verb: AutomationVerb, target: number): SimMove[] {
+  const row = s.automation.targets[verb];
+  const out: SimMove[] = [];
+  if (row.target !== target) out.push({ kind: 'setAutomationTarget', verb, target });
+  if (!row.on) out.push({ kind: 'setAutomation', verb, on: true });
+  return out;
+}
+
+/**
+ * The laying row (Story 4.10): once it appears after Egg Laying, the player
+ * hands the laying to the queen with a brood the size of the nest, so an
+ * emptied nest can refill, and stops tapping (`needsWorkers`). In Egg Laying
+ * tapping is the phase, so the row waits.
+ */
+function layAutomation(s: GameState): SimMove[] {
+  if (s.phase === Phase.EGG_LAYING || !isAutomationShown(s, 'lay')) return [];
+  return keep(s, 'lay', Math.min(nestCapacity(s), maxAutomationTarget()));
+}
+
 /** Every move but Combat's: the same for each player below, so they differ only in how they fight. */
 function baseMoves(s: GameState, turn: PolicyTurn): SimMove[] {
-  const moves: SimMove[] = [];
+  const moves: SimMove[] = [...layAutomation(s)];
   if (turn.taps > 0 && needsWorkers(s)) moves.push({ kind: 'layEgg', taps: turn.taps });
   const next = getNextAction(s);
   if (next.kind === 'act') moves.push({ kind: 'intent', intent: next.intent });

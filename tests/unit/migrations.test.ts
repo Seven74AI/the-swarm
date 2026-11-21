@@ -906,3 +906,49 @@ describe('v28 → v29: the Midden (Story 4.8, FR19)', () => {
     expect(out.gameState).toEqual({ phase: 'combat' });
   });
 });
+
+describe('v29 → v30: automation targets are in the save (Story 4.10, FR16)', () => {
+  const v29 = (gs: unknown): SaveData => ({
+    version: 29,
+    timestamp: 1_700_000_000_000,
+    playTimeMs: 0,
+    gameState: gs as GameState,
+  });
+  /** A v29 state: no `automation`. */
+  const withoutAutomation = (over: Record<string, unknown> = {}) => {
+    const { automation: _drop, ...rest } = structuredClone(createInitialState()) as unknown as Record<string, unknown>;
+    return { ...rest, ...over };
+  };
+
+  it('adds every row, off, at its default target', () => {
+    const out = migrateSave(v29(withoutAutomation()), 29, 30);
+    expect(out.version).toBe(30);
+    const a = out.gameState.automation;
+    for (const verb of ['lay', 'train', 'scout', 'warrior'] as const) {
+      expect(a.targets[verb].on, verb).toBe(false);
+      expect(a.targets[verb]).toEqual(createInitialState().automation.targets[verb]);
+      expect(Number.isInteger(a.performed[verb]) && a.performed[verb] >= 0, verb).toBe(true);
+    }
+  });
+
+  it('the taps the save already counted count as laying done by hand', () => {
+    const s = createInitialState();
+    const out = migrateSave(v29(withoutAutomation({ stats: { ...s.stats, totalClicks: 37 } })), 29, 30);
+    expect(out.gameState.automation.performed.lay).toBe(37);
+    const odd = migrateSave(v29(withoutAutomation({ stats: { ...s.stats, totalClicks: -4.5 } })), 29, 30);
+    expect(odd.gameState.automation.performed.lay).toBe(0);
+  });
+
+  it('keeps an automation block the save already holds', () => {
+    const s = createInitialState();
+    const held = { ...s.automation, performed: { ...s.automation.performed, train: 12 } };
+    const out = migrateSave(v29(withoutAutomation({ automation: held })), 29, 30);
+    expect(out.gameState.automation).toEqual(held);
+  });
+
+  it('a partial save without stats is left for the defaults', () => {
+    const out = migrateSave(v29({ phase: 'colony' }), 29, 30);
+    expect(out.version).toBe(30);
+    expect(out.gameState).toEqual({ phase: 'colony' });
+  });
+});

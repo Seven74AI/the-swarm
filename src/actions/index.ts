@@ -24,6 +24,8 @@ import * as expansion from './expansion';
 import * as space from './space';
 import * as prestige from './prestige';
 import { chooseDecision } from './decisions';
+import { setAutomation, setAutomationTarget } from './automation';
+import type { AutomationVerb } from '../data/content/automation';
 import { continuePhase, markRevealSeen } from './phase';
 import { performIntent } from './intent';
 import type { ActionIntent } from '../systems/NextAction';
@@ -46,6 +48,9 @@ export function createActions(deps: ActionDeps) {
     researchAutomation: (id: ResearchType) => buildings.researchAutomation(deps, id),
     buildAutomation: (id: AutomationBuildingType) => buildings.buildAutomation(deps, id),
     setAutoProduction: (enabled: boolean) => buildings.setAutoProduction(deps, enabled),
+    // Automation targets (Story 4.10)
+    setAutomationTarget: (verb: AutomationVerb, target: number) => setAutomationTarget(deps, verb, target),
+    setAutomation: (verb: AutomationVerb, on: boolean) => setAutomation(deps, verb, on),
     // Research and conversions
     assignResearcher: () => research.assignResearcher(deps),
     unassignResearcher: () => research.unassignResearcher(deps),

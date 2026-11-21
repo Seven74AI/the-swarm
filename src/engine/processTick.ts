@@ -11,6 +11,7 @@ import { tickConversions } from '../systems/ResourceConversionSystem';
 import { tickEntropy } from '../systems/EntropySystem';
 import { tickMissions, resolveMission } from '../systems/SpaceshipSystem';
 import { tickAutoProduction } from './AutoProductionLoop';
+import { tickAutomationTargets } from '../systems/AutomationTargets';
 import { rngStream, type RngStream } from '../utils/rng';
 import { MS_PER_SEC } from '../data/constants';
 import { roleBalance } from '../data/balance/roles';
@@ -72,6 +73,8 @@ export function processTick(
   newState = soldierSystem.tick(newState, dtSec, events);
   // Automation and the prestige auto egg layer: whole eggs, into the egg pipeline.
   newState = tickAutoProduction(newState, dtSec);
+  // Automation targets (Story 4.10): after the step's production, so it can pay; offline too.
+  newState = tickAutomationTargets(newState, dtSec, events, bonuses);
 
   // Expedition system: tick timers and resolve completed ones
   newState = tickExpeditions(newState, dtSec);

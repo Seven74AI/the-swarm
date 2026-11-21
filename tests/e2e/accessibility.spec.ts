@@ -46,6 +46,12 @@ const COMBAT = {
   workersAssigned: { gather: 8, tend: 4, dig: 4, guard: 4, researchers: 0 },
   // The enemy card shows a trait and its line (Story 4.1).
   nextEnemy: 'beetle',
+  // Laying and training learned by hand (Story 4.10): their target rows show, AUTO on,
+  // training blocked (every worker has a job), so the warn line is read too.
+  automation: {
+    performed: { lay: 10, train: 10 },
+    targets: { lay: { target: 10, on: true }, train: { target: 30, on: true } },
+  },
 };
 
 const TABS: readonly [TabId, SegmentId?][] = [['nest'], ['wrkr'], ['build'], ['front', 'war'], ['log']];
@@ -96,6 +102,20 @@ for (const [name, vp] of [['phone', PHONE], ['desktop', DESKTOP]] as const) {
         const leaks = tree.split('\n').filter((l) => DECORATION.test(l));
         expect(leaks, tab).toEqual([]);
       }
+    });
+
+    test('the automation target rows have named controls and read no decoration (Story 4.10)', async ({ page }) => {
+      for (const [tab, segment, verb] of [['nest', undefined, 'lay'], ['front', 'war', 'train']] as const) {
+        await openTab(page, tab, segment);
+        const row = page.locator(`[data-automation="${verb}"]`);
+        await row.scrollIntoViewIfNeeded();
+        await expect(row.getByRole('button', { name: /^Keep .* more$/ })).toBeVisible();
+        await expect(row.getByRole('button', { name: /^Keep .* fewer$/ })).toBeVisible();
+        await expect(row.getByRole('button', { name: 'AUTO', pressed: true })).toBeVisible();
+        await expect(row.locator('[data-automation-status]')).toBeVisible();
+        expect(await axe(page), verb).toEqual([]);
+      }
+      await expect(page.locator('[data-automation="train"] [data-automation-status="blocked"]')).toContainText('no free workers');
     });
 
     test('labels read full words: the tabs and the strip name their resources and tabs in full', async ({ page }) => {

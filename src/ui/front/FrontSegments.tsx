@@ -9,6 +9,7 @@ import { CosmicPanel } from '../panels/CosmicPanel';
 import { StarmapPanel } from '../panels/StarmapPanel';
 import { explain } from '../panels/refusal';
 import { LegacyPanel } from './LegacyPanel';
+import { RecruitSection } from './RecruitSection';
 
 /**
  * FRONT → MAP and STARS (Story 1.36): the Phase 4–5 panels are still the
@@ -22,7 +23,7 @@ export interface FrontSegmentDeps {
   actions: Actions;
 }
 
-/** MAP: the territory map (a tapped tile claims it), then expeditions. */
+/** MAP: the territory map (a tapped tile claims it), RECRUIT (Story 4.10), then expeditions. */
 export function MapSegment({ bus, getState, actions }: FrontSegmentDeps) {
   return (
     <>
@@ -34,6 +35,9 @@ export function MapSegment({ bus, getState, actions }: FrontSegmentDeps) {
           return map.getElement();
         }}
       />
+      <div class="panel recruit-panel" data-recruit-panel="">
+        <RecruitSection actions={actions} />
+      </div>
       <LegacyPanel id="expedition_panel" create={() => new ExpeditionPanel(bus, getState, actions).getElement()} />
     </>
   );
