@@ -491,7 +491,7 @@ describe('v16 → v17: the chronicle is kept with the save (Story 1.26)', () => 
     const played = migrateSave(
       v16({
         phase: 'combat',
-        stats: { totalEggsLaid: 5, totalClicks: 5, playTimeMs: 0 },
+        stats: { totalEggsLaid: 5, totalClicks: 5, playTimeMs: 0 } as GameState['stats'],
         resources: { ...createInitialState().resources, workers: 12 },
         combatSoldiers: 2,
       }),

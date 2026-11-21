@@ -80,6 +80,15 @@ test.describe('LOG tab', () => {
     await expect(page.locator('[data-log-section="settings"] [data-action="settings"]')).toBeVisible();
   });
 
+  test('after the ending, the victory is a permanent lifetime entry, in later runs too (Story 5.5)', async ({ page }) => {
+    // A run after the ending and a prestige: the record stays, and LOG shows it.
+    await seed(page, { ...COLONY, victoryAchieved: true, prestige: { count: 1, legacyPoints: 0, totalFoodProduced: 0, totalWoodProduced: 0, totalStoneProduced: 0, totalNectarProduced: 0 } });
+    await openTab(page, 'log');
+    const victory = page.locator('[data-log-section="stats"] [data-lifetime-stat="victory"]');
+    await expect(victory).toBeVisible();
+    await expect(victory.locator('[data-value]')).not.toBeEmpty();
+  });
+
   test('is never empty after Phase 1, even for a save that had no log yet', async ({ page }) => {
     await page.addInitScript((save: string) => {
       localStorage.setItem('the_swarm_save', save);
