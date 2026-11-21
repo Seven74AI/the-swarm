@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { frames } from './helpers/time';
 
 /**
  * Story 1.30 (FR47, UX-DR41): keyboard shortcuts. Space presses the active
@@ -80,7 +81,7 @@ test('switched off in settings, the shortcuts do nothing', async ({ page }) => {
   await boot(page, { gameState: COLONY, settings: { keyboardShortcuts: false } });
   await page.keyboard.press('2');
   await page.keyboard.press('p');
-  await page.waitForTimeout(200);
+  await frames(page, 2);
   expect(await activeTab(page)).toBe('nest');
   await expect(page.locator('body')).not.toHaveClass(/game-paused/);
 });
@@ -91,7 +92,7 @@ test('remapped keys follow the new binding; the old ones do nothing', async ({ p
   const before = await eggsLaid(page);
   await page.keyboard.press('Space');
   await page.keyboard.press('p');
-  await page.waitForTimeout(200);
+  await frames(page, 2);
   expect(await eggsLaid(page)).toBe(before);
   await expect(page.locator('body')).not.toHaveClass(/game-paused/);
 

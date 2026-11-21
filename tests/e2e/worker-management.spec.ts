@@ -53,13 +53,17 @@ const BASE_GAME_STATE = {
   prestigeTree: { purchased: [] },
 };
 
+/** The first integer a stat cell shows. */
+async function readFood(cell: { textContent(): Promise<string | null> }): Promise<number> {
+  return parseInt(((await cell.textContent()) ?? '').match(/\d+/)?.[0] ?? 'NaN', 10);
+}
+
 /**
  * Seed localStorage with save data and navigate to the app.
  */
 async function seedAndGoto(
   page: any,
   gameStateOverrides: Record<string, unknown>,
-  preWaitMs = 0,
 ) {
   await page.addInitScript((saveStr: string) => {
     localStorage.setItem('the_swarm_save', saveStr);
@@ -70,9 +74,7 @@ async function seedAndGoto(
     gameState: { ...BASE_GAME_STATE, ...gameStateOverrides },
   }));
   await page.goto('/');
-  if (preWaitMs > 0) {
-    await page.waitForTimeout(preWaitMs);
-  }
+  await expect(page.locator('[data-shell]')).toBeVisible();
 }
 
 test.describe('Worker Management', () => {
@@ -158,7 +160,7 @@ test.describe('Worker Management', () => {
     await seedAndGoto(page, {
       phase: 'egg_laying',
       resources: { eggs: 0, larvae: 0, workers: 10, food: 50, nestCapacity: 25 },
-    }, 2500);
+    });
 
     // The goal latched; CONTINUE enters Colony (Story 1.19)
     await tapContinue(page);
@@ -176,13 +178,8 @@ test.describe('Worker Management', () => {
     await gatherRow.locator('.role-controls button').filter({ hasText: '+' }).click();
     await expect(gatherRow.locator('.role-count')).toHaveText('1');
 
-    // Wait for ticks of production
-    await page.waitForTimeout(4000);
-
-    // Food should have increased
-    const newFoodText = await foodDisplay.textContent();
-    const newFood = parseInt(newFoodText!.match(/\d+/)![0], 10);
-    expect(newFood).toBeGreaterThan(initialFood);
+    // Food should increase as ticks of production run
+    await expect.poll(() => readFood(foodDisplay), { timeout: 15_000 }).toBeGreaterThan(initialFood);
   });
 
   test('assign worker to Tend accelerates egg hatching', async ({ page }) => {
@@ -204,13 +201,9 @@ test.describe('Worker Management', () => {
     await tendRow.locator('.role-controls button').filter({ hasText: '+' }).click();
     await expect(tendRow.locator('.role-count')).toHaveText('1');
 
-    // Wait for ticks — 5x pacing needs ~8s for egg→larva→worker chain
-    await page.waitForTimeout(8000);
-
-    // Verify larvae appeared (eggs hatched)
+    // Verify larvae appear as eggs hatch (5x pacing: allow the egg→larva chain a while).
     // Eggs and larvae aren't in the Colony strip: read them in the resource sheet (Story 1.16).
-    const larvaeCount = await readResource(page, 'larvae');
-    expect(larvaeCount).toBeGreaterThan(0);
+    await expect.poll(() => readResource(page, 'larvae'), { timeout: 30_000 }).toBeGreaterThan(0);
 
     // Egg count should have decreased
     const eggCount = await readResource(page, 'eggs');
@@ -254,10 +247,9 @@ test.describe('Worker Management', () => {
     await expect(page.locator('#worker-assignment')).toBeVisible({ timeout: 5000 });
     const foodDisplay = page.locator('[data-stat="resources.food"] .critical-value');
 
-    // Wait 3s with gatherers active → food increases
-    await page.waitForTimeout(3000);
-    const withGatherText = await foodDisplay.textContent();
-    const withGatherFood = parseInt(withGatherText!.match(/\d+/)![0], 10);
+    // With gatherers active, food increases
+    await expect.poll(() => readFood(foodDisplay), { timeout: 15_000 }).toBeGreaterThan(100);
+    const withGatherFood = await readFood(foodDisplay);
 
     // Unassign all gather workers
     const gatherRow = page.locator('[data-role="gather"]');
@@ -267,14 +259,8 @@ test.describe('Worker Management', () => {
     await minusBtn.click();
     await expect(gatherRow.locator('.role-count')).toHaveText('0');
 
-    // Wait 3s with only unassigned workers → food still increases but slower
-    await page.waitForTimeout(3000);
-    const withoutGatherText = await foodDisplay.textContent();
-    const withoutGatherFood = parseInt(withoutGatherText!.match(/\d+/)![0], 10);
-
-    // Food increased in both phases (unassigned workers still produce)
-    expect(withGatherFood).toBeGreaterThan(100);
-    expect(withoutGatherFood).toBeGreaterThan(withGatherFood);
+    // With only unassigned workers, food still increases (more slowly)
+    await expect.poll(() => readFood(foodDisplay), { timeout: 15_000 }).toBeGreaterThan(withGatherFood);
   });
 
   test('all workers assigned prevents further assignment', async ({ page }) => {

@@ -95,7 +95,7 @@ test('save persists across reload', async ({ page }) => {
 
   // Click the egg button
   await page.locator('#click-egg').click();
-  await page.waitForTimeout(500);
+  await expect(page.locator('[data-stat="resources.eggs"] .critical-value')).not.toHaveText('0');
 
   // Manually trigger save
   await page.evaluate(() => {

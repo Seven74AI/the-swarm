@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { frames } from './helpers/time';
 import { openTab, type SegmentId, type TabId } from './helpers/tabs';
 
 /**
@@ -79,7 +80,7 @@ async function seed(page: Page, setup: Setup, gameState: Record<string, unknown>
 async function layoutProblems(page: Page): Promise<string[]> {
   // Reveal animations move panels for a moment (some start a frame after a tab opens):
   // measure the settled layout.
-  await page.waitForTimeout(100);
+  await frames(page, 2);
   await expect
     .poll(
       () =>

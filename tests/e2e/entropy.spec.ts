@@ -19,6 +19,9 @@ async function readEntropy(page: any): Promise<number | null> {
   });
 }
 
+const playTimeMs = (page: any): Promise<number> =>
+  page.evaluate(() => (window as any).__swarm.manager.getState().stats.playTimeMs as number);
+
 async function patchResources(page: any, darkMatter: number, dampenerLevel: number): Promise<void> {
   await page.evaluate(({ dm, lvl }: { dm: number; lvl: number }) => {
     const w = window as unknown as Record<string, unknown>;
@@ -51,25 +54,21 @@ test.describe('Entropy System', () => {
 
   test('entropy accumulates with darkMatter present', async ({ page }) => {
     await patchResources(page, 100, 0);
-    await page.waitForTimeout(2000);
 
-    const entropy = await readEntropy(page);
-    expect(entropy).not.toBeNull();
-    expect(entropy!).toBeGreaterThan(0);
+    await expect.poll(() => readEntropy(page), { timeout: 10_000 }).toBeGreaterThan(0);
   });
 
   test('entropy dampener slows entropy accumulation', async ({ page }) => {
     await patchResources(page, 100, 2);
-    await page.waitForTimeout(2000);
 
-    const entropy = await readEntropy(page);
-    expect(entropy).not.toBeNull();
-    expect(entropy!).toBeGreaterThan(0);
+    await expect.poll(() => readEntropy(page), { timeout: 10_000 }).toBeGreaterThan(0);
   });
 
   test('entropy is zero when no darkMatter is present', async ({ page }) => {
     await patchResources(page, 0, 0);
-    await page.waitForTimeout(2000);
+    // Let 2 s of game time pass (ticks, not the wall clock).
+    const start = await playTimeMs(page);
+    await expect.poll(() => playTimeMs(page), { timeout: 10_000 }).toBeGreaterThanOrEqual(start + 2000);
 
     const entropy = await readEntropy(page);
     expect(entropy).toBe(0);

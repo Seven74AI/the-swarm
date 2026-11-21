@@ -10,7 +10,7 @@ import { openTab } from './helpers/tabs';
  */
 
 interface Swarm {
-  manager: { getState(): { phase: string; stats: { totalEggsLaid: number; totalClicks: number }; upgrades: Record<string, number> } };
+  manager: { getState(): { phase: string; stats: { totalEggsLaid: number; totalClicks: number; playTimeMs: number }; upgrades: Record<string, number> } };
   bus: { emit(event: string, payload: unknown): void };
 }
 
@@ -91,12 +91,14 @@ test.describe('NEST tab', () => {
         const el = document.querySelector('#click-egg');
         if (el && el.getClientRects().length) ys.push(el.getBoundingClientRect().y);
         if (performance.now() - t0 < 2500) requestAnimationFrame(sample);
+        else (window as unknown as { __eggDone: boolean }).__eggDone = true;
       };
       requestAnimationFrame(sample);
     });
     await seed(page, EGG_LAYING);
     await expect.poll(() => page.evaluate(() => (window as unknown as { __eggYs: number[] }).__eggYs.length), { timeout: 5000 }).toBeGreaterThan(30);
-    await page.waitForTimeout(1500);
+    // Sample the whole 2.5 s window: the reveals finish inside it.
+    await page.waitForFunction(() => (window as unknown as { __eggDone?: boolean }).__eggDone === true);
     const ys = await page.evaluate(() => (window as unknown as { __eggYs: number[] }).__eggYs);
     for (let i = 1; i < ys.length; i++) expect(ys[i], `frame ${i}: ${ys[i - 1]} → ${ys[i]}`).toBeLessThanOrEqual(ys[i - 1] + 0.5);
   });
@@ -122,9 +124,8 @@ test.describe('NEST tab', () => {
     const btn = page.locator('#click-egg');
     await btn.hover();
     await page.mouse.down();
-    await page.waitForTimeout(1200);
+    await expect.poll(async () => (await state(page)).stats.totalClicks, { timeout: 5000 }).toBeGreaterThan(afterTap + 1);
     await page.mouse.up();
-    expect((await state(page)).stats.totalClicks).toBeGreaterThan(afterTap + 1);
   });
 
   test('toggle lay mode: a tap starts laying, the next tap stops it', async ({ page }) => {
@@ -135,9 +136,12 @@ test.describe('NEST tab', () => {
     await expect.poll(async () => (await state(page)).stats.totalClicks).toBeGreaterThan(start + 2);
     await tap(page, '#click-egg');
     await expect(page.locator('[data-lay-egg][data-laying="false"]')).toBeVisible();
-    const stopped = (await state(page)).stats.totalClicks;
-    await page.waitForTimeout(500);
-    expect((await state(page)).stats.totalClicks).toBe(stopped);
+    const stopped = await state(page);
+    // Let at least 500 ms of game time pass (ticks, not the wall clock), then nothing more was laid.
+    await expect
+      .poll(async () => (await state(page)).stats.playTimeMs)
+      .toBeGreaterThanOrEqual(stopped.stats.playTimeMs + 500);
+    expect((await state(page)).stats.totalClicks).toBe(stopped.stats.totalClicks);
   });
 
   test('the Click Power card appears once affordable and buying it keeps > LAY EGG', async ({ page }) => {

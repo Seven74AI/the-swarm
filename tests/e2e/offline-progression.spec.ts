@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { settleReveals } from './helpers/reveal';
 import { openTab } from './helpers/tabs';
 import { OFFLINE_CAP_BASE_MS } from '../../src/data/constants';
 
@@ -121,7 +122,19 @@ async function stateResource(page: import('@playwright/test').Page, id: string):
   );
 }
 
-async function setupOfflineTest(page: import('@playwright/test').Page, saveTimestamp: number, overrides?: Record<string, unknown>, waitMs = 3500) {
+/**
+ * Booted: the offline catch-up runs synchronously in boot (`resumePath.coldStart`),
+ * before `window.__swarm` is set, so once it exists the catch-up, its log lines and
+ * its summary sheet are done. Then let reveals settle and one frame render.
+ */
+async function waitForBoot(page: import('@playwright/test').Page) {
+  await page.waitForFunction(() => (window as any).__swarm !== undefined);
+  await expect(page.locator('[data-shell]')).toBeVisible();
+  await settleReveals(page);
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+}
+
+async function setupOfflineTest(page: import('@playwright/test').Page, saveTimestamp: number, overrides?: Record<string, unknown>) {
   const saveData = makeOfflineSave(saveTimestamp, overrides);
   await page.addInitScript((s: string) => {
     localStorage.setItem('the_swarm_save', s);
@@ -130,8 +143,7 @@ async function setupOfflineTest(page: import('@playwright/test').Page, saveTimes
   // the offline tick log from the console.
   await page.goto('/?debug=1');
   await page.waitForLoadState('networkidle');
-  // Wait for phase transition animation + UI mount
-  await page.waitForTimeout(waitMs);
+  await waitForBoot(page);
 }
 
 // ─── Closed-Form Resource Deltas ──────────────────────────────────
@@ -174,7 +186,7 @@ test.describe('Offline Progression — Closed-Form Deltas', () => {
     const logs: string[] = [];
     page.on('console', (msg) => logs.push(msg.text()));
 
-    await setupOfflineTest(page, pastTheCap, {}, 4000);
+    await setupOfflineTest(page, pastTheCap);
 
     const tickLog = logs.find(l => l.includes('Ticks to simulate:'));
     expect(tickLog, 'the offline tick log line (printed with ?debug=1)').toBeTruthy();
@@ -199,7 +211,7 @@ test.describe('Offline Progression — Pipeline Catch-Up', () => {
         wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0,
         surveyData: 0,
       },
-    }, 4000);
+    });
 
     // The catch-up can reach Colony, whose strip has no larvae, and a decision sheet may
     // hold the resource sheet back (Story 1.16): read the caught-up state itself.
@@ -218,7 +230,7 @@ test.describe('Offline Progression — Pipeline Catch-Up', () => {
         wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0,
         surveyData: 0,
       },
-    }, 4000);
+    });
 
     const workersEl = page.locator('[data-stat="resources.workers"] .critical-value');
     await expect(workersEl).toBeVisible({ timeout: 5000 });
@@ -239,7 +251,7 @@ test.describe('Offline Progression — Pipeline Catch-Up', () => {
         wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0,
         surveyData: 0,
       },
-    }, 4000);
+    });
 
     const workersEl = page.locator('[data-stat="resources.workers"] .critical-value');
     await expect(workersEl).toBeVisible({ timeout: 5000 });
@@ -273,14 +285,14 @@ test.describe('Offline Progression — Popup Lifecycle', () => {
   });
 
   test('popup does NOT appear for absence < 60s (Story 2.3: full efficiency, no summary)', async ({ page }) => {
-    await setupOfflineTest(page, Date.now() - 45_000, {}, 3000);
+    await setupOfflineTest(page, Date.now() - 45_000);
 
     // Under 60 s the gap is simulated at full efficiency with no summary sheet
     await expect(page.locator('.offline-summary-popup')).toHaveCount(0);
   });
 
   test('popup does NOT appear for very recent save (< 1s offline)', async ({ page }) => {
-    await setupOfflineTest(page, Date.now() - 500, {}, 3000);
+    await setupOfflineTest(page, Date.now() - 500);
 
     await expect(page.locator('.offline-summary-popup')).toHaveCount(0);
   });
@@ -382,7 +394,7 @@ test.describe('Offline Progression — Combat Phase', () => {
       },
       workersAssigned: { gather: 5, tend: 5, dig: 5, guard: 10, researchers: 0 },
       unlockedPanels: ['resource_panel', 'phase_indicator', 'click_button', 'soldier_panel', 'battle_panel'],
-    }, 4000);
+    });
 
     // No page crashes during offline catch-up with battle state
     expect(pageErrors).toHaveLength(0);
@@ -421,7 +433,7 @@ test.describe('Offline Progression — Expeditions Mid-Flight', () => {
       workersAssigned: { gather: 5, tend: 5, dig: 5, guard: 5, researchers: 0 },
       combatSoldiers: 5,
       unlockedPanels: ['resource_panel', 'phase_indicator', 'click_button', 'soldier_panel', 'battle_panel'],
-    }, 4000);
+    });
 
     // Game should load without errors — expedition resolved during catch-up
     expect(pageErrors).toHaveLength(0);
@@ -459,7 +471,7 @@ test.describe('Offline Progression — Expeditions Mid-Flight', () => {
       workersAssigned: { gather: 10, tend: 5, dig: 5, guard: 10, researchers: 0 },
       combatSoldiers: 5,
       unlockedPanels: ['resource_panel', 'phase_indicator', 'click_button', 'soldier_panel', 'battle_panel'],
-    }, 4000);
+    });
 
     expect(pageErrors).toHaveLength(0);
     // All 3 expeditions should be resolved after 1h offline (30, 100, 60 ticks all << offline ticks)
@@ -506,7 +518,7 @@ test.describe('Offline Progression — Spaceship Missions', () => {
       soldiers: { scouts: 5, warriors: 5, totalKilled: 0 },
       combatSoldiers: 5,
       buildings: { barracks: { level: 1, count: 1 }, walls: { level: 1 }, warehouse: { level: 1 } },
-    }, 4000);
+    });
 
     expect(pageErrors).toHaveLength(0);
     // Game loaded without errors — spaceship mission progressed during catch-up
@@ -545,7 +557,7 @@ test.describe('Offline Progression — Spaceship Missions', () => {
       soldiers: { scouts: 10, warriors: 10, totalKilled: 0 },
       combatSoldiers: 10,
       buildings: { barracks: { level: 2, count: 2 }, walls: { level: 2 }, warehouse: { level: 2 } },
-    }, 4000);
+    });
 
     expect(pageErrors).toHaveLength(0);
 
@@ -574,7 +586,7 @@ test.describe('Offline Progression — Efficiency', () => {
     const logs50: string[] = [];
     page.on('console', (msg) => logs50.push(msg.text()));
 
-    await setupOfflineTest(page, fiveMinAgo, { offlineEfficiency: 0.5 }, 3500);
+    await setupOfflineTest(page, fiveMinAgo, { offlineEfficiency: 0.5 });
 
     const tickLog50 = logs50.find(l => l.includes('Ticks to simulate:'));
     expect(tickLog50, 'the 50% run logs its offline ticks').toBeTruthy();
@@ -593,7 +605,7 @@ test.describe('Offline Progression — Efficiency', () => {
     }, JSON.stringify(makeOfflineSave(fiveMinAgo, { offlineEfficiency: 1.0 })));
     await page2.goto('/?debug=1');
     await page2.waitForLoadState('networkidle');
-    await page2.waitForTimeout(3500);
+    await waitForBoot(page2);
 
     const tickLog100 = logs100.find(l => l.includes('Ticks to simulate:'));
     expect(tickLog100, 'the 100% run logs its offline ticks').toBeTruthy();
@@ -617,7 +629,7 @@ test.describe('Offline Progression — Efficiency', () => {
     }, JSON.stringify(saveWithoutEff));
     await page.goto('/?debug=1');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3500);
+    await waitForBoot(page);
 
     const effLog = logs.find(l => l.includes('Efficiency:'));
     expect(effLog, 'the offline log line (printed with ?debug=1)').toBeTruthy();
@@ -632,7 +644,7 @@ test.describe('Offline Progression — Efficiency', () => {
 test.describe('Offline Progression — Edge Cases', () => {
 
   test('no offline popup when save is current (no absence)', async ({ page }) => {
-    await setupOfflineTest(page, Date.now(), {}, 3000);
+    await setupOfflineTest(page, Date.now());
 
     await expect(page.locator('.offline-summary-popup')).toHaveCount(0);
     await expect(page.locator('.resource-panel')).toBeVisible({ timeout: 5000 });
@@ -650,7 +662,7 @@ test.describe('Offline Progression — Edge Cases', () => {
         wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0,
         surveyData: 0,
       },
-    }, 4000);
+    });
 
     // No page crashes from negative resource math
     expect(pageErrors).toHaveLength(0);
@@ -676,14 +688,14 @@ test.describe('Offline Progression — Edge Cases', () => {
       workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 },
       eggPipeline: { count: 0, progress: 0 },
       larvaPipeline: { count: 0, progress: 0 },
-    }, 4000);
+    });
 
     expect(pageErrors).toHaveLength(0);
     await expect(page.locator('.resource-panel')).toBeVisible({ timeout: 5000 });
   });
 
   test('offline past the cap shows the popup and says which cap applied (Story 2.4)', async ({ page }) => {
-    await setupOfflineTest(page, Date.now() - OFFLINE_CAP_BASE_MS * 2, {}, 4000);
+    await setupOfflineTest(page, Date.now() - OFFLINE_CAP_BASE_MS * 2);
 
     const popup = page.locator('.offline-summary-popup');
     await expect(popup).toBeVisible({ timeout: 5000 });

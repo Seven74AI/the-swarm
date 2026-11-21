@@ -186,12 +186,8 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
       }, JSON.stringify(data));
       await page.goto('/');
       await page.waitForSelector('#panels', { timeout: 10000 });
-      await page.waitForTimeout(100);
 
-      const hasEggClass = await page.evaluate(() =>
-        document.body.classList.contains('phase-egg'),
-      );
-      expect(hasEggClass).toBe(true);
+      await expect(page.locator('body')).toHaveClass(/(^|\s)phase-egg(\s|$)/);
     });
 
     test('phase transition to colony sets body class phase-colony', async ({ page }) => {
@@ -271,11 +267,8 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
 
       // The goal latches on the first tick; CONTINUE commits it (Story 1.19)
       await tapContinue(page);
-      // Wait for the phase transition + CSS theme transition to complete
-      await page.waitForTimeout(5000);
-
-      // Wait for transition overlay to clear
-      await expect(page.locator(REVEAL)).toHaveCount(0, { timeout: 5000 });
+      // Wait for the phase transition overlay to clear
+      await expect(page.locator(REVEAL)).toHaveCount(0, { timeout: 10_000 });
 
       // Verify body class changed to colony (triggers theme shift)
       const phaseClass = await page.evaluate(() => {
@@ -284,12 +277,10 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
       });
       expect(phaseClass).toBe('phase-colony');
 
-      // Read background color after transition (colony = deeper brown)
-      const colorAfter = await page.evaluate(() => {
-        return getComputedStyle(document.body).backgroundColor;
-      });
-      expect(colorAfter).toBeTruthy();
-      expect(colorAfter).not.toBe(colorBefore);
+      // The background shifts to the colony palette (colony = deeper brown)
+      await expect
+        .poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundColor))
+        .not.toBe(colorBefore);
     });
   });
 });

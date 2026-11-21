@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
+import { frames } from './helpers/time';
 
 /**
  * E2E: `ui/primitives/Button` (Story 1.11; FR45, UX-DR11, UX-DR20, UX-DR38, NFR1).
@@ -132,7 +133,8 @@ test.describe('Button primitive', () => {
     const p = await center(btn(page, 'refusing'));
     await page.mouse.move(p.x, p.y);
     await page.mouse.down();
-    await page.waitForTimeout(2000);
+    // Hold well past the refusal: 120 frames is many repeat intervals.
+    await frames(page, 120);
     await page.mouse.up();
     const accepted = 3; // REFUSING_BUDGET in the harness
     // Every accepted press, then the one refused call, then nothing.
@@ -153,7 +155,7 @@ test.describe('Button primitive', () => {
     const p = await center(d);
     await page.mouse.move(p.x, p.y);
     await page.mouse.down();
-    await page.waitForTimeout(800);
+    await frames(page, 45);
     await expect(d).not.toHaveAttribute('data-pressed', 'true');
     await page.mouse.up();
     expect((await presses(page)).disabled).toBe(0);

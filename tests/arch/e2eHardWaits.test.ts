@@ -7,7 +7,8 @@
  * instead: a web-first assertion, `expect.poll(...)`, or, for game time,
  * `page.clock.pauseAt(...)` + `runFor(...)` (see CLAUDE.md, Testing gotchas).
  *
- * `KNOWN_HARD_WAITS` lists the files that still sleep and how many times.
+ * `KNOWN_HARD_WAITS` lists the files that still sleep and how many times: only
+ * tests whose subject is a duration (a repeat rate, a fade's timing).
  * Counts may only go down: lower one when you remove a wait, and remove the
  * entry at zero. A new file never gets an entry.
  */
@@ -19,27 +20,10 @@ import { findInCode, listSources, type SourceFile } from './scan';
 const E2E = resolve(dirname(fileURLToPath(import.meta.url)), '../e2e');
 
 const KNOWN_HARD_WAITS: Readonly<Record<string, number>> = {
-  'accessibility.spec.ts': 1,
-  'automation.spec.ts': 1,
-  'button-primitive.spec.ts': 4,
-  'combat.spec.ts': 1,
-  'continue.spec.ts': 1,
-  'decision-popups.spec.ts': 2,
-  'entropy.spec.ts': 3,
-  'game.spec.ts': 1,
-  'narrative-events.spec.ts': 6,
-  'nest-capacity-ui.spec.ts': 1,
-  'nest-tab.spec.ts': 3,
-  'offline-progression.spec.ts': 3,
-  'particles-tween.spec.ts': 1,
+  // These measure elapsed time itself: the hold-repeat rate after 1 s of holding.
+  'button-primitive.spec.ts': 2,
+  // These sample a 3 s palette cross-fade at its middle, and check the reduced-motion fade is over by 700 ms.
   'phase-transition.spec.ts': 2,
-  'primitives.spec.ts': 1,
-  'resume-path.spec.ts': 1,
-  'scroll-discovery.spec.ts': 2,
-  'sheets.spec.ts': 1,
-  'shortcuts.spec.ts': 2,
-  'text-reflow.spec.ts': 1,
-  'worker-management.spec.ts': 5,
 };
 
 const HARD_WAIT = /\bwaitForTimeout\s*\(/g;

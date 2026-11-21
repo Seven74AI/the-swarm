@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { gameTimePasses } from './helpers/time';
 import AxeBuilder from '@axe-core/playwright';
 import { openTab, type TabId, type SegmentId } from './helpers/tabs';
 import { tapContinue } from './helpers/phase';
@@ -184,7 +185,7 @@ test.describe('live regions', () => {
         characterData: true,
       });
     });
-    await page.waitForTimeout(3000);
+    await gameTimePasses(page, 3000);
     expect(await page.evaluate(() => (window as unknown as { __said: number }).__said)).toBe(0);
     await expect(announcer(page)).toHaveText('');
   });
