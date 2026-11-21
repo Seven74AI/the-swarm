@@ -11,18 +11,13 @@ export const soldierBalance = {
   costFood: 5,
   /** Mean training time (pipeline rate k = 1 / trainMs). */
   trainMs: 75_000,
-  /** Weapon and armour stop at this level. */
+  /** Weapon and armour stop at this level (one entry per level in `combatBalance.equipment`). */
   maxEquipmentLevel: 5,
   /** Chitin (weapon) or silk (armour) per upgrade: `floor(baseCost × costMultiplier^level)`. */
   equipmentUpgrade: { baseCost: 10, costMultiplier: 1.2 },
-  /** Strength at weapon level 0; each weapon level adds `strengthPerWeaponLevel`. */
+  /** Strength, defence, speed and max HP at equipment level 0; each level's gain is in `combat.ts` (`equipment`). */
   baseStrength: 1,
-  strengthPerWeaponLevel: 1,
-  /** Defence at armour level 0; each armour level adds `defensePerArmorLevel`. */
   baseDefense: 1,
-  defensePerArmorLevel: 1,
   baseSpeed: 5,
-  /** Max HP at armour level 0; each armour level adds `maxHpPerArmorLevel`. */
   baseMaxHp: 10,
-  maxHpPerArmorLevel: 2,
 } as const;

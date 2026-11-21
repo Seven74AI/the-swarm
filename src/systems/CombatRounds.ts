@@ -5,6 +5,7 @@ import { enemyBalance } from '../data/balance/enemies';
 import { traitEffects, type EnemyDef } from './EnemySystem';
 import { getSoldierDefense, getSoldierMaxHp, getSoldierSpeed, getSoldierStrength } from './SoldierSystem';
 import { getPoisonDamagePerTick } from './VenomSystem';
+import { getMutationEffects } from './MutationSystem';
 
 /**
  * The rounds of one battle (Story 4.1): the army against one enemy, with the
@@ -23,10 +24,17 @@ export interface Army {
   readonly maxHp: number;
   /** Venom damage each round (0 without a Venom Lab and venom in stock). */
   readonly poisonPerRound: number;
+  /** Soldiers who strike past a web's limit (Story 4.2, Efficient Gatherers). */
+  readonly webStrikers: number;
+  /** Hit points the army recovers at each round's end, never past its start (Story 4.2, Accelerated Hatching). */
+  readonly healPerRound: number;
+  /** The army strikes before any enemy, a swift one included (Story 4.2, Swift Soldiers). */
+  readonly firstStrike: boolean;
 }
 
 /** The army of `state`, or of `soldiers` soldiers with its equipment and mutations. */
 export function armyOf(state: GameState, soldiers: number = state.combatSoldiers): Army {
+  const m = getMutationEffects(state);
   return {
     soldiers,
     strength: getSoldierStrength(state),
@@ -34,6 +42,9 @@ export function armyOf(state: GameState, soldiers: number = state.combatSoldiers
     speed: getSoldierSpeed(state),
     maxHp: getSoldierMaxHp(state),
     poisonPerRound: getPoisonDamagePerTick(state),
+    webStrikers: m.webStrikers,
+    healPerRound: m.healPerRound,
+    firstStrike: m.firstStrike > 0,
   };
 }
 
@@ -57,7 +68,7 @@ export function soldierHit(strength: number, enemy: EnemyDef): number {
 /** How many soldiers strike each round against this trait. */
 export function strikers(army: Army, enemy: EnemyDef): number {
   const fx = traitEffects(enemy.trait);
-  return fx.strikersMax !== undefined ? Math.min(army.soldiers, fx.strikersMax) : army.soldiers;
+  return fx.strikersMax !== undefined ? Math.min(army.soldiers, fx.strikersMax + army.webStrikers) : army.soldiers;
 }
 
 /** The army's damage in one strike, before the roll. */
@@ -77,6 +88,7 @@ export function enemyStrikesPerRound(enemy: EnemyDef): number {
 
 /** Whether the army strikes before the enemy each round. */
 export function armyStrikesFirst(army: Army, enemy: EnemyDef): boolean {
+  if (army.firstStrike) return true;
   return !traitEffects(enemy.trait).strikesFirst && army.speed >= enemy.speed;
 }
 
@@ -119,6 +131,7 @@ export function fightRounds(army: Army, enemy: EnemyDef, rng: RngStream): Rounds
     else armyStrikes();
     if (over()) break;
     if (fx.regrowthPerRound !== undefined && !poisoned) enemyHp = Math.min(enemy.hp, enemyHp + fx.regrowthPerRound);
+    if (army.healPerRound > 0) playerHp = Math.min(armyHp, playerHp + army.healPerRound);
   }
 
   const victory = enemyHp <= 0 && playerHp > 0;

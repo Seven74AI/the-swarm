@@ -265,6 +265,11 @@ export function itemCost(s: GameState, ref: ItemRef): ItemCost | null {
   return def.open(s) ? def.cost(s) : null;
 }
 
+/** An item's price in this state, whether or not it can be bought now (Story 4.2: purchases by currency). */
+export function itemPrice(s: GameState, ref: ItemRef): ItemCost {
+  return defOf(ref).cost(s);
+}
+
 /** Whether the player can buy the item now, from a panel open in this phase. */
 export function isItemAffordable(s: GameState, ref: ItemRef): boolean {
   const def = defOf(ref);

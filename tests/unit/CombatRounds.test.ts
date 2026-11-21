@@ -28,6 +28,9 @@ const army = (over: Partial<Army> = {}): Army => ({
   speed: 5,
   maxHp: 10,
   poisonPerRound: 0,
+  webStrikers: 0,
+  healPerRound: 0,
+  firstStrike: false,
   ...over,
 });
 
@@ -95,6 +98,36 @@ describe('enemy traits (Story 4.1)', () => {
         expect(r.rounds).toBeLessThanOrEqual(combatBalance.maxRounds);
         expect(r.armyHpLeft).toBeLessThanOrEqual(r.armyHp);
         expect(r.armyHpLeft).toBeGreaterThanOrEqual(0);
+      }
+    }
+  });
+});
+
+describe('counter effects (Story 4.2)', () => {
+  it('first strike: the army strikes before any enemy, swift ones included', () => {
+    const slow = army({ speed: 0 });
+    expect(armyStrikesFirst(slow, withTrait('swift'))).toBe(false);
+    expect(armyStrikesFirst({ ...slow, firstStrike: true }, withTrait('swift'))).toBe(true);
+    expect(armyStrikesFirst({ ...slow, firstStrike: true }, plain({ speed: 1_000 }))).toBe(true);
+  });
+
+  it('web strikers: more soldiers strike through a web, and nothing changes elsewhere', () => {
+    const most = enemyBalance.traits.web.strikersMax;
+    const big = army({ soldiers: most * 3 });
+    expect(strikers({ ...big, webStrikers: 2 }, withTrait('web'))).toBeGreaterThan(strikers(big, withTrait('web')));
+    expect(strikers({ ...big, webStrikers: 2 }, withTrait('web'))).toBeLessThanOrEqual(big.soldiers);
+    expect(strikers({ ...big, webStrikers: 2 }, plain())).toBe(strikers(big, plain()));
+  });
+
+  it('healing: the army ends with at least the hit points it had without it, never more than it started with', () => {
+    for (const type of ['red_ant', 'termite', 'spider', 'beetle', 'wasp', 'scorpion']) {
+      for (const soldiers of [3, 10, 40]) {
+        const a = army({ soldiers });
+        const plainFight = fightRounds(a, getEnemyDef(type), fixedRng(0.5));
+        const healed = fightRounds({ ...a, healPerRound: 3 }, getEnemyDef(type), fixedRng(0.5));
+        expect(healed.armyHpLeft).toBeGreaterThanOrEqual(plainFight.armyHpLeft);
+        expect(healed.armyHpLeft).toBeLessThanOrEqual(healed.armyHp);
+        if (plainFight.outcome === 'victory') expect(healed.outcome).toBe('victory');
       }
     }
   });

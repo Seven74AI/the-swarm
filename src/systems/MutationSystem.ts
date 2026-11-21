@@ -1,5 +1,6 @@
 import type { GameState, Mutation as MutationState } from '../state/GameState';
 import { mutationBalance } from '../data/balance/mutations';
+import { combatBalance } from '../data/balance/combat';
 import { PERCENT } from '../data/constants';
 
 /**
@@ -19,6 +20,12 @@ export interface MutationEffects {
   poisonDamage: number;
   /** Flat bonus to soldier strength */
   strength: number;
+  /** Soldiers who strike past a web's limit (Story 4.2) */
+  webStrikers: number;
+  /** Hit points the army recovers at each battle round's end (Story 4.2) */
+  healPerRound: number;
+  /** Above 0: the army strikes before any enemy (Story 4.2) */
+  firstStrike: number;
 }
 
 /**
@@ -46,56 +53,58 @@ export interface MutationDef {
 
 /** A share as whole percentage points, for the descriptions. */
 const pct = (share: number): number => Math.round(share * PERCENT);
+/** What each mutation does in battle (`combatBalance.mutations`, Story 4.2). */
+const fight = combatBalance.mutations;
 
 /** Registry of all available mutations. */
 export const MUTATIONS: MutationDef[] = [
   {
     id: 'efficient_gatherers',
     name: 'Efficient Gatherers',
-    description: `+${pct(mutationBalance.efficient_gatherers.effects.gatherShare)}% gather rate`,
+    description: `+${pct(mutationBalance.efficient_gatherers.effects.gatherShare)}% gather rate, +${fight.efficient_gatherers.fight.webStrikers} soldiers strike through webs`,
     cost: { ...mutationBalance.efficient_gatherers.cost },
     prerequisite: null,
-    effects: { gatherRate: mutationBalance.efficient_gatherers.effects.gatherShare },
+    effects: { gatherRate: mutationBalance.efficient_gatherers.effects.gatherShare, ...fight.efficient_gatherers.fight },
   },
   {
     id: 'swift_soldiers',
     name: 'Swift Soldiers',
-    description: `+${mutationBalance.swift_soldiers.effects.speed} soldier speed`,
+    description: `+${fight.swift_soldiers.fight.speed} soldier speed, soldiers strike first`,
     cost: { ...mutationBalance.swift_soldiers.cost },
     prerequisite: null,
-    effects: { ...mutationBalance.swift_soldiers.effects },
+    effects: { ...fight.swift_soldiers.fight },
   },
   {
     id: 'accelerated_hatching',
     name: 'Accelerated Hatching',
-    description: `Larvae hatch ${pct(mutationBalance.accelerated_hatching.effects.hatchShare)}% faster`,
+    description: `Larvae hatch ${pct(mutationBalance.accelerated_hatching.effects.hatchShare)}% faster, the army heals ${fight.accelerated_hatching.fight.healPerRound} HP each round`,
     cost: { ...mutationBalance.accelerated_hatching.cost },
     prerequisite: null,
-    effects: { hatchRate: mutationBalance.accelerated_hatching.effects.hatchShare },
+    effects: { hatchRate: mutationBalance.accelerated_hatching.effects.hatchShare, ...fight.accelerated_hatching.fight },
   },
   {
     id: 'tough_shells',
     name: 'Tough Shells',
-    description: `+${mutationBalance.tough_shells.effects.maxHp} soldier max HP`,
+    description: `+${fight.tough_shells.fight.maxHp} soldier max HP`,
     cost: { ...mutationBalance.tough_shells.cost },
     prerequisite: null,
-    effects: { ...mutationBalance.tough_shells.effects },
+    effects: { ...fight.tough_shells.fight },
   },
   {
     id: 'potent_venom',
     name: 'Potent Venom',
-    description: `+${pct(mutationBalance.potent_venom.effects.poisonDamage)}% poison DoT damage`,
+    description: `+${pct(fight.potent_venom.fight.poisonDamage)}% poison DoT damage`,
     cost: { ...mutationBalance.potent_venom.cost },
     prerequisite: 'accelerated_hatching',
-    effects: { ...mutationBalance.potent_venom.effects },
+    effects: { ...fight.potent_venom.fight },
   },
   {
     id: 'reinforced_mandibles',
     name: 'Reinforced Mandibles',
-    description: `+${mutationBalance.reinforced_mandibles.effects.strength} soldier strength`,
+    description: `+${fight.reinforced_mandibles.fight.strength} soldier strength`,
     cost: { ...mutationBalance.reinforced_mandibles.cost },
     prerequisite: 'swift_soldiers',
-    effects: { ...mutationBalance.reinforced_mandibles.effects },
+    effects: { ...fight.reinforced_mandibles.fight },
   },
 ];
 
@@ -183,6 +192,9 @@ export function getMutationEffects(state: GameState): MutationEffects {
     maxHp: 0,
     poisonDamage: 0,
     strength: 0,
+    webStrikers: 0,
+    healPerRound: 0,
+    firstStrike: 0,
   };
 
   for (const m of state.mutations) {

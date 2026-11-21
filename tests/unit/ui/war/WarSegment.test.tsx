@@ -12,6 +12,7 @@ import { testActions } from '../../helpers/actions';
 import { makeState, type StateOverrides } from '../../helpers/makeState';
 import { visibleText } from '../../helpers/a11y';
 import { ENEMIES, TRAITS, enemyCardTitle } from '../../../../src/data/content/enemies';
+import { marksOf } from '../../../../src/systems/Counters';
 
 /**
  * Story 1.25 (UX-DR10, UX-DR26): FRONT → WAR. Soldiers and training,
@@ -187,5 +188,24 @@ describe('WAR segment (Story 1.25)', () => {
     seed({ lastBattle: { status: 'done', enemyType: 'termite', result: 'draw', soldiersLost: 1, foodGained: 0, atMs: 0 } });
     const c = mount();
     expect(c.querySelector('#combat-log-panel [data-battle-line]')!.textContent).toMatch(/DRAW/);
+  });
+});
+
+describe('counter lines (Story 4.2)', () => {
+  it('each mutation card names the traits it is strong against', () => {
+    const c = mount();
+    for (const m of MUTATIONS) {
+      const text = visibleText(c.querySelector(`[data-mutation="${m.id}"]`)!);
+      for (const t of marksOf({ kind: 'mutation', id: m.id }).strongAgainst) expect(text, m.id).toContain(TRAITS[t].label);
+    }
+  });
+
+  it('each equipment card names what its next level is strong against', () => {
+    seed({ equipment: { weapon: 2, armor: 0 } });
+    const c = mount();
+    for (const [id, level] of [['weapon', 3], ['armor', 1]] as const) {
+      const text = visibleText(c.querySelector(`[data-card="equipment-${id}"]`)!);
+      for (const t of marksOf({ kind: 'equipment', id, level }).strongAgainst) expect(text, id).toContain(TRAITS[t].label);
+    }
   });
 });

@@ -27,6 +27,16 @@ export {
 export type { BattleOutcome, BattleResult } from '../systems/BattleSystem';
 export { getEnemyDef, getEnemyDefs, getRandomEnemy, peekEnemy, scaleEnemy, type EnemyDef } from '../systems/EnemySystem';
 export { assessMatchup, type Matchup } from '../systems/CombatRounds';
+export {
+  counterFor,
+  marksOf,
+  upgradeOf,
+  type BattleCause,
+  type BattleCauseKind,
+  type CounterCard,
+  type CounterMarks,
+  type Upgrade,
+} from '../systems/Counters';
 export { displayRemainingMs, isTimed, type DecisionTimerMode } from '../systems/DecisionSystem';
 export {
   canStartProject,
