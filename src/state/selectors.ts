@@ -64,7 +64,6 @@ function slice<K extends keyof GameState>(key: K): ReadonlySignal<GameState[K]> 
 // --- Top-level slices -------------------------------------------------------------------------
 
 export const selectPhase = slice('phase');
-export const selectPaused = slice('paused');
 export const selectResources = slice('resources');
 export const selectEggPipeline = slice('eggPipeline');
 export const selectLarvaPipeline = slice('larvaPipeline');

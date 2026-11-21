@@ -30,8 +30,14 @@ hidden carried a fresh timestamp, which hid the time away from the next cold loa
     returns with no hide before them, do nothing, so a burst (visible + pageshow + focus) applies the gap once.
   - `frameGap(ms)`: `Ticker.onGap` sends any visible frame gap over `FRAME_GAP_MS` (1 s) here whole, and doesn't
     tick through it.
-  - Hidden time is simulated only if the game was running when it hid. A game that is waiting (unreadable save) or
-    paused stays as it was. A halted simulation (ADR 0013) is never resumed.
+  - Hidden time is simulated only if the game was running when it hid. A game that is waiting (unreadable save)
+    stays as it was. A halted simulation (ADR 0013) is never resumed.
+  - **Pause (Story 2.10, FR25)** is session state owned by the resume path: `pause()` stops the ticker (only while
+    visible, running and not halted), `unpause()` restarts it, `isPaused()`, and `onPausedChange` tells main. Paused
+    time is never simulated. `hide()` ends a pause first and counts the game as running, so the time away comes back
+    through `show()` like any other absence (full efficiency under 60 s, the offline summary from 60 s on). The save
+    holds no `paused` flag (the v22 → v23 migration drops it), so every session starts unpaused. The `PAUSED` line is
+    an overlay (`ui/overlays/PausedOverlay.tsx`, kind `paused`): the next tap or key ends the pause and is swallowed.
 - **`lastSeenAt`** goes in the save envelope (save v20): the wall-clock time the saved state was last simulated to.
   `SaveManager.setSeenAtSource` reads it from `resumePath.seenAt()`, which is `hiddenAt` while hidden and `now`
   otherwise. Autosaves and `beforeunload` saves written while hidden therefore keep the hidden moment. The v19 → v20

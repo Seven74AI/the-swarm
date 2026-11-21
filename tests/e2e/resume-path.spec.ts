@@ -5,6 +5,9 @@ import { test, expect, type Page } from '@playwright/test';
  * simulation; every return goes through the one resume path. Under 60 s away:
  * no summary. 60 s or more: the offline summary.
  *
+ * Story 2.10: pause is in-session only. Hiding a paused game ends the pause, and the
+ * time away is resumed like any other absence.
+ *
  * Hidden/visible is driven by overriding `document.visibilityState` and firing the
  * real events. The wall clock is moved by shifting `Date.now` in the page.
  */
@@ -72,4 +75,41 @@ test('every return signal after one hide applies the gap once', async ({ page })
   });
   // One 20 s gap, not three: well under two gaps' worth of game time right after.
   expect(await playTime(page)).toBeLessThan(before + 30_000);
+});
+
+test.describe('a paused game (Story 2.10)', () => {
+  const OVERLAY = '[data-overlay="paused"]';
+
+  test.beforeEach(async ({ page }) => {
+    await page.keyboard.press('p');
+    await expect(page.locator(OVERLAY)).toBeVisible();
+  });
+
+  test('hiding ends the pause and saves no pause', async ({ page }) => {
+    await setVisibility(page, 'hidden');
+    await expect(page.locator(OVERLAY)).toHaveCount(0);
+    await expect(page.locator('body')).not.toHaveClass(/game-paused/);
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('the_swarm_save')!));
+    expect('paused' in saved.gameState).toBe(false);
+  });
+
+  test('a short return resumes the time away at once, with no summary, and the game runs', async ({ page }) => {
+    await setVisibility(page, 'hidden');
+    const hiddenPlay = await playTime(page);
+    await shiftClock(page, 20_000);
+    await setVisibility(page, 'visible');
+    expect(await playTime(page)).toBeGreaterThanOrEqual(hiddenPlay + 19_000);
+    await expect(page.locator('.offline-summary-popup')).toHaveCount(0);
+    await expect(page.locator(OVERLAY)).toHaveCount(0);
+    const resumedPlay = await playTime(page);
+    await expect.poll(() => playTime(page)).toBeGreaterThan(resumedPlay);
+  });
+
+  test('a return after 60 s or more opens the offline summary', async ({ page }) => {
+    await setVisibility(page, 'hidden');
+    await shiftClock(page, 5 * 60_000);
+    await setVisibility(page, 'visible');
+    await expect(page.locator('.offline-summary-popup')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator(OVERLAY)).toHaveCount(0);
+  });
 });

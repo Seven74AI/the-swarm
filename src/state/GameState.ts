@@ -68,8 +68,6 @@ export interface GameState {
    * the generator from it.
    */
   seed: number;
-  /** Whether the game is paused. Paused games stop all systems but save normally. */
-  paused: boolean;
   resources: {
     eggs: number;
     larvae: number;
@@ -351,7 +349,6 @@ export function createInitialState(): GameState {
   return {
     phase: 'egg_laying',
     seed: DEFAULT_SEED,
-    paused: false,
     resources: {
       eggs: 0,
       larvae: 0,

@@ -15,6 +15,23 @@ describe('SaveManager', () => {
     saveManager = new SaveManager(createLocalSaveStore(localStorage));
   });
 
+  describe('no pause in the save (Story 2.10, FR25)', () => {
+    it('the game state has no paused field', () => {
+      expect('paused' in createInitialState()).toBe(false);
+    });
+
+    it('an old save that was paused loads without it, and its next save has none', () => {
+      localStorage.setItem(
+        'the_swarm_save',
+        JSON.stringify({ version: 22, timestamp: Date.now(), playTimeMs: 0, gameState: { ...createInitialState(), paused: true } }),
+      );
+      const loaded = saveManager.load()!;
+      expect('paused' in loaded.gameState).toBe(false);
+      const text = saveManager.serialize(loaded.gameState, 0);
+      expect('paused' in JSON.parse(text).gameState).toBe(false);
+    });
+  });
+
   describe('save + load round-trip', () => {
     it('loads the same state that was saved', () => {
       const state = createInitialState();

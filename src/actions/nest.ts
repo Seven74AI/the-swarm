@@ -58,9 +58,3 @@ export function buyUpgrade(deps: ActionDeps, upgradeId: string): ActionResult {
   if (s.resources.food < cost) return refuse('cannot_afford');
   return commit(deps, s, deps.resourceSystem.buyUpgrade(s, upgradeId));
 }
-
-/** Pause or resume the simulation flag in state. The UI drives the loop itself. */
-export function togglePause(deps: ActionDeps): ActionResult {
-  const s = current(deps);
-  return commit(deps, s, { ...s, paused: !s.paused });
-}

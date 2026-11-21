@@ -171,14 +171,6 @@ describe('nest', () => {
     const after = expectApplied(actions.buyUpgrade('click_power'), before);
     expect(after.upgrades.click_power ?? 0).toBeGreaterThan(before.upgrades.click_power ?? 0);
   });
-
-  it('toggles pause', () => {
-    const before = given(poor({ paused: false }));
-    const after = expectApplied(actions.togglePause(), before);
-    expect(after.paused).toBe(true);
-    actions.togglePause();
-    expect(gameState.value.paused).toBe(false);
-  });
 });
 
 describe('buildings and automation', () => {

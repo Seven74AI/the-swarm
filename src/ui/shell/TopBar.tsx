@@ -1,12 +1,13 @@
-import { selectPaused } from '../../state/selectors';
+import type { ReadonlySignal } from '@preact/signals';
 
 /**
  * The strip's top bar (Story 1.36, moved out of UIRoot): the page's one h1
  * (Story 1.32; the ant is decoration) and the pause button, which shows
  * whether the game is paused. Hooks: `#top-bar`, `#pause-button`.
+ * The pause is session state (Story 2.10): main passes it in, it is never in the game state.
  */
-export function TopBar({ onTogglePause }: { onTogglePause: () => void }) {
-  const paused = selectPaused.value;
+export function TopBar({ paused: pausedSignal, onTogglePause }: { paused: ReadonlySignal<boolean>; onTogglePause: () => void }) {
+  const paused = pausedSignal.value;
   return (
     <div id="top-bar" class="top-bar">
       <h1 class="game-title">
