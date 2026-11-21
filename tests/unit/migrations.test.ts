@@ -763,3 +763,33 @@ describe('v24 → v25: every count is a whole number (Story 3.3, FR34)', () => {
     expect(migrateSave(v24(structuredClone(gs)), 24, 25).gameState).toEqual(gs);
   });
 });
+
+describe('v25 → v26: the Forage role (Story 3.4, FR3)', () => {
+  const v25 = (gs: unknown): SaveData => ({
+    version: 25,
+    timestamp: 1_700_000_000_000,
+    playTimeMs: 0,
+    gameState: gs as GameState,
+  });
+  /** A v25 state: the assigned roles had no Forage. */
+  const withoutForage = () => {
+    const gs = structuredClone(createInitialState()) as unknown as Record<string, unknown>;
+    const { forage: _drop, ...rest } = gs.workersAssigned as Record<string, number>;
+    gs.workersAssigned = { ...rest, gather: 7, dig: 3 };
+    return gs;
+  };
+
+  it('adds nobody on Forage and keeps every other role', () => {
+    const before = withoutForage();
+    const out = migrateSave(v25(structuredClone(before)), 25, 26);
+    expect(out.version).toBe(26);
+    expect(out.gameState.workersAssigned.forage).toBe(0);
+    expect(out.gameState.workersAssigned).toMatchObject(before.workersAssigned as object);
+  });
+
+  it('keeps a Forage count the save already holds', () => {
+    const gs = structuredClone(createInitialState());
+    gs.workersAssigned = { ...gs.workersAssigned, forage: 4 };
+    expect(migrateSave(v25(structuredClone(gs)), 25, 26).gameState).toEqual(gs);
+  });
+});

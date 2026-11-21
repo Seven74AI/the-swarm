@@ -674,6 +674,22 @@ function migrateV24toV25(data: SaveData): SaveData {
   return { ...data, version: 25, gameState: next as unknown as GameState };
 }
 
+/**
+ * v25 → v26 (Story 3.4, FR3): the Forage role. Foragers bring in nectar; a
+ * save from before had nobody on it, so `workersAssigned.forage` starts at 0.
+ * A save that already holds a count keeps it.
+ */
+function migrateV25toV26(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  if (gs.workersAssigned === undefined || gs.workersAssigned === null || typeof gs.workersAssigned !== 'object') {
+    // A partial save: SaveManager merges the defaults (forage: 0) in later.
+    return { ...data, version: 26 };
+  }
+  const assigned = gs.workersAssigned as Record<string, unknown>;
+  const forage = wholeCount(assigned.forage);
+  return { ...data, version: 26, gameState: { ...gs, workersAssigned: { ...assigned, forage } } as unknown as GameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -700,6 +716,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   22: migrateV22toV23,
   23: migrateV23toV24,
   24: migrateV24toV25,
+  25: migrateV25toV26,
 };
 
 /**

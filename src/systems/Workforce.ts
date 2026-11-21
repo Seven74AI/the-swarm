@@ -107,7 +107,7 @@ function fewestToStopLoss(s: GameState, from: MoveSource): number {
   return lo;
 }
 
-const FOOD_SOURCES: readonly MoveSource[] = ['free', 'tend', 'dig', 'guard'];
+const FOOD_SOURCES: readonly MoveSource[] = ['free', 'tend', 'forage', 'dig', 'guard'];
 const CAPACITY_SOURCES: readonly MoveSource[] = ['free', 'tend'];
 
 /**
@@ -115,7 +115,7 @@ const CAPACITY_SOURCES: readonly MoveSource[] = ['free', 'tend'];
  * same critical states as the next-action rule (Story 1.21), sized for WRKR:
  *
  * - food critical → the fewest workers to GATHER that stop the loss, from the
- *   free pool, else TEND, DIG, then GUARD above the minimum;
+ *   free pool, else TEND, FORAGE, DIG, then GUARD above the minimum;
  * - capacity critical → every free worker to DIG, else one from TEND.
  */
 export function getReallocation(s: GameState): Reallocation | null {

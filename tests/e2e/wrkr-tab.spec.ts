@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { openTab } from './helpers/tabs';
+import { readResource } from './helpers/resources';
 
 /**
  * Story 1.23 (UX-DR15): WRKR. Role rows with a text bar, count and stepper
@@ -41,7 +42,7 @@ test.describe('WRKR tab', () => {
     const wrkr = page.locator('[data-tab-panel="wrkr"]');
     await expect(wrkr.locator('[data-upkeep]')).toHaveText(/UPKEEP \S+ \/ PRODUCTION \S+/);
     await expect(wrkr.locator('.stepper__multipliers')).toHaveCount(1);
-    for (const role of ['gather', 'tend', 'dig', 'guard']) {
+    for (const role of ['gather', 'forage', 'tend', 'dig', 'guard']) {
       const row = wrkr.locator(`[data-role="${role}"]`);
       await expect(row).toBeVisible();
       await expect(row.locator('[data-role-bar]')).toHaveAttribute('aria-hidden', 'true');
@@ -65,6 +66,20 @@ test.describe('WRKR tab', () => {
     await expect(wrkr.locator('[data-role="dig"] [data-step="add"]')).toHaveAttribute('aria-disabled', 'true');
     await expect(wrkr.locator('[data-role="dig"]')).toContainText('no free workers');
     await expect(wrkr.locator('[data-production-value]')).not.toHaveText(before ?? '');
+  });
+
+  test('a save from before Forage shows its row, and the roles alone bring in wood, stone and nectar (Story 3.4)', async ({ page }) => {
+    // The seed has no `forage` (an old save) and no claimed territory.
+    await seed(page, colony(10, 5000, { gather: 3, dig: 3 }));
+    await openTab(page, 'wrkr');
+    const wrkr = page.locator('[data-tab-panel="wrkr"]');
+    await expect(wrkr.locator('[data-role="forage"] .role-count')).toHaveText('0');
+    await wrkr.locator('[data-multiplier="max"]').click();
+    await wrkr.locator('[data-role="forage"] [data-step="add"]').click();
+    await expect(wrkr.locator('[data-free]')).toHaveText(/FREE 0$/);
+    for (const id of ['wood', 'stone', 'nectar']) {
+      await expect.poll(() => readResource(page, id), { timeout: 10_000 }).toBeGreaterThan(0);
+    }
   });
 
   test('when food runs out, the primary action moves workers to GATHER in one tap', async ({ page }) => {

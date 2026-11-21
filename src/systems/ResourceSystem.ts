@@ -6,6 +6,7 @@ import { creditWhole, upgradeCost } from '../utils/math';
 import { chainedShare, completedShare } from '../utils/decay';
 import { MS_PER_SEC, TICK_MS } from '../data/constants';
 import { resourceBalance } from '../data/balance/resources';
+import { roleBalance } from '../data/balance/roles';
 import { getEffects } from './BuildingSystem';
 import { productionMultiplier, workerEfficiency } from '../engine/ProgressionCurve';
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
@@ -20,11 +21,11 @@ export interface ResourceRates {
   foodProducedPerSec: number;
   /** Food consumed per second (workers × upkeep). */
   foodConsumedPerSec: number;
-  /** Wood produced per second from territory bonuses. */
+  /** Wood produced per second: gatherers plus forest territory. */
   woodPerSec: number;
-  /** Stone produced per second from territory bonuses. */
+  /** Stone produced per second: diggers plus mountain territory. */
   stonePerSec: number;
-  /** Nectar produced per second from territory bonuses. */
+  /** Nectar produced per second: foragers plus meadow territory. */
   nectarPerSec: number;
 }
 
@@ -44,17 +45,23 @@ export function computeResourceRates(
   const workers = state.resources.workers;
   const assigned = state.workersAssigned;
   const gatherCount = assigned.gather;
-  const unassignedCount = workers - gatherCount - assigned.tend - assigned.dig - assigned.guard;
+  const unassignedCount = workers - getAssignedWorkers(state);
 
   const prodMult = productionMultiplier(state.phase, state.prestige.legacyPoints);
   const workerEff = workerEfficiency(workers);
 
   const foodProducedPerSec = (
-    (gatherCount * resourceBalance.gatherFoodPerSec + Math.max(0, unassignedCount) * resourceBalance.idleFoodPerSec)
+    (gatherCount * roleBalance.gatherFoodPerSec + Math.max(0, unassignedCount) * roleBalance.idleFoodPerSec)
     * prodMult * workerEff * prestigeBonuses.food * prestigeBonuses.workerEfficiency
     * (1 + mutationEffects.gatherRate)
   );
   const foodConsumedPerSec = workers * resourceBalance.upkeepFoodPerSec;
+
+  // Basic resources from the roles (Story 3.4, FR36): no territory needed.
+  const roleMult = prodMult * workerEff * prestigeBonuses.workerEfficiency;
+  const roleWoodRate = gatherCount * roleBalance.gatherWoodPerSec * roleMult;
+  const roleStoneRate = assigned.dig * roleBalance.digStonePerSec * roleMult;
+  const roleNectarRate = assigned.forage * roleBalance.forageNectarPerSec * roleMult;
 
   let territoryFoodRate = 0;
   let territoryStoneRate = 0;
@@ -70,9 +77,9 @@ export function computeResourceRates(
   return {
     foodProducedPerSec: foodProducedPerSec + territoryFoodRate,
     foodConsumedPerSec,
-    woodPerSec: territoryWoodRate,
-    stonePerSec: territoryStoneRate,
-    nectarPerSec: territoryNectarRate,
+    woodPerSec: roleWoodRate + territoryWoodRate,
+    stonePerSec: roleStoneRate + territoryStoneRate,
+    nectarPerSec: roleNectarRate + territoryNectarRate,
   };
 }
 
@@ -95,12 +102,12 @@ export function getUpgradeCost(upgradeId: string, level: number): number | null 
 }
 
 /** A worker job the player can assign. */
-export type WorkerRole = 'gather' | 'tend' | 'dig' | 'guard';
+export type WorkerRole = 'gather' | 'forage' | 'tend' | 'dig' | 'guard';
 
 /** Workers on a job (researchers are tracked apart; see ResearchSystem). */
 export function getAssignedWorkers(state: GameState): number {
   const a = state.workersAssigned;
-  return a.gather + a.tend + a.dig + a.guard;
+  return a.gather + a.forage + a.tend + a.dig + a.guard;
 }
 
 
@@ -172,7 +179,7 @@ export class ResourceSystem {
 
     // Pipeline rate constants (per second): a pipeline completes `count × k` items a second.
     const tendCount = state.workersAssigned.tend;
-    const hatchK = (MS_PER_SEC / resourceBalance.hatchMs) * (1 + tendCount * resourceBalance.tendHatchBonusPerWorker)
+    const hatchK = (MS_PER_SEC / resourceBalance.hatchMs) * (1 + tendCount * roleBalance.tendHatchBonusPerWorker)
       * prestigeBonuses.eggLaying * (1 + mutationEffects.hatchRate);
     const matureK = (MS_PER_SEC / resourceBalance.matureMs) * prestigeBonuses.hatching;
     const eggPipe = state.eggPipeline;
@@ -207,7 +214,7 @@ export class ResourceSystem {
     // units of TICK_MS (the saved unit, kept so saves need no migration); every
     // `digMsPerRoom` of one dig worker adds +1 nestCapacity, at any step length.
     const digCount = state.workersAssigned.dig;
-    const stepsPerRoom = resourceBalance.digMsPerRoom / TICK_MS;
+    const stepsPerRoom = roleBalance.digMsPerRoom / TICK_MS;
     let capacityAccumulator = state.capacityAccumulator;
     let nestCapacity = state.resources.nestCapacity;
     if (digCount > 0) {

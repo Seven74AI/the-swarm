@@ -7,7 +7,7 @@ import type { SpaceshipType } from '../systems/SpaceshipSystem';
 /** Payload of an event that carries no data. */
 export type NoPayload = Record<string, never>;
 
-type WorkerRole = 'gather' | 'tend' | 'dig' | 'guard';
+type WorkerRole = 'gather' | 'forage' | 'tend' | 'dig' | 'guard';
 type Resources = GameState['resources'];
 
 /**

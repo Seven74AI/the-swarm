@@ -105,6 +105,8 @@ export interface GameState {
   resourceRemainder: ResourceRemainder;
   workersAssigned: {
     gather: number;
+    /** Foragers bring in nectar (Story 3.4, save v26). */
+    forage: number;
     tend: number;
     dig: number;
     guard: number;
@@ -380,6 +382,7 @@ export function createInitialState(): GameState {
     larvaPipeline: { count: 0, progress: 0 },
     workersAssigned: {
       gather: 0,
+      forage: 0,
       tend: 0,
       dig: 0,
       guard: 0,

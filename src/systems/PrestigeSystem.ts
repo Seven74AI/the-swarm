@@ -138,6 +138,7 @@ export function prestige(state: GameState): GameState {
     resourceRemainder: { food: 0, wood: 0, stone: 0, nectar: 0 },
     workersAssigned: {
       gather: 0,
+      forage: 0,
       tend: 0,
       dig: 0,
       guard: 0,

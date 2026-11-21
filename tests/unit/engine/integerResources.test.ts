@@ -61,7 +61,7 @@ const arbState: fc.Arbitrary<GameState> = fc
     phase: fc.constantFrom(...PHASES),
     workers: amount(400),
     headroom: fc.integer({ min: -50, max: 300 }),
-    shares: fc.array(amount(100), { minLength: 5, maxLength: 5 }),
+    shares: fc.array(amount(100), { minLength: 6, maxLength: 6 }),
     eggs: amount(600),
     larvae: amount(600),
     progress: fc.double({ min: 0, max: 0.999, noNaN: true }),
@@ -123,7 +123,7 @@ const arbState: fc.Arbitrary<GameState> = fc
     // Assignments never exceed the workers on hand.
     const total = r.shares.reduce((a, b) => a + b, 0) || 1;
     const part = (i: number) => Math.floor((r.workers * r.shares[i]) / total / 1.25);
-    s.workersAssigned = { gather: part(0), tend: part(1), dig: part(2), guard: part(3), researchers: part(4) };
+    s.workersAssigned = { gather: part(0), tend: part(1), dig: part(2), guard: part(3), researchers: part(4), forage: part(5) };
     s.combatResources = { chitin: r.combat[0], silk: r.combat[1], venom: r.combat[2] };
     s.soldierPipeline = { count: r.training, progress: 0 };
     s.combatSoldiers = r.combatSoldiers;
@@ -197,7 +197,7 @@ const act = (name: string, run: (a: Actions, s: GameState) => unknown): fc.Arbit
 
 const arbAction: fc.Arbitrary<Command> = fc.oneof(
   act('layEgg', (a) => a.layEgg()),
-  fc.constantFrom('gather', 'tend', 'dig', 'guard', 'research' as const).chain((role) =>
+  fc.constantFrom('gather', 'forage', 'tend', 'dig', 'guard', 'research' as const).chain((role) =>
     fc.integer({ min: -50, max: 50 }).map((delta): Command => ({ kind: 'action', name: `stepRole ${role} ${delta}`, run: (a) => a.stepRole(role, delta) })),
   ),
   act('buyUpgrade', (a) => a.buyUpgrade('click_power')),

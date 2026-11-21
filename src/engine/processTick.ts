@@ -13,7 +13,8 @@ import { tickMissions, resolveMission } from '../systems/SpaceshipSystem';
 import { tickAutoProduction } from './AutoProductionLoop';
 import { rngStream, type RngStream } from '../utils/rng';
 import { MS_PER_SEC } from '../data/constants';
-import { resourceBalance } from '../data/balance/resources';
+import { roleBalance } from '../data/balance/roles';
+import { getAssignedWorkers } from '../systems/ResourceSystem';
 
 /**
  * Advance the simulation by one step of `dtSec` (Story 2.5, AR4): the live
@@ -55,8 +56,8 @@ export function processTick(
     const pWorkers = workingState.resources.workers;
     const pAssigned = workingState.workersAssigned;
     const pGatherCount = pAssigned.gather;
-    const pUnassignedCount = pWorkers - pGatherCount - pAssigned.tend - pAssigned.dig - pAssigned.guard;
-    const pBaseFoodProduced = pGatherCount * resourceBalance.gatherFoodPerSec + Math.max(0, pUnassignedCount) * resourceBalance.idleFoodPerSec;
+    const pUnassignedCount = pWorkers - getAssignedWorkers(workingState);
+    const pBaseFoodProduced = pGatherCount * roleBalance.gatherFoodPerSec + Math.max(0, pUnassignedCount) * roleBalance.idleFoodPerSec;
     const pTerritoryFood = Math.floor(pWorkers * (bonuses.food ?? 0));
     const pGrossFoodProduced = (pBaseFoodProduced + pTerritoryFood) * dtSec;
     newState = {
