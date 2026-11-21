@@ -3,9 +3,6 @@ import type { SaveManager } from '../persistence/SaveManager';
 import type { GameState } from '../state/GameState';
 import type { GameLoop } from '../engine/GameLoop';
 import { EventLog } from './panels/EventLog';
-import { SoldierPanel } from './panels/SoldierPanel';
-import { BattlePanel } from './panels/BattlePanel';
-import { CombatLogPanel } from './panels/CombatLogPanel';
 import { ExpeditionPanel } from './panels/ExpeditionPanel';
 import { ExplorationPanel } from './panels/ExplorationPanel';
 import { MapPanel } from './panels/MapPanel';
@@ -15,7 +12,6 @@ import { StarmapPanel } from './panels/StarmapPanel';
 import { PrestigePanel } from './panels/PrestigePanel';
 import { PrestigeTreePanel } from './panels/PrestigeTreePanel';
 import { TranscendencePanel } from './panels/TranscendencePanel';
-import { MutationPanel } from './panels/MutationPanel';
 import { FoodDisplay } from './panels/FoodDisplay';
 import type { AudioSystem } from './AudioSystem';
 import type { Actions } from '../actions';
@@ -43,6 +39,20 @@ export interface WorkersMounts {
   primary(host: HTMLElement): void;
   /** The automation section, in the `automation_panel` host. */
   automation(host: HTMLElement): void;
+}
+
+/** Where main renders FRONT → WAR's Preact parts (Story 1.25). */
+export interface WarMounts {
+  /** Soldiers, training and equipment, in `#soldier-panel`. */
+  soldiers(host: HTMLElement): void;
+  /** The mutation cards, in `#mutation-panel`. */
+  mutations(host: HTMLElement): void;
+  /** The enemy card, in `#battle-panel`. */
+  enemy(host: HTMLElement): void;
+  /** The combat log, in `#combat-log-panel`. */
+  log(host: HTMLElement): void;
+  /** `> FIGHT`, in FRONT's primary zone. */
+  primary(host: HTMLElement): void;
 }
 
 /** Where main renders BUILD's Preact parts (Story 1.24), top to bottom, then the primary action. */
@@ -98,6 +108,7 @@ export class UIRoot {
   private mountNest?: NestMounts;
   private mountWorkers?: WorkersMounts;
   private mountBuild?: BuildMounts;
+  private mountWar?: WarMounts;
 
   /** Registry mapping panelId → factory function. Populated in constructor. */
   private panelRegistry: Map<string, () => HTMLElement> = new Map();
@@ -121,6 +132,8 @@ export class UIRoot {
     mountWorkers?: WorkersMounts;
     /** Renders BUILD's header, cards and primary action into their hosts (Story 1.24). */
     mountBuild?: BuildMounts;
+    /** Renders FRONT → WAR: soldiers, mutations, the enemy card, the combat log and FIGHT (Story 1.25). */
+    mountWar?: WarMounts;
   }) {
     this.bus = deps.bus;
     this.actions = deps.actions;
@@ -135,6 +148,7 @@ export class UIRoot {
     this.mountNest = deps.mountNest;
     this.mountWorkers = deps.mountWorkers;
     this.mountBuild = deps.mountBuild;
+    this.mountWar = deps.mountWar;
 
     // ── Populate panel registry with factory functions ──
     // Phase 1 panels (mounted at boot for always-visible UI)
@@ -159,16 +173,20 @@ export class UIRoot {
     this.panelRegistry.set('food_display', () => new FoodDisplay().getElement());
 
     // Phase 3 panels (lazy — created on demand when combat/expansion phase is entered)
-    this.panelRegistry.set('soldier_panel', () => new SoldierPanel(
-      this.bus, this.actions, this.getState,
-    ).getElement());
-    this.panelRegistry.set('battle_panel', () => new BattlePanel(
-      this.bus, this.actions, this.getState,
-    ).getElement());
-    this.panelRegistry.set('combat_log', () => new CombatLogPanel().getElement());
-    this.panelRegistry.set('mutation_panel', () => new MutationPanel(
-      this.bus, this.getState, this.actions,
-    ).getElement());
+    // FRONT → WAR (Story 1.25): Preact sections; the hosts keep the legacy ids.
+    this.panelRegistry.set('soldier_panel', () =>
+      this.createHost('soldier-panel', 'panel soldier-panel', (h) => this.mountWar?.soldiers(h)));
+    this.panelRegistry.set('mutation_panel', () =>
+      this.createHost('mutation-panel', 'panel mutation-panel', (h) => this.mountWar?.mutations(h)));
+    this.panelRegistry.set('battle_panel', () =>
+      this.createHost('battle-panel', 'panel battle-panel', (h) => this.mountWar?.enemy(h)));
+    this.panelRegistry.set('combat_log', () =>
+      this.createHost('combat-log-panel', 'panel combat-log-panel', (h) => this.mountWar?.log(h)));
+    this.panelRegistry.set('war_primary', () => {
+      const host = this.createHost('', '', (h) => this.mountWar?.primary(h));
+      host.setAttribute('data-war-primary-host', '');
+      return host;
+    });
     this.panelRegistry.set('expedition_panel', () => new ExpeditionPanel(
       this.bus, this.getState, this.actions,
     ).getElement());

@@ -26,6 +26,8 @@ describe('EventLog — Combat Events', () => {
   it('logs battle_completed event with narrative', () => {
     bus.emit('battle_completed', {
       victory: true,
+      outcome: 'victory',
+      rounds: 3,
       soldiersLost: 3,
       enemyType: 'beetle',
       foodGained: 45,
@@ -40,6 +42,8 @@ describe('EventLog — Combat Events', () => {
   it('logs defeat narrative from battle_completed', () => {
     bus.emit('battle_completed', {
       victory: false,
+      outcome: 'defeat',
+      rounds: 3,
       soldiersLost: 10,
       enemyType: 'scorpion',
       foodGained: 0,

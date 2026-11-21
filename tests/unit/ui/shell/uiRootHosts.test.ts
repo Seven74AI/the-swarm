@@ -126,4 +126,37 @@ describe('UIRoot in the tab shell', () => {
     expect(mounted.primary).toBe(container.querySelector('[data-primary-for="build"] [data-build-primary-host]'));
     expect(build.querySelector('#tech-tree-panel')).toBeNull();
   });
+
+  it('renders WAR into its hosts, keeping #soldier-panel and #battle-panel, FIGHT in FRONT\'s primary zone (Story 1.25)', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    let state = createInitialState();
+    const bus = new EventBus();
+    const mounted: Record<string, HTMLElement> = {};
+    const ui = new UIRoot({
+      bus,
+      actions: testActions(bus, () => state, (s: GameState) => { state = s; }),
+      saveManager: new SaveManager(),
+      getState: () => state,
+      loop: new GameLoop(new Ticker()),
+      confirmSettings: confirmSettings(),
+      mountWar: {
+        soldiers: (host) => { mounted.soldiers = host; },
+        mutations: (host) => { mounted.mutations = host; },
+        enemy: (host) => { mounted.enemy = host; },
+        log: (host) => { mounted.log = host; },
+        primary: (host) => { mounted.primary = host; },
+      },
+    });
+    ui.mount(shellHosts(container));
+    for (const id of ['soldier_panel', 'mutation_panel', 'battle_panel', 'combat_log', 'war_primary']) ui.createPanel(id);
+    const war = container.querySelector<HTMLElement>('[data-segment-panel="war"]')!;
+    expect(mounted.soldiers).toBe(war.querySelector('#soldier-panel'));
+    expect(mounted.mutations).toBe(war.querySelector('#mutation-panel'));
+    expect(mounted.enemy).toBe(war.querySelector('#battle-panel'));
+    expect(mounted.log).toBe(war.querySelector('#combat-log-panel'));
+    expect(mounted.primary).toBe(container.querySelector('[data-primary-for="front"] [data-war-primary-host]'));
+    const order = Array.from(war.children).map((el) => el.id);
+    expect(order).toEqual(['soldier-panel', 'mutation-panel', 'battle-panel', 'combat-log-panel']);
+  });
 });

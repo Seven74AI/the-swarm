@@ -348,8 +348,9 @@ test.describe('Offline Progression — Combat Phase', () => {
     // Battle panel visible in combat phase after offline catch-up
     await dismissAndOpenWar(page);
     await expect(page.locator('#battle-panel')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('#scout-enemy')).toBeVisible({ timeout: 3000 });
-    await expect(page.locator('#scout-enemy')).toBeEnabled({ timeout: 3000 });
+    // > FIGHT (Story 1.25) keeps #engage-battle; soldiers make it ready.
+    await expect(page.locator('#engage-battle')).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('#engage-battle')).not.toHaveAttribute('aria-disabled', 'true', { timeout: 3000 });
 
     // Soldier panel should also be visible
     await expect(page.locator('#soldier-panel')).toBeVisible({ timeout: 3000 });

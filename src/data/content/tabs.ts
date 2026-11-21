@@ -76,11 +76,13 @@ const placements = {
   research_panel: { tab: 'build', unlockPhase: Phase.SPACE },
   resource_converter_panel: { tab: 'build', unlockPhase: Phase.SPACE },
   build_primary: { tab: 'build', zone: 'primary', unlockPhase: Phase.COLONY },
-  // FRONT → WAR
+  // FRONT → WAR (Story 1.25), top to bottom: soldiers and training with equipment, mutations,
+  // the enemy card, the combat log. `> FIGHT` is FRONT's primary action while WAR is open.
   soldier_panel: { tab: 'front', segment: 'war', unlockPhase: Phase.COMBAT },
+  mutation_panel: { tab: 'front', segment: 'war', unlockPhase: Phase.COMBAT },
   battle_panel: { tab: 'front', segment: 'war', unlockPhase: Phase.COMBAT },
   combat_log: { tab: 'front', segment: 'war', unlockPhase: Phase.COMBAT },
-  mutation_panel: { tab: 'front', segment: 'war', unlockPhase: Phase.COMBAT },
+  war_primary: { tab: 'front', segment: 'war', zone: 'primary', unlockPhase: Phase.COMBAT },
   // FRONT → MAP
   map_panel: { tab: 'front', segment: 'map', unlockPhase: Phase.EXPANSION },
   expedition_panel: { tab: 'front', segment: 'map', unlockPhase: Phase.EXPANSION },

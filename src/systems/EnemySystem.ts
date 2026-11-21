@@ -1,3 +1,5 @@
+import type { GameState } from '../state/GameState';
+
 export interface EnemyDef {
   type: string;
   name: string;
@@ -163,4 +165,21 @@ export function scaleEnemy(enemy: EnemyDef, battlesWon: number): EnemyDef {
     strength: enemy.strength + enemy.scaling.strengthPerBattle * scale,
     hp: enemy.hp + enemy.scaling.hpPerBattle * scale,
   };
+}
+
+/** How the army looks against an enemy, before committing (the enemy card, Story 1.25). */
+export type Matchup = 'favoured' | 'even' | 'dangerous';
+
+/**
+ * A rough read of the fight, kept from the legacy scout report: soldiers times
+ * weapon strength against the enemy's strength times its health. Story 4.1
+ * adds traits; this stays a hint, never a promise (combat is random).
+ */
+export function assessMatchup(state: Pick<GameState, 'combatSoldiers' | 'equipment'>, enemy: EnemyDef): Matchup {
+  const ours = state.combatSoldiers * (1 + state.equipment.weapon);
+  const theirs = enemy.strength * (enemy.hp / 10);
+  const ratio = ours / Math.max(theirs, 0.1);
+  if (ratio > 1.5) return 'favoured';
+  if (ratio >= 0.8) return 'even';
+  return 'dangerous';
 }

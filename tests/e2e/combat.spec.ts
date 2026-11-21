@@ -94,12 +94,18 @@ async function setupCombatPhase(page: Page, overrides?: Record<string, unknown>)
   await openTab(page, 'front', 'war');
 }
 
+/** FRONT's primary action in WAR (Story 1.25); it keeps the legacy #engage-battle id. */
+const fightBtn = (page: Page) => page.locator('#engage-battle[data-action="fight"]');
+/** The battle summary sheet keeps the legacy #battle-result id. */
+const summary = (page: Page) => page.locator('#battle-result[data-battle-summary]');
+const digits = (s: string | null): number => Number((s ?? '').replace(/\D/g, ''));
+
 test.describe('Combat', () => {
   test('phase transitions to COMBAT with 15 workers and guard', async ({ page }) => {
     await setupCombatPhase(page, { combatSoldiers: 0 });
-    // Verify battle panel loads in combat phase
+    // The enemy card and FIGHT load in combat phase
     await expect(page.locator('#battle-panel')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('#scout-enemy')).toBeVisible({ timeout: 3000 });
+    await expect(fightBtn(page)).toBeVisible({ timeout: 3000 });
   });
 
   test('recruit soldier deducts food and shows training', async ({ page }) => {
@@ -107,27 +113,19 @@ test.describe('Combat', () => {
     const foodDisplay = page.locator('[data-stat="resources.food"]');
     await expect(foodDisplay).toBeVisible({ timeout: 5000 });
 
-    const recruitBtn = page.locator('#soldier-panel button').filter({ hasText: 'Recruit Soldier' });
-    await expect(recruitBtn).toBeVisible({ timeout: 5000 });
-    await recruitBtn.click();
-
-    await expect(page.locator('#soldier-panel .stat-row .stat-sub').first()).not.toBeEmpty({ timeout: 2000 });
+    const training = page.locator('#soldier-panel [data-training]');
+    const before = digits(await training.textContent());
+    await page.locator('#soldier-panel [data-action="train-soldier"]').click();
+    await expect.poll(async () => digits(await training.textContent()), { timeout: 2000 }).toBeGreaterThan(before);
   });
 
-  test('scout reveals enemy and enables engage', async ({ page }) => {
+  test('the enemy card shows the enemy and FIGHT is ready with soldiers', async ({ page }) => {
     await setupCombatPhase(page, { combatSoldiers: 1 });
-
-    const scoutBtn = page.locator('#scout-enemy');
-    await expect(scoutBtn).toBeVisible({ timeout: 5000 });
-    await expect(scoutBtn).toBeEnabled({ timeout: 3000 });
-    await scoutBtn.click();
 
     const enemyName = page.locator('#enemy-name');
     await expect(enemyName).toBeVisible({ timeout: 3000 });
     await expect(enemyName).not.toBeEmpty();
-
-    const engageBtn = page.locator('#engage-battle');
-    await expect(engageBtn).toBeEnabled({ timeout: 3000 });
+    await expect(fightBtn(page)).not.toHaveAttribute('aria-disabled', 'true', { timeout: 3000 });
   });
 
   test('battle resolves with result', async ({ page }) => {
@@ -136,18 +134,9 @@ test.describe('Combat', () => {
       equipment: { weapon: 5, armor: 5 },
     });
 
-    const scoutBtn = page.locator('#scout-enemy');
-    await expect(scoutBtn).toBeVisible({ timeout: 5000 });
-    await expect(scoutBtn).toBeEnabled({ timeout: 3000 });
-    await scoutBtn.click();
-
-    const engageBtn = page.locator('#engage-battle');
-    await expect(engageBtn).toBeEnabled({ timeout: 3000 });
-    await engageBtn.click();
-
-    const result = page.locator('#battle-result');
-    await expect(result).toBeVisible({ timeout: 5000 });
-    await expect(result).toContainText(/Victory|Defeat/);
+    await fightBtn(page).click();
+    await expect(summary(page)).toBeVisible({ timeout: 5000 });
+    await expect(summary(page)).toContainText(/VICTORY|DEFEAT|DRAW/);
   });
 
   test('combat resources display after victory', async ({ page }) => {
@@ -156,25 +145,17 @@ test.describe('Combat', () => {
       equipment: { weapon: 5, armor: 5 },
     });
 
-    const scoutBtn = page.locator('#scout-enemy');
-    await expect(scoutBtn).toBeVisible({ timeout: 5000 });
-    await expect(scoutBtn).toBeEnabled({ timeout: 3000 });
-    await scoutBtn.click();
+    await fightBtn(page).click();
+    await expect(summary(page)).toBeVisible({ timeout: 5000 });
 
-    const engageBtn = page.locator('#engage-battle');
-    await expect(engageBtn).toBeEnabled({ timeout: 3000 });
-    await engageBtn.click();
+    await openTab(page, 'nest');
+    await expect(page.locator('#activity-log')).toContainText(/Scouts report|march to meet|soldiers defeated|soldiers were slaughtered|fled/, { timeout: 5000 });
 
-    const result = page.locator('#battle-result');
-    await expect(result).toBeVisible({ timeout: 5000 });
-
-    await expect(page.locator('#activity-log')).toContainText(/Scouts report|march to meet|soldiers defeated|soldiers were slaughtered/, { timeout: 5000 });
-
-    const continueBtn = page.locator('#battle-continue');
-    if (await continueBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await continueBtn.click();
-      await expect(page.locator('#scout-enemy')).toBeEnabled({ timeout: 5000 });
-      await expect(page.locator('#engage-battle')).toBeDisabled({ timeout: 3000 });
-    }
+    await summary(page).locator('[data-sheet-close]').click();
+    await expect(summary(page)).toBeHidden();
+    await openTab(page, 'front', 'war');
+    // The replay is over: no round counter, and the log has the battle.
+    await expect(page.locator('#battle-panel [data-round]')).toHaveCount(0);
+    await expect(page.locator('#combat-log-panel [data-battle-line]')).toHaveCount(1);
   });
 });
