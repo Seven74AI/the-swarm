@@ -170,8 +170,9 @@ export class SimRunner {
 
   private tap(count: number): void {
     let landed = 0;
+    const before = this.s.stats.totalEggsLaid;
     for (let i = 0; i < count; i++) if (this.actions.layEgg().ok) landed += 1;
-    this.probes.taps(landed);
+    this.probes.taps(landed, this.s.stats.totalEggsLaid - before);
   }
 
   private apply(move: Exclude<SimMove, { kind: 'layEgg' }>): { readonly ok: boolean } {

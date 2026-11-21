@@ -15,7 +15,8 @@
     "lint": "oxlint",
     "perf": "vitest run --config vitest.perf.config.ts",
     "prepare": "sh scripts/setup-hooks.sh",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "sim": "node scripts/sim.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",

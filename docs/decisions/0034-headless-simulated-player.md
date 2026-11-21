@@ -52,3 +52,21 @@ from the one players get.
 - `log.info` prints in dev, and catch-up logs a line per resume: a Node script for `pnpm sim` must provide
   `import.meta.env` (run it through Vite or vite-node) and should silence info lines.
 - A new player verb is a new `SimMove` kind that calls the action a button calls.
+
+## Pacing report (Story 3.9)
+
+- **`pnpm sim`** runs `scripts/sim.mjs`, which loads `src/sim/report.ts` through Vite's `runnerImport` (so
+  `import.meta.env` exists; no extra dependency) and silences `console.info`. It is not part of CI.
+- **The GDD targets are data:** `pacingTargets` (`src/data/balance/pacing.ts`): per MVP phase an active-play
+  window (null where the GDD has none) and a finish window (within the first N check-ins, or on day A to B),
+  the tap-share targets and the idle-check-in limit. `pacingReportDefaults` holds the default seed and days.
+- **The report is pure functions over the probes** (`phaseSpans`, `judgeSpan`, `tapShare`, `median`,
+  `idleCheckIns`, `buildPacingReport`, `formatPacingReport`); `runPacingReport` plays a fresh game.
+  `tests/sim/report.test.ts` checks the computation on made-up probes and the report's shape on a real run,
+  never a duration or a share.
+- **An idle check-in** (the GDD's pacing defect) is one where, on arrival, nothing could be done within the
+  limit (`waitMs`: 0 when a move is open, else the soonest affordable item at the current rates, null when
+  never) and no move landed during it. Phase 1 arrivals with nothing affordable are not defects, because
+  tapping makes things affordable.
+- **Tap share** comes from the probes' egg ledger: each sample is the eggs laid since the last look (the
+  `stats.totalEggsLaid` delta), the ones LAY EGG taps laid, and the phase they were laid in.
