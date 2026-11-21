@@ -1,6 +1,6 @@
 import { effect } from '@preact/signals-core';
 import { selectLastBattle, selectStats } from '../../state/selectors';
-import { formatNumber } from '../../utils/format';
+import { formatFull } from '../../utils/format';
 
 /**
  * CombatLogPanel — battle history display visible in COMBAT phase and beyond.
@@ -158,8 +158,8 @@ export class CombatLogPanel {
 
     this.enemyTypeEl.textContent = lastBattle.enemyType || 'Unknown';
     this.resultEl.textContent = this.formatResult(lastBattle.result);
-    this.soldiersLostEl.textContent = formatNumber(lastBattle.soldiersLost);
-    this.foodGainedEl.textContent = `+${formatNumber(lastBattle.foodGained)}`;
+    this.soldiersLostEl.textContent = formatFull(lastBattle.soldiersLost);
+    this.foodGainedEl.textContent = `+${formatFull(lastBattle.foodGained)}`;
     this.timestampEl.textContent = this.formatTimeAgo(lastBattle.atMs);
   }
 

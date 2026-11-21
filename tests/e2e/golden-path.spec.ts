@@ -140,8 +140,8 @@ test.describe('Golden Path — Full Progression', () => {
       });
       expect(shown).toBeGreaterThan(0);
       // The panel may lag the state by a tick, but never shows more than the colony has
-      // (ceil: formatNumber still rounds until Story 1.9 makes it floor).
-      expect(shown).toBeLessThanOrEqual(Math.ceil(actual));
+      // (formatFull floors, Story 1.9).
+      expect(shown).toBeLessThanOrEqual(Math.floor(actual));
       expect(shown).toBeGreaterThanOrEqual(Math.floor(actual * 0.9));
     }).toPass({ timeout: 10_000 });
 

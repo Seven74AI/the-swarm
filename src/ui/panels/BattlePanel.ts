@@ -12,7 +12,7 @@ import type { GameState } from '../../state/GameState';
 import type { Actions } from '../../actions';
 import { getRandomEnemy, scaleEnemy, type BattleResult, type EnemyDef } from '../../state/queries';
 import { explain } from '../components/refusal';
-import { formatNumber } from '../../utils/format';
+import { formatFull } from '../../utils/format';
 
 /**
  * BattlePanel — main combat interface visible in COMBAT phase.
@@ -229,7 +229,7 @@ export class BattlePanel {
   private refresh(): void {
     const state = this.getState();
 
-    this.soldierCountDisplay.textContent = formatNumber(state.combatSoldiers);
+    this.soldierCountDisplay.textContent = formatFull(state.combatSoldiers);
 
     // Use the same stat functions as SoldierPanel / BattleSystem
     const strength = 1 + state.equipment.weapon;
@@ -237,22 +237,22 @@ export class BattlePanel {
     const speed = 5;
     const maxHp = 10 + state.equipment.armor * 2;
 
-    this.soldierStrengthDisplay.textContent = `Str:${formatNumber(strength)}`;
-    this.soldierDefenseDisplay.textContent = `Def:${formatNumber(defense)}`;
-    this.soldierSpeedDisplay.textContent = `Spd:${formatNumber(speed)}`;
-    this.soldierHpDisplay.textContent = `HP:${formatNumber(maxHp)}`;
+    this.soldierStrengthDisplay.textContent = `Str:${formatFull(strength)}`;
+    this.soldierDefenseDisplay.textContent = `Def:${formatFull(defense)}`;
+    this.soldierSpeedDisplay.textContent = `Spd:${formatFull(speed)}`;
+    this.soldierHpDisplay.textContent = `HP:${formatFull(maxHp)}`;
 
-    this.battlesWonDisplay.textContent = formatNumber(state.battlesWon);
-    this.battlesLostDisplay.textContent = formatNumber(state.battlesLost);
+    this.battlesWonDisplay.textContent = formatFull(state.battlesWon);
+    this.battlesLostDisplay.textContent = formatFull(state.battlesLost);
 
     // Combat resources
     const cr = state.combatResources;
     const hasResources = cr.chitin > 0 || cr.silk > 0 || cr.venom > 0;
     this.combatResourcesArea.style.display = hasResources ? '' : 'none';
     if (hasResources) {
-      this.chitinDisplay.textContent = cr.chitin > 0 ? `Chitin: ${formatNumber(cr.chitin)}` : '';
-      this.silkDisplay.textContent = cr.silk > 0 ? `Silk: ${formatNumber(cr.silk)}` : '';
-      this.venomDisplay.textContent = cr.venom > 0 ? `Venom: ${formatNumber(cr.venom)}` : '';
+      this.chitinDisplay.textContent = cr.chitin > 0 ? `Chitin: ${formatFull(cr.chitin)}` : '';
+      this.silkDisplay.textContent = cr.silk > 0 ? `Silk: ${formatFull(cr.silk)}` : '';
+      this.venomDisplay.textContent = cr.venom > 0 ? `Venom: ${formatFull(cr.venom)}` : '';
     }
 
     // Button states
@@ -322,8 +322,8 @@ export class BattlePanel {
 
     this.resultTitle.textContent = this.battleResult.victory ? '🏆 Victory!' : '💀 Defeat';
     this.resultEnemy.textContent = `Enemy: ${this.battleResult.enemyType}`;
-    this.resultSoldiersLost.textContent = `Soldiers Lost: ${formatNumber(this.battleResult.soldiersLost)}`;
-    this.resultFood.textContent = `Food Gained: +${formatNumber(this.battleResult.foodGained)}`;
+    this.resultSoldiersLost.textContent = `Soldiers Lost: ${formatFull(this.battleResult.soldiersLost)}`;
+    this.resultFood.textContent = `Food Gained: +${formatFull(this.battleResult.foodGained)}`;
 
     const parts: string[] = [];
     if (this.battleResult.specialLoot.chitin > 0) parts.push(`${this.battleResult.specialLoot.chitin} Chitin`);

@@ -23,7 +23,7 @@ import {
   getSoldierMaxHp,
   getEquipmentUpgradeCost,
 } from '../../state/queries';
-import { formatNumber, formatRate } from '../../utils/format';
+import { formatFull, formatRate } from '../../utils/format';
 
 /** Track previous display values to avoid redundant DOM writes. */
 interface SoldierDisplayState {
@@ -248,14 +248,14 @@ export class SoldierPanel {
     const prev = this.lastDisplay;
 
     // Workers — dirty-check formatted string
-    const workersText = formatNumber(availableWorkers);
+    const workersText = formatFull(availableWorkers);
     if (workersText !== prev.workers) {
       this.workersDisplay.textContent = workersText;
       prev.workers = workersText;
     }
 
     // Soldiers — dirty-check formatted string
-    const soldiersText = formatNumber(state.combatSoldiers);
+    const soldiersText = formatFull(state.combatSoldiers);
     if (soldiersText !== prev.soldiers) {
       this.soldiersDisplay.textContent = soldiersText;
       prev.soldiers = soldiersText;
@@ -263,7 +263,7 @@ export class SoldierPanel {
 
     // Training — dirty-check display text
     const trainingText = trainCount > 0
-      ? ` [${formatNumber(trainCount)} training · ${formatRate(trainCount / SOLDIER_TRAIN_TIME)}/s]`
+      ? ` [${formatFull(trainCount)} training · ${formatRate(trainCount / SOLDIER_TRAIN_TIME)}/s]`
       : '';
     if (trainingText !== prev.training) {
       this.trainingDisplay.textContent = trainingText;
@@ -288,7 +288,7 @@ export class SoldierPanel {
     const weaponCostNum = weapon >= MAX_EQUIPMENT_LEVEL ? 0 : getEquipmentUpgradeCost(weapon);
     const chitin = state.combatResources.chitin;
     const hasChitinArmory = (state.buildings.chitin_armory?.level ?? 0) >= 1;
-    const weaponCostText = weapon >= MAX_EQUIPMENT_LEVEL ? '' : ` ${formatNumber(weaponCostNum)} chitin`;
+    const weaponCostText = weapon >= MAX_EQUIPMENT_LEVEL ? '' : ` ${formatFull(weaponCostNum)} chitin`;
     if (weaponCostText !== prev.weaponCost) {
       this.weaponCostDisplay.textContent = weaponCostText;
       prev.weaponCost = weaponCostText;
@@ -330,7 +330,7 @@ export class SoldierPanel {
     const armorCostNum = armor >= MAX_EQUIPMENT_LEVEL ? 0 : getEquipmentUpgradeCost(armor);
     const silk = state.combatResources.silk;
     const hasSilkWeaving = (state.buildings.silk_weaving?.level ?? 0) >= 1;
-    const armorCostText = armor >= MAX_EQUIPMENT_LEVEL ? '' : ` ${formatNumber(armorCostNum)} silk`;
+    const armorCostText = armor >= MAX_EQUIPMENT_LEVEL ? '' : ` ${formatFull(armorCostNum)} silk`;
     if (armorCostText !== prev.armorCost) {
       this.armorCostDisplay.textContent = armorCostText;
       prev.armorCost = armorCostText;
@@ -362,25 +362,25 @@ export class SoldierPanel {
     }
 
     // Stats
-    const strengthText = formatNumber(getSoldierStrength(state));
+    const strengthText = formatFull(getSoldierStrength(state));
     if (strengthText !== prev.strength) {
       this.strengthDisplay.textContent = strengthText;
       prev.strength = strengthText;
     }
 
-    const defenseText = formatNumber(getSoldierDefense(state));
+    const defenseText = formatFull(getSoldierDefense(state));
     if (defenseText !== prev.defense) {
       this.defenseDisplay.textContent = defenseText;
       prev.defense = defenseText;
     }
 
-    const speedText = formatNumber(getSoldierSpeed(state));
+    const speedText = formatFull(getSoldierSpeed(state));
     if (speedText !== prev.speed) {
       this.speedDisplay.textContent = speedText;
       prev.speed = speedText;
     }
 
-    const hpText = formatNumber(getSoldierMaxHp(state));
+    const hpText = formatFull(getSoldierMaxHp(state));
     if (hpText !== prev.hp) {
       this.hpDisplay.textContent = hpText;
       prev.hp = hpText;

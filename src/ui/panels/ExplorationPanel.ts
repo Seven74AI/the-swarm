@@ -7,7 +7,7 @@ import {
 } from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
-import { formatNumber } from '../../utils/format';
+import { formatFull } from '../../utils/format';
 import { PLANETS } from '../../data/planets';
 import { MAX_PROBES, PROBE_SWARM_THRESHOLD } from '../../state/queries';
 import type { Actions } from '../../actions';
@@ -49,10 +49,10 @@ export class ExplorationPanel {
     const header = document.createElement('div');
     header.className = 'panel-header';
     const surveyInfo = state.resources.surveyData >= PROBE_SWARM_THRESHOLD
-      ? ` · 📡 Survey: ${formatNumber(state.resources.surveyData)} (Swarm Active)`
-      : ` · 📡 Survey: ${formatNumber(state.resources.surveyData)}`;
+      ? ` · 📡 Survey: ${formatFull(state.resources.surveyData)} (Swarm Active)`
+      : ` · 📡 Survey: ${formatFull(state.resources.surveyData)}`;
     header.innerHTML = `<span class="panel-title">🔭 Space Exploration</span>
-      <span class="panel-sub">Scouts: ${formatNumber(state.soldiers.scouts)} · Probes: ${state.spaceProbes.length}/${MAX_PROBES}${surveyInfo}</span>`;
+      <span class="panel-sub">Scouts: ${formatFull(state.soldiers.scouts)} · Probes: ${state.spaceProbes.length}/${MAX_PROBES}${surveyInfo}</span>`;
     this.container.appendChild(header);
 
     if (!hasShip) {

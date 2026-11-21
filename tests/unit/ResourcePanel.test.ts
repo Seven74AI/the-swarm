@@ -7,6 +7,7 @@ import { gameState } from '../../src/state/gameSignal';
 import { ResourcePanel } from '../../src/ui/panels/ResourcePanel';
 import { Phase } from '../../src/phases/phases';
 import { createInitialState } from '../../src/state/GameState';
+import { formatFull } from '../../src/utils/format';
 
 describe('ResourcePanel — Scannable HUD', () => {
   let panel: ResourcePanel;
@@ -57,7 +58,7 @@ describe('ResourcePanel — Scannable HUD', () => {
     it('shows egg count in critical bar', () => {
       const criticalBar = el.querySelector('.critical-bar');
       const text = criticalBar?.textContent || '';
-      expect(text).toContain('1,200');
+      expect(text).toContain(formatFull(1200));
     });
 
     it('shows larvae count in critical bar', () => {
@@ -69,7 +70,7 @@ describe('ResourcePanel — Scannable HUD', () => {
     it('shows food count in critical bar', () => {
       const criticalBar = el.querySelector('.critical-bar');
       const text = criticalBar?.textContent || '';
-      expect(text).toContain('3,456');
+      expect(text).toContain(formatFull(3456));
     });
 
     it('shows total soldier count (scouts + warriors) in critical bar', () => {
@@ -370,7 +371,7 @@ describe('ResourcePanel — Scannable HUD', () => {
       gameState.value = { ...s, resources: { ...s.resources, eggs: 9999 } };
 
       expect(eggEl?.textContent).not.toBe(initialText);
-      expect(eggEl?.textContent).toBe('9,999');
+      expect(eggEl?.textContent).toBe(formatFull(9999));
     });
 
     it('does not rewrite soldier value when count is unchanged', () => {

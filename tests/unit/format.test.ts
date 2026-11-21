@@ -1,74 +1,167 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { formatNumber, formatTime, clearFormatCache } from '../../src/utils/format';
+import fc from 'fast-check';
+import { formatInt, formatStrip, formatFull, formatTime, clearFormatCache } from '../../src/utils/format';
 
-describe('formatNumber', () => {
-  beforeEach(() => {
+const SUFFIX_EXP: Record<string, number> = {
+  K: 3, M: 6, B: 9, T: 12, Qa: 15, Qi: 18, Sx: 21, Sp: 24, Oc: 27, No: 30, Dc: 33,
+};
+
+/**
+ * Parse a formatted string back into an exact BigInt value, so the
+ * "never rounds up" check has no floating-point slack.
+ */
+function parseShown(text: string): bigint {
+  const plain = text.replace(/[\s  ]/g, '');
+  const m = /^(\d+)(?:\.(\d+))?([A-Za-z]*)$/.exec(plain);
+  if (!m) throw new Error(`unparseable: ${JSON.stringify(text)}`);
+  const [, int, frac = '', suffix] = m;
+  const exp = suffix === '' ? 0 : SUFFIX_EXP[suffix];
+  if (exp === undefined) throw new Error(`unknown suffix: ${suffix}`);
+  const digits = BigInt(int + frac);
+  const shift = exp - frac.length;
+  return shift >= 0 ? digits * 10n ** BigInt(shift) : digits / 10n ** BigInt(-shift);
+}
+
+/** Any non-negative input, including fractions and very large values. */
+const anyNonNegative = fc.oneof(
+  fc.double({ min: 0, max: 1e33, noNaN: true }),
+  fc.double({ min: 0, max: 1e7, noNaN: true }),
+  fc.integer({ min: 0, max: Number.MAX_SAFE_INTEGER }),
+  fc.integer({ min: 0, max: 2_000_000 }),
+);
+
+describe('formatInt', () => {
+  it('floors, never rounds up', () => {
+    fc.assert(
+      fc.property(anyNonNegative, (n) => {
+        expect(parseShown(formatInt(n))).toBeLessThanOrEqual(BigInt(Math.floor(n)));
+      }),
+    );
+  });
+
+  it('shows the whole integer part', () => {
+    fc.assert(
+      fc.property(fc.double({ min: 0, max: 1e9, noNaN: true }), (n) => {
+        expect(parseShown(formatInt(n))).toBe(BigInt(Math.floor(n)));
+      }),
+    );
+  });
+});
+
+describe('formatStrip', () => {
+  beforeEach(() => clearFormatCache());
+
+  it('is never more than 5 characters', () => {
+    fc.assert(
+      fc.property(anyNonNegative, (n) => {
+        expect(formatStrip(n).length).toBeLessThanOrEqual(5);
+      }),
+    );
+  });
+
+  it('never shows more than Math.floor(input)', () => {
+    fc.assert(
+      fc.property(anyNonNegative, (n) => {
+        expect(parseShown(formatStrip(n))).toBeLessThanOrEqual(BigInt(Math.floor(n)));
+      }),
+    );
+  });
+
+  it('shows full digits up to 9 999', () => {
+    fc.assert(
+      fc.property(fc.double({ min: 0, max: 9999.999, noNaN: true }), (n) => {
+        const shown = formatStrip(n);
+        expect(shown).toMatch(/^\d+$/);
+        expect(parseShown(shown)).toBe(BigInt(Math.floor(n)));
+      }),
+    );
+  });
+
+  it('switches to a suffix above 9 999', () => {
+    expect(formatStrip(9999)).toMatch(/^\d+$/);
+    expect(formatStrip(10_000)).toMatch(/[A-Za-z]$/);
+  });
+
+  it('matches the spec examples', () => {
+    expect(formatStrip(12_400)).toBe('12.4K');
+    expect(formatStrip(124_000)).toBe('124K');
+    expect(formatStrip(1_240_000)).toBe('1.24M');
+  });
+
+  it('floors at the shown precision instead of rounding', () => {
+    // 12 499 is "12.4K", never "12.5K"; 999 999 never reaches "1.00M".
+    expect(formatStrip(12_499)).toBe('12.4K');
+    expect(formatStrip(999_999)).toBe('999K');
+  });
+
+  it('keeps precision as close to the input as 5 characters allow', () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 10_000, max: 999_999_999_999 }), (n) => {
+        const shown = parseShown(formatStrip(n));
+        // 3 significant digits: the shown value is within 1% below the input.
+        expect(shown * 1000n).toBeGreaterThanOrEqual(BigInt(n) * 990n);
+      }),
+    );
+  });
+
+  it('uses no scientific notation in the suffix range', () => {
+    fc.assert(
+      fc.property(anyNonNegative, (n) => {
+        expect(formatStrip(n)).not.toMatch(/e/);
+      }),
+    );
+  });
+});
+
+describe('formatFull', () => {
+  beforeEach(() => clearFormatCache());
+
+  it('never shows more than Math.floor(input)', () => {
+    fc.assert(
+      fc.property(anyNonNegative, (n) => {
+        expect(parseShown(formatFull(n))).toBeLessThanOrEqual(BigInt(Math.floor(n)));
+      }),
+    );
+  });
+
+  it('shows every digit, space-grouped, up to 999 999', () => {
+    fc.assert(
+      fc.property(fc.double({ min: 0, max: 999_999.999, noNaN: true }), (n) => {
+        const shown = formatFull(n);
+        expect(shown).toMatch(/^\d{1,3}(?: \d{3})*$/);
+        expect(parseShown(shown)).toBe(BigInt(Math.floor(n)));
+      }),
+    );
+  });
+
+  it('groups thousands with a space, not a comma', () => {
+    expect(formatFull(999)).toBe('999');
+    expect(formatFull(1000)).toBe('1 000');
+    expect(formatFull(999_999)).toBe('999 999');
+  });
+
+  it('switches to a suffix above 999 999', () => {
+    expect(formatFull(1_000_000)).toMatch(/[A-Za-z]$/);
+    expect(formatFull(1_240_000)).toBe('1.24M');
+  });
+
+  it('uses no scientific notation and no commas', () => {
+    fc.assert(
+      fc.property(anyNonNegative, (n) => {
+        expect(formatFull(n)).not.toMatch(/[e,]/);
+      }),
+    );
+  });
+
+  it('keeps the sign of negative values', () => {
+    expect(formatFull(-1000)).toBe('-' + formatFull(1000));
+  });
+
+  it('returns the same text from the cache', () => {
+    const first = formatFull(2_000_000);
+    expect(formatFull(2_000_000)).toBe(first);
     clearFormatCache();
-  });
-
-  it('returns "0" for zero', () => {
-    expect(formatNumber(0)).toBe('0');
-  });
-
-  it('returns raw numbers under 1000', () => {
-    expect(formatNumber(0)).toBe('0');
-    expect(formatNumber(1)).toBe('1');
-    expect(formatNumber(999)).toBe('999');
-    expect(formatNumber(1000)).toBe('1,000');
-    expect(formatNumber(1247)).toBe('1,247');
-    expect(formatNumber(9999)).toBe('9,999');
-  });
-
-  it('uses commas for 1K to 999K', () => {
-    expect(formatNumber(10000)).toBe('10,000');
-    expect(formatNumber(12345)).toBe('12,345');
-    expect(formatNumber(999999)).toBe('999,999');
-  });
-
-  it('uses M suffix for 1M to 999M', () => {
-    expect(formatNumber(1000000)).toBe('1.00M');
-    expect(formatNumber(1234567)).toBe('1.23M');
-    expect(formatNumber(999499999)).toBe('999M');
-  });
-
-  it('uses B suffix for 1B to 999B', () => {
-    expect(formatNumber(1000000000)).toBe('1.00B');
-    expect(formatNumber(5000000000)).toBe('5.00B');
-  });
-
-  it('uses scientific notation for 1T+', () => {
-    expect(formatNumber(1000000000000)).toBe('1.00e12');
-    expect(formatNumber(1e15)).toBe('1.00e15');
-  });
-
-  it('handles negative numbers', () => {
-    expect(formatNumber(-1000)).toBe('-1,000');
-    expect(formatNumber(-50000)).toBe('-50,000');
-  });
-
-  it('handles fractional inputs', () => {
-    expect(formatNumber(1.5)).toBe('2');
-    expect(formatNumber(1234.56)).toBe('1,235');
-  });
-
-  it('caches formatted results for same values', () => {
-    // First call: computes via toLocaleString / suffix logic
-    const a1 = formatNumber(5000);
-    const b1 = formatNumber(2000000);
-    // Second call: should return same result from cache
-    const a2 = formatNumber(5000);
-    const b2 = formatNumber(2000000);
-    expect(a1).toBe(a2);
-    expect(b1).toBe(b2);
-    expect(a1).toBe('5,000');
-    expect(b1).toBe('2.00M');
-  });
-
-  it('clearFormatCache resets the cache', () => {
-    formatNumber(5000);
-    clearFormatCache();
-    // After clearing, still produces correct output
-    expect(formatNumber(5000)).toBe('5,000');
+    expect(formatFull(2_000_000)).toBe(first);
   });
 });
 

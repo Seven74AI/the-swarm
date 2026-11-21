@@ -5,7 +5,7 @@ import type { Actions } from '../../actions';
 import { explain } from './refusal';
 import type { SaveManager } from '../../persistence/SaveManager';
 import type { GameState } from '../../state/GameState';
-import { formatNumber } from '../../utils/format';
+import { formatFull } from '../../utils/format';
 import type { AudioSystem } from '../AudioSystem';
 
 /** Number of burst particles spawned per click (in addition to the text particle). */
@@ -105,7 +105,7 @@ export class ClickButton {
   }
 
   private updateCounter(clicks: number): void {
-    this.counter.textContent = `Clicks: ${formatNumber(clicks)}`;
+    this.counter.textContent = `Clicks: ${formatFull(clicks)}`;
   }
 
   /** Spawn small burst dot particles radiating from the button center. */
