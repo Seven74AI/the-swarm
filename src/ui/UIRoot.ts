@@ -557,8 +557,19 @@ export class UIRoot {
       el.style.display = '';
       // Apply stagger delay before triggering the reveal animation
       // so panels cascade in rather than appearing simultaneously.
-      if (revealDelayMs > 0) {
+      // The stagger is for this one reveal, and only for a panel on screen now:
+      // a panel in a closed tab replays its reveal whenever the tab opens, and
+      // must not sit out its place in the phase cascade each time (up to ~3.5 s).
+      if (revealDelayMs > 0 && el.getClientRects().length > 0) {
         el.style.animationDelay = `${revealDelayMs}ms`;
+        const done = (e: Event) => {
+          if (e.target !== el || (e as AnimationEvent).animationName !== 'phaseReveal') return;
+          el.style.animationDelay = '';
+          el.removeEventListener('animationend', done);
+          el.removeEventListener('animationcancel', done);
+        };
+        el.addEventListener('animationend', done);
+        el.addEventListener('animationcancel', done);
       }
       // Phase-based reveal: mark as unlocked and trigger animation
       el.classList.add('panel-unlocked', 'panel-revealed');
