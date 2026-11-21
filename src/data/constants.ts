@@ -50,6 +50,13 @@ export const CATCH_UP_STEP_MS = 10_000 as const;
 export const CATCH_UP_MAX_STEPS = 8_640 as const;
 
 /**
+ * The offline starvation floor (Story 2.7, FR24): inside a catch-up, workers
+ * never fall below `floor(this × workers before the absence)`. Foreground
+ * play has no floor. Applied by `src/engine/offlineRules.ts` only.
+ */
+export const OFFLINE_WORKER_FLOOR_SHARE = 0.5 as const;
+
+/**
  * NFR4: a 12 h (24 h with upgrades) catch-up finishes within this on the
  * reference phone. Reported by `pnpm perf` (tests/perf/), never asserted in CI.
  */
