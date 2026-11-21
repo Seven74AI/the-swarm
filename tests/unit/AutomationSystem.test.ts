@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createInitialState, type GameState } from '../../src/state/GameState';
+import { automationBalance as A } from '../../src/data/balance/automation';
+
+const BASIC = A.research.basic_incubation.eggsPerSec;
+const PHEROMONES = A.research.queens_pheromones.eggsPerSec;
 import {
   type ResearchType,
   type AutomationBuildingType,
@@ -251,39 +255,35 @@ describe('AutomationSystem', () => {
       expect(getAutoEggRate(state)).toBe(0);
     });
 
-    it('returns 0.5 after Basic Incubation', () => {
+    it('returns Basic Incubation\'s rate after it', () => {
       state.autoProduction.researches['basic_incubation'] = true;
-      expect(getAutoEggRate(state)).toBeCloseTo(0.5, 2);
+      expect(getAutoEggRate(state)).toBeCloseTo(BASIC, 2);
     });
 
     it('adds research bonuses cumulatively', () => {
       state.autoProduction.researches['basic_incubation'] = true;
       state.autoProduction.researches['queens_pheromones'] = true;
-      // 0.5 + 2 = 2.5 eggs/s
-      expect(getAutoEggRate(state)).toBeCloseTo(2.5, 2);
+      expect(getAutoEggRate(state)).toBeCloseTo(BASIC + PHEROMONES, 2);
     });
 
     it('applies multiplicative bonus from Genetic Optimization', () => {
       state.autoProduction.researches['basic_incubation'] = true;
       state.autoProduction.researches['queens_pheromones'] = true;
       state.autoProduction.researches['genetic_optimization'] = true;
-      // (0.5 + 2) * 1.5 = 3.75
-      expect(getAutoEggRate(state)).toBeCloseTo(3.75, 2);
+      expect(getAutoEggRate(state)).toBeCloseTo((BASIC + PHEROMONES) * A.research.genetic_optimization.multiplier, 2);
     });
 
     it('applies building flat bonuses', () => {
       state.autoProduction.researches['basic_incubation'] = true;
       state.autoProduction.buildings['nursery'] = 1;
-      // 0.5 + 1 = 1.5 eggs/s
-      expect(getAutoEggRate(state)).toBeCloseTo(1.5, 2);
+      expect(getAutoEggRate(state)).toBeCloseTo(BASIC + A.nurseryEggsPerSecPerLevel, 2);
     });
 
     it('applies Hatchery multiplier correctly', () => {
       state.autoProduction.researches['basic_incubation'] = true;
       state.autoProduction.researches['queens_pheromones'] = true;
       state.autoProduction.buildings['hatchery'] = 1;
-      // (0.5 + 2) * 1.2 = 3.0
-      expect(getAutoEggRate(state)).toBeCloseTo(3.0, 2);
+      expect(getAutoEggRate(state)).toBeCloseTo((BASIC + PHEROMONES) * (1 + A.hatcheryMultiplierPerLevel), 2);
     });
 
     it('stacks multiple multipliers multiplicatively', () => {
@@ -292,15 +292,14 @@ describe('AutomationSystem', () => {
       state.autoProduction.researches['genetic_optimization'] = true;
       state.autoProduction.researches['cloning_vats'] = true;
       state.autoProduction.buildings['hatchery'] = 1;
-      // (0.5 + 2) * 1.5 * 2 * 1.2 = 2.5 * 3.6 = 9.0
-      expect(getAutoEggRate(state)).toBeCloseTo(9.0, 2);
+      const mult = A.research.genetic_optimization.multiplier * A.research.cloning_vats.multiplier * (1 + A.hatcheryMultiplierPerLevel);
+      expect(getAutoEggRate(state)).toBeCloseTo((BASIC + PHEROMONES) * mult, 2);
     });
 
-    it('Queen\'s Chamber gives 10% worker efficiency bonus', () => {
+    it('Queen\'s Chamber gives its efficiency bonus', () => {
       state.autoProduction.buildings['queens_chamber'] = 1;
       state.autoProduction.researches['basic_incubation'] = true;
-      // (0.5) * (1 + 0.10) = 0.55
-      expect(getAutoEggRate(state)).toBeCloseTo(0.55, 2);
+      expect(getAutoEggRate(state)).toBeCloseTo(BASIC * (1 + A.queensChamberEfficiencyPerLevel), 2);
     });
   });
 });
