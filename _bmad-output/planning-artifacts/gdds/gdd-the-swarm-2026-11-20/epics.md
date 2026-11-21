@@ -1,6 +1,6 @@
 # THE SWARM: Development Epics
 
-Companion to `gdd.md`. High-level stories only; `gds-create-epics-and-stories` turns these into implementable stories after UX and architecture.
+Companion to `gdd.md`. High-level stories only. The implementable stories are in `../../epics.md` (`gds-create-epics-and-stories`, 2026-11-21).
 
 Every epic has the same shape: **Goal**, **Delivers** (the `gdd.md` sections it implements), stories, and **Done when** (testable as invariants). Each story ends with the pillar(s) it serves (P1–P4), or with *check-in loop* (the structural requirement "respect the check-in", which is not a pillar), *meta loop* or *technical*.
 
@@ -110,8 +110,8 @@ Every epic has the same shape: **Goal**, **Delivers** (the `gdd.md` sections it 
 - Art direction from `gds-ux`; an icon set for about 20 resources and 6 buildings. The icons for Phase 1–3 resources and buildings are MVP. (P1)
 - A palette for each phase, applied on phase entry. The Phase 1–3 palettes are MVP. (P2)
 
-*MVP scope of E8:* Phase 1–3 icons and palettes plus the MVP sound effects. The countable-ant visualization and the Phase 4–6 assets are post-MVP. [ASSUMPTION: MVP split]
+*MVP scope of E8:* Phase 1–3 icons and palettes, the MVP sound effects and the full countable-ant nest scene (owner decision 2026-11-21, decision log #29). The Phase 4–6 assets are post-MVP.
 - MVP sound effects for tap, hatch, battle result, phase transition and decision event; muted by default on mobile and respecting the device's silent mode. (MVP; P2)
-- Countable-ant visualization (for example, a nest cross-section that fills up). (P1)
+- Countable-ant visualization: the full vector nest scene (dot cloud, camera steps, wandering, starving), MVP. (P1)
 
 **Done when:** each of the 6 phases applies its own palette on entry; every resource and building has an icon; and the MVP sound effects play on their events, start muted on mobile and stay silent in the device's silent mode.
