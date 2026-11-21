@@ -1,5 +1,8 @@
-import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import { effect, untracked } from '@preact/signals-core';
+import {
+  selectExpeditions,
+  selectSoldiers,
+} from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import { launchExpedition, MAX_ACTIVE_EXPEDITIONS } from '../../systems/ExpeditionSystem';
@@ -33,9 +36,10 @@ export class ExpeditionPanel {
     this.render();
 
     effect(() => {
-      void gameState.value.expeditions;
-      void gameState.value.soldiers;
-      this.render();
+      void selectExpeditions.value;
+      void selectSoldiers.value;
+      // Render reads through getState(); keep it from subscribing to the whole state.
+      untracked(() => this.render());
     });
   }
 

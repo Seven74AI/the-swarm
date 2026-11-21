@@ -368,9 +368,9 @@ describe('ResourcePanel — Scannable HUD', () => {
       const initialText = eggEl?.textContent;
 
       // Change eggs — should update DOM
-      const newState = { ...gameState.value };
-      newState.resources.eggs = 9999;
-      gameState.value = newState;
+      // A new resources object, as a tick writes it (selectors compare references).
+      const s = gameState.value;
+      gameState.value = { ...s, resources: { ...s.resources, eggs: 9999 } };
 
       expect(eggEl?.textContent).not.toBe(initialText);
       expect(eggEl?.textContent).toBe('9,999');
@@ -390,9 +390,8 @@ describe('ResourcePanel — Scannable HUD', () => {
       const initialText = soldierEl?.textContent;
 
       // Add scouts
-      const newState = { ...gameState.value };
-      newState.soldiers.scouts = 50;
-      gameState.value = newState;
+      const s = gameState.value;
+      gameState.value = { ...s, soldiers: { ...s.soldiers, scouts: 50 } };
 
       expect(soldierEl?.textContent).not.toBe(initialText);
     });
@@ -409,9 +408,8 @@ describe('ResourcePanel — Scannable HUD', () => {
       const workerRow = el.querySelector('[data-stat="resources.workers"] .hud-resource-value') as HTMLElement;
       const initialText = workerRow?.textContent;
 
-      const newState = { ...gameState.value };
-      newState.resources.workers = 500;
-      gameState.value = newState;
+      const s = gameState.value;
+      gameState.value = { ...s, resources: { ...s.resources, workers: 500 } };
 
       expect(workerRow?.textContent).not.toBe(initialText);
       expect(workerRow?.textContent).toBe('500');

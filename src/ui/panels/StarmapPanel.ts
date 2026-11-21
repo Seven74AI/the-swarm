@@ -1,5 +1,10 @@
-import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import { effect, untracked } from '@preact/signals-core';
+import {
+  selectSpaceships,
+  selectSpaceProbes,
+  selectDiscoveredPlanets,
+  selectSpaceship,
+} from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import { PLANETS, type PlanetDef } from '../../data/planets';
@@ -23,11 +28,12 @@ export class StarmapPanel {
     this.render();
 
     effect(() => {
-      void gameState.value.spaceships;
-      void gameState.value.spaceProbes;
-      void gameState.value.discoveredPlanets;
-      void gameState.value.spaceship;
-      this.render();
+      void selectSpaceships.value;
+      void selectSpaceProbes.value;
+      void selectDiscoveredPlanets.value;
+      void selectSpaceship.value;
+      // Render reads through getState(); keep it from subscribing to the whole state.
+      untracked(() => this.render());
     });
   }
 

@@ -1,5 +1,5 @@
-import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import { effect, untracked } from '@preact/signals-core';
+import { selectMutations, selectCombatResources } from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import {
@@ -56,10 +56,10 @@ export class MutationPanel {
     }
 
     effect(() => {
-      const s = gameState.value;
-      void s.mutations;
-      void s.combatResources;
-      this.refresh();
+      void selectMutations.value;
+      void selectCombatResources.value;
+      // refresh() reads through getState(); keep it from subscribing to the whole state.
+      untracked(() => this.refresh());
     });
 
     this.refresh();

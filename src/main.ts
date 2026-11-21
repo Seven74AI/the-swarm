@@ -34,14 +34,13 @@ import { Phase, PHASE_ORDER } from './phases/phases';
 import { PhaseContent } from './ui/PhaseContent';
 import { TRANSITIONS } from './phases/transitions';
 import type { GameState } from './state/GameState';
-import { gameStatePool } from './state/GameStatePool';
 import { OnboardingManager } from './ui/OnboardingManager';
 
 /**
  * THE SWARM — Bootstrap
  *
  * Full game loop with persistence, phase state machine, and autosave.
- * Uses @preact/signals-core for reactive state (replaces StateManager + Store).
+ * Uses @preact/signals-core for reactive state (one signal; the UI reads it through state/selectors).
  * - Load saved state on startup (or start fresh)
  * - Each tick: systems → PhaseStateMachine.tick → one signal write → flush queued events
  * - Autosave every 30 seconds
@@ -191,12 +190,13 @@ export function bootstrap(): {
     const baseFoodProduced = gatherCount * 2 + Math.max(0, unassignedCount) * 1;
     const territoryFood = Math.floor(workers * (bonuses.food ?? 0));
     const grossFoodProduced = (baseFoodProduced + territoryFood) * dtSec;
-    newState = gameStatePool.spread(newState, {
+    newState = {
+      ...newState,
       prestige: {
         ...newState.prestige,
         totalFoodProduced: newState.prestige.totalFoodProduced + grossFoodProduced,
       },
-    });
+    };
 
     newState = soldierSystem.tick(newState, dtSec, events);
     newState = tickAutoProduction(newState, dtSec);
@@ -204,7 +204,8 @@ export function bootstrap(): {
     // Auto-egg-layer from prestige tree (1 egg/sec)
     const prestigeBonuses = getPrestigeBonuses(newState);
     if (prestigeBonuses.autoEggLayer) {
-      newState = gameStatePool.spread(newState, {
+      newState = {
+        ...newState,
         resources: {
           ...newState.resources,
           eggs: newState.resources.eggs + dtSec,
@@ -217,7 +218,7 @@ export function bootstrap(): {
           ...newState.eggPipeline,
           count: newState.eggPipeline.count + dtSec,
         },
-      });
+      };
     }
 
     // Expedition system: tick timers and resolve completed ones
@@ -320,12 +321,13 @@ export function bootstrap(): {
     newState = tickEntropy(newState, dtSec);
 
     // Advance playTimeMs by dt in ms (dtSec * 1000)
-    newState = gameStatePool.spread(newState, {
+    newState = {
+      ...newState,
       stats: {
         ...newState.stats,
         playTimeMs: newState.stats.playTimeMs + (dtSec * 1000),
       },
-    });
+    };
 
     // Decision popup spawn check
     const decisionEvent = decisionSystem.popEvent(newState, newState.stats.playTimeMs);
@@ -496,12 +498,13 @@ export function processTick(
     const pBaseFoodProduced = pGatherCount * 2 + Math.max(0, pUnassignedCount) * 1;
     const pTerritoryFood = Math.floor(pWorkers * (bonuses.food ?? 0));
     const pGrossFoodProduced = (pBaseFoodProduced + pTerritoryFood) * dtSec;
-    newState = gameStatePool.spread(newState, {
+    newState = {
+      ...newState,
       prestige: {
         ...newState.prestige,
         totalFoodProduced: newState.prestige.totalFoodProduced + pGrossFoodProduced,
       },
-    });
+    };
   }
 
   newState = soldierSystem.tick(newState, dtSec, events);
@@ -510,7 +513,8 @@ export function processTick(
   // Auto-egg-layer from prestige tree (1 egg/sec)
   const pBonuses = getPrestigeBonuses(newState);
   if (pBonuses.autoEggLayer) {
-    newState = gameStatePool.spread(newState, {
+    newState = {
+      ...newState,
       resources: {
         ...newState.resources,
         eggs: newState.resources.eggs + dtSec,
@@ -523,7 +527,7 @@ export function processTick(
         ...newState.eggPipeline,
         count: newState.eggPipeline.count + dtSec,
       },
-    });
+    };
   }
 
   // Tick expedition timers
@@ -563,12 +567,13 @@ export function processTick(
   newState = tickEntropy(newState, dtSec);
 
   // Advance playTimeMs
-  newState = gameStatePool.spread(newState, {
+  newState = {
+    ...newState,
     stats: {
       ...newState.stats,
       playTimeMs: newState.stats.playTimeMs + (dtSec * 1000),
     },
-  });
+  };
 
   return newState;
 }

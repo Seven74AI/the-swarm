@@ -1,5 +1,5 @@
 import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import { selectResources, selectWorkersAssigned } from '../../state/selectors';
 import type { GameState } from '../../state/GameState';
 import { formatNumber } from '../../utils/format';
 
@@ -80,21 +80,19 @@ export class FoodDisplay {
 
     // Reactive: refresh display when state changes
     effect(() => {
-      const s = gameState.value;
-      this.refresh(s);
+      this.refresh(selectResources.value, selectWorkersAssigned.value);
     });
   }
 
-  private refresh(state: GameState): void {
-    const w = state.resources.workers;
-    const a = state.workersAssigned;
+  private refresh(resources: GameState['resources'], a: GameState['workersAssigned']): void {
+    const w = resources.workers;
     const assigned = a.gather + a.tend + a.dig + a.guard;
     const unassigned = Math.max(0, w - assigned);
     const produced = a.gather * FOOD_PER_GATHER + unassigned * FOOD_PER_UNASSIGNED;
     const consumed = Math.floor(w / 2) * FOOD_CONSUMED_PER_2_WORKERS;
     const net = produced - consumed;
 
-    this.foodCountEl.textContent = formatNumber(state.resources.food);
+    this.foodCountEl.textContent = formatNumber(resources.food);
     this.productionEl.textContent = produced > 0 ? `+${produced}/tick` : `${produced}/tick`;
     this.consumptionEl.textContent = consumed > 0 ? `-${consumed}/tick` : `0/tick`;
     this.netEl.textContent = net >= 0 ? `+${net}/tick` : `${net}/tick`;

@@ -1,5 +1,9 @@
-import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import { effect, untracked } from '@preact/signals-core';
+import {
+  selectBuildings,
+  selectResources,
+  selectCombatResources,
+} from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import { canBuild, build, getBuildCost, getEffects } from '../../systems/BuildingSystem';
@@ -104,8 +108,11 @@ export class BuildingPanel {
 
     // Reactive: auto-refresh when buildings change
     effect(() => {
-      void gameState.value.buildings;
-      this.refresh();
+      void selectBuildings.value;
+      void selectResources.value;
+      void selectCombatResources.value;
+      // Render reads through getState(); keep it from subscribing to the whole state.
+      untracked(() => this.refresh());
     });
   }
 

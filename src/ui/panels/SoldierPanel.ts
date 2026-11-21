@@ -1,5 +1,14 @@
-import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import { effect, untracked } from '@preact/signals-core';
+import {
+  selectBuildings,
+  selectByPath,
+  selectCombatResources,
+  selectCombatSoldiers,
+  selectEquipment,
+  selectSoldierPipeline,
+  selectWorkers,
+  selectWorkersAssigned,
+} from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import type { SoldierSystem } from '../../systems/SoldierSystem';
@@ -220,16 +229,16 @@ export class SoldierPanel {
     // Reactive: auto-refresh when any soldier-related state changes
     effect(() => {
       // Read all relevant paths (tracked automatically by Signals)
-      const s = gameState.value;
-      void s.combatSoldiers;
-      void s.soldierPipeline;
-      void s.resources.workers;
-      void s.resources.food;
-      void s.equipment;
-      void s.workersAssigned;
-      void s.combatResources;
-      void s.buildings;
-      this.refresh();
+      void selectCombatSoldiers.value;
+      void selectSoldierPipeline.value;
+      void selectWorkers.value;
+      void selectByPath('resources.food').value;
+      void selectEquipment.value;
+      void selectWorkersAssigned.value;
+      void selectCombatResources.value;
+      void selectBuildings.value;
+      // refresh() reads through getState(); keep it from subscribing to the whole state.
+      untracked(() => this.refresh());
     });
 
     // Initial render

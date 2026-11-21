@@ -1,5 +1,5 @@
 import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import { selectByPath } from '../../state/selectors';
 import { formatNumber } from '../../utils/format';
 
 /** Maximum particles spawned per update to maintain 60 FPS */
@@ -91,14 +91,15 @@ export class NumberDisplay {
     this.el.appendChild(this.textEl);
 
     // Read initial value by walking the path
-    const initial = getByPath(gameState.value, path) as number;
+    const selected = selectByPath(path);
+    const initial = selected.peek() as number;
     this.prevValue = initial;
     this.renderText(initial);
     this.el.setAttribute('data-stat', this.path);
 
     // Reactive: auto-track this specific path
     this.dispose = effect(() => {
-      const value = getByPath(gameState.value, path) as number;
+      const value = selected.value as number;
       const delta = value - this.prevValue;
       this.renderText(value);
       if (delta !== 0) {
@@ -178,13 +179,3 @@ export class NumberDisplay {
   }
 }
 
-/** Read a nested value from an object using dot-notation. */
-function getByPath(obj: unknown, path: string): unknown {
-  const keys = path.split('.');
-  let current: unknown = obj;
-  for (const key of keys) {
-    if (current === null || typeof current !== 'object') return undefined;
-    current = (current as Record<string, unknown>)[key];
-  }
-  return current;
-}

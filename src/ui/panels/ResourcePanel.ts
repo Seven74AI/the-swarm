@@ -1,13 +1,26 @@
 import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import {
+  selectByPath,
+  selectConversionCap,
+  selectConversionRate,
+  selectEffectiveNestCapacity,
+  selectEggPipeline,
+  selectFoodRatePerSec,
+  selectLarvae,
+  selectLarvaPipeline,
+  selectPhase,
+  selectResources,
+  selectSoldiers,
+  selectWorkers,
+  selectWorkersAssigned,
+} from '../../state/selectors';
 import { Phase, PHASE_ORDER } from '../../phases/phases';
-import { EGG_HATCH_TIME, LARVA_MATURE_TIME, computeResourceRates } from '../../systems/ResourceSystem';
-import { getConversionDefs, getConversionRate } from '../../systems/ResourceConversionSystem';
+import { EGG_HATCH_TIME, LARVA_MATURE_TIME } from '../../systems/ResourceSystem';
+import { getConversionDefs } from '../../systems/ResourceConversionSystem';
 import type { ConversionId } from '../../systems/ResourceConversionSystem';
 import type { ResourceSystem } from '../../systems/ResourceSystem';
 import { formatNumber, formatRate } from '../../utils/format';
 import { ProgressBar } from '../components/ProgressBar';
-import { getEffects } from '../../systems/BuildingSystem';
 
 const TEND_MULTIPLIER = 0.25;
 
@@ -145,35 +158,36 @@ export class ResourcePanel {
     let prevSoldiers = -1;
 
     effect(() => {
-      const s = gameState.value;
-      const phaseIdx = phaseIndex(s.phase);
+      const phaseIdx = phaseIndex(selectPhase.value);
+      const r = selectResources.value;
 
       // Update critical bar values with dirty-checking + flash animations
-      const eggsFormatted = formatNumber(s.resources.eggs);
+      const eggsFormatted = formatNumber(r.eggs);
       if (eggsFormatted !== this.lastEggsValue) {
         this.eggValEl.textContent = eggsFormatted;
         this.lastEggsValue = eggsFormatted;
       }
-      this.triggerFlashIfChanged(this.eggValEl, s.resources.eggs, prevEggs);
-      prevEggs = s.resources.eggs;
+      this.triggerFlashIfChanged(this.eggValEl, r.eggs, prevEggs);
+      prevEggs = r.eggs;
 
-      const larvaeFormatted = formatNumber(s.resources.larvae);
+      const larvaeFormatted = formatNumber(r.larvae);
       if (larvaeFormatted !== this.lastLarvaeValue) {
         this.larvaValEl.textContent = larvaeFormatted;
         this.lastLarvaeValue = larvaeFormatted;
       }
-      this.triggerFlashIfChanged(this.larvaValEl, s.resources.larvae, prevLarvae);
-      prevLarvae = s.resources.larvae;
+      this.triggerFlashIfChanged(this.larvaValEl, r.larvae, prevLarvae);
+      prevLarvae = r.larvae;
 
-      const foodFormatted = formatNumber(s.resources.food);
+      const foodFormatted = formatNumber(r.food);
       if (foodFormatted !== this.lastFoodValue) {
         this.foodValEl.textContent = foodFormatted;
         this.lastFoodValue = foodFormatted;
       }
-      this.triggerFlashIfChanged(this.foodValEl, s.resources.food, prevFood);
-      prevFood = s.resources.food;
+      this.triggerFlashIfChanged(this.foodValEl, r.food, prevFood);
+      prevFood = r.food;
 
-      const soldierTotal = s.soldiers.scouts + s.soldiers.warriors;
+      const soldiers = selectSoldiers.value;
+      const soldierTotal = soldiers.scouts + soldiers.warriors;
       const soldiersFormatted = formatNumber(soldierTotal);
       if (soldiersFormatted !== this.lastSoldiersValue) {
         this.soldierValEl.textContent = soldiersFormatted;
@@ -183,9 +197,9 @@ export class ResourcePanel {
       prevSoldiers = soldierTotal;
 
       // Update rate indicators with dirty-checking
-      const ep = s.eggPipeline;
+      const ep = selectEggPipeline.value;
       const eggRate = ep.count > 0
-        ? (ep.count / EGG_HATCH_TIME) * (1 + s.workersAssigned.tend * TEND_MULTIPLIER)
+        ? (ep.count / EGG_HATCH_TIME) * (1 + selectWorkersAssigned.value.tend * TEND_MULTIPLIER)
         : 0;
       const eggText = `→ ${formatRate(eggRate)}/s · ${formatRate(eggRate * 60)}/min`;
       if (eggText !== this.lastEggRateText) {
@@ -193,7 +207,7 @@ export class ResourcePanel {
         this.lastEggRateText = eggText;
       }
 
-      const lp = s.larvaPipeline;
+      const lp = selectLarvaPipeline.value;
       const larvaRate = lp.count > 0 ? lp.count / LARVA_MATURE_TIME : 0;
       const larvaText = `→ ${formatRate(larvaRate)}/s · ${formatRate(larvaRate * 60)}/min`;
       if (larvaText !== this.lastLarvaRateText) {
@@ -202,8 +216,7 @@ export class ResourcePanel {
       }
 
       // Food rate: net food per second from computeResourceRates
-      const foodRates = computeResourceRates(s);
-      const foodNet = foodRates.foodProducedPerSec - foodRates.foodConsumedPerSec;
+      const foodNet = selectFoodRatePerSec.value;
       const foodText = `→ ${formatRate(foodNet)}/s · ${formatRate(foodNet * 60)}/min`;
       if (foodText !== this.lastFoodRateText) {
         this.foodRateEl.textContent = foodText;
@@ -211,15 +224,15 @@ export class ResourcePanel {
       }
 
       // Update progress bar with effective capacity and color states
-      const effectiveCap = s.resources.nestCapacity + (getEffects('warehouse', s.buildings.warehouse.level).nestCapacity ?? 0);
-      const pct = effectiveCap > 0 ? (s.resources.workers / effectiveCap) * 100 : 0;
+      const effectiveCap = selectEffectiveNestCapacity.value;
+      const pct = effectiveCap > 0 ? (r.workers / effectiveCap) * 100 : 0;
       let colorClass: string | undefined;
       if (pct >= 100) {
         colorClass = 'capacity-full';
       } else if (pct >= 90) {
         colorClass = 'capacity-warning';
       }
-      this.nestCapacityBar.update(s.resources.workers, effectiveCap, colorClass);
+      this.nestCapacityBar.update(r.workers, effectiveCap, colorClass);
 
       // Phase-gated section management
       this.manageSpaceSection(phaseIdx);
@@ -339,7 +352,7 @@ export class ResourcePanel {
     // Effect to update workers with dirty-checking
     let lastWorkersValue = '';
     effect(() => {
-      const formatted = formatNumber(gameState.value.resources.workers);
+      const formatted = formatNumber(selectWorkers.value);
       if (formatted !== lastWorkersValue) {
         workerVal.textContent = formatted;
         lastWorkersValue = formatted;
@@ -365,7 +378,7 @@ export class ResourcePanel {
     // Effect to update larvae count with dirty-checking
     let lastLarvaeCountValue = '';
     effect(() => {
-      const formatted = formatNumber(gameState.value.resources.larvae);
+      const formatted = formatNumber(selectLarvae.value);
       if (formatted !== lastLarvaeCountValue) {
         larvaVal.textContent = formatted;
         lastLarvaeCountValue = formatted;
@@ -399,7 +412,7 @@ export class ResourcePanel {
       // Effect to update space resource with dirty-checking
       let lastSpaceValue = '';
       effect(() => {
-        const formatted = formatNumber(gameState.value.resources[r.path]);
+        const formatted = formatNumber(selectByPath(`resources.${r.path}`).value as number);
         if (formatted !== lastSpaceValue) {
           val.textContent = formatted;
           lastSpaceValue = formatted;
@@ -466,9 +479,8 @@ export class ResourcePanel {
       // Reactive: update rate and cap display with dirty-checking
       let lastConversionText = '';
       effect(() => {
-        const s = gameState.value;
-        const rate = getConversionRate(s, def.id);
-        const cap = def.getRateCap(s);
+        const rate = selectConversionRate(def.id).value;
+        const cap = selectConversionCap(def.id).value;
 
         let newText: string;
         let isInactive: boolean;

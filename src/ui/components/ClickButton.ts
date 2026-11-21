@@ -1,12 +1,11 @@
 import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import { selectEffectiveNestCapacity, selectTotalClicks, selectWorkers } from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { ResourceSystem } from '../../systems/ResourceSystem';
 import type { SaveManager } from '../../persistence/SaveManager';
 import type { GameState } from '../../state/GameState';
 import { formatNumber } from '../../utils/format';
 import type { AudioSystem } from '../AudioSystem';
-import { getEffects } from '../../systems/BuildingSystem';
 
 /** Number of burst particles spawned per click (in addition to the text particle). */
 const BURST_COUNT = 8;
@@ -55,18 +54,17 @@ export class ClickButton {
     this.container.appendChild(this.button);
     this.container.appendChild(this.counter);
 
-    this.updateCounter(gameState.value.stats.totalClicks);
+    this.updateCounter(selectTotalClicks.peek());
 
     // Reactive: only re-runs when totalClicks changes
     this.dispose = effect(() => {
-      this.updateCounter(gameState.value.stats.totalClicks);
+      this.updateCounter(selectTotalClicks.value);
     });
 
     // Reactive: toggle disabled appearance when at capacity
     effect(() => {
-      const s = gameState.value;
-      const effectiveCap = s.resources.nestCapacity + (getEffects('warehouse', s.buildings.warehouse.level).nestCapacity ?? 0);
-      if (s.resources.workers >= effectiveCap && effectiveCap > 0) {
+      const effectiveCap = selectEffectiveNestCapacity.value;
+      if (selectWorkers.value >= effectiveCap && effectiveCap > 0) {
         this.button.classList.add('click-button-at-capacity');
       } else {
         this.button.classList.remove('click-button-at-capacity');

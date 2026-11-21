@@ -1,5 +1,11 @@
-import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import { effect, untracked } from '@preact/signals-core';
+import {
+  selectByPath,
+  selectConversions,
+  selectResearch,
+  selectResearchers,
+  selectSpaceExplorations,
+} from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import {
@@ -9,6 +15,9 @@ import {
   tickConversions,
   type ConversionDef,
 } from '../../systems/ResourceConversionSystem';
+
+/** Resources whose amounts change what the converter shows (each tracked as its own slice). */
+const TRACKED_RESOURCES = ['stone', 'nectar', 'voidCrystals', 'antimatter', 'darkMatter'] as const;
 
 /** Icons for each conversion step. */
 const CONVERSION_ICONS: Record<string, string> = {
@@ -58,17 +67,13 @@ export class ResourceConverterPanel {
 
     effect(() => {
       // Track all resources that could affect conversion state
-      const s = gameState.value;
-      void s.resources.stone;
-      void s.resources.nectar;
-      void s.resources.voidCrystals;
-      void s.resources.antimatter;
-      void s.resources.darkMatter;
-      void s.workersAssigned.researchers;
-      void s.conversions?.particleLab;
-      void s.spaceExplorations?.length;
-      void s.research;
-      this.render();
+      for (const r of TRACKED_RESOURCES) void selectByPath(`resources.${r}`).value;
+      void selectResearchers.value;
+      void selectConversions.value;
+      void selectSpaceExplorations.value;
+      void selectResearch.value;
+      // render() reads through getState(); keep it from subscribing to the whole state.
+      untracked(() => this.render());
     });
   }
 
