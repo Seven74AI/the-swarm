@@ -4,6 +4,7 @@ import type { GameState, PhaseGoal } from './GameState';
 import { getEffects } from '../systems/BuildingSystem';
 import { computeResourceRates } from '../systems/ResourceSystem';
 import { affordableKeys } from './affordances';
+import { getNextAction, type NextAction } from '../systems/NextAction';
 import {
   getConversionDefs,
   getConversionRate,
@@ -12,6 +13,7 @@ import {
 import { conditionMet, goalFor, goalPercent, type GoalCondition, type Transition } from '../phases/transitions';
 
 export type { GoalCondition, Transition } from '../phases/transitions';
+export type { ActionIntent, NextAction, NextActionRule, NoAction, SuggestedAction } from '../systems/NextAction';
 
 /**
  * Slice selectors over the single game-state signal (ADR 0001, arch D5, #186).
@@ -208,3 +210,25 @@ export function selectConditionTarget(c: GoalCondition): ReadonlySignal<number> 
 export function selectConditionMet(c: GoalCondition): ReadonlySignal<boolean> {
   return cached(conditionMets, c, () => conditionMet(c, gameState.value));
 }
+
+// --- The next action (Story 1.21, UX-DR12) ------------------------------------------------------
+
+function sameNextAction(a: NextAction, b: NextAction): boolean {
+  if (a.kind === 'none' || b.kind === 'none') return a.kind === b.kind && a.key === b.key;
+  return a.key === b.key && a.rule === b.rule && a.verb === b.verb && a.target === b.target;
+}
+
+let lastNextAction: NextAction | null = null;
+
+/**
+ * The one most useful next action (`systems/NextAction.ts`), for NEST, WRKR and the offline summary.
+ * Evaluated on every write, but it hands back the previous object while the suggestion is the same
+ * (same target, rule and label; for none, the same item and whole seconds), so it notifies only when
+ * the button would change, at most about once a second while counting down.
+ */
+export const selectNextAction = computed<NextAction>(() => {
+  const next = getNextAction(gameState.value);
+  if (lastNextAction !== null && sameNextAction(lastNextAction, next)) return lastNextAction;
+  lastNextAction = next;
+  return next;
+});
