@@ -1,4 +1,4 @@
-# 0009. One HoldToConfirm primitive guards every irreversible action
+# 0010. One HoldToConfirm primitive guards every irreversible action
 
 - **Status:** accepted (2026-11-21)
 - **Source:** [Game architecture](../../_bmad-output/planning-artifacts/architecture/architecture-the-swarm-2026-11-20/game-architecture.md)

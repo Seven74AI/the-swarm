@@ -372,7 +372,7 @@ test.describe('Prestige Integration — Slice 5', () => {
 
   test('two-tap setting: the first tap arms, the second prestiges', async ({ page }) => {
     await page.addInitScript(() => {
-      localStorage.setItem('the_swarm_settings', JSON.stringify({ version: 1, settings: { confirmStyle: 'twoTaps' } }));
+      localStorage.setItem('the_swarm_settings', JSON.stringify({ version: 2, settings: { confirmStyle: 'twoTaps' } }));
     });
     await seedAndGo(page, makeBaseState());
     const btn = page.locator('#prestige-panel .btn-prestige');
