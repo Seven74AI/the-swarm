@@ -7,15 +7,18 @@
  */
 import { detectCapabilities, type Capabilities, type CapabilityEnv } from './capabilities';
 import { createWebHaptics, type Haptics } from './haptics';
+import { createWebBrowser, type Browser, type BrowserEnv } from './browser';
 import { createSettingsStore, type KeyValueStore, type SettingsStore } from './settings';
 
 export interface Platform {
   readonly capabilities: Capabilities;
   readonly settings: SettingsStore;
   readonly haptics: Haptics;
+  /** File download and page reload (Story 1.17). */
+  readonly browser: Browser;
 }
 
-export interface WebPlatformEnv extends CapabilityEnv {
+export interface WebPlatformEnv extends CapabilityEnv, BrowserEnv {
   readonly localStorage?: KeyValueStore;
 }
 
@@ -32,5 +35,6 @@ export function createWebPlatform(env: WebPlatformEnv = typeof window === 'undef
   const capabilities = detectCapabilities(env);
   const settings = createSettingsStore({ storage: storageOf(env), capabilities });
   const haptics = createWebHaptics({ navigator: env.navigator, enabled: () => settings.settings.value.haptics });
-  return Object.freeze({ capabilities, settings, haptics });
+  const browser = createWebBrowser(env);
+  return Object.freeze({ capabilities, settings, haptics, browser });
 }

@@ -84,15 +84,8 @@ export class SaveManager {
       }
       this.lastActionSaveTimestamp = now;
     }
-    const data: SaveData = {
-      version: SaveManager.SAVE_VERSION,
-      timestamp: Date.now(),
-      playTimeMs,
-      gameState: { ...state, lastSaveTimestamp: Date.now() },
-    };
-
     try {
-      const json = JSON.stringify(data);
+      const json = this.serialize(state, playTimeMs);
 
       // Rotate backups: bak2 ← bak1 ← current ← new
       const bak1 = localStorage.getItem(SaveManager.BACKUP1_KEY);
@@ -110,6 +103,20 @@ export class SaveManager {
       log.warn('save', 'failed to save', e);
       return false;
     }
+  }
+
+  /**
+   * The save file's text for `state`: what `save()` writes, and what EXPORT
+   * SAVE offers as a file (Story 1.17; Story 2.11 builds full export/import).
+   */
+  serialize(state: GameState, playTimeMs: number): string {
+    const data: SaveData = {
+      version: SaveManager.SAVE_VERSION,
+      timestamp: Date.now(),
+      playTimeMs,
+      gameState: { ...state, lastSaveTimestamp: Date.now() },
+    };
+    return JSON.stringify(data);
   }
 
   load(): { gameState: GameState; playTimeMs: number; timestamp?: number; offline: OfflineLoadInfo | null } | null {

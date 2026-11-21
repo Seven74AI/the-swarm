@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createInitialState, type GameState } from '../../src/state/GameState';
-import { processTick } from '../../src/main';
+import { processTick } from '../../src/engine/processTick';
 import { ResourceSystem } from '../../src/systems/ResourceSystem';
 import { SoldierSystem } from '../../src/systems/SoldierSystem';
 import { MapSystem } from '../../src/systems/MapSystem';
