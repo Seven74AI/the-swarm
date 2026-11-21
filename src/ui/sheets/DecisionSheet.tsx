@@ -1,6 +1,6 @@
 import { effect, untracked, type ReadonlySignal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
-import { getDecision, type DecisionChoiceDef, type DecisionDef } from '../../data/content/decisions';
+import { DECISION_STOCKS, getDecision, type DecisionChoiceDef, type DecisionDef } from '../../data/content/decisions';
 import type { OpenDecision } from '../../state/GameState';
 import { displayRemainingMs, isTimed, type DecisionTimerMode } from '../../state/queries';
 import { formatTime } from '../../utils/format';
@@ -56,7 +56,7 @@ export interface DecisionSheets {
 }
 
 function blockedReason(c: DecisionChoiceDef): string {
-  return c.requires ? `NEEDS ${c.requires.amount} ${c.requires.resource === 'nestCapacity' ? 'CAPACITY' : c.requires.resource.toUpperCase()}` : 'NOT POSSIBLE NOW';
+  return c.requires ? `NEEDS ${c.requires.amount} ${DECISION_STOCKS[c.requires.stock].name}` : 'NOT POSSIBLE NOW';
 }
 
 function ChoiceButton({ c, deps }: { c: DecisionChoiceDef; deps: DecisionSheetDeps }) {

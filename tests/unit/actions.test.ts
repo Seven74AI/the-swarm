@@ -532,7 +532,7 @@ describe('prestige', () => {
 describe('decisions (Story 1.28)', () => {
   const withOpen = (s: GameState, id: 'overcrowding' | 'scout_report'): GameState => ({
     ...s,
-    decision: { open: { id, remainingMs: id === 'overcrowding' ? 10_000 : null, openedAtSessionMs: 0, roll: 0.99 }, nextSpawnSessionMs: null },
+    decision: { open: { id, remainingMs: null, openedAtSessionMs: 0, roll: 0.99 }, nextSpawnSessionMs: null },
   });
 
   it('refuses when no event is open, or the choice is unknown', () => {

@@ -69,7 +69,7 @@ async function seedBoth(page: Page): Promise<void> {
       entropyDampener: { level: 0 },
       prestigeTree: { purchased: [] },
       decision: {
-        open: { id: 'overcrowding', remainingMs: OPEN_MS, openedAtSessionMs: 0, roll: 0.5 },
+        open: { id: 'cold_snap', remainingMs: OPEN_MS, openedAtSessionMs: 0, roll: 0.5 },
         nextSpawnSessionMs: 0,
       },
     },

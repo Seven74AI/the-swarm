@@ -151,7 +151,7 @@ describe('SaveManager', () => {
     });
 
     it('keeps an open decision event with its time left (Story 1.28)', () => {
-      const open = { id: 'overcrowding' as const, remainingMs: 12_345, openedAtSessionMs: 99_000, roll: 0.25 };
+      const open = { id: 'beetle_sighting' as const, remainingMs: 12_345, openedAtSessionMs: 99_000, roll: 0.25 };
       const state = { ...createInitialState(), decision: { open, nextSpawnSessionMs: 150_000 } };
       saveManager.save(state, 0, true);
       expect(new SaveManager(createLocalSaveStore(localStorage)).load()!.gameState.decision.open).toEqual(open);

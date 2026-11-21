@@ -159,7 +159,7 @@ test.describe('sheets', () => {
   test('a decision takes focus, is announced as a dialog and its choices are reachable', async ({ page }) => {
     await seed(page, {
       ...COMBAT,
-      decision: { open: { id: 'overcrowding', remainingMs: 30_000, openedAtSessionMs: 0, roll: 0.5 }, nextSpawnSessionMs: 1e12 },
+      decision: { open: { id: 'wounded_return', remainingMs: 30_000, openedAtSessionMs: 0, roll: 0.5 }, nextSpawnSessionMs: 1e12 },
     });
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();

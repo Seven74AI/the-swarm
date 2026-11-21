@@ -9,4 +9,12 @@ export const decisionBalance = {
   spawnMaxMs: 180_000,
   /** The `double` decision-timer setting slows the countdown by this factor. */
   doubleTimerFactor: 2,
+  /**
+   * No outcome wipes the colony (Story 4.5, FR14): one choice or ignore can
+   * take workers down to this share of the workers on hand (rounded up, so
+   * never the last one), no further.
+   */
+  workerFloorShare: 0.5,
+  /** OVERCROWDING. spawns only once the workers fill this share of the nest's capacity. */
+  crowdedShare: 0.9,
 } as const;

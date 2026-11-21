@@ -169,7 +169,7 @@ test.describe('Phase reveal (fake clock)', () => {
       const s = m.getState();
       m.setState({
         ...s,
-        decision: { open: { id: 'overcrowding', remainingMs: 40_000, openedAtSessionMs: 0, roll: 0.5 }, nextSpawnSessionMs: null },
+        decision: { open: { id: 'beetle_sighting', remainingMs: 40_000, openedAtSessionMs: 0, roll: 0.5 }, nextSpawnSessionMs: null },
       });
     });
     await expect(page.locator('#decision-popup')).toHaveCount(0);

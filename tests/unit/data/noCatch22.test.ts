@@ -19,6 +19,7 @@ import { resolveExpedition } from '../../../src/systems/ExpeditionSystem';
 import { isPrestigeAvailable, prestige } from '../../../src/systems/PrestigeSystem';
 import { PRESTIGE_UPGRADES } from '../../../src/data/prestigeTree';
 import { FIRST_PRODUCED_IN, type ProducedResource } from '../../../src/data/content/producers';
+import { DECISIONS, DECISION_STOCKS, type DecisionEffect, type DecisionStock } from '../../../src/data/content/decisions';
 import { PANEL_PLACEMENT, isUnlocked, type PanelId } from '../../../src/data/content/tabs';
 import { soldierBalance } from '../../../src/data/balance/soldiers';
 import { resourceBalance } from '../../../src/data/balance/resources';
@@ -197,6 +198,34 @@ function prestigeReachableIn(phase: Phase): boolean {
   }
   return ids.every((b) => Array.from({ length: levels[b] }, (_, i) => i + 1).every((l) => isLevelPayableIn(b, l, phase)));
 }
+
+describe('decision events spend only what the colony can already make (Story 4.5, FR37)', () => {
+  const spends = (e: DecisionEffect): DecisionStock | null =>
+    'stock' in e && (e.kind === 'lose_percent' || e.amount < 0) ? e.stock : null;
+
+  it('every stock a choice, a risk, a requirement or an ignore takes is produced by the first phase the event shows in', () => {
+    const bad: string[] = [];
+    for (const d of DECISIONS) {
+      const from = PHASE_ORDER.find((p) => d.phases.includes(p))!;
+      const taken = [
+        ...d.choices.flatMap((c) => [...c.effects, ...(c.risk?.effects ?? [])].map(spends)),
+        ...d.choices.map((c) => c.requires?.stock ?? null),
+        ...(d.ignore ?? []).map(spends),
+      ].filter((k): k is NonNullable<typeof k> => k !== null);
+      for (const k of taken) {
+        const produced = k in FIRST_PRODUCED_IN ? producedBy(k, from) : isUnlocked(DECISION_STOCKS[k].firstIn, from);
+        if (!produced) bad.push(`${d.id} takes ${k} in ${from}`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it('the decision stock table agrees with the producer table', () => {
+    for (const [k, s] of Object.entries(DECISION_STOCKS)) {
+      if (k in FIRST_PRODUCED_IN) expect(s.firstIn, k).toBe(FIRST_PRODUCED_IN[k as ProducedResource]);
+    }
+  });
+});
 
 describe('the Particle Lab the antimatter step needs is sold (Story 3.6)', () => {
   const lab: ItemRef = { kind: 'particle_lab' };
