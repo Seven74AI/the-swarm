@@ -4,7 +4,6 @@ import type { GameState } from '../state/GameState';
 import type { GameLoop } from '../engine/GameLoop';
 import { Phase } from '../phases/phases';
 import { ClickButton } from './components/ClickButton';
-import { ResourcePanel } from './panels/ResourcePanel';
 import { EventLog } from './panels/EventLog';
 import { PhaseIndicator } from './panels/PhaseIndicator';
 import { WorkerAssignment } from './panels/WorkerAssignment';
@@ -71,6 +70,9 @@ export class UIRoot {
   /** Pause button reference for icon update on keyboard toggle. */
   private pauseBtnEl: HTMLButtonElement | null = null;
 
+  /** Draws the resource strip into its host (Story 1.16; main renders the Preact strip there). */
+  private mountStrip?: (host: HTMLElement) => void;
+
   /** Registry mapping panelId → factory function. Populated in constructor. */
   private panelRegistry: Map<string, () => HTMLElement> = new Map();
 
@@ -83,6 +85,8 @@ export class UIRoot {
     loop: GameLoop;
     /** The platform settings signal (or its confirm slice), passed in by main (Story 1.13). */
     confirmSettings: ReadonlySignal<ConfirmSettings>;
+    /** Renders the resource strip and its sheet into the `resource_panel` host (Story 1.16). */
+    mountStrip?: (host: HTMLElement) => void;
   }) {
     this.bus = deps.bus;
     this.actions = deps.actions;
@@ -92,10 +96,11 @@ export class UIRoot {
     this.audio = deps.audio;
     this.loop = deps.loop;
     this.confirmSettings = deps.confirmSettings;
+    this.mountStrip = deps.mountStrip;
 
     // ── Populate panel registry with factory functions ──
     // Phase 1 panels (mounted at boot for always-visible UI)
-    this.panelRegistry.set('resource_panel', () => new ResourcePanel().getElement());
+    this.panelRegistry.set('resource_panel', () => this.createStripHost());
     this.panelRegistry.set('phase_indicator', () => new PhaseIndicator(this.bus, this.getState().phase as Phase).getElement());
     this.panelRegistry.set('click_button', () => new ClickButton(
       this.bus, this.actions, this.saveManager, this.getState, deps.audio,
@@ -281,9 +286,9 @@ export class UIRoot {
     this.panelsContainer = hosts.scroll;
 
     // ── Phase 1 panels: mount at boot (always visible) — resources sit in the strip ──
-    const resourcePanel = new ResourcePanel();
-    hosts.host(PANEL_PLACEMENT.resource_panel).appendChild(resourcePanel.getElement());
-    this.panelElements.set('resource_panel', resourcePanel.getElement());
+    const stripHost = this.createStripHost();
+    hosts.host(PANEL_PLACEMENT.resource_panel).appendChild(stripHost);
+    this.panelElements.set('resource_panel', stripHost);
 
     // ── Phase 2+ panels are NOT mounted at boot ──
     // They are created lazily via createPanel() when their phase is entered.
@@ -377,6 +382,18 @@ export class UIRoot {
     this.panelElements.set(panelId, element);
 
     return element;
+  }
+
+  /**
+   * The `resource_panel` host: the resource strip and its sheet replace the
+   * legacy ResourcePanel (Story 1.16). The `.resource-panel` class stays as a hook.
+   */
+  private createStripHost(): HTMLElement {
+    const host = document.createElement('div');
+    host.className = 'resource-panel';
+    host.setAttribute('data-resource-panel', '');
+    this.mountStrip?.(host);
+    return host;
   }
 
   /**
