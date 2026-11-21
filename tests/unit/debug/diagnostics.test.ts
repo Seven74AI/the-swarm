@@ -38,6 +38,11 @@ describe('diagnostics export', () => {
     expect(parsed.log.map((l: LogEntry) => l.message)).toEqual(logs.map((l) => l.message));
   });
 
+  it('says what the persistent-storage request came to (Story 2.12)', () => {
+    expect(JSON.parse(buildDiagnostics({ ...base, storage: 'granted', log: [] })).storage).toBe('granted');
+    expect(JSON.parse(buildDiagnostics({ ...base, log: [] })).storage).toBeNull();
+  });
+
   it('names the seed the state ran with (Story 1.34)', () => {
     const parsed = JSON.parse(buildDiagnostics({ ...base, seed: 4242, log: [] }));
     expect(parsed.seed).toBe(4242);

@@ -5,7 +5,7 @@ import type { HapticPattern, Haptics } from '../../../src/platform/haptics';
 import { createSettingsStore } from '../../../src/platform/settings';
 import { EVENT_NAMES, EVENT_SAMPLES } from '../helpers/eventSamples';
 
-const caps = { vibrate: true, standalone: false, reducedMotion: false, moreContrast: false };
+const caps = { vibrate: true, standalone: false, reducedMotion: false, moreContrast: false, mobile: false };
 
 function recorder(): Haptics & { played: HapticPattern[] } {
   const played: HapticPattern[] = [];

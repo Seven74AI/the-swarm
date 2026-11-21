@@ -388,3 +388,20 @@ test.describe('reduced motion', () => {
     await expect(page.locator('html')).toHaveAttribute('data-crt', 'full');
   });
 });
+
+test.describe('Accessibility: the add-to-home-screen hint (Story 2.12)', () => {
+  test('passes axe, takes focus and reads no decoration', async ({ page }) => {
+    await page.setViewportSize(PHONE);
+    // A mobile browser (coarse pointer) that isn't the installed app, past the first phase.
+    await page.addInitScript(() => {
+      const real = window.matchMedia.bind(window);
+      window.matchMedia = (q: string) => (q === '(pointer: coarse)' ? ({ ...real(q), matches: true } as MediaQueryList) : real(q));
+    });
+    await seed(page, COMBAT);
+    const dialog = page.getByRole('dialog', { name: 'ADD THE GAME TO YOUR HOME SCREEN.' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('[data-sheet-headline]')).toBeFocused();
+    expect(await axe(page)).toEqual([]);
+    expect((await spokenTree(page)).split('\n').filter((l) => DECORATION.test(l))).toEqual([]);
+  });
+});

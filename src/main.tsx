@@ -63,6 +63,8 @@ import { createAnnouncer } from './ui/shell/announcer';
 import { bindAnnouncements, battleLine, IMPORT_FAILED_LINE, SAVE_FAILED_LINE, SAVE_RECOVERED_LINE } from './ui/shell/announcements';
 import { SaveFailedMarker } from './ui/shell/SaveFailedMarker';
 import { openUnreadableSave } from './ui/sheets/UnreadableSaveSheet';
+import { openHomeScreenHint } from './ui/sheets/HomeScreenHintSheet';
+import { bindDurability } from './persistence/durability';
 import { createWebPlatform, type Platform } from './platform';
 import { bindHapticFeedback, bindSoundSetting } from './platform/feedback';
 
@@ -376,6 +378,7 @@ export function bootstrap(): {
       seed: state.seed,
       settings: platform.settings.settings.value,
       capabilities: platform.capabilities,
+      storage: platform.durability.status(),
       log: log.entries(),
     });
     if (!platform.browser.download(DIAGNOSTICS_FILENAME, text)) log.warn('diagnostics', 'export download failed');
@@ -616,6 +619,17 @@ export function bootstrap(): {
   // of any decision sheet the first ticks request (Story 1.14).
   if (offlineSummary) showOfflineSummary(offlineSummary);
   uiReady = true;
+
+  // Durability (Story 2.12, D4): at the first meaningful play (the first committed phase,
+  // or a load already past it) ask for persistent storage once and log the answer; on a
+  // mobile browser that isn't the installed app, show the add-to-home-screen hint once.
+  // Bound after the offline summary, so the hint waits behind it.
+  bindDurability({
+    bus,
+    phase: () => gameState.peek().phase,
+    durability: platform.durability,
+    openHint: () => void openHomeScreenHint(sheets),
+  });
 
   // A cold load resumes once, from the save's lastSeenAt, AFTER the UI and its listeners
   // are bound: a goal the catch-up latches is then seen and announced like any other
