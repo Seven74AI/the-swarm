@@ -1,4 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
+import { settleReveals } from './helpers/reveal';
+import { openTab } from './helpers/tabs';
 
 /**
  * Story 1.22 (FR1, FR41, UX-DR18, UX-DR30): the NEST tab. Phase 1 reads top to
@@ -26,6 +28,7 @@ async function seed(page: Page, gameState: Record<string, unknown>, settings?: R
   );
   await page.goto('/');
   await expect(page.locator('[data-shell]')).toBeVisible();
+  await settleReveals(page);
 }
 
 const state = (page: Page) =>
@@ -74,6 +77,38 @@ test.describe('NEST tab', () => {
     for (let i = 1; i < ys.length; i++) expect(ys[i], order[i]).toBeGreaterThan(ys[i - 1]);
     await expect(page.locator('[data-primary-zone] #click-egg')).toContainText('LAY EGG');
     await expect(page.locator('[data-primary-zone] #click-egg [data-prefix]')).toHaveText('> ');
+  });
+
+  test('a staggered panel reveal never jumps LAY EGG down after it is drawn', async ({ page }) => {
+    // A reveal with an animation-delay must hold its start pose during the delay;
+    // showing the button in place and then snapping it 30px down moved it from under
+    // a thumb (and made the hold test below flaky).
+    await page.addInitScript(() => {
+      const ys: number[] = [];
+      (window as unknown as { __eggYs: number[] }).__eggYs = ys;
+      const t0 = performance.now();
+      const sample = () => {
+        const el = document.querySelector('#click-egg');
+        if (el && el.getClientRects().length) ys.push(el.getBoundingClientRect().y);
+        if (performance.now() - t0 < 2500) requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+    });
+    await seed(page, EGG_LAYING);
+    await expect.poll(() => page.evaluate(() => (window as unknown as { __eggYs: number[] }).__eggYs.length), { timeout: 5000 }).toBeGreaterThan(30);
+    await page.waitForTimeout(1500);
+    const ys = await page.evaluate(() => (window as unknown as { __eggYs: number[] }).__eggYs);
+    for (let i = 1; i < ys.length; i++) expect(ys[i], `frame ${i}: ${ys[i - 1]} → ${ys[i]}`).toBeLessThanOrEqual(ys[i - 1] + 0.5);
+  });
+
+  test('switching tabs never replays the panel reveal', async ({ page }) => {
+    await seed(page, COLONY);
+    await openTab(page, 'wrkr');
+    await openTab(page, 'nest');
+    const running = await page.evaluate(() =>
+      document.getAnimations().filter((a) => (a.effect as KeyframeEffect | null)?.target?.matches('.panel-revealed')).length,
+    );
+    expect(running).toBe(0);
   });
 
   test('a tap lays eggs through the action with a +N response; a hold repeats', async ({ page }) => {
@@ -150,6 +185,10 @@ test.describe('NEST tab', () => {
   });
 
   test('after Phase 1 the primary action follows the next-action rule, and the scene still lays eggs', async ({ page }) => {
+    // Freeze the game clock: with gatherers working, an item becomes affordable within
+    // about a second, so the 'none' line is only stable while no ticks run.
+    await page.clock.install();
+    await page.clock.pauseAt(Date.now() + 1000);
     await seed(page, COLONY);
     await expect(page.locator('[data-tab-bar]')).toBeVisible();
     const zone = page.locator('[data-primary-for="nest"] [data-next-action]');
@@ -162,6 +201,7 @@ test.describe('NEST tab', () => {
 
     const before = (await state(page)).stats.totalClicks;
     await page.locator('[data-nest-scene] #click-egg').click();
+    await page.clock.runFor(200); // let a few ticks apply the tap
     await expect.poll(async () => (await state(page)).stats.totalClicks).toBeGreaterThan(before);
   });
 

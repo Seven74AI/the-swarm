@@ -274,32 +274,6 @@ test.describe('Golden Path — Full Progression', () => {
     await expect(engageBtn).not.toHaveAttribute('aria-disabled', 'true', { timeout: 3000 });
   });
 
-  test('clicking Build on barracks increments its level', async ({ page }) => {
-    // Barracks card shows its level change (Story 1.24: `LV.n → n+1`)
-    const barracksRow = page.locator('[data-building="barracks"]');
-    const labelBefore = await visibleText(barracksRow.locator('.card__level'));
-
-    // BUY on barracks (may need to wait for resources from gatherers)
-    const buildBtn = barracksRow.locator('[data-action="buy-building"]');
-    // Run some ticks to accumulate food/wood from gatherers
-    await page.waitForTimeout(2000);
-    // Button may still be disabled if cost is high — check if enabled or skip
-    const isEnabled = await buildBtn.isEnabled();
-    if (!isEnabled) {
-      test.skip(true, 'Barracks Lv.3 cost exceeds available resources');
-      return;
-    }
-    await buildBtn.dispatchEvent('click');
-
-    // Wait for UI update
-    await page.waitForTimeout(500);
-
-    // Label should have changed (Lv.2 → Lv.3)
-    const labelAfter = await visibleText(barracksRow.locator('.card__level'));
-    expect(labelAfter).not.toBe(labelBefore);
-    expect(labelAfter).toContain('LV.3');
-  });
-
   // ─── Save / Load ────────────────────────────────────────────────
 
   test('save and reload preserves complex state', async ({ page }) => {
@@ -391,5 +365,50 @@ test.describe('Golden Path — Full Progression', () => {
     // ─── Verify combat resources preserved ────────────────────────
     // Returning expeditions may add drops; nothing spends them here.
     expect(await readResource(page, 'chitin')).toBeGreaterThanOrEqual(chitinBefore);
+  });
+});
+
+test.describe('Golden Path — building with resources to spare', () => {
+  // Same seed with plenty of every resource, so the BUY is affordable for certain
+  // (the main seed's stock is only enough on some runs, so this used to skip itself).
+  const RICH_SEED = {
+    ...SEED,
+    gameState: {
+      ...SEED.gameState,
+      resources: Object.fromEntries(
+        Object.entries(SEED.gameState.resources).map(([k, v]) => [k, k === 'nestCapacity' || k === 'workers' ? v : Math.max(v, 1) * 1000]),
+      ),
+    },
+  };
+
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript((seedStr) => {
+      localStorage.setItem('the_swarm_save', seedStr);
+    }, JSON.stringify({ ...RICH_SEED, timestamp: Date.now() }));
+    await page.goto('/');
+    await page.waitForSelector('#panels', { timeout: 10000 });
+    await tapContinue(page);
+    await expect(page.locator('#phase-indicator')).toContainText('The Expansion', { timeout: 15000 });
+  });
+
+  test('clicking Build on barracks increments its level', async ({ page }) => {
+    await openTab(page, 'build');
+    // Barracks card shows its level change (Story 1.24: `LV.n → n+1`)
+    const barracksRow = page.locator('[data-building="barracks"]');
+    const levelBefore = SEED.gameState.buildings.barracks.level;
+    const buildBtn = barracksRow.locator('[data-action="buy-building"]');
+    await expect(buildBtn).toBeEnabled();
+    await buildBtn.dispatchEvent('click');
+
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            (window as unknown as { __swarm: { manager: { getState(): { buildings: { barracks: { level: number } } } } } }).__swarm.manager.getState()
+              .buildings.barracks.level,
+        ),
+      )
+      .toBe(levelBefore + 1);
+    await expect.poll(() => visibleText(barracksRow.locator('.card__level'))).toContain(`LV.${levelBefore + 1}`);
   });
 });
