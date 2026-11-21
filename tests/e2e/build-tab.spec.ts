@@ -78,13 +78,41 @@ test.describe('BUILD tab', () => {
     await openTab(page, 'build');
     const build = page.locator('[data-tab-panel="build"]');
     for (const id of ['barracks', 'walls', 'warehouse', 'fungus_garden', 'tunnels']) await expect(build.locator(`[data-building="${id}"]`)).toBeVisible();
-    for (const id of ['silk_weaving', 'chitin_armory', 'venom_lab']) await expect(build.locator(`[data-building="${id}"]`)).toHaveCount(0);
+    for (const id of ['silk_weaving', 'chitin_armory', 'venom_lab', 'midden']) await expect(build.locator(`[data-building="${id}"]`)).toHaveCount(0);
     const buy = build.locator('[data-building="walls"] [data-action="buy-building"]');
     await expect(buy).not.toHaveAttribute('aria-disabled', 'true');
     const before = await state(page);
     await buy.click();
     await expect.poll(async () => (await state(page)).walls).toBeGreaterThan(before.walls);
     await expect.poll(() => visibleText(build.locator('[data-building="walls"] .card__level'))).toContain(`LV.${before.walls + 1} →`);
+  });
+
+  test('in Combat BUILD adds the Midden, BUY levels it up, and a built workshop shows MAX (Story 4.8)', async ({ page }) => {
+    await seed(page, {
+      ...colony(0),
+      phase: 'combat',
+      resources: { ...colony(0).resources, stone: 1_000_000 },
+      upgrades: { click_power: 40 },
+      buildings: { chitin_armory: { level: 1 } },
+      research: { projects: { dormantForaging: { status: 'done' } } },
+    });
+    await openTab(page, 'build');
+    const build = page.locator('[data-tab-panel="build"]');
+    const armory = build.locator('[data-building="chitin_armory"]');
+    await expect(armory.locator('.card__level')).toContainText('MAX');
+    await expect(armory.locator('[data-action="buy-building"]')).toHaveAttribute('aria-disabled', 'true');
+    const midden = build.locator('[data-building="midden"]');
+    await expect(midden.locator('.card__effect')).toContainText('CHITIN PER FALLEN SOLDIER');
+    const buy = midden.locator('[data-action="buy-building"]');
+    await expect(buy).not.toHaveAttribute('aria-disabled', 'true');
+    const level = () =>
+      page.evaluate(() => {
+        // @ts-ignore - runs in browser context
+        return window.__swarm.manager.getState().buildings.midden.level as number;
+      });
+    const before = await level();
+    await buy.click();
+    await expect.poll(level).toBeGreaterThan(before);
   });
 
   test('the highlighted card is the one > BUY buys', async ({ page }) => {

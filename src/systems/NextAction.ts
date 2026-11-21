@@ -12,6 +12,7 @@ import { TerritorySystem } from './TerritorySystem';
 import { MUTATIONS, canPurchaseMutation } from './MutationSystem';
 import { getEquipmentUpgradeCost } from './SoldierSystem';
 import { soldierBalance } from '../data/balance/soldiers';
+import { combatBalance } from '../data/balance/combat';
 import { MAX_SHIP_LEVEL, canAffordShipCost, getShipCost } from './SpaceshipSystem';
 import { OFFLINE_RESEARCH_ID, canStartProject, getAssignedResearchers, getProjectStatus, getProjects } from './ResearchSystem';
 import { canBuildParticleLab, getParticleLabCost, isParticleLabOpen } from './ResourceConversionSystem';
@@ -241,8 +242,17 @@ export type ItemEffects = Readonly<Record<string, number>>;
  * An item's effects as data, for the "none strictly dominant" checks (FR19,
  * Stories 4.6–4.8): what buying it once more adds in this state. An upgrade's
  * is one level's `perLevel` (Story 4.6); a building's is its next level's
- * effects less its current ones; null for items not yet described this way.
+ * effects less its current ones; equipment's is its next level's stat gains
+ * and a mutation's its effects (Story 4.8); null for items not yet described
+ * this way.
  */
+/** The numeric fields above zero (marks and other non-numbers dropped). */
+function positives(o: Readonly<Record<string, unknown>>): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(o)) if (typeof v === 'number' && v > 0) out[k] = v;
+  return out;
+}
+
 export function itemEffects(s: GameState, ref: ItemRef): ItemEffects | null {
   switch (ref.kind) {
     case 'upgrade': {
@@ -259,6 +269,16 @@ export function itemEffects(s: GameState, ref: ItemRef): ItemEffects | null {
       for (const [k, v] of Object.entries(next)) if (v - (now[k] ?? 0) > 0) gain[k] = v - (now[k] ?? 0);
       return gain;
     }
+    case 'equipment': {
+      // Story 4.8: the next level's stat gains (`combatBalance.equipment`), none past the last level.
+      const level: Readonly<Record<string, unknown>> | undefined = combatBalance.equipment[ref.id][s.equipment[ref.id]];
+      return level ? positives(level) : {};
+    }
+    case 'mutation': {
+      // Story 4.8: the colony and fight effects the mutation adds.
+      const def = MUTATIONS.find((m) => m.id === ref.id);
+      return def ? positives(def.effects) : null;
+    }
     case 'research':
       return ref.id === OFFLINE_RESEARCH_ID ? { offlineEfficiencyPoints: OFFLINE_EFFICIENCY_STEP_POINTS } : null;
     default:
@@ -273,7 +293,7 @@ export function listItems(): ItemRef[] {
     ...NEST_UPGRADE_IDS.map((id): ItemRef => ({ kind: 'upgrade', id })),
     ...(Object.keys(RESEARCHES) as ResearchType[]).map((id): ItemRef => ({ kind: 'auto_research', id })),
     ...(Object.keys(AUTOMATION_BUILDINGS) as AutomationBuildingType[]).map((id): ItemRef => ({ kind: 'auto_building', id })),
-    ...(['warehouse', 'tunnels', 'fungus_garden', 'barracks', 'walls', 'silk_weaving', 'chitin_armory', 'venom_lab'] as const).map(
+    ...(['warehouse', 'tunnels', 'fungus_garden', 'barracks', 'walls', 'silk_weaving', 'chitin_armory', 'venom_lab', 'midden'] as const).map(
       (id): ItemRef => ({ kind: 'building', id }),
     ),
     ...MUTATIONS.map((m): ItemRef => ({ kind: 'mutation', id: m.id })),

@@ -94,7 +94,7 @@ const PHASES: ReadonlySet<string> = new Set(Object.values(Phase));
  */
 export class SaveManager {
   /** The save format's version; each step up has a migration in migrations.ts. */
-  static readonly SAVE_VERSION = 28;
+  static readonly SAVE_VERSION = 29;
   private static AUTOSAVE_INTERVAL_MS = 30_000;
   /** Minimum interval between action-triggered saves (5 seconds). */
   private static ACTION_SAVE_INTERVAL_MS = 5_000;

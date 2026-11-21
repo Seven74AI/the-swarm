@@ -5,6 +5,7 @@ import { upgradeCost } from '../utils/math';
 import { completedShare } from '../utils/decay';
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
 import { getMutationEffects } from './MutationSystem';
+import { getEffects } from './BuildingSystem';
 import { MS_PER_SEC } from '../data/constants';
 import { soldierBalance as B } from '../data/balance/soldiers';
 import { combatBalance } from '../data/balance/combat';
@@ -146,8 +147,10 @@ export function getSoldierStrength(state: GameState): number {
   return B.baseStrength + equipmentGain('weapon', state.equipment.weapon, 'strength') + getMutationEffects(state).strength;
 }
 
+/** Defence: the base and the armor, raised by the Walls' share (Story 4.8: the card's DEFENSE +N % now holds in battle). */
 export function getSoldierDefense(state: GameState): number {
-  return B.baseDefense + equipmentGain('armor', state.equipment.armor, 'defense');
+  const walls = getEffects('walls', state.buildings.walls?.level ?? 0).defenseBonus ?? 0;
+  return (B.baseDefense + equipmentGain('armor', state.equipment.armor, 'defense')) * (1 + walls);
 }
 
 export function getSoldierSpeed(state: GameState): number {

@@ -28,7 +28,7 @@ import { makeState } from '../helpers/makeState';
  */
 
 const COLONY_BUILDINGS: readonly BuildingType[] = ['barracks', 'walls', 'warehouse', 'fungus_garden', 'tunnels'];
-const COMBAT_BUILDINGS: readonly BuildingType[] = ['silk_weaving', 'chitin_armory', 'venom_lab'];
+const COMBAT_BUILDINGS: readonly BuildingType[] = ['silk_weaving', 'chitin_armory', 'venom_lab', 'midden'];
 const ALL_BUILDINGS = Object.keys(BUILDING_UNLOCK_PHASE) as BuildingType[];
 /** Far enough up the levels to pass the Lv.5 surcharge a few times over. */
 const LEVELS_PROBED = 15;

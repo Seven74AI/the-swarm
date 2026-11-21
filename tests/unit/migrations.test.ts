@@ -871,3 +871,38 @@ describe('v27 → v28: the Colony buildings (Story 4.7, FR19)', () => {
     expect(out.gameState).toEqual({ phase: 'colony' });
   });
 });
+
+describe('v28 → v29: the Midden (Story 4.8, FR19)', () => {
+  const v28 = (gs: unknown): SaveData => ({
+    version: 28,
+    timestamp: 1_700_000_000_000,
+    playTimeMs: 0,
+    gameState: gs as GameState,
+  });
+  /** A v28 state: its buildings have no Midden. */
+  const withoutMidden = () => {
+    const s = structuredClone(createInitialState()) as unknown as { buildings: Record<string, unknown> };
+    const { midden: _drop, ...buildings } = s.buildings;
+    return { ...s, buildings: { ...buildings, walls: { level: 4 } } };
+  };
+
+  it('adds an unbuilt Midden and keeps every other building', () => {
+    const before = withoutMidden();
+    const out = migrateSave(v28(structuredClone(before)), 28, 29);
+    expect(out.version).toBe(29);
+    expect(out.gameState.buildings.midden).toEqual({ level: 0 });
+    expect(out.gameState.buildings).toMatchObject(before.buildings as object);
+  });
+
+  it('keeps a Midden already there', () => {
+    const s = withoutMidden();
+    const out = migrateSave(v28({ ...s, buildings: { ...s.buildings, midden: { level: 2 } } }), 28, 29);
+    expect(out.gameState.buildings.midden.level).toBe(2);
+  });
+
+  it('a partial save without buildings is left for the defaults', () => {
+    const out = migrateSave(v28({ phase: 'combat' }), 28, 29);
+    expect(out.version).toBe(29);
+    expect(out.gameState).toEqual({ phase: 'combat' });
+  });
+});

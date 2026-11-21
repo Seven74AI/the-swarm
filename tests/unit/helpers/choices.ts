@@ -35,13 +35,30 @@ export function byCurrency(s: GameState, items: readonly ItemRef[]): Map<keyof I
  * names, and gives at least as much of every effect either gives.
  */
 export function dominates(s: GameState, a: ItemRef, b: ItemRef): boolean {
-  const costA = itemCost(s, a) ?? {};
-  const costB = itemCost(s, b) ?? {};
-  const stocks = new Set([...Object.keys(costA), ...Object.keys(costB)]) as Set<keyof ItemCost>;
-  const cheaper = [...stocks].every((k) => (costA[k] ?? 0) <= (costB[k] ?? 0));
-  const effA = itemEffects(s, a) ?? {};
-  const effB = itemEffects(s, b) ?? {};
-  const kinds = new Set([...Object.keys(effA), ...Object.keys(effB)]);
-  const better = [...kinds].every((k) => (effA[k] ?? 0) >= (effB[k] ?? 0));
+  return dominatesProfile(
+    { cost: itemCost(s, a) ?? {}, effects: itemEffects(s, a) ?? {} },
+    { cost: itemCost(s, b) ?? {}, effects: itemEffects(s, b) ?? {} },
+  );
+}
+
+/**
+ * A purchase as the dominance check sees it: its price by stock and its
+ * effects by name (every value a gain; a key one side lacks counts as 0).
+ * Story 4.8 measures Combat's effects in the fight and passes them here.
+ */
+export interface Profile {
+  readonly cost: Readonly<Record<string, number | undefined>>;
+  readonly effects: Readonly<Record<string, number | undefined>>;
+}
+
+/** Effects closer than this count as equal (measured fights are not exact). */
+const EPSILON = 1e-9;
+
+/** `a` costs the same or less on every stock either names and gives at least as much of every effect either gives. */
+export function dominatesProfile(a: Profile, b: Profile): boolean {
+  const stocks = new Set([...Object.keys(a.cost), ...Object.keys(b.cost)]);
+  const cheaper = [...stocks].every((k) => (a.cost[k] ?? 0) <= (b.cost[k] ?? 0));
+  const kinds = new Set([...Object.keys(a.effects), ...Object.keys(b.effects)]);
+  const better = [...kinds].every((k) => (a.effects[k] ?? 0) >= (b.effects[k] ?? 0) - EPSILON);
   return cheaper && better;
 }

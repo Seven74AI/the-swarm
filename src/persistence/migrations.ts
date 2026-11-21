@@ -726,6 +726,20 @@ function migrateV27toV28(data: SaveData): SaveData {
   return { ...data, version: 28, gameState: { ...gs, buildings: next } as unknown as GameState };
 }
 
+/**
+ * v28 → v29 (Story 4.8): the Midden, a Combat building where each fallen
+ * soldier leaves chitin. Saves get it unbuilt; a level a save already holds is
+ * kept; a partial save without buildings is left for SaveManager's defaults.
+ */
+function migrateV28toV29(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  const buildings = gs.buildings;
+  if (buildings === null || typeof buildings !== 'object' || Array.isArray(buildings)) return { ...data, version: 29 };
+  const b = buildings as Record<string, unknown>;
+  if (b.midden !== null && typeof b.midden === 'object') return { ...data, version: 29 };
+  return { ...data, version: 29, gameState: { ...gs, buildings: { ...b, midden: { level: 0 } } } as unknown as GameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -755,6 +769,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   25: migrateV25toV26,
   26: migrateV26toV27,
   27: migrateV27toV28,
+  28: migrateV28toV29,
 };
 
 /**

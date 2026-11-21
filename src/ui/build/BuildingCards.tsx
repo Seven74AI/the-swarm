@@ -4,6 +4,7 @@ import { formatFull } from '../../utils/format';
 import { Button } from '../primitives/Button';
 import { Card } from '../primitives/Card';
 import { BUILDING_CARDS, type BuildingCardDef } from './buildCatalog';
+import { BUILDING_MAX_LEVEL } from '../../data/content/buildings';
 import { PriceText, shortfallOf } from './cost';
 import './build.css';
 
@@ -37,6 +38,8 @@ function effectLine(id: BuildingType, level: number): string {
       return level >= 1 ? 'WEAPON UPGRADES UNLOCKED' : 'UNLOCKS WEAPON UPGRADES';
     case 'venom_lab':
       return `POISON LV.${whole(now.venomLabLevel)} → ${whole(next.venomLabLevel)} · USES VENOM IN BATTLE`;
+    case 'midden':
+      return `CHITIN PER FALLEN SOLDIER ${whole(now.salvagePerFallen)} → ${whole(next.salvagePerFallen)}`;
   }
 }
 
@@ -48,17 +51,19 @@ function BuildingCard({ def, selected, buy }: { def: BuildingCardDef; selected: 
   // A level whose price names a resource nothing makes yet waits (Story 3.5).
   const open = selectBuildingOpen(def.id).value;
   const price = getBuildCost(def.id, level + 1);
+  // A workshop stops at the level that opens its equipment (Story 4.8).
+  const maxed = level >= (BUILDING_MAX_LEVEL[def.id] ?? Infinity);
   return (
     <div class="build-item" data-building={def.id}>
       <Card
         id={def.id}
         glyph={def.glyph}
         title={def.name}
-        level={`LV.${level} → ${level + 1}`}
+        level={maxed ? `LV.${level} · MAX` : `LV.${level} → ${level + 1}`}
         effect={effectLine(def.id, level)}
-        cost={<PriceText price={price} />}
+        cost={maxed ? 'BUILT' : <PriceText price={price} />}
         affordable={affordable}
-        shortfall={shortfallOf(price)}
+        shortfall={maxed ? undefined : shortfallOf(price)}
         selected={selected}
         action={
           <Button
@@ -66,7 +71,7 @@ function BuildingCard({ def, selected, buy }: { def: BuildingCardDef; selected: 
             verb="BUY"
             target={`${def.name} LV.${level + 1}`}
             repeat
-            disabled={affordable ? false : open ? 'NOT ENOUGH RESOURCES' : 'NOT YET'}
+            disabled={affordable ? false : maxed ? 'BUILT' : open ? 'NOT ENOUGH RESOURCES' : 'NOT YET'}
             onPress={() => buy(def.id)}
             data-action="buy-building"
           />

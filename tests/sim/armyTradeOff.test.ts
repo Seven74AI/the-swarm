@@ -116,6 +116,15 @@ describe('the army trade-off in the pacing harness (Story 4.4)', () => {
     expect(trained(comparison.maxArmy.checkIns, last)).toBeGreaterThan(trained(comparison.default.checkIns, last));
   });
 
+  it('both players spend Combat loot on Phase 3 purchasables, and the report lists what each bought (Story 4.8)', () => {
+    for (const run of [comparison.default, comparison.maxArmy]) {
+      expect(run.bought.length).toBeGreaterThan(0);
+      for (const item of run.bought) expect(item).toMatch(/^[A-Z][A-Z .0-9–]*$/);
+    }
+    const text = formatArmyComparison(comparison).join('\n');
+    for (const item of comparison.default.bought) expect(text).toContain(item);
+  });
+
   it('the report prints the comparison', () => {
     const text = formatArmyComparison(comparison).join('\n');
     expect(text).toMatch(/max-army/);

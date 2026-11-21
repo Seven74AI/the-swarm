@@ -46,7 +46,7 @@ describe('Building cards (Story 1.24)', () => {
   it('draws one card per building: glyph, level change, effect and cost line', () => {
     gameState.value = makeState({ phase: Phase.EXPANSION });
     const { container } = render(<BuildingCards buy={() => ({ ok: true })} />);
-    for (const id of ['barracks', 'walls', 'warehouse', 'fungus_garden', 'tunnels', 'silk_weaving', 'chitin_armory', 'venom_lab']) {
+    for (const id of ['barracks', 'walls', 'warehouse', 'fungus_garden', 'tunnels', 'silk_weaving', 'chitin_armory', 'venom_lab', 'midden']) {
       const el = building(container, id)!;
       expect(el, id).not.toBeNull();
       expect(el.querySelector('[data-card]'), id).not.toBeNull();
@@ -98,7 +98,7 @@ describe('Building cards (Story 1.24)', () => {
 
 describe('Building cards by phase (Story 3.5)', () => {
   const colonyOwn = ['barracks', 'walls', 'warehouse', 'fungus_garden', 'tunnels'];
-  const workshops = ['silk_weaving', 'chitin_armory', 'venom_lab'];
+  const workshops = ['silk_weaving', 'chitin_armory', 'venom_lab', 'midden'];
 
   it('Colony lists Barracks, Walls and Warehouse; Combat adds the workshops', () => {
     gameState.value = makeState({ phase: Phase.COLONY });
@@ -360,5 +360,32 @@ describe('Particle Lab card (Story 3.6)', () => {
     expect(gameState.value.conversions.particleLab).toBeGreaterThan(before.conversions.particleLab);
     expect(gameState.value.resources.stone).toBeLessThan(before.resources.stone);
     expect(visibleText(lab(container)!.querySelector('.card__level')!)).toMatch(/LV\.1 → 2/);
+  });
+});
+
+describe('Workshops and the Midden (Story 4.8)', () => {
+  it('a built workshop shows MAX and BUILT, and its BUY stays disabled even with plenty', () => {
+    const lots = 1e9;
+    gameState.value = makeState({
+      phase: Phase.COMBAT,
+      resources: { food: lots, wood: lots, stone: lots, nectar: lots },
+      combatResources: { chitin: lots, silk: lots, venom: lots },
+      buildings: { chitin_armory: { level: 1 }, silk_weaving: { level: 1 } },
+    });
+    const { container } = render(<BuildingCards buy={() => ({ ok: true })} />);
+    for (const id of ['chitin_armory', 'silk_weaving']) {
+      const el = building(container, id)!;
+      expect(visibleText(el.querySelector('.card__level')!), id).toMatch(/MAX/);
+      expect(el.querySelector('.card__cost')!.textContent, id).toMatch(/BUILT/);
+      expect(el.querySelector('button')!.getAttribute('aria-disabled'), id).toBe('true');
+    }
+    // The Midden has no last level: it stays on sale.
+    expect(building(container, 'midden')!.querySelector('button')!.getAttribute('aria-disabled')).not.toBe('true');
+  });
+
+  it("the Midden's effect line says what each fallen soldier leaves", () => {
+    gameState.value = makeState({ phase: Phase.COMBAT });
+    const { container } = render(<BuildingCards buy={() => ({ ok: true })} />);
+    expect(building(container, 'midden')!.querySelector('.card__effect')!.textContent).toMatch(/CHITIN PER FALLEN SOLDIER/);
   });
 });

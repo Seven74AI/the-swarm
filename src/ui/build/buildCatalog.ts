@@ -15,7 +15,7 @@ export interface BuildingCardDef {
   readonly glyph: string;
 }
 
-/** Buildings in card order: the colony's own first, then the combat workshops. */
+/** Buildings in card order: the colony's own first, then the combat workshops and the Midden. */
 export const BUILDING_CARDS: readonly BuildingCardDef[] = [
   { id: 'warehouse', name: 'WAREHOUSE', glyph: '⌂' },
   { id: 'barracks', name: 'BARRACKS', glyph: '⊓' },
@@ -25,6 +25,7 @@ export const BUILDING_CARDS: readonly BuildingCardDef[] = [
   { id: 'silk_weaving', name: 'SILK WEAVING', glyph: '≋' },
   { id: 'chitin_armory', name: 'CHITIN ARMORY', glyph: '⛉' },
   { id: 'venom_lab', name: 'VENOM LAB', glyph: '⚗' },
+  { id: 'midden', name: 'MIDDEN', glyph: '⩍' },
 ];
 
 export const RESEARCH_GLYPH = '⌕';

@@ -161,6 +161,16 @@ test.describe('sheets', () => {
     expect((await spokenTree(page)).split('\n').filter((l) => DECORATION.test(l))).toEqual([]);
   });
 
+  test('BUILD with a built workshop (MAX) and the Midden passes axe and reads no decoration (Story 4.8)', async ({ page }) => {
+    await seed(page, { ...COMBAT, buildings: { chitin_armory: { level: 1 }, midden: { level: 1 } } });
+    await openTab(page, 'build');
+    const build = page.locator('[data-tab-panel="build"]');
+    await expect(build.locator('[data-building="midden"]')).toBeVisible();
+    await expect(build.locator('[data-building="chitin_armory"] .card__level')).toContainText('MAX');
+    expect(await axe(page)).toEqual([]);
+    expect((await spokenTree(page)).split('\n').filter((l) => DECORATION.test(l))).toEqual([]);
+  });
+
   test('the offline summary passes axe, takes focus and reads no decoration (Story 2.9)', async ({ page }) => {
     // Two hours away, with upkeep outrunning food: gains, losses, a warn line and the next move.
     const away = Date.now() - 2 * 3_600_000;
