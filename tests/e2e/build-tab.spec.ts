@@ -88,8 +88,7 @@ test.describe('BUILD tab', () => {
   });
 
   test('the highlighted card is the one > BUY buys', async ({ page }) => {
-    // The offline research is done, so Click Power is the critical path's first affordable item.
-    await seed(page, { ...colony(1_000_000), research: { projects: { dormantForaging: { status: 'done' } } } });
+    await seed(page, colony(1_000_000));
     await openTab(page, 'build');
     const build = page.locator('[data-tab-panel="build"]');
     await expect(build.locator('[data-build-header]')).toHaveText('BUILD');
