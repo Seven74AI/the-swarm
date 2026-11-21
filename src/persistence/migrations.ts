@@ -837,6 +837,40 @@ function migrateV32toV33(data: SaveData): SaveData {
   return { ...data, version: 33, gameState: { ...gs, stats: { ...st, totalBattlesWon } } as unknown as GameState };
 }
 
+/** The phase order when v34 was added, frozen so a later change can't rewrite the step. */
+const V34_PHASE_ORDER = ['egg_laying', 'colony', 'combat', 'expansion', 'space', 'transcendence'] as const;
+const v34Before = (phase: unknown): string[] => {
+  const i = V34_PHASE_ORDER.indexOf(phase as (typeof V34_PHASE_ORDER)[number]);
+  return i < 0 ? [] : V34_PHASE_ORDER.slice(0, i);
+};
+
+/**
+ * v33 → v34 (Story 5.6, FR32): `lifetime.phasesCompleted`, derived from what
+ * the save records. Only commit moves the phase forward, so every phase before
+ * the current one is completed; a seen reveal means its phase was entered, so
+ * the phases before it are too; a prestige needs Lv.5 buildings that cost
+ * Combat loot, so Egg Laying and Colony; the victory means every phase before
+ * Transcendence. Anything the save doesn't show stays not completed. A list
+ * already there is kept; a save without `lifetime` is left for the defaults.
+ */
+function migrateV33toV34(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  const lifetime = gs.lifetime;
+  if (lifetime === null || typeof lifetime !== 'object') return { ...data, version: 34 };
+  const lt = lifetime as Record<string, unknown>;
+  if (Array.isArray(lt.phasesCompleted)) return { ...data, version: 34 };
+  const prestige = gs.prestige as { count?: unknown } | null | undefined;
+  const seen = Array.isArray(lt.revealsSeen) ? lt.revealsSeen : [];
+  const implied = new Set<string>([
+    ...v34Before(gs.phase),
+    ...seen.flatMap(v34Before),
+    ...(wholeCount(prestige?.count) > 0 ? v34Before('combat') : []),
+    ...(gs.victoryAchieved === true ? v34Before('transcendence') : []),
+  ]);
+  const phasesCompleted = V34_PHASE_ORDER.filter((p) => implied.has(p));
+  return { ...data, version: 34, gameState: { ...gs, lifetime: { ...lt, phasesCompleted } } as unknown as GameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -871,6 +905,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   30: migrateV30toV31,
   31: migrateV31toV32,
   32: migrateV32toV33,
+  33: migrateV33toV34,
 };
 
 /**

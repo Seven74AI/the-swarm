@@ -5,7 +5,7 @@ import { PHASE_ORDER } from '../../src/phases/phases';
 import { PRESTIGE_UPGRADES } from '../../src/data/prestigeTree';
 import { prestigeBalance } from '../../src/data/balance/prestige';
 import { DECISION_IDS } from '../../src/data/content/decisions';
-import { PRESTIGE_KEEPS, legacyPointsAward, prestige } from '../../src/systems/PrestigeSystem';
+import { PRESTIGE_KEEPS, legacyPointsAward, prestige, startPhaseFor } from '../../src/systems/PrestigeSystem';
 import { getPrestigeBonuses } from '../../src/systems/PrestigeBonusSystem';
 import { peekEnemy } from '../../src/systems/EnemySystem';
 import { EventBus } from '../../src/engine/EventBus';
@@ -145,10 +145,10 @@ describe('prestige wipes the run (Story 5.3, FR30)', () => {
     );
   });
 
-  it('the run starts in Egg Laying, or Colony with Phase Skip', () => {
+  it('the run starts in Egg Laying, or where Phase Skip starts it (Story 5.6 caps that at the first phase not completed)', () => {
     fc.assert(
       fc.property(runState, (s) => {
-        expect(prestige(s).phase).toBe(getPrestigeBonuses(s).phaseSkip ? 'colony' : 'egg_laying');
+        expect(prestige(s).phase).toBe(getPrestigeBonuses(s).phaseSkip ? startPhaseFor(s) : 'egg_laying');
       }),
       { numRuns: 60 },
     );

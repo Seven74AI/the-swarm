@@ -270,6 +270,8 @@ describe('PrestigeSystem', () => {
       s.buildings.walls.level = 5;
       s.buildings.warehouse.level = 5;
       s.prestige = { count: 1, legacyPoints: 5, lifetimeLpEarned: 5, totalFoodProduced: 200_000, totalWoodProduced: 0, totalStoneProduced: 0, totalNectarProduced: 0 };
+      // A colony that has prestiged has played through the early phases (Story 5.6: Phase Skip skips only those).
+      s.lifetime = { ...s.lifetime, phasesCompleted: ['egg_laying', 'colony'] };
       return s;
     }
 

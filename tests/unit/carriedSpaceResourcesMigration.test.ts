@@ -55,7 +55,8 @@ function expectRecordKept(before: GameState, after: GameState): void {
   expect(after.prestigeTree).toEqual(before.prestigeTree);
   // Later steps may add a stat (v33: the lifetime battles tally); none the save held changes.
   expect(after.stats).toMatchObject(before.stats);
-  expect(after.lifetime).toEqual(before.lifetime);
+  // Later steps may add to the lifetime record (v34: phasesCompleted); nothing it held changes.
+  expect(after.lifetime).toMatchObject(before.lifetime);
   expect(after.victoryAchieved).toBe(before.victoryAchieved);
 }
 

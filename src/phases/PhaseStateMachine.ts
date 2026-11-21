@@ -57,7 +57,10 @@ export class PhaseStateMachine {
   commit(transition: Transition, state: GameState, events: EventSink): GameState {
     events.emit('phase_committed', { from: transition.from, to: transition.to });
     const entered = transition.onEnter ? transition.onEnter(state, events) : state;
-    return { ...entered, phase: transition.to, phaseGoal: null };
+    // The phase left is completed for good (Story 5.6): Phase Skip may skip it in later runs.
+    const done = entered.lifetime.phasesCompleted;
+    const phasesCompleted = done.includes(transition.from) ? done : [...done, transition.from];
+    return { ...entered, phase: transition.to, phaseGoal: null, lifetime: { ...entered.lifetime, phasesCompleted } };
   }
 }
 
