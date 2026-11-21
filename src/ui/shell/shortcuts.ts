@@ -3,15 +3,15 @@ import type { KeyBindings, Settings, ShortcutId } from '../../platform/settings'
 import type { SheetController } from './SheetController';
 
 /**
- * Keyboard shortcuts (Story 1.30; FR47, UX-DR41, ADR 0020).
+ * Keyboard shortcuts (Story 1.30; FR47, UX-DR41, ADR 0021).
  *
  * One `keydown` listener on the document acts on the player's bindings
  * (`settings.keyBindings`, remapped on the settings screen, Story 1.27):
  * - `primary` (Space) presses the active tab's primary action, the button in the
- *   visible primary-zone slot, exactly as a tap would (`click()`), only when
+ *   visible primary-zone slot (on desktop columns, the one in columns 2–3), exactly as a tap would (`click()`), only when
  *   focus is on the page or on that button. A focused control keeps Space and
  *   Enter (a stepper, a card action, a hold-to-confirm).
- * - `tab1`–`tab5` (1–5) press the Nth tab of the visible tab bar.
+ * - `tab1`–`tab5` (1–5) press the Nth tab of the visible tab bar (the rail on desktop).
  * - `pause` (P) calls `pause` (UIRoot's pause toggle). Space no longer pauses.
  * - `close` (Esc) dismisses the open sheet through the SheetController; a
  *   decision sheet is never dismissed (`SheetController.dismiss`).
@@ -61,9 +61,17 @@ export function shortcutFor(bindings: KeyBindings, key: string): ShortcutId | nu
   return null;
 }
 
-/** The active tab's primary button: the first primary button in the visible slot of the primary zone. */
+/**
+ * The active tab's primary button: the first primary button in the visible slot of the primary zone.
+ * On desktop columns (Story 1.29) two slots show; the action is the one in columns 2–3, not NEST's.
+ */
 export function primaryButton(root: ParentNode): HTMLElement | null {
-  const slot = [...root.querySelectorAll<HTMLElement>('[data-primary-zone] > *')].find((s) => !s.hidden);
+  const slots = [...root.querySelectorAll<HTMLElement>('[data-primary-zone] > *')].filter((s) => !s.hidden);
+  const columns = root.querySelector('[data-shell][data-layout="columns"]') !== null;
+  const columnSlot = columns
+    ? slots.find((s) => s.hasAttribute('data-primary-for') && s.getAttribute('data-primary-for') !== 'nest')
+    : undefined;
+  const slot = columnSlot ?? slots[0];
   if (!slot) return null;
   return slot.querySelector<HTMLElement>('button[data-kind="primary"]') ?? slot.querySelector<HTMLElement>('button');
 }

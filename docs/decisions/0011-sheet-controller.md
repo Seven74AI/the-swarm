@@ -30,7 +30,7 @@ the resource sheet, the corrupt-save sheet and the map/star/chamber peeks are st
     headline, Tab wraps inside, focus that lands outside is pulled back, and focus returns to the trigger on close.
     Dismissible (default): one `action` plus `[ CLOSE ]` (`[data-sheet-close]`, relabel with `closeLabel`); closes by
     swipe down (`SWIPE_CLOSE_PX`, started off a control), scrim tap, `[ CLOSE ]` or Esc (since Story 1.30 the
-    close shortcut, through `SheetController.dismiss()`: ADR 0020).
+    close shortcut, through `SheetController.dismiss()`: ADR 0021).
     `dismissible={false}` (decision sheets): at most two `actions`, no `[ CLOSE ]`, ignores Esc, scrim and swipe, and its
     scrim lets taps through (`data-passthrough`) because the colony keeps running beneath it.
   - `PeekSheet`: no scrim, ≤ 160 px, header naming the target (`[data-sheet-header]`), one action plus `[ CLOSE ]`,

@@ -112,3 +112,32 @@ test('a tip shows on tap as on hover, and Esc dismisses it', async ({ page }) =>
   await expect(tip).not.toHaveAttribute('data-tip-open', '');
   await expect(tip).toHaveAttribute('data-tip-dismissed', '');
 });
+
+test('desktop columns: tab keys pick columns 2–3 and Space presses the action there, not NEST’s', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await boot(page, { gameState: COLONY });
+  await expect(page.locator('[data-shell]')).toHaveAttribute('data-layout', 'columns');
+  const order = await page.locator('[data-tab-bar] [data-tab]').evaluateAll((els) => els.map((e) => e.getAttribute('data-tab')));
+  const i = order.indexOf('build');
+  expect(i).toBeGreaterThan(0);
+  const other = order.findIndex((t) => t !== 'nest' && t !== 'build');
+  await page.keyboard.press(String(other + 1));
+  await expect(page.locator(`[data-tab-panel="${order[other]}"]`)).toBeVisible();
+  await page.keyboard.press(String(i + 1));
+  await expect(page.locator('[data-tab-panel="build"]')).toBeVisible();
+  await expect(page.locator('[data-tab-panel="nest"]')).toBeVisible();
+
+  const columnPrimary = page.locator('[data-primary-for="build"] button').first();
+  await expect(columnPrimary).toBeVisible();
+  await page.evaluate(() => {
+    const w = window as any;
+    w.__presses = { build: 0, nest: 0 };
+    for (const tab of ['build', 'nest']) {
+      document.querySelector(`[data-primary-for="${tab}"]`)?.addEventListener('click', () => w.__presses[tab]++, true);
+    }
+    (document.activeElement as HTMLElement | null)?.blur();
+  });
+  await page.keyboard.press('Space');
+  await expect.poll(() => page.evaluate(() => (window as any).__presses.build)).toBe(1);
+  expect(await page.evaluate(() => (window as any).__presses.nest)).toBe(0);
+});

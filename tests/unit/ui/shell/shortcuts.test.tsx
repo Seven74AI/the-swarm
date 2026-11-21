@@ -22,9 +22,10 @@ import { confirmSettings } from '../../helpers/confirm';
  * and never fire while typing, during a hold, a remap, or an overlay.
  */
 
-function setup(phase: Phase = Phase.COLONY, initial: Partial<ShortcutSettings> = {}) {
+function setup(phase: Phase = Phase.COLONY, initial: Partial<ShortcutSettings> = {}, wideAtStart = false) {
   const ph = signal(phase);
-  const shell = createTabShell({ phase: ph, affordable: signal('') });
+  const wide = signal(wideAtStart);
+  const shell = createTabShell({ phase: ph, affordable: signal(''), wide });
   const settings = signal<ShortcutSettings>({
     keyboardShortcuts: true,
     keyBindings: DEFAULT_KEY_BINDINGS,
@@ -67,8 +68,8 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
-function make(phase?: Phase, initial?: Partial<ShortcutSettings>) {
-  const s = setup(phase, initial);
+function make(phase?: Phase, initial?: Partial<ShortcutSettings>, wide = false) {
+  const s = setup(phase, initial, wide);
   cleanups.push(s.unbind);
   return s;
 }
@@ -215,6 +216,26 @@ describe('keyboard shortcuts (Story 1.30)', () => {
       ev.preventDefault();
       act(() => void document.body.dispatchEvent(ev));
       expect(pause).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('on desktop columns (Story 1.29)', () => {
+    it('Space triggers the action in columns 2–3, not NEST’s in column 1', () => {
+      const { key, primaries, shell } = make(Phase.COLONY, {}, true);
+      expect(shell.columns.value).toBe(true);
+      const col = shell.columnTab.value!;
+      key(' ', document.body);
+      expect(primaries[col]).toHaveBeenCalledTimes(1);
+      expect(primaries.nest).not.toHaveBeenCalled();
+    });
+
+    it('tab keys pick the tab for columns 2–3 through the rail', () => {
+      const { key, primaries, shell } = make(Phase.COLONY, {}, true);
+      const i = shell.tabs.value.indexOf('wrkr');
+      key(String(i + 1), document.body);
+      expect(shell.columnTab.value).toBe('wrkr');
+      key(' ', document.body);
+      expect(primaries.wrkr).toHaveBeenCalledTimes(1);
     });
   });
 

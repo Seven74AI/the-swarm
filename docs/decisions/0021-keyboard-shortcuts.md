@@ -1,4 +1,4 @@
-# 0020. Keyboard shortcuts act on the shell, through one listener
+# 0021. Keyboard shortcuts act on the shell, through one listener
 
 - **Status:** accepted (2026-11-21)
 - **Source:** Story 1.30 (#260) · FR47, UX-DR41 · arch D7 · ADR 0007, 0010, 0011, 0014
@@ -15,7 +15,8 @@ not be hovered and could not be dismissed (WCAG 1.4.13).
 - **`ui/shell/shortcuts.ts`**: `bindShortcuts({ settings, sheets, overlayHeld?, pause, root? }) → unbind`, bound once in
   main.tsx with `platform.settings.settings` (settings come from main; ui/ imports platform types only). One `keydown`
   listener on the document maps the key (single characters lower-cased, as 1.27 stores them) to a ShortcutId:
-  - `primary` presses the button in the visible `[data-primary-zone]` slot (its `data-kind="primary"` button), with
+  - `primary` presses the button in the visible `[data-primary-zone]` slot (on desktop columns, ADR 0020, the slot of
+    columns 2–3, not NEST's) (its `data-kind="primary"` button), with
     `click()`: exactly what a tap does, refusals included. Only with focus on the page or on that button; a focused
     control keeps Space, Enter and the arrow keys.
   - `tab1`–`tab5` press the Nth button of the visible tab bar (so scroll memory and dots behave as on a tap).
