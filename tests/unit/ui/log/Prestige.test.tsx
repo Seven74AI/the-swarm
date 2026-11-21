@@ -66,7 +66,7 @@ describe('PrestigeCard', () => {
     expect(stat('Legacy Points')).toBe('0');
     set({ ...gameState.value, prestige: { ...gameState.value.prestige, legacyPoints: 5, count: 3 } });
     expect(stat('Legacy Points')).toBe('5');
-    expect(stat('🔄 Legacy')).toBe('3');
+    expect(stat('Prestige Count')).toBe('3');
   });
 
   it('PRESTIGE is disabled with the unmet requirements until they are met', () => {

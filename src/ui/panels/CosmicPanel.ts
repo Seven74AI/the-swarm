@@ -48,7 +48,7 @@ export class CosmicPanel {
 
     const title = document.createElement('div');
     title.className = 'panel-title';
-    title.textContent = '🌌 Cosmic Discoveries';
+    title.textContent = 'Cosmic Discoveries';
     this.container.appendChild(title);
 
     if (discoveries.length === 0) {

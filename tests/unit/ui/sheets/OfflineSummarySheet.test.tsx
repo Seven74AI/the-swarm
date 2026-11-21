@@ -7,7 +7,6 @@ import { SheetHost } from '../../../../src/ui/shell/SheetHost';
 import { openOfflineSummary, formatAway, type OfflineSummary } from '../../../../src/ui/sheets/OfflineSummarySheet';
 import type { OfflineLoadInfo } from '../../../../src/engine/resume';
 import { getReturnMove, type ReturnMove } from '../../../../src/systems/NextAction';
-import { RESOURCE_BY_ID } from '../../../../src/ui/shell/resourceCatalog';
 import { COLONY_LINES } from '../../../../src/data/content/colonyLines';
 import { formatDeltaFull } from '../../../../src/utils/format';
 import { PHASE_ORDER } from '../../../../src/phases/phases';
@@ -85,7 +84,7 @@ describe('offline summary sheet', () => {
     expect(rows.map((r) => r.dataset.offlineChange)).toEqual(['workers', 'food']);
     const food = rows.find((r) => r.dataset.offlineChange === 'food')!;
     expect(food.dataset.trend).toBe('up');
-    expect(food.textContent).toContain(RESOURCE_BY_ID.food.glyph);
+    expect(food.querySelector('svg.glyph[aria-hidden="true"]')).not.toBeNull();
     expect(food.textContent).toContain(formatDeltaFull(1320));
     const workers = rows.find((r) => r.dataset.offlineChange === 'workers')!;
     expect(workers.dataset.trend).toBe('down');

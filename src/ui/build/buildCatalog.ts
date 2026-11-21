@@ -1,28 +1,30 @@
 import type { BuildingType, ConversionId } from '../../state/queries';
 import type { ResearchProjectId } from '../../state/GameState';
 import { OFFLINE_EFFICIENCY_STEP_POINTS } from '../../data/constants';
+import { BUILDING_GLYPHS, type Glyph } from '../glyphs';
 
 /**
- * What BUILD's cards say (Story 1.24, UX-DR17): names, placeholder glyphs and
- * effect copy. Numbers never live here; the cards read them from the rules in
- * `state/queries`. The glyphs are typed placeholders (geometric characters,
- * no emoji) until Story 8.2 replaces them with the `Glyph<Name>` SVGs.
+ * What BUILD's cards say (Story 1.24, UX-DR17): names, glyphs and effect
+ * copy. Numbers never live here; the cards read them from the rules in
+ * `state/queries`. Buildings draw their `Glyph<Name>` line glyph (Story 8.2);
+ * research, the Particle Lab and the converter are not in the glyph set and
+ * keep a typed geometric character.
  */
 
 export interface BuildingCardDef {
   readonly id: BuildingType;
   readonly name: string;
-  readonly glyph: string;
+  readonly glyph: Glyph;
 }
 
 /** Buildings in card order: the colony's own first, then the combat workshops. */
 export const BUILDING_CARDS: readonly BuildingCardDef[] = [
-  { id: 'warehouse', name: 'WAREHOUSE', glyph: '⌂' },
-  { id: 'barracks', name: 'BARRACKS', glyph: '⊓' },
-  { id: 'walls', name: 'WALLS', glyph: '▤' },
-  { id: 'silk_weaving', name: 'SILK WEAVING', glyph: '≋' },
-  { id: 'chitin_armory', name: 'CHITIN ARMORY', glyph: '⛉' },
-  { id: 'venom_lab', name: 'VENOM LAB', glyph: '⚗' },
+  { id: 'warehouse', name: 'WAREHOUSE', glyph: BUILDING_GLYPHS.warehouse },
+  { id: 'barracks', name: 'BARRACKS', glyph: BUILDING_GLYPHS.barracks },
+  { id: 'walls', name: 'WALLS', glyph: BUILDING_GLYPHS.walls },
+  { id: 'silk_weaving', name: 'SILK WEAVING', glyph: BUILDING_GLYPHS.silk_weaving },
+  { id: 'chitin_armory', name: 'CHITIN ARMORY', glyph: BUILDING_GLYPHS.chitin_armory },
+  { id: 'venom_lab', name: 'VENOM LAB', glyph: BUILDING_GLYPHS.venom_lab },
 ];
 
 export const RESEARCH_GLYPH = '⌕';

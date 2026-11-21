@@ -330,6 +330,20 @@ test.describe('Text reflow: the rules behind the layout', () => {
     await expect(page.locator('[data-goal-meter="full"] .meter')).toHaveAttribute('data-meter-form', 'bar');
   });
 
+  test('glyphs are line drawings that grow with the text size (Story 8.2)', async ({ page }) => {
+    await seed(page, { name: 'phone', width: 390, height: 844 });
+    const glyph = page.locator('[data-strip-cell] [data-glyph] svg.glyph').first();
+    await expect(glyph).toBeVisible();
+    await expect(glyph).toHaveAttribute('aria-hidden', 'true');
+    const width = () => glyph.evaluate((el) => el.getBoundingClientRect().width);
+    const normal = await width();
+    expect(normal).toBeGreaterThan(0);
+    await page.evaluate(() => document.documentElement.style.setProperty('font-size', '32px'));
+    await expect.poll(width).toBeGreaterThan(normal * 1.5);
+    await page.evaluate(() => document.documentElement.style.removeProperty('font-size'));
+    await expect.poll(width).toBeLessThan(normal * 1.5);
+  });
+
   test('page margins are 14 px, and 8 px below 360 px', async ({ page }) => {
     const margin = () =>
       page.locator('[data-shell-scroll]').evaluate((el) => parseFloat(getComputedStyle(el).paddingLeft));

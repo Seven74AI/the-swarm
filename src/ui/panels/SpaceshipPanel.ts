@@ -55,7 +55,7 @@ export class SpaceshipPanel {
 
     const title = document.createElement('div');
     title.className = 'panel-title';
-    title.textContent = '🚀 Spaceship';
+    title.textContent = 'Spaceship';
     this.container.appendChild(title);
 
     if (ship.level === 0) {
@@ -77,13 +77,13 @@ export class SpaceshipPanel {
     const costEl = document.createElement('div');
     costEl.className = 'spaceship-cost';
     costEl.textContent =
-      `Cost: ${cost.food}🍞 ${cost.wood}🪵 ${cost.stone}🪨 ${cost.nectar}🍯` +
-      (cost.voidCrystals > 0 ? ` ${cost.voidCrystals}💎 ${cost.antimatter}⚛️ ${cost.darkMatter}🌑` : '');
+      `Cost: ${cost.food} food, ${cost.wood} wood, ${cost.stone} stone, ${cost.nectar} nectar` +
+      (cost.voidCrystals > 0 ? `, ${cost.voidCrystals} void crystals, ${cost.antimatter} antimatter, ${cost.darkMatter} dark matter` : '');
     this.container.appendChild(costEl);
 
     const btn = document.createElement('button');
     btn.className = 'btn';
-    btn.textContent = '🔧 Build Spaceship';
+    btn.textContent = 'Build Spaceship';
     btn.disabled = !canBuild;
 
     btn.addEventListener('click', () => {
@@ -106,7 +106,7 @@ export class SpaceshipPanel {
 
     const fuelEl = document.createElement('div');
     fuelEl.className = 'spaceship-fuel';
-    fuelEl.textContent = `⛽ Fuel: ${ship.fuel} / ${ship.maxFuel}`;
+    fuelEl.textContent = `Fuel: ${ship.fuel} / ${ship.maxFuel}`;
     this.container.appendChild(fuelEl);
 
     if (ship.level < MAX_SHIP_LEVEL) {
@@ -118,7 +118,7 @@ export class SpaceshipPanel {
 
       const btn = document.createElement('button');
       btn.className = 'btn';
-      btn.textContent = '🔧 Upgrade';
+      btn.textContent = 'Upgrade';
       btn.disabled = !canUpgrade;
 
       btn.addEventListener('click', () => {

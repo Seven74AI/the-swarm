@@ -49,9 +49,9 @@ export class ExplorationPanel {
     const header = document.createElement('div');
     header.className = 'panel-header';
     const surveyInfo = state.resources.surveyData >= PROBE_SWARM_THRESHOLD
-      ? ` · 📡 Survey: ${formatFull(state.resources.surveyData)} (Swarm Active)`
-      : ` · 📡 Survey: ${formatFull(state.resources.surveyData)}`;
-    header.innerHTML = `<span class="panel-title">🔭 Space Exploration</span>
+      ? ` · Survey: ${formatFull(state.resources.surveyData)} (Swarm Active)`
+      : ` · Survey: ${formatFull(state.resources.surveyData)}`;
+    header.innerHTML = `<span class="panel-title">Space Exploration</span>
       <span class="panel-sub">Scouts: ${formatFull(state.soldiers.scouts)} · Probes: ${state.spaceProbes.length}/${MAX_PROBES}${surveyInfo}</span>`;
     this.container.appendChild(header);
 
@@ -77,7 +77,7 @@ export class ExplorationPanel {
 
       const btn = document.createElement('button');
       btn.className = 'btn btn-sm';
-      btn.textContent = '🚀 Launch';
+      btn.textContent = 'Launch';
       btn.disabled = !canLaunch;
       btn.addEventListener('click', () => {
         // The action raises probe_launch after its write.
@@ -111,7 +111,7 @@ export class ExplorationPanel {
         row.appendChild(rowInfo);
         const rowStatus = document.createElement('div');
         rowStatus.className = 'expedition-row-status';
-        rowStatus.textContent = `⏳ ${Math.max(0, Math.ceil(probe.remainingMs / 1000))}s`;
+        rowStatus.textContent = `${Math.max(0, Math.ceil(probe.remainingMs / 1000))}s left`;
         row.appendChild(rowStatus);
         this.container.appendChild(row);
       }

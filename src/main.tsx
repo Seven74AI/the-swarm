@@ -383,7 +383,7 @@ export function bootstrap(): {
     });
   };
 
-  // The settings screen (Story 1.27): from the resource sheet's [ SETTINGS ⚙ ] and from LOG.
+  // The settings screen (Story 1.27): from the resource sheet's [ SETTINGS gear ] and from LOG.
   // It writes the settings store directly; EXPORT DIAGNOSTICS downloads a file built here.
   const exportDiagnostics = (): void => {
     const state = haltedSnapshot ?? gameState.value;

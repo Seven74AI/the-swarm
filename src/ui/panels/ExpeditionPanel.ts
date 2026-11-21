@@ -22,9 +22,9 @@ interface Destination {
 }
 
 const DESTINATIONS: Destination[] = [
-  { name: 'MEADOW', icon: '🌼', loot: 'Nectar + Food' },
-  { name: 'FOREST', icon: '🌲', loot: 'Wood + Food' },
-  { name: 'MOUNTAIN', icon: '⛰️', loot: 'Stone + Food' },
+  { name: 'MEADOW', icon: '✿', loot: 'Nectar + Food' },
+  { name: 'FOREST', icon: '↟', loot: 'Wood + Food' },
+  { name: 'MOUNTAIN', icon: '⋀', loot: 'Stone + Food' },
 ];
 
 export class ExpeditionPanel {
@@ -71,7 +71,7 @@ export class ExpeditionPanel {
     // Title + available counts
     const header = document.createElement('div');
     header.className = 'panel-header';
-    header.innerHTML = `<span class="panel-title">🗺️ Expeditions</span>
+    header.innerHTML = `<span class="panel-title">Expeditions</span>
       <span class="panel-sub">Scouts: ${formatFull(state.soldiers.scouts)} · Warriors: ${formatFull(state.soldiers.warriors)}</span>`;
     this.container.appendChild(header);
 
@@ -142,7 +142,7 @@ export class ExpeditionPanel {
     status.className = 'expedition-row-status';
     const riskPct = Math.round(exp.risk * 100);
     const timeSpan = document.createElement('span');
-    timeSpan.textContent = `⏳ ${secondsLeft(exp.remainingMs)}s`;
+    timeSpan.textContent = `${secondsLeft(exp.remainingMs)}s left`;
     status.appendChild(timeSpan);
     status.appendChild(document.createTextNode(' '));
     const riskSpan = document.createElement('span');

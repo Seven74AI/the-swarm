@@ -1,6 +1,7 @@
 export interface PlanetDef {
   name: string;
   type: 'rocky' | 'gas' | 'ice' | 'habitable';
+  /** A typed geometric mark (never an emoji, Story 8.2) until Epic 6 redraws the star map. */
   icon: string;
   yields: string;
   /** Human-readable explanation of what this planet offers once discovered. */
@@ -13,7 +14,7 @@ export const PLANETS: PlanetDef[] = [
   {
     name: 'MARS',
     type: 'rocky',
-    icon: '🪨',
+    icon: '◆',
     yields: 'Antimatter',
     accessibility: 'A rocky world rich in antimatter deposits. Accessible by standard scout probe.',
     requirement: 'Build a spaceship and launch a probe from the Exploration panel.',
@@ -21,7 +22,7 @@ export const PLANETS: PlanetDef[] = [
   {
     name: 'SATURN',
     type: 'gas',
-    icon: '🪐',
+    icon: '◎',
     yields: 'Dark Matter',
     accessibility: 'A gas giant swirling with dark matter clouds. Requires advanced probe technology.',
     requirement: 'Build a spaceship and launch a probe from the Exploration panel.',
@@ -29,7 +30,7 @@ export const PLANETS: PlanetDef[] = [
   {
     name: 'EUROPA',
     type: 'ice',
-    icon: '🧊',
+    icon: '◇',
     yields: 'Void Crystals',
     accessibility: 'An icy moon harboring void crystals beneath its frozen crust.',
     requirement: 'Build a spaceship and launch a probe from the Exploration panel.',
@@ -37,7 +38,7 @@ export const PLANETS: PlanetDef[] = [
   {
     name: 'KEPLER-442B',
     type: 'habitable',
-    icon: '🌍',
+    icon: '◉',
     yields: 'Food + Crystals',
     accessibility: 'A habitable exoplanet with Earth-like conditions, capable of producing food and crystals.',
     requirement: 'Build a spaceship and launch a probe from the Exploration panel.',

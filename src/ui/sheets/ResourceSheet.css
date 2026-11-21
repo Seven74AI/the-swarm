@@ -31,7 +31,7 @@
 }
 .resource-row__glyph {
   grid-area: glyph;
-  font-size: 1.875rem;
+  --glyph-size: 1.875rem;
   line-height: 1;
   align-self: center;
 }

@@ -49,7 +49,6 @@ export interface PrestigeUpgrade {
   cost: number;
   effect: PrestigeUpgradeEffect;
   type: PrestigeUpgradeType;
-  icon: string;
   /** Phase requirement — only relevant for unlock-type upgrades */
   phaseRequired?: string;
   /** Upgrade IDs that must be purchased before this one */
@@ -75,7 +74,6 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     cost: 3,
     effect: 'egg_laying',
     type: 'production',
-    icon: '🥚',
     prerequisites: [],
     depth: 0,
   },
@@ -86,7 +84,6 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     cost: 3,
     effect: 'hatching',
     type: 'production',
-    icon: '🐛',
     prerequisites: [],
     depth: 0,
   },
@@ -97,7 +94,6 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     cost: 3,
     effect: 'food',
     type: 'production',
-    icon: '🍃',
     prerequisites: [],
     depth: 0,
   },
@@ -108,7 +104,6 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     cost: 5,
     effect: 'soldier_training',
     type: 'production',
-    icon: '⚔️',
     prerequisites: ['egg_laying_bonus'],
     depth: 1,
   },
@@ -119,7 +114,6 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     cost: 5,
     effect: 'worker_efficiency',
     type: 'production',
-    icon: '🐜',
     prerequisites: ['hatching_bonus'],
     depth: 1,
   },
@@ -131,7 +125,6 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     cost: 10,
     effect: 'auto_egg_laying',
     type: 'unlock',
-    icon: '🔄',
     phaseRequired: 'egg_laying',
     prerequisites: ['worker_efficiency_bonus'],
     depth: 2,
@@ -143,7 +136,6 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     cost: 8,
     effect: 'starting_resources',
     type: 'unlock',
-    icon: '📦',
     phaseRequired: 'egg_laying',
     prerequisites: ['food_bonus'],
     depth: 2,
@@ -155,7 +147,6 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     cost: 12,
     effect: 'phase_skip',
     type: 'unlock',
-    icon: '⚡',
     phaseRequired: 'egg_laying',
     prerequisites: ['auto_egg_laying'],
     depth: 3,
@@ -170,7 +161,6 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     cost: 10,
     effect: 'offline_efficiency',
     type: 'offline',
-    icon: '🌀',
     prerequisites: [],
     depth: 0,
     offlineEfficiencyPoints: OFFLINE_EFFICIENCY_STEP_POINTS,
@@ -182,7 +172,6 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     cost: 8,
     effect: 'offline_cap',
     type: 'offline',
-    icon: '🔮',
     prerequisites: [],
     depth: 0,
     offlineCapRaiseMs: OFFLINE_CAP_RAISE_MS,
@@ -194,7 +183,6 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     cost: 12,
     effect: 'offline_cap',
     type: 'offline',
-    icon: '⏳',
     prerequisites: ['chrono_synchronization'],
     depth: 1,
     offlineCapRaiseMs: OFFLINE_CAP_RAISE_MS,

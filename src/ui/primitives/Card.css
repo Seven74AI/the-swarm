@@ -24,5 +24,8 @@
 .card__level { margin-left: auto; font-weight: 400; color: var(--color-dim); }
 .card__effect { margin: 0.25rem 0 0; font-size: 0.75rem; color: var(--color-dim); }
 .card__cost { margin: 0.25rem 0 0; font-size: 0.8125rem; color: var(--color-dim); }
+/* Glyph sizes (Story 8.2, UX-DR35): 20 px on the title line, 14 px inline in the cost line. */
+.card__glyph { --glyph-size: 1.25rem; margin-right: 0.35em; }
+.card__cost { --glyph-size: 0.875rem; }
 .card__shortfall { color: var(--color-warn); }
 .card__action { margin-top: 0.5rem; }

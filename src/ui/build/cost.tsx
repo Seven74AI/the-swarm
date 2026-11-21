@@ -4,6 +4,12 @@ import type { Shortfall } from '../primitives/Card';
 import { Abbr, Sep } from '../primitives/Deco';
 import { RESOURCE_BY_ID, type ResourceId } from '../shell/resourceCatalog';
 
+/** A resource's glyph inline in text: drawn for the eye, its full name for a screen reader (`400 [drop]` reads "400 Food"). */
+export function ResourceGlyph({ id }: { id: ResourceId }) {
+  const def = RESOURCE_BY_ID[id];
+  return <Abbr shown={<def.glyph />} full={def.name} />;
+}
+
 /** A price: resource id → amount (zero and unknown entries are skipped). */
 export type Price = { readonly [resource: string]: number | undefined } | object;
 
@@ -24,16 +30,16 @@ export function stockOf(id: ResourceId): number {
   return (store as unknown as Record<string, number>)[id] ?? 0;
 }
 
-/** The first resource short of the price, as the Card's shortfall (`needs 60 more △`), or null. */
+/** The first resource short of the price, as the Card's shortfall (`needs 60 more [stone]`), or null. */
 export function shortfallOf(price: Price): Shortfall | null {
   for (const [id, need] of priceEntries(price)) {
     const short = Math.ceil(need - stockOf(id));
-    if (short > 0) return { amount: short, glyph: <Abbr shown={RESOURCE_BY_ID[id].glyph} full={RESOURCE_BY_ID[id].name} /> };
+    if (short > 0) return { amount: short, glyph: <ResourceGlyph id={id} /> };
   }
   return null;
 }
 
-/** `400 ◊ · 40 ▭`: whole amounts with inline glyphs. */
+/** `400 [food] · 40 [wood]`: whole amounts with inline glyphs. */
 export function PriceText({ price, sign = '' }: { price: Price; sign?: string }) {
   const entries = priceEntries(price);
   return (
@@ -42,7 +48,7 @@ export function PriceText({ price, sign = '' }: { price: Price; sign?: string })
         <span key={id} data-price={id}>
           {i > 0 ? <Sep /> : ''}
           {sign}
-          {formatFull(Math.floor(amount))} <Abbr shown={RESOURCE_BY_ID[id].glyph} full={RESOURCE_BY_ID[id].name} />
+          {formatFull(Math.floor(amount))} <ResourceGlyph id={id} />
         </span>
       ))}
     </>

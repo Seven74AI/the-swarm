@@ -61,7 +61,8 @@ describe('Cards and prices', () => {
     const said = spoken(container.querySelector('p')!);
     expect(said).toContain(RESOURCE_BY_ID.food.name);
     expect(said).toContain(RESOURCE_BY_ID.wood.name);
-    expect(said).not.toContain(RESOURCE_BY_ID.food.glyph);
+    // The glyphs are drawn, and hidden from the screen reader.
+    expect(container.querySelectorAll('svg.glyph[aria-hidden="true"]')).toHaveLength(2);
     expect(said).not.toMatch(DECORATION);
   });
 
