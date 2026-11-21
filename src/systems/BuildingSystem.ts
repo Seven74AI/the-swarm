@@ -98,6 +98,13 @@ export function build(building: BuildingType, state: GameState): GameState {
   };
 }
 
+/**
+ * Effects that count things (nest rooms, recruits): whole numbers, so the
+ * soft cap is floored for them (Story 3.3, FR34). A fractional capacity would
+ * let a fraction of an ant mature.
+ */
+const COUNT_EFFECTS: ReadonlySet<string> = new Set(['nestCapacity', 'scoutsCap', 'warriorsCap']);
+
 export function getEffects(
   building: BuildingType,
   level: number,
@@ -106,7 +113,8 @@ export function getEffects(
   // Apply soft-cap diminishing returns after level 5
   const capped: Record<string, number> = {};
   for (const [key, value] of Object.entries(raw)) {
-    capped[key] = softCapEffectiveness(value, level);
+    const effective = softCapEffectiveness(value, level);
+    capped[key] = COUNT_EFFECTS.has(key) ? Math.floor(effective) : effective;
   }
   return capped;
 }

@@ -243,7 +243,11 @@ export interface GameState {
   research: ResearchState;
   /** Resource conversion system state (GM-4). */
   conversions: ConversionState;
-  /** Entropy system (GM-10). Accumulates from darkMatter production, 0–100. */
+  /**
+   * Entropy system (GM-10). Accumulates from darkMatter production, 0–100.
+   * A meter, not a resource (Story 3.3): it may hold a fraction, is shown
+   * rounded (`entropyMeter`) and is never spent; only prestige resets it.
+   */
   entropy: number;
   /** Entropy Dampener building — reduces entropy rate 20% per level. */
   entropyDampener: { level: number };

@@ -44,6 +44,7 @@ export {
   isPrestigeUpgradePurchased,
 } from '../systems/PrestigeSystem';
 export { MAX_PROBES, PROBE_SWARM_THRESHOLD } from '../systems/ExplorationSystem';
+export { entropyMeter } from '../systems/EntropySystem';
 export { MAX_ACTIVE_EXPEDITIONS } from '../systems/ExpeditionSystem';
 export {
   canPurchaseMutation,
