@@ -7,7 +7,9 @@ import { TabBar } from './TabBar';
 import { SegmentRow } from './SegmentRow';
 import { CondensedGoalMeter } from './GoalMeter';
 import { Button } from '../primitives/Button';
+import type { CharGrid } from './charGrid';
 import './shell.css';
+import './reflow.css';
 
 /** The part of the legacy `UIRoot` the shell needs: mount its panels into the shell's hosts. */
 export interface LegacyUi {
@@ -35,11 +37,13 @@ export interface ShellProps {
   onContinue?: () => { readonly ok: boolean } | void;
   /** The keys of tabs 1–5 for the rail's hints (settings → key bindings); none when shortcuts are off. Default 1–5. */
   tabKeys?: ReadonlySignal<readonly string[]>;
+  /** The character grid (Story 1.31): measured from this shell's columns once mounted. */
+  grid?: CharGrid;
 }
 
 const DEFAULT_TAB_KEYS: readonly string[] = ['1', '2', '3', '4', '5'];
 
-export function Shell({ shell, legacy, onContinue, tabKeys }: ShellProps) {
+export function Shell({ shell, legacy, onContinue, tabKeys, grid }: ShellProps) {
   const root = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLElement>(null);
   const active = shell.active.value;
@@ -55,6 +59,32 @@ export function Shell({ shell, legacy, onContinue, tabKeys }: ShellProps) {
     if (root.current) legacy.mount(hostsFromRoot(root.current));
     // Mount once per legacy UI; UIRoot has no unmount.
   }, [legacy]);
+
+  useLayoutEffect(() => (grid && root.current ? grid.attach(root.current) : undefined), [grid]);
+
+  // The pinned primary zone and tab bar grow with the text (Story 1.31): the scroll area is
+  // padded by their measured heights, so the last row can still reach the thumb zone.
+  useLayoutEffect(() => {
+    const el = root.current;
+    if (!el || typeof ResizeObserver !== 'function') return;
+    const zone = el.querySelector<HTMLElement>('[data-primary-zone]');
+    const bar = el.querySelector<HTMLElement>('[data-tab-bar]');
+    const write = () => {
+      if (zone) el.style.setProperty('--shell-primary-h', `${zone.offsetHeight}px`);
+      if (bar) el.style.setProperty('--shell-tab-bar-h', `${bar.offsetHeight}px`);
+    };
+    let frame = 0;
+    const observer = new ResizeObserver(() => {
+      if (!frame) frame = requestAnimationFrame(() => ((frame = 0), write()));
+    });
+    if (zone) observer.observe(zone);
+    if (bar) observer.observe(bar);
+    write();
+    return () => {
+      observer.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, []);
 
   // The element that scrolls a tab: the one scroll area, or the tab's own column on desktop.
   const scrollerOf = (tab: TabId): HTMLElement | null =>

@@ -1,0 +1,205 @@
+/*
+ * Reflow at large text and narrow screens (Story 1.31; UX-DR4, UX-DR5 height
+ * rules, UX-DR6 landscape, NFR7, NFR9; DESIGN.md → Layout & Spacing).
+ *
+ * The character grid is computed (ui/shell/charGrid.ts) and marked on the root:
+ * `data-grid="full"` (≥ 36 columns) renders as designed, `"medium"` (28–35)
+ * stacks two-column rows (meters shrink in Meter.tsx), `"narrow"` (< 28) wraps
+ * text, swaps box-drawing for 1 px CSS borders and turns aligned tables into
+ * label-over-value stacks. Nothing here clips text. Colors only through the
+ * --color-* aliases of ui/styles/tokens.css.
+ */
+
+/* ── Tap targets stay at least 44 × 44 px (NFR9), whatever the text size ── */
+.shell .pause-btn {
+  width: auto;
+  height: auto;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.shell .btn,
+.shell .event-line__jump,
+.sheet .event-line__jump {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* The tab bar wraps to a second row before a label is cut. */
+.tab-bar-list {
+  flex-wrap: wrap;
+}
+
+.tab-bar-tab,
+.segment-row-tab {
+  min-width: max-content;
+  padding-inline: 0.25rem;
+}
+
+.segment-row {
+  flex-wrap: wrap;
+}
+
+/* The legacy top bar wraps instead of pushing the strip off screen. */
+.shell-strip .top-bar {
+  flex-wrap: wrap;
+  column-gap: 0.5rem;
+}
+
+/* Below 28 columns the title bar keeps to its own size, so the strip stays on screen. */
+:root[data-grid="narrow"] .shell-strip .top-bar {
+  padding: 0.25rem 0;
+}
+
+:root[data-grid="narrow"] .shell-strip .game-title {
+  font-size: 0.875rem;
+}
+
+:root[data-grid="narrow"] .shell-strip .pause-btn {
+  margin: 0;
+}
+
+/* The place name is flavour the phase line repeats: kept for screen readers, off screen. */
+:root[data-grid="narrow"] .shell-strip .game-phase {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ── 28–35 columns: two-column rows stack ── */
+:root:is([data-grid="medium"], [data-grid="narrow"]) .goal-meter__label {
+  display: block;
+}
+
+:root:is([data-grid="medium"], [data-grid="narrow"]) .card__title {
+  flex-wrap: wrap;
+}
+
+:root:is([data-grid="medium"], [data-grid="narrow"]) .card__level {
+  flex-basis: 100%;
+  margin-left: 0;
+}
+
+/* ── Below 28 columns: text wraps, borders replace box-drawing, tables stack ── */
+:root[data-grid="narrow"] .shell,
+:root[data-grid="narrow"] .sheet {
+  overflow-wrap: anywhere;
+  letter-spacing: 0;
+}
+
+:root[data-grid="narrow"] .shell * ,
+:root[data-grid="narrow"] .sheet * {
+  letter-spacing: inherit;
+}
+
+/* Labels wrap rather than truncate: the target flows under the verb (the primary zone grows). */
+:root[data-grid="narrow"] .swarm-btn__label {
+  flex-wrap: wrap;
+}
+
+:root[data-grid="narrow"] .swarm-btn__line,
+:root[data-grid="narrow"] .swarm-btn__target {
+  white-space: normal;
+}
+
+:root[data-grid="narrow"] .swarm-btn__target {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+:root[data-grid="narrow"] .meter,
+:root[data-grid="narrow"] .goal-line,
+:root[data-grid="narrow"] .strip-cell__head,
+:root[data-grid="narrow"] .strip-cell__value {
+  white-space: normal;
+}
+
+:root[data-grid="narrow"] .goal-line {
+  flex-wrap: wrap;
+}
+
+:root[data-grid="narrow"] .meter__cells {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+/* The sheet handle's ──── becomes a 1 px rule in `line`. */
+:root[data-grid="narrow"] .sheet__handle {
+  width: 3rem;
+  height: 0;
+  margin-inline: auto;
+  overflow: hidden;
+  font-size: 0;
+  border-top: 1px solid var(--color-line);
+}
+
+/* Aligned tables become label-over-value stacks. */
+:root[data-grid="narrow"] .resource-row {
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "glyph name"
+    "glyph amount"
+    "glyph rate"
+    "glyph cap"
+    "glyph source";
+}
+
+:root[data-grid="narrow"] .resource-row__amount,
+:root[data-grid="narrow"] .resource-row__rate,
+:root[data-grid="narrow"] .resource-row__source {
+  text-align: left;
+}
+
+:root[data-grid="narrow"] .log-stat,
+:root[data-grid="narrow"] .settings-key {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+
+/* Less chrome around the text: panels and cards keep their 1 px borders. */
+:root[data-grid="narrow"] .shell-scroll .panel,
+:root[data-grid="narrow"] .card {
+  padding: 0.5rem;
+}
+
+/* ── Below 560 px of height: NEST shows one event line (LOG keeps the rest) ── */
+@media (max-height: 559px) {
+  .shell [data-tab-panel="nest"] .event-lines__list > .event-line:not(:first-child) {
+    display: none;
+  }
+}
+
+/* ── Below 480 px of height (landscape): the primary zone un-pins and the page scrolls ── */
+@media (max-height: 479px) {
+  .shell[data-layout="single"] {
+    --shell-bottom: 0px;
+    height: auto;
+    min-height: 100dvh;
+    padding-bottom: var(--shell-tab-bar-now);
+  }
+
+  .shell[data-layout="single"][data-tab-bar-shown="false"] {
+    padding-bottom: var(--shell-safe-bottom);
+  }
+
+  .shell[data-layout="single"] .shell-strip {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .shell[data-layout="single"] .shell-scroll {
+    flex: none;
+    overflow: visible;
+    padding-bottom: 0.75rem;
+  }
+
+  .shell[data-layout="single"] .shell-primary {
+    position: static;
+    max-width: none;
+    margin: 0;
+  }
+}

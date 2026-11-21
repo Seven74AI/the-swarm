@@ -1,6 +1,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, cleanup } from '@testing-library/preact';
+import { signal } from '@preact/signals-core';
 import { Meter, meterCells } from '../../../../src/ui/primitives/Meter';
+import { BOX_DRAWING_MIN_COLS, CharGridContext, DESIGN_COLS } from '../../../../src/ui/primitives/charGrid';
 
 /** Story 1.12 (UX-DR29 accessibility floor): a meter is a progressbar; its typed cells are decoration. */
 describe('Meter', () => {
@@ -57,5 +59,38 @@ describe('Meter', () => {
     expect(text).not.toContain('[');
     expect(text).not.toContain(']');
     expect(bare.container.querySelector('[data-meter-cells]')).not.toBeNull();
+  });
+});
+
+/** Story 1.31 (UX-DR4): meters follow the character grid. */
+describe('Meter on a computed grid', () => {
+  afterEach(() => cleanup());
+
+  const withCols = (cols: number, ui: preact.ComponentChildren) =>
+    render(<CharGridContext.Provider value={signal(cols)}>{ui}</CharGridContext.Provider>);
+
+  it('draws its designed cells on the full grid', () => {
+    const { container } = withCols(DESIGN_COLS, <Meter value={1} max={2} valueText="half" cells={14} />);
+    expect(container.querySelector('[data-meter-cells]')!.textContent!.length).toBe(14);
+    expect(container.querySelector('.meter')!.getAttribute('data-meter-form')).toBe('bar');
+  });
+
+  it('shrinks to cols − 8 cells from 28 to 35 columns', () => {
+    for (let cols = BOX_DRAWING_MIN_COLS; cols < DESIGN_COLS; cols++) {
+      const { container, unmount } = withCols(cols, <Meter value={1} max={2} valueText="half" cells={30} />);
+      expect(container.querySelector('[data-meter-cells]')!.textContent!.length).toBeLessThanOrEqual(cols - 8);
+      unmount();
+    }
+  });
+
+  it('below 28 columns reads `74 % ████····`: percentage first, no brackets, fitting the grid', () => {
+    const cols = BOX_DRAWING_MIN_COLS - 4;
+    const { container } = withCols(cols, <Meter value={3} max={4} valueText="3 of 4" />);
+    const meter = container.querySelector('.meter')!;
+    expect(meter.getAttribute('data-meter-form')).toBe('short');
+    const text = meter.textContent!.trim();
+    expect(text).toMatch(/^\d+ % [█·]+$/);
+    expect(text.length).toBeLessThanOrEqual(cols);
+    expect(meter.getAttribute('role')).toBe('progressbar');
   });
 });

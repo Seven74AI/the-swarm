@@ -67,7 +67,8 @@ html, body {
   background: var(--bg-primary);
   color: var(--text-primary);
   font-family: 'Courier New', Courier, monospace;
-  font-size: 16px;
+  /* The player's text size, not a fixed 16 px (Story 1.31, NFR7). */
+  font-size: 100%;
   line-height: 1.5;
   overflow-x: hidden;
   touch-action: manipulation;
