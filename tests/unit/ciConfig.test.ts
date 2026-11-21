@@ -81,10 +81,12 @@ describe('ci.yml production audit (Story 1.35)', () => {
 });
 
 describe('dependabot.yml (Story 1.35)', () => {
-  it('groups development-dependency updates into weekly PRs', () => {
+  // Owner decision 2026-11-21: npm updates stay daily; dev dependencies land
+  // as one grouped PR per run.
+  it('groups development-dependency updates into one PR on the daily schedule', () => {
     const npm = listItems(dependabotYml, 2).find((u) => /package-ecosystem:\s*npm/.test(u));
     expect(npm).toBeDefined();
-    expect(npm).toMatch(/interval:\s*weekly/);
+    expect(npm).toMatch(/interval:\s*daily/);
     expect(npm).toMatch(/dependency-type:\s*development/);
   });
 });

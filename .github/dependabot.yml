@@ -10,15 +10,10 @@
 # workflows/audit-fix.yml instead.
 version: 2
 updates:
-  # Weekly (Story 1.35): dev-dependency updates land as one grouped PR a week.
-  # Dependabot allows one entry per ecosystem + directory, so production
-  # updates are weekly too; security fixes for both come from the daily
-  # workflows/audit-fix.yml, and CI's production audit blocks anything high.
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: weekly
-      day: sunday
+      interval: daily
       time: '23:37'
       timezone: Europe/Paris
     # pnpm 11 can refuse versions published in the last day, which would fail
