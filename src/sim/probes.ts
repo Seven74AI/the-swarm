@@ -1,5 +1,6 @@
 import type { GameState } from '../state/GameState';
 import { getNextAction, isItemAffordable, listItems } from '../systems/NextAction';
+import { MS_PER_SEC } from '../data/constants';
 
 /** The moment a phase was entered (Story 3.7). */
 export interface PhaseEntry {
@@ -21,6 +22,12 @@ export interface CheckInRecord {
   readonly phase: string;
   /** Decisions open on arrival: every item affordable now, plus CONTINUE when the goal has latched. */
   readonly decisionsAvailable: number;
+  /**
+   * On arrival, how long until the player can do something (Story 3.9): 0 when
+   * a decision is open or NEXT suggests a move, else the wait for the soonest
+   * affordable item at the current rates; null when waiting never gets there.
+   */
+  readonly waitMs: number | null;
   /** Moves that landed, taps excluded. */
   readonly actions: number;
   /** LAY EGG taps that landed. */
@@ -31,9 +38,22 @@ export interface CheckInRecord {
   readonly byAction: Readonly<Record<string, number>>;
 }
 
+/** Eggs laid since the previous sample (Story 3.9): `tapped` of the `laid` came from LAY EGG taps. */
+export interface EggSample {
+  /** Real time and time played when the eggs were counted. */
+  readonly atMs: number;
+  readonly activeMs: number;
+  /** The phase they were laid in. */
+  readonly phase: string;
+  readonly laid: number;
+  readonly tapped: number;
+}
+
 export interface ProbeReport {
   readonly phaseEntries: readonly PhaseEntry[];
   readonly checkIns: readonly CheckInRecord[];
+  /** Every egg laid in the run, in order (Story 3.9's tap share). */
+  readonly eggs: readonly EggSample[];
 }
 
 /**
@@ -47,11 +67,20 @@ export function decisionsAvailable(s: GameState): number {
   return items + (next.kind === 'act' && next.rule === 'goal' ? 1 : 0);
 }
 
+/** On arrival, the wait until something can be done (see `CheckInRecord.waitMs`). */
+export function waitMs(s: GameState): number | null {
+  if (decisionsAvailable(s) > 0) return 0;
+  const next = getNextAction(s);
+  if (next.kind === 'act') return 0;
+  return next.nextAffordable ? next.nextAffordable.inSec * MS_PER_SEC : null;
+}
+
 interface OpenCheckIn {
   index: number;
   startMs: number;
   phase: string;
   decisionsAvailable: number;
+  waitMs: number | null;
   actions: number;
   taps: number;
   refused: number;
@@ -59,25 +88,30 @@ interface OpenCheckIn {
 }
 
 /**
- * The run's probes (Story 3.7, AR15): when each phase was entered, and per
- * check-in the actions taken and the decisions available. The runner feeds
+ * The run's probes (Story 3.7, AR15): when each phase was entered, per
+ * check-in the actions taken, the decisions available and the wait until one
+ * opens, and every egg laid, tapped or not (Story 3.9). The runner feeds
  * them; they never change the game.
  */
 export class Probes {
   private readonly entries: PhaseEntry[] = [];
   private readonly records: CheckInRecord[] = [];
   private open: OpenCheckIn | null = null;
+  private readonly eggSamples: EggSample[] = [];
   private lastPhase: string;
+  private lastLaid: number;
+  private tappedEggs = 0;
 
   constructor(start: GameState) {
     this.lastPhase = start.phase;
+    this.lastLaid = start.stats.totalEggsLaid;
     this.entries.push({ phase: start.phase, atMs: 0, activeMs: 0, checkIn: 0 });
   }
 
   /** A check-in starts: the player has just arrived to `s`. */
   beginCheckIn(index: number, s: GameState, atMs: number): void {
     this.endCheckIn();
-    this.open = { index, startMs: atMs, phase: s.phase, decisionsAvailable: decisionsAvailable(s), actions: 0, taps: 0, refused: 0, byAction: {} };
+    this.open = { index, startMs: atMs, phase: s.phase, decisionsAvailable: decisionsAvailable(s), waitMs: waitMs(s), actions: 0, taps: 0, refused: 0, byAction: {} };
   }
 
   /** A move went through its action: `ok` says whether the action accepted it. */
@@ -91,13 +125,20 @@ export class Probes {
     this.open.byAction[name] = (this.open.byAction[name] ?? 0) + 1;
   }
 
-  /** `count` LAY EGG taps landed. */
-  taps(count: number): void {
+  /** `count` LAY EGG taps landed and laid `eggs` eggs. */
+  taps(count: number, eggs: number): void {
     if (this.open) this.open.taps += count;
+    this.tappedEggs += eggs;
   }
 
-  /** After every move and every resume: records a phase change. */
+  /** After every move and every resume: records the eggs laid since the last look, then a phase change. */
   observe(s: GameState, atMs: number, activeMs: number): void {
+    const laid = s.stats.totalEggsLaid - this.lastLaid;
+    if (laid > 0 || this.tappedEggs > 0) {
+      this.eggSamples.push({ atMs, activeMs, phase: this.lastPhase, laid: Math.max(0, laid), tapped: this.tappedEggs });
+    }
+    this.lastLaid = s.stats.totalEggsLaid;
+    this.tappedEggs = 0;
     if (s.phase === this.lastPhase) return;
     this.lastPhase = s.phase;
     this.entries.push({ phase: s.phase, atMs, activeMs, checkIn: this.open?.index ?? 0 });
@@ -111,6 +152,6 @@ export class Probes {
 
   report(): ProbeReport {
     this.endCheckIn();
-    return { phaseEntries: [...this.entries], checkIns: [...this.records] };
+    return { phaseEntries: [...this.entries], checkIns: [...this.records], eggs: [...this.eggSamples] };
   }
 }
