@@ -578,3 +578,29 @@ describe('v18 → v19: the save holds a seed (Story 1.34)', () => {
     }
   });
 });
+
+describe('v19 → v20: the save says when the game was last seen (Story 2.3)', () => {
+  const v19 = (gs: Record<string, unknown>, timestamp = 1_700_000_000_000): SaveData => ({
+    version: 19,
+    timestamp,
+    playTimeMs: 0,
+    gameState: gs as unknown as GameState,
+  });
+
+  it('takes lastSeenAt from the old save time in the game state', () => {
+    const out = migrateSave(v19({ ...createInitialState(), lastSaveTimestamp: 1_600_000_000_000 }), 19, 20);
+    expect(out.version).toBe(20);
+    expect(out.lastSeenAt).toBe(1_600_000_000_000);
+  });
+
+  it('falls back to the envelope timestamp when the game state has none', () => {
+    const out = migrateSave(v19({ ...createInitialState(), lastSaveTimestamp: 0 }, 42), 19, 20);
+    expect(out.lastSeenAt).toBe(42);
+  });
+
+  it('keeps the rest of the save as it was', () => {
+    const gs = { ...createInitialState(), lastSaveTimestamp: 7 };
+    const out = migrateSave(v19(gs), 19, 20);
+    expect(out.gameState).toEqual(gs);
+  });
+});

@@ -1,7 +1,6 @@
 import { log } from '../utils/log';
 import type { GameState } from '../state/GameState';
 import { createInitialState } from '../state/GameState';
-import { calculateOfflineTicks } from '../systems/OfflineProgression';
 import { migrateSave } from './migrations';
 import { emptyChronicle, normalizeChronicle, type ChronicleSave } from '../state/chronicle';
 import type { BackupSlot, LoadResult, SaveStore } from '../platform/storage/SaveStore';
@@ -13,22 +12,14 @@ export interface SaveData {
   gameState: GameState;
   /** The event lines (Story 1.26, ADR 0018), beside the game state. From v17. */
   chronicle?: ChronicleSave;
+  /**
+   * Wall-clock ms the saved state was last simulated to (Story 2.3, D1): the
+   * moment the page hid, or the write time while it runs. From v20. The
+   * resume path measures the gap from it, never from the write time, so a
+   * save written while hidden doesn't swallow the hidden time.
+   */
+  lastSeenAt?: number;
 }
-
-/** Offline catch-up info computed during load. null if no offline time elapsed. */
-export interface OfflineLoadInfo {
-  /** Raw wall-clock ms since last save (before cap) */
-  elapsedMs: number;
-  /** Wall-clock ms after 8h cap */
-  effectiveMs: number;
-  /** Number of game ticks to simulate (efficiency-reduced) */
-  offlineTicks: number;
-  /** Efficiency multiplier used (from save data, default 0.5) */
-  efficiency: number;
-}
-
-/** Minimum absence before offline catch-up kicks in (1 second) */
-const OFFLINE_MIN_MS = 1000;
 
 /**
  * Deep-merge `loaded` into `defaults`. Scalar values from `loaded` take priority;
@@ -55,7 +46,8 @@ export interface LoadedSave {
   gameState: GameState;
   playTimeMs: number;
   timestamp?: number;
-  offline: OfflineLoadInfo | null;
+  /** When the saved state was last simulated to (wall clock); null if the save doesn't say. */
+  lastSeenAt: number | null;
   chronicle: ChronicleSave;
 }
 
@@ -76,7 +68,7 @@ export type SaveLoad = LoadResult<LoadedSave>;
  */
 export class SaveManager {
   /** The save format's version; each step up has a migration in migrations.ts. */
-  static readonly SAVE_VERSION = 19;
+  static readonly SAVE_VERSION = 20;
   private static AUTOSAVE_INTERVAL_MS = 30_000;
   /** Minimum interval between action-triggered saves (5 seconds). */
   private static ACTION_SAVE_INTERVAL_MS = 5_000;
@@ -86,6 +78,8 @@ export class SaveManager {
   private lastActionSaveTimestamp = 0;
   /** Where the event lines come from (main: the chronicle, Story 1.26). */
   private chronicleSource: (() => ChronicleSave) | null = null;
+  /** When the state being saved was last simulated to (main: the resume path, Story 2.3). */
+  private seenAtSource: (() => number) | null = null;
 
   /** Told when saving starts failing (Story 1.32: the player hears and sees "save failed"). */
   private saveFailedListener: (() => void) | null = null;
@@ -121,6 +115,11 @@ export class SaveManager {
   /** Every save from now on writes the chronicle this returns (Story 1.26). */
   setChronicleSource(source: () => ChronicleSave): void {
     this.chronicleSource = source;
+  }
+
+  /** Every save from now on writes the lastSeenAt this returns (Story 2.3); default: the write time. */
+  setSeenAtSource(source: () => number): void {
+    this.seenAtSource = source;
   }
 
   /**
@@ -169,6 +168,7 @@ export class SaveManager {
       playTimeMs,
       gameState: { ...state, lastSaveTimestamp: Date.now() },
       chronicle: this.chronicleSource ? this.chronicleSource() : emptyChronicle(),
+      lastSeenAt: this.seenAtSource ? this.seenAtSource() : Date.now(),
     };
     return JSON.stringify(data);
   }
@@ -241,6 +241,7 @@ export class SaveManager {
       gameState: migrated.gameState,
       playTimeMs: migrated.playTimeMs ?? 0,
       timestamp: migrated.timestamp,
+      lastSeenAt: migrated.lastSeenAt,
       chronicle: migrated.chronicle,
     });
   }
@@ -248,55 +249,35 @@ export class SaveManager {
   /**
    * Apply defaults for fields that may be missing from older save versions.
    * Deep-merges the loaded game state with createInitialState() so any
-   * missing fields get sensible defaults. Also computes offline progression.
+   * missing fields get sensible defaults. The gap since lastSeenAt is resumed
+   * by main through the one resume path (Story 2.3), not here.
    */
-  private applyDefaults(result: { gameState: GameState; playTimeMs: number; timestamp?: number; chronicle?: ChronicleSave }): LoadedSave {
+  private applyDefaults(result: {
+    gameState: GameState;
+    playTimeMs: number;
+    timestamp?: number;
+    lastSeenAt?: number;
+    chronicle?: ChronicleSave;
+  }): LoadedSave {
     // Deep-merge loaded state over defaults — loaded values win, missing fields get defaults
     const defaultState = createInitialState();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mergedState = deepMerge(defaultState as any, result.gameState as any);
-
-    // Compute offline progression
-    const offline = this.computeOfflineData(result, mergedState as unknown as GameState);
-
+    const mergedState = deepMerge(defaultState as any, result.gameState as any) as unknown as GameState;
     return {
       ...result,
-      gameState: mergedState as unknown as GameState,
-      offline,
+      gameState: mergedState,
+      lastSeenAt: SaveManager.seenAtOf(result, mergedState),
       chronicle: normalizeChronicle(result.chronicle),
     };
   }
 
-  /**
-   * Compute offline progression data from save timestamp and wall-clock time.
-   * Returns null if no valid timestamp or absence < 1 second.
-   */
-  private computeOfflineData(
-    result: { gameState: GameState; playTimeMs: number; timestamp?: number },
-    gs: GameState,
-  ): OfflineLoadInfo | null {
-    const saveTimestamp = gs.lastSaveTimestamp || result.timestamp || 0;
-    if (saveTimestamp <= 0) return null;
-
-    const now = Date.now();
-    const elapsedMs = now - saveTimestamp;
-
-    // Only trigger offline for absences >= 1 second
-    if (elapsedMs < OFFLINE_MIN_MS) return null;
-
-    // Default to 50% if field missing (backward compat for old saves)
-    const efficiency = typeof gs.offlineEfficiency === 'number' ? gs.offlineEfficiency : 0.5;
-    const { effectiveMs, offlineTicks } = calculateOfflineTicks(elapsedMs, efficiency);
-
-    // Only return if there's something to simulate
-    if (offlineTicks <= 0) return null;
-
-    return {
-      elapsedMs,
-      effectiveMs,
-      offlineTicks,
-      efficiency,
-    };
+  /** The save's lastSeenAt, else its old save time (a malformed field must not lose the gap). */
+  private static seenAtOf(result: { timestamp?: number; lastSeenAt?: number }, gs: GameState): number | null {
+    const valid = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n) && n > 0;
+    if (valid(result.lastSeenAt)) return result.lastSeenAt;
+    if (valid(gs.lastSaveTimestamp)) return gs.lastSaveTimestamp;
+    if (valid(result.timestamp)) return result.timestamp;
+    return null;
   }
 
   startAutosave(getState: () => {

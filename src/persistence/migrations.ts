@@ -509,6 +509,19 @@ function migrateV18toV19(data: SaveData): SaveData {
   return { ...data, version: 19, gameState: { ...gs, seed } as unknown as GameState };
 }
 
+/**
+ * v19 → v20 (Story 2.3, D1): the save says when its state was last simulated
+ * to (`lastSeenAt`), so the resume path never measures the gap from a save
+ * written while the page was hidden. Older saves were always written while
+ * running, so their save time is that moment.
+ */
+function migrateV19toV20(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  const fromState = typeof gs.lastSaveTimestamp === 'number' && gs.lastSaveTimestamp > 0 ? gs.lastSaveTimestamp : 0;
+  const lastSeenAt = fromState || (typeof data.timestamp === 'number' ? data.timestamp : 0);
+  return { ...data, version: 20, lastSeenAt };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -529,6 +542,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   16: migrateV16toV17,
   17: migrateV17toV18,
   18: migrateV18toV19,
+  19: migrateV19toV20,
 };
 
 /**

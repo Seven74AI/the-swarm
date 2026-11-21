@@ -1,4 +1,7 @@
+import { FRAME_GAP_MS } from '../data/constants';
+
 type TickCallback = (dtSec: number) => void;
+type GapCallback = (gapMs: number) => void;
 
 const TICK_MS = 50;
 
@@ -7,8 +10,10 @@ const TICK_MS = 50;
  * Uses requestAnimationFrame for render-rate independence.
  * Game logic ticks at 20 Hz (50ms), render runs at rAF rate.
  *
- * Offline catch-up: if accumulator exceeds TICK_MS, multiple ticks
- * are simulated in a tight loop (capped at 1-second max frame delta).
+ * A frame gap over FRAME_GAP_MS (a stall, or a throttled tab that never fired
+ * `visibilitychange`) is not ticked through: it goes whole to the gap handler,
+ * which main wires to the one resume path (Story 2.3, D1). Without a handler,
+ * the old 1 s frame cap applies.
  */
 export class Ticker {
   private rafId: number | null = null;
@@ -17,6 +22,7 @@ export class Ticker {
   private lastTime = 0;
   private running = false;
   private _paused = false;
+  private gapHandler: GapCallback | null = null;
 
   start(): void {
     if (this.running) return;
@@ -80,8 +86,15 @@ export class Ticker {
   private loop = (now: number): void => {
     if (!this.running) return;
 
-    const dt = Math.min(now - this.lastTime, 1000); // cap at 1s to prevent spiral
+    const raw = now - this.lastTime;
     this.lastTime = now;
+    if (raw > FRAME_GAP_MS && this.gapHandler) {
+      // The gap goes to resume(gap) (Story 2.3), never ticked frame by frame.
+      this.gapHandler(raw);
+      if (this.running) this.rafId = requestAnimationFrame(this.loop);
+      return;
+    }
+    const dt = Math.min(raw, FRAME_GAP_MS); // no handler: cap at 1s to prevent spiral
     this.accumulator += dt;
 
     while (this.accumulator >= TICK_MS) {
@@ -96,6 +109,16 @@ export class Ticker {
     for (const cb of this.callbacks) {
       cb(dtSec);
     }
+  }
+
+  /** Call `handler(gapMs)` for a frame gap over FRAME_GAP_MS instead of dropping it (Story 2.3). */
+  onGap(handler: GapCallback): void {
+    this.gapHandler = handler;
+  }
+
+  /** True while the rAF loop runs: after start() or resume(), before stop() or pause(). */
+  isRunning(): boolean {
+    return this.running;
   }
 
   onTick(callback: TickCallback): void {

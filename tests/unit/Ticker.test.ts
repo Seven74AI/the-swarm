@@ -152,4 +152,68 @@ describe('Ticker', () => {
       expect(ticker.isPaused()).toBe(false);
     });
   });
+
+  // ── Frame gaps (Story 2.3, D1): a gap over 1 s goes to resume(gap), not dropped by the cap ──
+  describe('frame gaps', () => {
+    let frames: FrameRequestCallback[] = [];
+    let now = 0;
+    beforeEach(() => {
+      frames = [];
+      now = 0;
+      vi.spyOn(performance, 'now').mockImplementation(() => now);
+      vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => frames.push(cb));
+      vi.stubGlobal('cancelAnimationFrame', () => {});
+    });
+    afterEach(() => {
+      vi.restoreAllMocks();
+      vi.unstubAllGlobals();
+    });
+    const frame = (at: number) => {
+      now = at;
+      const cb = frames.shift();
+      cb?.(at);
+    };
+
+    it('hands a frame gap over 1 s to the gap handler, whole, and ticks nothing for it', () => {
+      const ticker = new Ticker();
+      const tick = vi.fn();
+      const gap = vi.fn();
+      ticker.onTick(tick);
+      ticker.onGap(gap);
+      ticker.start();
+      frame(5_000);
+      expect(gap).toHaveBeenCalledTimes(1);
+      expect(gap).toHaveBeenCalledWith(5_000);
+      expect(tick).not.toHaveBeenCalled();
+      // The loop keeps running at the normal step afterwards.
+      frame(5_100);
+      expect(tick).toHaveBeenCalledTimes(2);
+      expect(gap).toHaveBeenCalledTimes(1);
+    });
+
+    it('a frame gap of 1 s or less is ordinary ticks', () => {
+      const ticker = new Ticker();
+      const tick = vi.fn();
+      const gap = vi.fn();
+      ticker.onTick(tick);
+      ticker.onGap(gap);
+      ticker.start();
+      frame(1_000);
+      expect(gap).not.toHaveBeenCalled();
+      expect(tick).toHaveBeenCalledTimes(20);
+    });
+
+    it('isRunning is true only between start and stop or pause', () => {
+      const ticker = new Ticker();
+      expect(ticker.isRunning()).toBe(false);
+      ticker.start();
+      expect(ticker.isRunning()).toBe(true);
+      ticker.pause();
+      expect(ticker.isRunning()).toBe(false);
+      ticker.resume();
+      expect(ticker.isRunning()).toBe(true);
+      ticker.stop();
+      expect(ticker.isRunning()).toBe(false);
+    });
+  });
 });

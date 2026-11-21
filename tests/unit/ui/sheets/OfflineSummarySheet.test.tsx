@@ -4,7 +4,7 @@ import '@preact/signals';
 import { createSheetController, type SheetController } from '../../../../src/ui/shell/SheetController';
 import { SheetHost } from '../../../../src/ui/shell/SheetHost';
 import { openOfflineSummary, formatAway } from '../../../../src/ui/sheets/OfflineSummarySheet';
-import type { OfflineLoadInfo } from '../../../../src/persistence/SaveManager';
+import type { OfflineLoadInfo } from '../../../../src/engine/resume';
 
 /**
  * Story 1.14: the legacy OfflineSummaryPopup renders as a sheet through the

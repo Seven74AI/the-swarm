@@ -1,4 +1,4 @@
-import type { OfflineLoadInfo } from '../../persistence/SaveManager';
+import type { OfflineLoadInfo } from '../../engine/resume';
 import type { SheetController } from '../shell/SheetController';
 import { ModalSheet } from '../shell/Sheet';
 
