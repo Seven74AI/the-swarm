@@ -51,10 +51,10 @@ const lines = {
   battle_engage: { text: 'THE SOLDIERS MARCH ON THE {enemy}.', from: Phase.COMBAT },
   battle_over: { text: 'THE BATTLE ENDS.', from: Phase.COMBAT },
   battle_no_soldiers: { text: 'NO SOLDIERS TO SEND.', from: Phase.COMBAT },
-  battle_victory: { text: '{soldiers} SOLDIERS BEAT A {enemy}. {lost} FALL. +{food} FOOD.', from: Phase.COMBAT },
+  battle_victory: { text: '{soldiers} SOLDIERS BEAT THE {enemy}. {lost} FALL. +{food} FOOD.', from: Phase.COMBAT },
   battle_venom: { text: 'VENOM DEALS {damage} DAMAGE.', from: Phase.COMBAT },
   battle_salvage: { text: 'THE SWARM SALVAGES {loot} FROM THE {enemy}.', from: Phase.COMBAT },
-  battle_defeat: { text: 'A {enemy} KILLS ALL {soldiers} SOLDIERS.', from: Phase.COMBAT },
+  battle_defeat: { text: 'THE {enemy} KILLS ALL {soldiers} SOLDIERS.', from: Phase.COMBAT },
   battle_draw: { text: 'THE {enemy} RETREATS. {lost} SOLDIERS FALL.', from: Phase.COMBAT },
 
   // The offline summary's warn lines (Story 2.9, UX-DR24); shown in any phase.

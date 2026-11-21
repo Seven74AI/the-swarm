@@ -10,6 +10,8 @@ import { CombatLog, EnemyCard, MutationsSection, SoldiersSection, WarPrimary } f
 import type { SegmentId } from '../../../../src/data/content/tabs';
 import { testActions } from '../../helpers/actions';
 import { makeState, type StateOverrides } from '../../helpers/makeState';
+import { visibleText } from '../../helpers/a11y';
+import { ENEMIES, TRAITS, enemyCardTitle } from '../../../../src/data/content/enemies';
 
 /**
  * Story 1.25 (UX-DR10, UX-DR26): FRONT → WAR. Soldiers and training,
@@ -126,6 +128,17 @@ describe('WAR segment (Story 1.25)', () => {
     expect(card.querySelector('[data-mutation-status="locked"]')).not.toBeNull();
     const pre = MUTATIONS.find((m) => m.id === gated.prerequisite)!;
     expect(card.textContent!.toUpperCase()).toContain(pre.name.toUpperCase());
+  });
+
+  it('the enemy card titles the enemy with its trait before the fight: ARMORED BEETLE · THICK SHELL (Story 4.1)', () => {
+    gameState.value = { ...gameState.value, nextEnemy: 'beetle' };
+    const c = mount();
+    const card = c.querySelector('#battle-panel [data-war="enemy"]')!;
+    expect(card.getAttribute('data-trait')).toBe(ENEMIES.beetle.trait);
+    const title = visibleText(card.querySelector('.card__name')!);
+    expect(title.replace(/\s+/g, ' ').trim()).toBe(enemyCardTitle('beetle'));
+    expect(card.querySelector('[data-enemy-trait]')!.textContent).toBe(TRAITS[ENEMIES.beetle.trait].label);
+    expect(card.querySelector('[data-trait-line]')!.textContent).toBe(TRAITS[ENEMIES.beetle.trait].line);
   });
 
   it('the enemy card names the enemy FIGHT will fight, with #enemy-name', () => {

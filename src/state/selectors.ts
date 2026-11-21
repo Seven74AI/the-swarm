@@ -10,6 +10,8 @@ import { assignedTotal, freeWorkers, getReallocation, workforceTotal, type Reall
 import { TerritorySystem } from '../systems/TerritorySystem';
 import { getSoldierDefense, getSoldierMaxHp, getSoldierSpeed, getSoldierStrength } from '../systems/SoldierSystem';
 import { canChoose } from '../systems/DecisionSystem';
+import { getEnemyDef, scaleEnemy } from '../systems/EnemySystem';
+import { assessMatchup, type Matchup } from '../systems/CombatRounds';
 import { getDecision } from '../data/content/decisions';
 import { canPurchaseMutation, isMutationUnlocked } from '../systems/MutationSystem';
 import {
@@ -90,6 +92,8 @@ export const selectBattlesWon = slice('battlesWon');
 /** The seeded generator's state (Story 3.1): the enemy card peeks the next enemy from it. */
 export const selectRng = slice('rng');
 export const selectBattlesLost = slice('battlesLost');
+/** The enemy type the next battle fights (Story 4.1). */
+export const selectNextEnemy = slice('nextEnemy');
 export const selectVictoryAchieved = slice('victoryAchieved');
 export const selectPhaseGoal = slice('phaseGoal');
 export const selectDecision = slice('decision');
@@ -419,6 +423,11 @@ export const selectBuildAction = computed<NextAction>(() => {
 
 /** A soldier's strength, defense, speed and health with equipment and mutations. */
 export const selectSoldierStrength = computed(() => getSoldierStrength(gameState.value));
+/** The enemy card's read of the next battle, trait included (Story 4.1). */
+export const selectMatchup = computed((): Matchup => {
+  const s = gameState.value;
+  return assessMatchup(s, scaleEnemy(getEnemyDef(s.nextEnemy), s.battlesWon));
+});
 export const selectSoldierDefense = computed(() => getSoldierDefense(gameState.value));
 export const selectSoldierSpeed = computed(() => getSoldierSpeed(gameState.value));
 export const selectSoldierMaxHp = computed(() => getSoldierMaxHp(gameState.value));

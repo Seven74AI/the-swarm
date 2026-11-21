@@ -4,6 +4,8 @@ import { createInitialState } from '../state/GameState';
 import { Phase } from '../phases/phases';
 import { migrateSave } from './migrations';
 import { emptyChronicle, normalizeChronicle, type ChronicleSave } from '../state/chronicle';
+import { isEnemyType, type EnemyType } from '../data/content/enemies';
+import { peekEnemy } from '../systems/EnemySystem';
 import type { BackupSlot, LoadResult, SaveStore } from '../platform/storage/SaveStore';
 
 export interface SaveData {
@@ -92,7 +94,7 @@ const PHASES: ReadonlySet<string> = new Set(Object.values(Phase));
  */
 export class SaveManager {
   /** The save format's version; each step up has a migration in migrations.ts. */
-  static readonly SAVE_VERSION = 26;
+  static readonly SAVE_VERSION = 27;
   private static AUTOSAVE_INTERVAL_MS = 30_000;
   /** Minimum interval between action-triggered saves (5 seconds). */
   private static ACTION_SAVE_INTERVAL_MS = 5_000;
@@ -345,7 +347,11 @@ export class SaveManager {
     // Deep-merge loaded state over defaults — loaded values win, missing fields get defaults
     const defaultState = createInitialState();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mergedState = deepMerge(defaultState as any, result.gameState as any) as unknown as GameState;
+    const merged = deepMerge(defaultState as any, result.gameState as any) as unknown as GameState;
+    // An enemy the game doesn't know would leave the enemy card blank: draw the one this save's generator gives (Story 4.1).
+    const mergedState: GameState = isEnemyType(merged.nextEnemy)
+      ? merged
+      : { ...merged, nextEnemy: peekEnemy(merged.rng, merged.battlesWon).type as EnemyType };
     return {
       ...result,
       gameState: mergedState,

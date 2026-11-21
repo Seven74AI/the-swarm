@@ -5,6 +5,8 @@ import { PhaseStateMachine, reachedValues } from '../phases/PhaseStateMachine';
 import { normalizeChronicle, type ChronicleSave } from '../state/chronicle';
 import { isSeed, seedFrom } from '../state/seed';
 import { isRngState, rngFromSeed } from '../utils/rng';
+import { isEnemyType } from '../data/content/enemies';
+import { peekEnemy } from '../systems/EnemySystem';
 
 /**
  * Migration system for save data version upgrades.
@@ -690,6 +692,22 @@ function migrateV25toV26(data: SaveData): SaveData {
   return { ...data, version: 26, gameState: { ...gs, workersAssigned: { ...assigned, forage } } as unknown as GameState };
 }
 
+/**
+ * v26 → v27 (Story 4.1, FR12): the next enemy lives in state
+ * (`gameState.nextEnemy`), so the enemy card and the battle agree across a
+ * reload. Before, the card peeked the generator; the save gets that same
+ * enemy, so the card shows what it showed, and the generator is untouched.
+ * A known `nextEnemy` is kept; a save without a generator state is left for
+ * SaveManager's defaults.
+ */
+function migrateV26toV27(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  if (isEnemyType(gs.nextEnemy) || !isRngState(gs.rng)) return { ...data, version: 27 };
+  const won = typeof gs.battlesWon === 'number' && Number.isFinite(gs.battlesWon) ? Math.max(0, Math.floor(gs.battlesWon)) : 0;
+  const nextEnemy = peekEnemy(gs.rng, won).type;
+  return { ...data, version: 27, gameState: { ...gs, nextEnemy } as unknown as GameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -717,6 +735,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   23: migrateV23toV24,
   24: migrateV24toV25,
   25: migrateV25toV26,
+  26: migrateV26toV27,
 };
 
 /**

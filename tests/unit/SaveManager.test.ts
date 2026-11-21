@@ -6,6 +6,7 @@ import type { GameState } from '../../src/state/GameState';
 import { Phase } from '../../src/phases/phases';
 import { PhaseStateMachine } from '../../src/phases/PhaseStateMachine';
 import { TRANSITIONS } from '../../src/phases/transitions';
+import { peekEnemy } from '../../src/systems/EnemySystem';
 
 describe('SaveManager', () => {
   let saveManager: SaveManager;
@@ -29,6 +30,21 @@ describe('SaveManager', () => {
       expect('paused' in loaded.gameState).toBe(false);
       const text = saveManager.serialize(loaded.gameState, 0);
       expect('paused' in JSON.parse(text).gameState).toBe(false);
+    });
+  });
+
+  describe('the next enemy (Story 4.1)', () => {
+    const put = (gameState: unknown) =>
+      localStorage.setItem('the_swarm_save', JSON.stringify({ version: SaveManager.SAVE_VERSION, timestamp: Date.now(), playTimeMs: 0, gameState }));
+
+    it('comes back as it was saved', () => {
+      put({ ...createInitialState(), nextEnemy: 'spider' });
+      expect(saveManager.load()!.gameState.nextEnemy).toBe('spider');
+    });
+
+    it('an unknown one is replaced by the one the save\'s generator draws next', () => {
+      put({ ...createInitialState(), nextEnemy: 'dragon', rng: 4242, battlesWon: 2 });
+      expect(saveManager.load()!.gameState.nextEnemy).toBe(peekEnemy(4242, 2).type);
     });
   });
 

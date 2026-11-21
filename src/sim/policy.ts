@@ -3,7 +3,8 @@ import { Phase } from '../phases/phases';
 import { conditionMet, goalFor } from '../state/queries';
 import { getNextAction, isFoodCritical, type ActionIntent } from '../systems/NextAction';
 import { freeWorkers, getReallocation, roleCount, type MoveSource } from '../systems/Workforce';
-import { assessMatchup, peekEnemy } from '../systems/EnemySystem';
+import { getEnemyDef, scaleEnemy, type EnemyDef } from '../systems/EnemySystem';
+import { assessMatchup } from '../systems/CombatRounds';
 import { soldierBalance } from '../data/balance/soldiers';
 import type { RoleId } from '../data/content/roles';
 import type { WorkerRole } from '../systems/ResourceSystem';
@@ -78,9 +79,9 @@ function needsWorkers(s: GameState): boolean {
  * The fewest soldiers that make the enemy on the card no longer dangerous,
  * looking no further than what could be trained now; null if none would.
  */
-function soldiersNeeded(s: GameState, enemyType: ReturnType<typeof peekEnemy>, most: number): number | null {
+function soldiersNeeded(s: GameState, enemy: EnemyDef, most: number): number | null {
   for (let n = 1; n <= most; n++) {
-    if (assessMatchup({ combatSoldiers: n, equipment: s.equipment }, enemyType) !== 'dangerous') return n;
+    if (assessMatchup(s, enemy, n) !== 'dangerous') return n;
   }
   return null;
 }
@@ -92,7 +93,8 @@ function soldiersNeeded(s: GameState, enemyType: ReturnType<typeof peekEnemy>, m
  */
 function combatMoves(s: GameState): SimMove[] {
   if (s.phase !== Phase.COMBAT) return [];
-  const enemy = peekEnemy(s.rng, s.battlesWon);
+  // The enemy on the card (Story 4.1), as the battle scales it.
+  const enemy = scaleEnemy(getEnemyDef(s.nextEnemy), s.battlesWon);
   const army = s.combatSoldiers;
   const coming = army + s.soldierPipeline.count;
   const canTrain = freeWorkers(s) > 0 && s.resources.food >= soldierBalance.costFood && !isFoodCritical(s);

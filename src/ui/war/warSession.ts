@@ -1,7 +1,7 @@
-import { signal, type ReadonlySignal } from '@preact/signals-core';
+import { computed, signal, type ReadonlySignal } from '@preact/signals-core';
 import type { ActionResult } from '../../actions';
-import { selectBattlesWon, selectRng } from '../../state/selectors';
-import { peekEnemy, scaleEnemy, type BattleResult, type EnemyDef } from '../../state/queries';
+import { selectBattlesWon, selectNextEnemy } from '../../state/selectors';
+import { getEnemyDef, scaleEnemy, type BattleResult, type EnemyDef } from '../../state/queries';
 
 /** The replay of a battle that has already been resolved (Story 1.25, UX-DR26). */
 export type BattleReplay =
@@ -24,7 +24,10 @@ export const MIN_REPLAY_MS = 800;
 export const HISTORY_SIZE = 5;
 
 export interface WarSession {
-  /** The enemy on the enemy card: the one `> FIGHT` fights. */
+  /**
+   * The enemy on the enemy card: the one `> FIGHT` fights (`state.nextEnemy`,
+   * Story 4.1). While a replay runs it stays the enemy being fought.
+   */
   readonly enemy: ReadonlySignal<EnemyDef>;
   readonly battle: ReadonlySignal<BattleReplay>;
   /** Battles of this session, newest first. */
@@ -40,18 +43,6 @@ export interface WarSessionDeps {
   actions: { fight(enemyType?: string): ActionResult<BattleResult> };
   /** Runs when the replay ends: main opens the battle summary sheet here. */
   onBattleDone(result: BattleResult, enemy: EnemyDef): void;
-  /** The next enemy. Default: the one the game's generator draws next, scaled to the battles won. */
-  drawEnemy?: () => EnemyDef;
-}
-
-/**
- * The next enemy, scaled like the battle itself scales it: the one the game's
- * seeded generator would draw next (Story 3.1), peeked without drawing it, so
- * the same save shows the same enemy. Story 4.1 moves the enemy into state.
- */
-function drawScaledEnemy(): EnemyDef {
-  const won = selectBattlesWon.peek();
-  return scaleEnemy(peekEnemy(selectRng.peek(), won), won);
 }
 
 /**
@@ -61,10 +52,13 @@ function drawScaledEnemy(): EnemyDef {
  * A battle resolves at once through `actions.fight` (one write). The round
  * counter is a presentational replay of the rounds it took (the UX
  * feasibility review: battles resolve synchronously); the summary opens when
- * it ends, and the next enemy is drawn.
+ * it ends, and the card shows the next enemy (drawn into state by the battle).
  */
-export function createWarSession({ actions, onBattleDone, drawEnemy = drawScaledEnemy }: WarSessionDeps): WarSession {
-  const enemy = signal<EnemyDef>(drawEnemy());
+export function createWarSession({ actions, onBattleDone }: WarSessionDeps): WarSession {
+  // The next enemy is in state (Story 4.1), scaled like the battle scales it.
+  const next = computed(() => scaleEnemy(getEnemyDef(selectNextEnemy.value), selectBattlesWon.value));
+  const fighting = signal<EnemyDef | null>(null);
+  const enemy = computed(() => fighting.value ?? next.value);
   const battle = signal<BattleReplay>({ status: 'idle' });
   const history = signal<readonly FoughtBattle[]>([]);
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -73,7 +67,7 @@ export function createWarSession({ actions, onBattleDone, drawEnemy = drawScaled
     timer = null;
     battle.value = { status: 'idle' };
     history.value = [{ result, enemy: fought }, ...history.value].slice(0, HISTORY_SIZE);
-    enemy.value = drawEnemy();
+    fighting.value = null;
     onBattleDone(result, fought);
   }
 
@@ -103,7 +97,10 @@ export function createWarSession({ actions, onBattleDone, drawEnemy = drawScaled
       if (battle.peek().status === 'running') return { ok: false, reason: 'already_running' };
       const fought = enemy.peek();
       const r = actions.fight(fought.type);
-      if (r.ok) replay(r.value, fought);
+      if (r.ok) {
+        fighting.value = fought;
+        replay(r.value, fought);
+      }
       return r;
     },
     dispose() {

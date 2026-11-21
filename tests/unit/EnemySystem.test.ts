@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialState } from '../../src/state/GameState';
 import { rngFromSeed, rngStream } from '../../src/utils/rng';
+import { assessMatchup } from '../../src/systems/CombatRounds';
 import {
-  assessMatchup,
   getEnemyDef,
   getEnemyDefs,
   getRandomEnemy,
@@ -11,6 +11,8 @@ import {
   type EnemyDef,
 } from '../../src/systems/EnemySystem';
 import { enemyBalance } from '../../src/data/balance/enemies';
+import { soldierBalance } from '../../src/data/balance/soldiers';
+import { combatBalance } from '../../src/data/balance/combat';
 
 const BOSS = enemyBalance.bossFromBattlesWon;
 
@@ -24,6 +26,7 @@ function makeEnemy(overrides: {
   return {
     type: 'test_dummy',
     name: 'Test Dummy',
+    trait: 'swarm',
     strength: overrides.baseStrength ?? 0,
     defense: 1,
     speed: 5,
@@ -153,6 +156,11 @@ describe('EnemySystem', () => {
   });
 
   describe('scaleEnemy — sub-linear scaling (pow 0.6)', () => {
+    it('the exponent lives in data/balance/combat.ts and is below 1 (Story 4.1)', () => {
+      expect(combatBalance.enemyScalingExponent).toBeGreaterThan(0);
+      expect(combatBalance.enemyScalingExponent).toBeLessThan(1);
+    });
+
     it('returns base stats at 0 battles', () => {
       const enemy = makeEnemy({ baseStrength: 20, baseHp: 80 });
       const result = scaleEnemy(enemy, 0);
@@ -246,7 +254,12 @@ describe('assessMatchup (Story 1.25: the enemy card)', () => {
     }
   });
 
-  it('favours a big enough army against anything', () => {
-    for (const e of getEnemyDefs()) expect(assessMatchup(army(100_000), e)).toBe('favoured');
+  it('favours a big enough, fully armed army against anything, whatever its trait', () => {
+    for (const e of getEnemyDefs()) expect(assessMatchup(army(100_000, soldierBalance.maxEquipmentLevel), e)).toBe('favoured');
+  });
+
+  it('reads the same army differently against different traits (Story 4.1)', () => {
+    const reads = new Set(getEnemyDefs().map((e) => assessMatchup(army(5), e)));
+    expect(reads.size).toBeGreaterThan(1);
   });
 });

@@ -108,6 +108,33 @@ describe('war session (Story 1.25)', () => {
   });
 });
 
+describe('the enemy on the card is the one in state (Story 4.1)', () => {
+  it('shows state.nextEnemy, and changes when the state does', () => {
+    start();
+    expect(session.enemy.value.type).toBe(gameState.value.nextEnemy);
+    gameState.value = { ...gameState.value, nextEnemy: 'wasp' };
+    expect(session.enemy.value.type).toBe('wasp');
+  });
+
+  it('keeps the fought enemy on the card while the replay runs, then shows the next one drawn', () => {
+    start();
+    gameState.value = { ...gameState.value, nextEnemy: 'spider' };
+    const r = session.fight();
+    expect(r.ok).toBe(true);
+    expect(session.enemy.value.type).toBe('spider');
+    vi.advanceTimersByTime(session.maxReplayMs);
+    expect(session.battle.value.status).toBe('idle');
+    expect(session.enemy.value.type).toBe(gameState.value.nextEnemy);
+  });
+
+  it('two sessions over the same save show the same enemy (a reload shows what was shown)', () => {
+    start();
+    const other = createWarSession({ actions: testActions(), onBattleDone: () => undefined });
+    expect(other.enemy.value.type).toBe(session.enemy.value.type);
+    other.dispose();
+  });
+});
+
 describe('war session replay length (Story 1.25)', () => {
   it('shows even a one-round battle for a while', () => {
     start();

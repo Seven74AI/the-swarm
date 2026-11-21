@@ -4,6 +4,8 @@ import { createInitialState, type GameState } from '../../src/state/GameState';
 import { BattleSystem, MAX_BATTLE_ROUNDS } from '../../src/systems/BattleSystem';
 import { fixedRng } from './helpers/rng';
 import { rngFromSeed } from '../../src/utils/rng';
+import { getEnemyDefs } from '../../src/systems/EnemySystem';
+import { enemyBalance } from '../../src/data/balance/enemies';
 
 /** Loops fight from a fixed seed per iteration (Story 3.1): reproducible, and still varied. */
 describe('BattleSystem', () => {
@@ -47,7 +49,8 @@ describe('BattleSystem', () => {
     it('returns defeat with 1 weak soldier vs scorpion (after 5+ battles to unlock boss)', () => {
       setupWeakArmy(1);
       state.battlesWon = 10; // unlock scorpion
-      // Force scorpion: a pinned roll hits the scorpion bucket (indices 97-99 of 100)
+      // The scorpion is the next enemy on the card (Story 4.1: it lives in state).
+      state.nextEnemy = 'scorpion';
       const { result, newState } = system.resolveBattle(state, undefined, fixedRng(0.98));
       expect(result.enemyType).toBe('scorpion');
       expect(result.victory).toBe(false);
@@ -339,5 +342,48 @@ describe('BattleSystem', () => {
         }
       }
     });
+  });
+});
+
+describe('the next enemy lives in state (Story 4.1)', () => {
+  const system = new BattleSystem(new EventBus());
+  const types = getEnemyDefs().map((e) => e.type);
+  const army = (over: Partial<GameState> = {}): GameState => ({ ...createInitialState(), combatSoldiers: 40, ...over });
+
+  it('a new game already has a known next enemy', () => {
+    expect(types).toContain(createInitialState().nextEnemy);
+  });
+
+  it('a battle fights the enemy in state', () => {
+    for (const t of types) {
+      const { result } = system.resolveBattle(army({ nextEnemy: t as GameState['nextEnemy'] }));
+      expect(result.enemyType).toBe(t);
+    }
+  });
+
+  it('a battle draws the next enemy from the seeded generator: same state, same next enemy', () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const s = army({ rng: rngFromSeed(seed) });
+      const a = system.resolveBattle(s).newState;
+      const b = system.resolveBattle(s).newState;
+      expect(types).toContain(a.nextEnemy);
+      expect(a.nextEnemy).toBe(b.nextEnemy);
+      expect(a.rng).toBe(b.rng);
+    }
+  });
+
+  it('the draw varies with the generator, and the boss never comes before its battle count', () => {
+    const seen = new Set<string>();
+    for (let seed = 1; seed <= 200; seed++) {
+      const { newState } = system.resolveBattle(army({ rng: rngFromSeed(seed), battlesWon: 0 }));
+      if (newState.battlesWon < enemyBalance.bossFromBattlesWon) expect(newState.nextEnemy).not.toBe('scorpion');
+      seen.add(newState.nextEnemy);
+    }
+    expect(seen.size).toBeGreaterThanOrEqual(3);
+  });
+
+  it('no soldiers: nothing is fought and the next enemy stays', () => {
+    const s = army({ combatSoldiers: 0 });
+    expect(system.resolveBattle(s).newState).toBe(s);
   });
 });
