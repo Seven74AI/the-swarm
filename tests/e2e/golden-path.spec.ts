@@ -1,3 +1,4 @@
+import { visibleText } from './helpers/text';
 import { test, expect } from '@playwright/test';
 import { openTab } from './helpers/tabs';
 import { readResource } from './helpers/resources';
@@ -276,7 +277,7 @@ test.describe('Golden Path — Full Progression', () => {
   test('clicking Build on barracks increments its level', async ({ page }) => {
     // Barracks card shows its level change (Story 1.24: `LV.n → n+1`)
     const barracksRow = page.locator('[data-building="barracks"]');
-    const labelBefore = await barracksRow.locator('.card__level').textContent();
+    const labelBefore = await visibleText(barracksRow.locator('.card__level'));
 
     // BUY on barracks (may need to wait for resources from gatherers)
     const buildBtn = barracksRow.locator('[data-action="buy-building"]');
@@ -294,7 +295,7 @@ test.describe('Golden Path — Full Progression', () => {
     await page.waitForTimeout(500);
 
     // Label should have changed (Lv.2 → Lv.3)
-    const labelAfter = await barracksRow.locator('.card__level').textContent();
+    const labelAfter = await visibleText(barracksRow.locator('.card__level'));
     expect(labelAfter).not.toBe(labelBefore);
     expect(labelAfter).toContain('LV.3');
   });

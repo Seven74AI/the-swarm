@@ -1,3 +1,4 @@
+import { visibleText } from './helpers/text';
 import { test, expect, type Page } from '@playwright/test';
 import { openTab } from './helpers/tabs';
 
@@ -271,7 +272,7 @@ test.describe('Buildings', () => {
     await seedAndWaitForExpansion(page);
 
     // Verify initial state: LV.0, effect line starts at SCOUTS 0 (Story 1.24 cards)
-    await expect(page.locator('[data-building="barracks"]')).toContainText('LV.0 →');
+    await expect.poll(() => visibleText(page.locator('[data-building="barracks"]'))).toContain('LV.0 →');
     await expect(page.locator('[data-building="barracks"] .card__effect')).toContainText('SCOUTS 0 →', { timeout: 3000 });
 
     // Tap BUY. Read resources immediately before and after the click in one
@@ -288,7 +289,7 @@ test.describe('Buildings', () => {
     expect(before.food).toBeGreaterThan(0);
 
     // Verify level updated to Lv.1
-    await expect(page.locator('[data-building="barracks"]')).toContainText('LV.1 →', { timeout: 3000 });
+    await expect.poll(() => visibleText(page.locator('[data-building="barracks"]')), { timeout: 3000 }).toContain('LV.1 →');
 
     // Effect shows "Scouts cap: 2" (Lv.1 Barracks: scoutsCap=2, warriorsCap=0)
     await expect(page.locator('[data-building="barracks"] .card__effect')).toContainText('SCOUTS 2 →', { timeout: 3000 });
@@ -305,7 +306,7 @@ test.describe('Buildings', () => {
     await seedAndWaitForExpansion(page);
 
     // Initial: Lv.0, defense +0%
-    await expect(page.locator('[data-building="walls"]')).toContainText('LV.0 →');
+    await expect.poll(() => visibleText(page.locator('[data-building="walls"]'))).toContain('LV.0 →');
     await expect(page.locator('[data-building="walls"] .card__effect')).toContainText('DEFENSE +0% →', { timeout: 3000 });
 
     // Note stone before
@@ -318,7 +319,7 @@ test.describe('Buildings', () => {
     await page.clock.runFor(100); // Let signals settle DOM
 
     // Level updated to Lv.1, defense +5%
-    await expect(page.locator('[data-building="walls"]')).toContainText('LV.1 →', { timeout: 3000 });
+    await expect.poll(() => visibleText(page.locator('[data-building="walls"]')), { timeout: 3000 }).toContain('LV.1 →');
     await expect(page.locator('[data-building="walls"] .card__effect')).toContainText('DEFENSE +5% →', { timeout: 3000 });
 
     // Stone deducted: Walls Lv.1 costs 500 stone (200 * 2.5^1)
@@ -331,7 +332,7 @@ test.describe('Buildings', () => {
     await seedAndWaitForExpansion(page);
 
     // Initial: Lv.0, capacity +0
-    await expect(page.locator('[data-building="warehouse"]')).toContainText('LV.0 →');
+    await expect.poll(() => visibleText(page.locator('[data-building="warehouse"]'))).toContain('LV.0 →');
     await expect(page.locator('[data-building="warehouse"] .card__effect')).toContainText('NEST CAPACITY +0 →', { timeout: 3000 });
 
     // Click Build
@@ -341,7 +342,7 @@ test.describe('Buildings', () => {
     await page.clock.runFor(100); // Let signals settle DOM
 
     // Level updated to Lv.1, capacity display shows +25
-    await expect(page.locator('[data-building="warehouse"]')).toContainText('LV.1 →', { timeout: 3000 });
+    await expect.poll(() => visibleText(page.locator('[data-building="warehouse"]')), { timeout: 3000 }).toContain('LV.1 →');
     await expect(page.locator('[data-building="warehouse"] .card__effect')).toContainText('NEST CAPACITY +25 →', { timeout: 3000 });
 
     // Resources deducted: Warehouse Lv.1 = 375 wood + 250 stone (×2.5)

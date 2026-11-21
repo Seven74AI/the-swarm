@@ -310,7 +310,7 @@ test.describe('Offline Progression — Popup Lifecycle', () => {
     await expect(popup).toBeVisible({ timeout: 5000 });
     const text = await popup.textContent();
     // 3h should format as "3h" (not "3h 0m")
-    expect(text).toMatch(/3h/);
+    expect(text).toMatch(/3H/);
   });
 
   test('popup shows minutes+seconds for <1h absence', async ({ page }) => {
@@ -320,7 +320,7 @@ test.describe('Offline Progression — Popup Lifecycle', () => {
     await expect(popup).toBeVisible({ timeout: 5000 });
     const text = await popup.textContent();
     // 5 min absence should show minutes, not hours
-    expect(text).toMatch(/5m/);
+    expect(text).toMatch(/5M/);
   });
 
 });
