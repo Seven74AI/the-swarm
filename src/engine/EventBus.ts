@@ -1,3 +1,5 @@
+import { log } from '../utils/log';
+
 /**
  * Generic event map: key = event name, value = payload type.
  */
@@ -33,10 +35,9 @@ export class EventBus<T extends Record<string, unknown> = SwarmEvents> {
         try {
           cb(payload);
         } catch (e) {
-          // Error isolation: one failing callback must not prevent others
-          if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
-            console.error('EventBus: callback error for event', event, e);
-          }
+          // Error isolation: one failing callback must not prevent others,
+          // and the failure is always logged (AR16), in every build.
+          log.error('event-bus', `listener for "${event}" threw`, e);
         }
       }
     }

@@ -13,7 +13,7 @@ import { createInitialState, type GameState } from './GameState';
  *
  *   // React to changes (auto-tracks which paths you read):
  *   effect(() => {
- *     console.log('Eggs changed:', gameState.value.resources.eggs)
+ *     log.debug('example', 'eggs changed', gameState.value.resources.eggs)
  *   })
  *
  * Replaces the old StateManager + Store duo.
