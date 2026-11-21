@@ -11,9 +11,8 @@ import { TerritorySystem } from '../../../src/systems/TerritorySystem';
 import { getConversionDefs, getConversionRate } from '../../../src/systems/ResourceConversionSystem';
 import { tickProbeSwarm, PROBE_SWARM_THRESHOLD, MAX_ACTIVE_EXPLORATIONS } from '../../../src/systems/ExplorationSystem';
 import { Phase } from '../../../src/phases/phases';
-import { getAutoLayRate } from '../../../src/engine/AutoProductionLoop';
 import { TICK_MS } from '../../../src/data/constants';
-import { pipelineTolerance, rateTolerance, WHOLE_UNIT_CARRY } from '../helpers/stepTolerance';
+import { pipelineTolerance, rateTolerance, stageRates, WHOLE_UNIT_CARRY } from '../helpers/stepTolerance';
 
 /**
  * Story 2.5 (FR2, AR4): every system gives the same result for any step length.
@@ -201,28 +200,6 @@ function expectIntegerInvariants(before: GameState, after: GameState, where: str
   expect(army(after), `${where}: no soldier is lost in training`).toBe(army(before));
 }
 
-/** The largest rate constant (per second) of each pipeline stage in `s`, from its rate at count 1. */
-function stageRates(s: GameState): { hatch: number; mature: number; train: number; inflow: number } {
-  // Measured, not hard-coded: one item in a stage, one tick, no carried progress.
-  const probe = (patch: (x: GameState) => void) => {
-    const x = structuredClone(s);
-    x.eggPipeline = { count: 0, progress: 0 };
-    x.larvaPipeline = { count: 0, progress: 0 };
-    x.soldierPipeline = { count: 0, progress: 0 };
-    x.autoProduction = { ...x.autoProduction, enabled: false };
-    x.prestigeTree = { purchased: x.prestigeTree.purchased.filter((id) => id !== 'auto_egg_laying') };
-    patch(x);
-    return x;
-  };
-  const after = (x: GameState) => step(x, TICK_SEC);
-  const hatch = after(probe((x) => { x.resources.eggs = 1_000_000; x.eggPipeline.count = 1_000_000; })).resources.larvae / 1_000_000 / TICK_SEC;
-  const mature = after(probe((x) => { x.resources.larvae = 1_000_000; x.larvaPipeline.count = 1_000_000; x.resources.nestCapacity = 10_000_000; })).resources.workers;
-  const matureRate = (mature - s.resources.workers) / 1_000_000 / TICK_SEC;
-  const train = after(probe((x) => { x.soldierPipeline.count = 1_000_000; })).combatSoldiers;
-  const trainRate = (train - s.combatSoldiers) / 1_000_000 / TICK_SEC;
-  return { hatch, mature: matureRate, train: trainRate, inflow: getAutoLayRate(s) };
-}
-
 // ─── Properties ────────────────────────────────────────────────────────────
 
 describe('Story 2.5: systems give the same result for any step length', { timeout: 30_000 }, () => {
@@ -243,7 +220,7 @@ describe('Story 2.5: systems give the same result for any step length', { timeou
         const T = n * TICK_SEC;
         const a = fine(state, n);
         const b = coarse(state, n);
-        const k = stageRates(state);
+        const k = stageRates(state, step);
         const kMax = Math.max(k.hatch, k.mature);
         const where = `n=${n}`;
         expect(Math.abs(a.resources.eggs - b.resources.eggs), `${where}: eggs`)

@@ -1,3 +1,7 @@
+import type { GameState } from '../../../src/state/GameState';
+import { getAutoLayRate } from '../../../src/engine/AutoProductionLoop';
+import { TICK_MS } from '../../../src/data/constants';
+
 /**
  * The step-length tolerance (Story 2.5, AR4): how far one step of `T` seconds
  * may differ from many short steps over the same `T`. Shared by the step-length
@@ -27,4 +31,33 @@ export function pipelineTolerance(k: number, stages: number, windowSec: number, 
  */
 export function rateTolerance(rates: number[], windowSec: number): number {
   return (Math.max(...rates) - Math.min(...rates)) * windowSec + WHOLE_UNIT_CARRY;
+}
+
+/**
+ * The largest rate constant (per second) of each pipeline stage in `s`, from its
+ * rate at count 1, and the eggs laid a second (`inflow`). Measured, not
+ * hard-coded: one item in a stage, one `step` of a tick, no carried progress.
+ */
+export function stageRates(
+  s: GameState,
+  step: (state: GameState, dtSec: number) => GameState,
+): { hatch: number; mature: number; train: number; inflow: number } {
+  const TICK_SEC = TICK_MS / 1000;
+  const probe = (patch: (x: GameState) => void) => {
+    const x = structuredClone(s);
+    x.eggPipeline = { count: 0, progress: 0 };
+    x.larvaPipeline = { count: 0, progress: 0 };
+    x.soldierPipeline = { count: 0, progress: 0 };
+    x.autoProduction = { ...x.autoProduction, enabled: false };
+    x.prestigeTree = { purchased: x.prestigeTree.purchased.filter((id) => id !== 'auto_egg_laying') };
+    patch(x);
+    return x;
+  };
+  const after = (x: GameState) => step(x, TICK_SEC);
+  const hatch = after(probe((x) => { x.resources.eggs = 1_000_000; x.eggPipeline.count = 1_000_000; })).resources.larvae / 1_000_000 / TICK_SEC;
+  const mature = after(probe((x) => { x.resources.larvae = 1_000_000; x.larvaPipeline.count = 1_000_000; x.resources.nestCapacity = 10_000_000; })).resources.workers;
+  const matureRate = (mature - s.resources.workers) / 1_000_000 / TICK_SEC;
+  const train = after(probe((x) => { x.soldierPipeline.count = 1_000_000; })).combatSoldiers;
+  const trainRate = (train - s.combatSoldiers) / 1_000_000 / TICK_SEC;
+  return { hatch, mature: matureRate, train: trainRate, inflow: getAutoLayRate(s) };
 }

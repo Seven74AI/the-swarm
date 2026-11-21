@@ -1,31 +1,47 @@
 // @ts-nocheck — fast-check type inference weak with noImplicitAny
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
-import { catchUp, type CatchUpDeps } from '../../../src/engine/catchUp';
-import { EventBus } from '../../../src/engine/EventBus';
-import { ResourceSystem } from '../../../src/systems/ResourceSystem';
-import { SoldierSystem } from '../../../src/systems/SoldierSystem';
-import { MapSystem } from '../../../src/systems/MapSystem';
-import { TerritorySystem } from '../../../src/systems/TerritorySystem';
-import { PhaseStateMachine } from '../../../src/phases/PhaseStateMachine';
-import { TRANSITIONS } from '../../../src/phases/transitions';
-import { CATCH_UP_STEP_MS } from '../../../src/data/constants';
-import type { GameState } from '../../../src/state/GameState';
-import { makeState } from '../helpers/makeState';
+import { CATCH_UP_STEP_MS, TICK_MS } from '../../../src/data/constants';
 
 /**
- * Story 2.6 (AR4): the macro-stepped catch-up (`CATCH_UP_STEP_MS` steps) ends
- * where the fine-stepped one (50 ms game ticks) ends, within the step-length
- * tolerance Story 2.5 states for rates, on seeded random colonies.
+ * Story 2.6 (AR4): the macro-stepped catch-up gives what fine steps give,
+ * within the step-length tolerance Story 2.5 states
+ * (tests/unit/helpers/stepTolerance.ts, reasoning in stepLength.test.ts).
+ *
+ * 1. Every macro-step catch-up actually takes (captured from its `processTick`
+ *    calls) is within 2.5's tolerance of the 50 ms steps it replaces, run from
+ *    the same state with the same arguments.
+ * 2. End to end, the macro-stepped catch-up and a 50 ms catch-up agree: the
+ *    same game time passes, the closed-form resources are equal, both keep
+ *    2.5's integer invariants, and pipelines differ by at most the sum of
+ *    2.5's per-window tolerance over the windows taken (pipelines are decay
+ *    chains, so a window's difference is carried forward, never amplified).
  */
 
-/** Relative tolerance for rate-driven amounts (Story 2.5's stated tolerance). */
-const REL_TOLERANCE = 0.05;
-/** Absolute slack for small amounts (one item either way of a floor). */
-const ABS_TOLERANCE = 2;
-const FINE_STEP_MS = 50;
+// Record processTick calls (arguments and result) without changing them.
+vi.mock('../../../src/engine/processTick', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../src/engine/processTick')>();
+  return { ...actual, processTick: vi.fn(actual.processTick) };
+});
 
-function deps(): CatchUpDeps {
+const recorded = await import('../../../src/engine/processTick');
+const { processTick: realTick } = await vi.importActual<typeof import('../../../src/engine/processTick')>('../../../src/engine/processTick');
+const { catchUp } = await import('../../../src/engine/catchUp');
+const { EventBus } = await import('../../../src/engine/EventBus');
+const { EventQueue } = await import('../../../src/engine/events');
+const { ResourceSystem } = await import('../../../src/systems/ResourceSystem');
+const { SoldierSystem } = await import('../../../src/systems/SoldierSystem');
+const { MapSystem } = await import('../../../src/systems/MapSystem');
+const { TerritorySystem } = await import('../../../src/systems/TerritorySystem');
+const { PhaseStateMachine } = await import('../../../src/phases/PhaseStateMachine');
+const { TRANSITIONS } = await import('../../../src/phases/transitions');
+const { pipelineTolerance, stageRates, WHOLE_UNIT_CARRY } = await import('../helpers/stepTolerance');
+const { makeState } = await import('../helpers/makeState');
+
+const TICK_SEC = TICK_MS / 1000;
+const SEED = 0x2606;
+
+function deps() {
   const bus = new EventBus();
   const fsm = new PhaseStateMachine(TRANSITIONS);
   return {
@@ -37,65 +53,145 @@ function deps(): CatchUpDeps {
   };
 }
 
-function arbitraryColony(): fc.Arbitrary<GameState> {
-  return fc
-    .record({
-      workers: fc.integer({ min: 0, max: 60 }),
-      food: fc.integer({ min: 0, max: 20_000 }),
-      eggs: fc.integer({ min: 0, max: 60 }),
-      larvae: fc.integer({ min: 0, max: 60 }),
-      gatherShare: fc.integer({ min: 0, max: 100 }),
-      tendShare: fc.integer({ min: 0, max: 100 }),
-    })
-    .map((r) => {
-      const gather = Math.floor((r.workers * r.gatherShare) / 100);
-      const tend = Math.floor(((r.workers - gather) * r.tendShare) / 100);
-      return makeState({
-        phase: 'colony',
-        resources: { workers: r.workers, food: r.food, eggs: r.eggs, larvae: r.larvae },
-        eggPipeline: { count: r.eggs, progress: 0 },
-        larvaPipeline: { count: r.larvae, progress: 0 },
-        workersAssigned: { gather, tend },
-      });
-    });
+/** One step through the real processTick, the way catch-up calls it (deterministic resources skipped). */
+function step(state, dtSec, skip = true) {
+  const d = deps();
+  return realTick(state, d.resourceSystem, d.soldierSystem, d.mapSystem, d.territorySystem, new EventQueue(), dtSec, skip);
 }
 
-const close = (macro: number, fine: number): boolean =>
-  Math.abs(macro - fine) <= Math.max(ABS_TOLERANCE, REL_TOLERANCE * Math.abs(fine));
+function fine(state, dtSec) {
+  const n = Math.round(dtSec / TICK_SEC);
+  let s = state;
+  for (let i = 0; i < n; i++) s = step(s, TICK_SEC);
+  return s;
+}
 
-describe('macro-stepped catch-up matches fine-stepped (Story 2.6)', () => {
-  it('ends within tolerance on rates and keeps every integer invariant', () => {
+const arbColony = fc
+  .record({
+    workers: fc.integer({ min: 0, max: 120 }),
+    headroom: fc.integer({ min: 0, max: 120 }),
+    food: fc.integer({ min: 0, max: 20_000 }),
+    eggs: fc.integer({ min: 0, max: 200 }),
+    larvae: fc.integer({ min: 0, max: 200 }),
+    eggProgress: fc.double({ min: 0, max: 0.999, noNaN: true }),
+    larvaProgress: fc.double({ min: 0, max: 0.999, noNaN: true }),
+    shares: fc.array(fc.integer({ min: 0, max: 100 }), { minLength: 3, maxLength: 3 }),
+    autoEggLayer: fc.boolean(),
+  })
+  .map((r) => {
+    const total = r.shares.reduce((a, b) => a + b, 0) || 1;
+    const part = (i: number) => Math.floor((r.workers * r.shares[i]) / total / 1.25);
+    return makeState({
+      phase: 'colony',
+      resources: { workers: r.workers, nestCapacity: r.workers + r.headroom, food: r.food, eggs: r.eggs, larvae: r.larvae },
+      eggPipeline: { count: r.eggs, progress: r.eggProgress },
+      larvaPipeline: { count: r.larvae, progress: r.larvaProgress },
+      workersAssigned: { gather: part(0), tend: part(1), dig: part(2) },
+      prestigeTree: { purchased: r.autoEggLayer ? ['auto_egg_laying'] : [] },
+    });
+  });
+
+/** 2.5's pipeline tolerance for one window of `T` seconds starting at `state`, as stepLength.test.ts states it. */
+function windowTolerance(state, T, dug) {
+  const k = stageRates(state, (s, dt) => step(s, dt));
+  const kMax = Math.max(k.hatch, k.mature);
+  return {
+    eggs: pipelineTolerance(k.hatch, 1, T, k.inflow),
+    larvae: pipelineTolerance(kMax, 2, T, k.inflow) + dug,
+    workers: pipelineTolerance(kMax, 2, T, k.inflow) + dug,
+  };
+}
+
+function expectIntegerInvariants(before, after, where) {
+  for (const [key, value] of Object.entries(after.resources)) {
+    expect(Number.isInteger(value), `${where}: resources.${key} = ${value} is an integer`).toBe(true);
+    expect(value, `${where}: resources.${key} >= 0`).toBeGreaterThanOrEqual(0);
+  }
+  expect(after.resources.eggs, `${where}: every egg is in the egg pipeline`).toBe(after.eggPipeline.count);
+  expect(after.resources.larvae, `${where}: every larva is in the larva pipeline`).toBe(after.larvaPipeline.count);
+  const brood = (s) => s.resources.eggs + s.resources.larvae + s.resources.workers;
+  const laid = after.stats.totalEggsLaid - before.stats.totalEggsLaid;
+  expect(brood(after), `${where}: eggs + larvae + workers grow only by the eggs laid`).toBe(brood(before) + laid);
+}
+
+describe('macro-stepped catch-up matches fine-stepped (Story 2.6)', { timeout: 60_000 }, () => {
+  beforeEach(() => {
+    vi.mocked(recorded.processTick).mockClear();
+  });
+
+  it('takes macro-steps much longer than a game tick', () => {
+    expect(CATCH_UP_STEP_MS / TICK_MS).toBeGreaterThanOrEqual(100);
+  });
+
+  it('each macro-step is within Story 2.5\'s tolerance of the 50 ms steps it replaces', () => {
     fc.assert(
-      fc.property(arbitraryColony(), fc.integer({ min: 2, max: 30 }), (before, minutes) => {
-        const ms = minutes * 60_000;
-        const ticks = Math.floor(ms / FINE_STEP_MS);
-        const macro = catchUp(before, ms, ticks, deps());
-        const fine = catchUp(before, ms, ticks, deps(), FINE_STEP_MS);
-
-        // Same game time passes either way.
-        expect(macro.stats.playTimeMs).toBeCloseTo(fine.stats.playTimeMs, 3);
-
-        for (const key of ['workers', 'food', 'eggs', 'larvae'] as const) {
-          expect(close(macro.resources[key], fine.resources[key]), `${key}: macro ${macro.resources[key]} vs fine ${fine.resources[key]}`).toBe(true);
-        }
-        expect(close(macro.eggPipeline.count, fine.eggPipeline.count)).toBe(true);
-        expect(close(macro.larvaPipeline.count, fine.larvaPipeline.count)).toBe(true);
-
-        // Integer invariants hold on the macro-stepped result.
-        for (const key of ['workers', 'eggs', 'larvae'] as const) {
-          expect(Number.isInteger(macro.resources[key])).toBe(true);
-          expect(macro.resources[key]).toBeGreaterThanOrEqual(0);
-        }
-        expect(macro.resources.food).toBeGreaterThanOrEqual(0);
-        expect(Number.isInteger(macro.eggPipeline.count)).toBe(true);
-        expect(Number.isInteger(macro.larvaPipeline.count)).toBe(true);
-        expect(macro.phase).toBe(before.phase);
+      fc.property(arbColony, fc.integer({ min: 1, max: 4 }), (before, minutes) => {
+        vi.mocked(recorded.processTick).mockClear();
+        const ms = minutes * 60_000 + 3_250; // a short last step too
+        catchUp(before, ms, Math.floor(ms / TICK_MS), deps());
+        const calls = vi.mocked(recorded.processTick).mock.calls;
+        const results = vi.mocked(recorded.processTick).mock.results;
+        expect(calls.length).toBe(Math.ceil(ms / CATCH_UP_STEP_MS));
+        calls.forEach((args, i) => {
+          const [input, , , , , , dtSec, skip] = args;
+          expect(skip).toBe(true);
+          const macro = results[i].value;
+          const reference = fine(input, dtSec);
+          const where = `step ${i} (${dtSec} s)`;
+          expectIntegerInvariants(input, macro, `${where}, macro`);
+          const dug = macro.resources.nestCapacity - input.resources.nestCapacity;
+          const tol = windowTolerance(input, dtSec, dug);
+          for (const key of ['eggs', 'larvae', 'workers'] as const) {
+            expect(Math.abs(macro.resources[key] - reference.resources[key]), `${where}: ${key}`).toBeLessThanOrEqual(tol[key]);
+          }
+          expect(Math.abs(macro.resources.nestCapacity - reference.resources.nestCapacity), `${where}: nest capacity`)
+            .toBeLessThanOrEqual(WHOLE_UNIT_CARRY);
+          expect(macro.stats.playTimeMs - input.stats.playTimeMs).toBeCloseTo(dtSec * 1000, 6);
+        });
       }),
-      { numRuns: 25, seed: 0x2606 },
+      { seed: SEED, numRuns: 15 },
     );
   });
 
-  it('the macro-step is much longer than a game tick', () => {
-    expect(CATCH_UP_STEP_MS / FINE_STEP_MS).toBeGreaterThanOrEqual(100);
+  it('end to end, a macro-stepped catch-up agrees with a 50 ms one', () => {
+    fc.assert(
+      fc.property(arbColony, fc.integer({ min: 2, max: 20 }), (before, minutes) => {
+        const ms = minutes * 60_000;
+        const ticks = Math.floor(ms / TICK_MS);
+        vi.mocked(recorded.processTick).mockClear();
+        const macro = catchUp(before, ms, ticks, deps());
+        const windows = vi.mocked(recorded.processTick).mock.calls.map((args, i) => ({
+          input: args[0],
+          dtSec: args[6],
+          output: vi.mocked(recorded.processTick).mock.results[i].value,
+        }));
+        const fineRun = catchUp(before, ms, ticks, deps(), TICK_MS);
+
+        // Same game time, same closed-form resources.
+        expect(macro.stats.playTimeMs).toBeCloseTo(fineRun.stats.playTimeMs, 3);
+        for (const key of ['food', 'wood', 'stone', 'nectar'] as const) {
+          expect(macro.resources[key], key).toBe(fineRun.resources[key]);
+        }
+        expectIntegerInvariants(before, macro, 'macro');
+        expectIntegerInvariants(before, fineRun, 'fine');
+        expect(macro.phase).toBe(before.phase);
+
+        // Pipelines: within the sum of 2.5's per-window tolerance over the windows taken.
+        const sum = { eggs: 0, larvae: 0, workers: 0 };
+        for (const w of windows) {
+          const dug = w.output.resources.nestCapacity - w.input.resources.nestCapacity;
+          const tol = windowTolerance(w.input, w.dtSec, dug);
+          sum.eggs += tol.eggs;
+          sum.larvae += tol.larvae;
+          sum.workers += tol.workers;
+        }
+        for (const key of ['eggs', 'larvae', 'workers'] as const) {
+          expect(Math.abs(macro.resources[key] - fineRun.resources[key]), `${key}: macro ${macro.resources[key]} vs fine ${fineRun.resources[key]}`)
+            .toBeLessThanOrEqual(sum[key]);
+        }
+        expect(Math.abs(macro.resources.nestCapacity - fineRun.resources.nestCapacity)).toBeLessThanOrEqual(windows.length * WHOLE_UNIT_CARRY);
+      }),
+      { seed: SEED, numRuns: 15 },
+    );
   });
 });
