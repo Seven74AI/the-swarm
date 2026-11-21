@@ -4,8 +4,10 @@ import type { GameState, ResourceRemainder } from '../state/GameState';
 import type { TerritoryBonuses } from './TerritorySystem';
 import { creditWhole, upgradeCost } from '../utils/math';
 import { chainedShare, completedShare } from '../utils/decay';
-import { MS_PER_SEC, TICK_MS } from '../data/constants';
+import { MS_PER_SEC, PERCENT, TICK_MS } from '../data/constants';
 import { resourceBalance } from '../data/balance/resources';
+import { NEST_UPGRADE_IDS, upgradeBalance, type UpgradeEffects, type UpgradeId } from '../data/balance/upgrades';
+import { Phase } from '../phases/phases';
 import { combatBalance } from '../data/balance/combat';
 import { roleBalance } from '../data/balance/roles';
 import { getEffects } from './BuildingSystem';
@@ -81,7 +83,8 @@ export function computeResourceRates(
     * prodMult * workerEff * prestigeBonuses.food * prestigeBonuses.workerEfficiency
     * (1 + mutationEffects.gatherRate)
   );
-  const foodConsumedPerSec = workers * resourceBalance.upkeepFoodPerSec + armyUpkeepPerSec(state);
+  const upkeepShare = 1 - upgradeTotal(state, 'lean_rations', 'upkeepCutPercent') / PERCENT;
+  const foodConsumedPerSec = workers * resourceBalance.upkeepFoodPerSec * upkeepShare + armyUpkeepPerSec(state);
 
   // Basic resources from the roles (Story 3.4, FR36): no territory needed.
   const roleMult = prodMult * workerEff * prestigeBonuses.workerEfficiency;
@@ -109,22 +112,42 @@ export function computeResourceRates(
   };
 }
 
-/**
- * Upgrade definitions: base food cost and cost multiplier (`data/balance/resources.ts`).
- */
-interface UpgradeDef {
-  baseCost: number;
-  costMultiplier: number;
+const isKnownUpgrade = (id: string): id is UpgradeId => id in upgradeBalance;
+const isNestUpgrade = (id: UpgradeId): boolean => (NEST_UPGRADE_IDS as readonly string[]).includes(id);
+
+/** Food cost of a food upgrade (`data/balance/upgrades.ts`) at its current level, or null for an unknown upgrade. */
+export function getUpgradeCost(upgradeId: string, level: number): number | null {
+  if (!isKnownUpgrade(upgradeId)) return null;
+  const def = upgradeBalance[upgradeId];
+  return upgradeCost(def.baseCost, def.costMultiplier, level);
 }
 
-const UPGRADES: Record<string, UpgradeDef> = {
-  click_power: resourceBalance.clickPower,
-};
+/** The level owned of a food upgrade (0 when never bought). */
+export function upgradeLevel(state: GameState, upgradeId: string): number {
+  return state.upgrades[upgradeId] ?? 0;
+}
 
-/** Food cost of an egg-chamber upgrade at its current level, or null for an unknown upgrade. */
-export function getUpgradeCost(upgradeId: string, level: number): number | null {
-  const def = UPGRADES[upgradeId];
-  return def ? upgradeCost(def.baseCost, def.costMultiplier, level) : null;
+/** One effect of an upgrade at the level owned: its per-level amount × the level. */
+function upgradeTotal(state: GameState, upgradeId: UpgradeId, effect: keyof UpgradeEffects): number {
+  return upgradeLevel(state, upgradeId) * (upgradeBalance[upgradeId].perLevel[effect] ?? 0);
+}
+
+/**
+ * Whether a food upgrade is on sale now, price aside (Story 4.6): known, below
+ * its last level, and for the egg-chamber upgrades, only in Egg Laying.
+ * Click Power is sold in every phase (NEST in Phase 1, BUILD after).
+ */
+export function isUpgradeOpen(state: GameState, upgradeId: string): boolean {
+  return upgradeRefusal(state, upgradeId) === null;
+}
+
+/** Why a food upgrade is not on sale now, price aside, or null when it is. */
+export function upgradeRefusal(state: GameState, upgradeId: string): 'unknown_id' | 'locked' | 'max_level' | null {
+  if (!isKnownUpgrade(upgradeId)) return 'unknown_id';
+  if (isNestUpgrade(upgradeId) && state.phase !== Phase.EGG_LAYING) return 'locked';
+  const max = upgradeBalance[upgradeId].maxLevel;
+  if (max !== undefined && upgradeLevel(state, upgradeId) >= max) return 'max_level';
+  return null;
 }
 
 /** A worker job the player can assign. */
@@ -206,7 +229,8 @@ export class ResourceSystem {
     // Pipeline rate constants (per second): a pipeline completes `count × k` items a second.
     const tendCount = state.workersAssigned.tend;
     const hatchK = (MS_PER_SEC / resourceBalance.hatchMs) * (1 + tendCount * roleBalance.tendHatchBonusPerWorker)
-      * prestigeBonuses.eggLaying * (1 + mutationEffects.hatchRate);
+      * prestigeBonuses.eggLaying * (1 + mutationEffects.hatchRate)
+      * (1 + upgradeTotal(state, 'warm_brood', 'hatchPercent') / PERCENT);
     const matureK = (MS_PER_SEC / resourceBalance.matureMs) * prestigeBonuses.hatching;
     const eggPipe = state.eggPipeline;
     const larvaPipe = state.larvaPipeline;
@@ -356,14 +380,17 @@ export class ResourceSystem {
   }
 
   buyUpgrade(state: GameState, upgradeId: string): GameState {
-    const currentLevel = state.upgrades[upgradeId] ?? 0;
+    if (!isUpgradeOpen(state, upgradeId) || !isKnownUpgrade(upgradeId)) return state;
+    const currentLevel = upgradeLevel(state, upgradeId);
     const cost = getUpgradeCost(upgradeId, currentLevel);
     if (cost === null) return state;
     if (state.resources.food < cost) return state;
+    // Rooms are bought once, at purchase (Story 4.6), like the rooms DIG adds.
+    const rooms = upgradeBalance[upgradeId].perLevel.nestCapacity ?? 0;
 
     const result: GameState = {
       ...state,
-      resources: { ...state.resources, food: state.resources.food - cost },
+      resources: { ...state.resources, food: state.resources.food - cost, nestCapacity: state.resources.nestCapacity + rooms },
       upgrades: { ...state.upgrades, [upgradeId]: currentLevel + 1 },
     };
 

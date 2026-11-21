@@ -1,6 +1,6 @@
 import type { ActionDeps } from './context';
 import { commit, current, refuse, type ActionResult } from './result';
-import { getAssignedWorkers, getUpgradeCost, type WorkerRole } from '../systems/ResourceSystem';
+import { getAssignedWorkers, getUpgradeCost, upgradeRefusal, type WorkerRole } from '../systems/ResourceSystem';
 import { freeWorkers, moveWorkers as move, roleCount, stepRole as step, type MoveSource } from '../systems/Workforce';
 import type { RoleId } from '../data/content/roles';
 
@@ -50,9 +50,11 @@ export function moveWorkers(deps: ActionDeps, from: MoveSource, to: RoleId, coun
   return r;
 }
 
-/** Buy one level of a food upgrade (click power). */
+/** Buy one level of a food upgrade (Click Power, or an egg-chamber upgrade in Phase 1: Story 4.6). */
 export function buyUpgrade(deps: ActionDeps, upgradeId: string): ActionResult {
   const s = current(deps);
+  const closed = upgradeRefusal(s, upgradeId);
+  if (closed) return refuse(closed);
   const cost = getUpgradeCost(upgradeId, s.upgrades[upgradeId] ?? 0);
   if (cost === null) return refuse('unknown_id');
   if (s.resources.food < cost) return refuse('cannot_afford');

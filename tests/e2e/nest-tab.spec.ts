@@ -160,6 +160,22 @@ test.describe('NEST tab', () => {
     await expect(page.locator('[data-next-action]')).toHaveCount(0);
   });
 
+  test('Phase 1 sells more than Click Power: each egg-chamber card buys its upgrade and keeps > LAY EGG (Story 4.6)', async ({ page }) => {
+    await seed(page, { ...EGG_LAYING, resources: { ...EGG_LAYING.resources, food: 1_000_000 } });
+    const cards = page.locator('[data-nest-host="click-power"] [data-card]');
+    // Click Power plus at least three egg-chamber upgrades, all priced in food.
+    expect(await cards.count()).toBeGreaterThanOrEqual(4);
+    const ids = await page.locator('[data-action="buy-upgrade"]').evaluateAll((els) => els.map((el) => (el as HTMLElement).dataset.upgrade!));
+    expect(ids.length).toBeGreaterThanOrEqual(3);
+    for (const id of ids) {
+      const before = await state(page);
+      await page.locator(`[data-action="buy-upgrade"][data-upgrade="${id}"]`).click();
+      await expect.poll(async () => (await state(page)).upgrades[id] ?? 0).toBeGreaterThan(before.upgrades[id] ?? 0);
+    }
+    await expect(page.locator('[data-primary-zone] #click-egg')).toBeVisible();
+    await expect(page.locator('[data-next-action]')).toHaveCount(0);
+  });
+
   test('event lines: the newest 3, newest "> " first', async ({ page }) => {
     await seed(page, EGG_LAYING);
     await page.evaluate(() => {

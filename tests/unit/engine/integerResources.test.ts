@@ -17,6 +17,7 @@ import { mutationBalance } from '../../../src/data/balance/mutations';
 import { createActions, type Actions } from '../../../src/actions';
 import { BattleSystem } from '../../../src/systems/BattleSystem';
 import { TICK_MS } from '../../../src/data/constants';
+import { NEST_UPGRADE_IDS, upgradeBalance, type UpgradeId } from '../../../src/data/balance/upgrades';
 
 /**
  * Story 3.3 (FR34, AR20): every count is a whole number.
@@ -82,6 +83,8 @@ const arbState: fc.Arbitrary<GameState> = fc
     buildingLevels: fc.array(amount(6), { minLength: 6, maxLength: 6 }),
     equipment: fc.array(amount(5), { minLength: 2, maxLength: 2 }),
     clickPower: amount(20),
+    // Egg-chamber levels (Story 4.6), up to each one's last level.
+    nestUpgrades: fc.record(Object.fromEntries(NEST_UPGRADE_IDS.map((id) => [id, fc.integer({ min: 0, max: upgradeBalance[id].maxLevel ?? 0 })])) as Record<(typeof NEST_UPGRADE_IDS)[number], fc.Arbitrary<number>>),
     prestige: fc.subarray(PRESTIGE_IDS),
     legacyPoints: amount(200),
     projects: fc.array(fc.constantFrom('idle', 'running', 'done'), { minLength: 4, maxLength: 4 }),
@@ -138,7 +141,7 @@ const arbState: fc.Arbitrary<GameState> = fc
       venom_lab: { level: venom },
     };
     s.equipment = { weapon: r.equipment[0], armor: r.equipment[1] };
-    s.upgrades = { ...s.upgrades, click_power: r.clickPower };
+    s.upgrades = { ...s.upgrades, click_power: r.clickPower, ...r.nestUpgrades };
     s.prestigeTree.purchased = [...r.prestige];
     s.prestige = { ...s.prestige, legacyPoints: r.legacyPoints };
     PROJECT_IDS.forEach((id, i) => {
@@ -200,7 +203,10 @@ const arbAction: fc.Arbitrary<Command> = fc.oneof(
   fc.constantFrom('gather', 'forage', 'tend', 'dig', 'guard', 'research' as const).chain((role) =>
     fc.integer({ min: -50, max: 50 }).map((delta): Command => ({ kind: 'action', name: `stepRole ${role} ${delta}`, run: (a) => a.stepRole(role, delta) })),
   ),
-  act('buyUpgrade', (a) => a.buyUpgrade('click_power')),
+  // Click Power and the egg-chamber upgrades (Story 4.6).
+  fc.constantFrom(...(Object.keys(upgradeBalance) as UpgradeId[])).map(
+    (id): Command => ({ kind: 'action', name: `buyUpgrade ${id}`, run: (a) => a.buyUpgrade(id) }),
+  ),
   fc.constantFrom('barracks', 'walls', 'warehouse', 'silk_weaving', 'chitin_armory', 'venom_lab' as const).map(
     (b): Command => ({ kind: 'action', name: `buyBuilding ${b}`, run: (a) => a.buyBuilding(b) }),
   ),

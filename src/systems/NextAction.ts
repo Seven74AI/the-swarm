@@ -5,7 +5,9 @@ import { PANEL_PLACEMENT, isUnlocked, type PanelId } from '../data/content/tabs'
 import { nextActionBalance } from '../data/balance/nextAction';
 import { MS_PER_SEC, PERCENT } from '../data/constants';
 import { canBuild, getBuildCost, getEffects, isBuildingOpen, type BuildingType } from './BuildingSystem';
-import { computeResourceRates, getAssignedWorkers, getUpgradeCost, type WorkerRole } from './ResourceSystem';
+import { computeResourceRates, getAssignedWorkers, getUpgradeCost, isUpgradeOpen, type WorkerRole } from './ResourceSystem';
+import { NEST_UPGRADE_IDS, upgradeBalance, type UpgradeEffects } from '../data/balance/upgrades';
+import { UPGRADE_COPY } from '../data/content/upgrades';
 import { TerritorySystem } from './TerritorySystem';
 import { MUTATIONS, canPurchaseMutation } from './MutationSystem';
 import { getEquipmentUpgradeCost } from './SoldierSystem';
@@ -106,11 +108,11 @@ function defOf(ref: ItemRef): ItemDef {
       return {
         panel: 'click_button',
         name: titled(ref.id),
-        open: () => true,
+        open: (s) => isUpgradeOpen(s, ref.id),
         cost: (s) => nonZero({ food: cost(s) }),
-        affordable: (s) => s.resources.food >= cost(s),
+        affordable: (s) => isUpgradeOpen(s, ref.id) && s.resources.food >= cost(s),
         verb: () => 'BUY',
-        target: (s) => `${upper(titled(ref.id))} LV.${level(s) + 1}`,
+        target: (s) => `${UPGRADE_COPY[ref.id].title} LV.${level(s) + 1}`,
         intent: () => ({ action: 'buyUpgrade', id: ref.id }),
       };
     }
@@ -232,10 +234,20 @@ export function itemKey(ref: ItemRef): string {
   return 'id' in ref ? `${ref.kind}:${ref.id}` : ref.kind;
 }
 
+/**
+ * What one level of an item gives, as data (Story 4.6, FR19), for the
+ * "none strictly dominant" check; null for items whose effects are not yet
+ * described this way.
+ */
+export function itemEffects(ref: ItemRef): UpgradeEffects | null {
+  return ref.kind === 'upgrade' ? upgradeBalance[ref.id].perLevel : null;
+}
+
 /** Every item the rule knows, in the order the "any affordable item" rule tries them. */
 export function listItems(): ItemRef[] {
   return [
     { kind: 'upgrade', id: 'click_power' },
+    ...NEST_UPGRADE_IDS.map((id): ItemRef => ({ kind: 'upgrade', id })),
     ...(Object.keys(RESEARCHES) as ResearchType[]).map((id): ItemRef => ({ kind: 'auto_research', id })),
     ...(Object.keys(AUTOMATION_BUILDINGS) as AutomationBuildingType[]).map((id): ItemRef => ({ kind: 'auto_building', id })),
     ...(['warehouse', 'barracks', 'walls', 'silk_weaving', 'chitin_armory', 'venom_lab'] as const).map(
@@ -286,7 +298,7 @@ export function isItemAffordable(s: GameState, ref: ItemRef): boolean {
  * Phase 1 and a BUILD card from Phase 2 (Story 1.24, UX-DR18).
  */
 function sellerIn(s: GameState, ref: ItemRef): PanelId {
-  if (ref.kind === 'upgrade' && s.phase !== Phase.EGG_LAYING) return 'build_click_power';
+  if (ref.kind === 'upgrade' && ref.id === 'click_power' && s.phase !== Phase.EGG_LAYING) return 'build_click_power';
   return defOf(ref).panel;
 }
 
@@ -492,7 +504,7 @@ function soldOnBuild(s: GameState, ref: ItemRef): boolean {
  */
 export function buildItems(state: GameState): ItemRef[] {
   return listItems().filter((ref) => {
-    if (ref.kind === 'upgrade') return state.phase !== Phase.EGG_LAYING;
+    if (ref.kind === 'upgrade') return ref.id === 'click_power' && state.phase !== Phase.EGG_LAYING;
     return PANEL_PLACEMENT[defOf(ref).panel].tab === 'build';
   });
 }

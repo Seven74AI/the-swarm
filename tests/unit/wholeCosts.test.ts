@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { upgradeBalance } from '../../src/data/balance/upgrades';
 import { describe, expect, it } from 'vitest';
 import { getBuildCost, getEffects, type BuildingType } from '../../src/systems/BuildingSystem';
 import { getUpgradeCost } from '../../src/systems/ResourceSystem';
@@ -84,7 +85,7 @@ describe('every cost is a whole number (Story 3.3)', () => {
     for (const level of LEVELS) {
       for (const b of buildings) expect(wholeValues(getBuildCost(b, level)), `${b} Lv.${level}`).toBe(true);
       for (const b of autoBuildings) expect(wholeValues(getAutoBuildCost(b, level)), `${b} Lv.${level}`).toBe(true);
-      expect(isWhole(getUpgradeCost('click_power', level)), `click power Lv.${level}`).toBe(true);
+      for (const id of Object.keys(upgradeBalance)) expect(isWhole(getUpgradeCost(id, level)), `${id} Lv.${level}`).toBe(true);
       expect(isWhole(getEquipmentUpgradeCost(level)), `equipment Lv.${level}`).toBe(true);
       expect(wholeValues(getParticleLabCost(level)), `particle lab Lv.${level}`).toBe(true);
     }

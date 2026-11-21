@@ -2,6 +2,7 @@ import { Phase } from '../../phases/phases';
 import type { BuildingType } from '../../systems/BuildingSystem';
 import type { AutomationBuildingType, ResearchType } from '../../systems/AutomationSystem';
 import type { ResearchProjectId } from '../../state/GameState';
+import type { UpgradeId } from '../balance/upgrades';
 
 /**
  * Something the player can buy, as the next-action rule names it (Story 1.21).
@@ -9,7 +10,7 @@ import type { ResearchProjectId } from '../../state/GameState';
  * action buys it.
  */
 export type ItemRef =
-  | { readonly kind: 'upgrade'; readonly id: 'click_power' }
+  | { readonly kind: 'upgrade'; readonly id: UpgradeId }
   | { readonly kind: 'building'; readonly id: BuildingType }
   | { readonly kind: 'mutation'; readonly id: string }
   | { readonly kind: 'equipment'; readonly id: 'weapon' | 'armor' }
@@ -30,8 +31,13 @@ export type ItemRef =
  * (`data/content/tabs.ts`), which `tests/unit/data/criticalPath.test.ts` checks.
  */
 export const CRITICAL_PATH: Readonly<Record<Phase, readonly ItemRef[]>> = {
-  // Workers come from eggs: more eggs per tap is the only lever before roles.
-  [Phase.EGG_LAYING]: [{ kind: 'upgrade', id: 'click_power' }],
+  // Workers come from eggs: more eggs per tap first, then a faster hatch, more food, more rooms (Story 4.6).
+  [Phase.EGG_LAYING]: [
+    { kind: 'upgrade', id: 'click_power' },
+    { kind: 'upgrade', id: 'warm_brood' },
+    { kind: 'upgrade', id: 'lean_rations' },
+    { kind: 'upgrade', id: 'side_chamber' },
+  ],
   // Colony grows workers: tapping stays the lever, then a Warehouse makes room for them (Story 3.5).
   [Phase.COLONY]: [
     { kind: 'upgrade', id: 'click_power' },

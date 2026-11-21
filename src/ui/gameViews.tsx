@@ -19,6 +19,7 @@ import type { ConfirmSettings } from './primitives/HoldToConfirm';
 import { NestPrimary } from './nest/NestPrimary';
 import { NestScene } from './nest/NestScene';
 import { ClickPowerCard } from './nest/ClickPowerCard';
+import { NestUpgradeCards, NestUpgradesHeading } from './nest/NestUpgradeCard';
 import { EventLines } from './nest/EventLines';
 import { Transcendence } from './endgame/Transcendence';
 import { WorkersPrimary, WorkersTab } from './wrkr/WorkersTab';
@@ -97,7 +98,7 @@ export function gameViews(d: GameViewDeps): ShellViews {
       </>
     ),
     tabs: {
-      // NEST (Story 1.22): phase line and goal meter, the scene, the event lines, the Click Power card.
+      // NEST (Story 1.22): phase line and goal meter, the scene, the event lines, the Click Power and egg-chamber cards.
       nest: (
         <>
           <PhaseIndicator />
@@ -108,7 +109,10 @@ export function gameViews(d: GameViewDeps): ShellViews {
             <EventLines chronicle={d.chronicle} jump={d.jump} />
           </Panel>
           <div data-nest-host="click-power">
+            <NestUpgradesHeading />
             <ClickPowerCard buy={buyClickPower} />
+            {/* The egg-chamber upgrades (Story 4.6): Phase 1 choices beside Click Power. */}
+            <NestUpgradeCards buy={(id) => d.actions.buyUpgrade(id)} />
           </div>
           <Panel id="transcendence_panel" domId="transcendence-panel" class="panel transcendence-panel">
             <Transcendence />

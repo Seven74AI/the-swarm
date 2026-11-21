@@ -104,6 +104,27 @@ for (const [name, vp] of [['phone', PHONE], ['desktop', DESKTOP]] as const) {
   });
 }
 
+/** Egg Laying with food for every Phase 1 card (Story 4.6), well below its goal. */
+const EGG_LAYING_CARDS = {
+  phase: 'egg_laying',
+  resources: { eggs: 0, larvae: 0, workers: 2, food: 1_000_000, nestCapacity: 25, wood: 0, stone: 0, nectar: 0 },
+  eggPipeline: { count: 0, progress: 0 },
+  larvaPipeline: { count: 0, progress: 0 },
+};
+
+for (const [name, vp] of [['phone', PHONE], ['desktop', DESKTOP]] as const) {
+  test(`${name}: the Phase 1 upgrade cards pass axe and read no decoration (Story 4.6)`, async ({ page }) => {
+    await page.setViewportSize(vp);
+    await seed(page, EGG_LAYING_CARDS);
+    await expect(page.locator('[data-action="buy-upgrade"]').first()).toBeVisible();
+    expect(await page.locator('[data-nest-host="click-power"] [data-card]').count()).toBeGreaterThanOrEqual(4);
+    expect(await axe(page)).toEqual([]);
+    expect((await spokenTree(page)).split('\n').filter((l) => DECORATION.test(l))).toEqual([]);
+    // Each BUY is named in full words.
+    for (const b of await page.locator('[data-action="buy-upgrade"]').all()) await expect(b).toHaveAccessibleName(/^BUY [A-Z ]+/);
+  });
+}
+
 test.describe('sheets', () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize(PHONE);
