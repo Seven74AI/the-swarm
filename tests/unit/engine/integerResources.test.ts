@@ -205,16 +205,11 @@ const arbAction: fc.Arbitrary<Command> = fc.oneof(
   fc.constantFrom('gather', 'forage', 'tend', 'dig', 'guard', 'research' as const).chain((role) =>
     fc.integer({ min: -50, max: 50 }).map((delta): Command => ({ kind: 'action', name: `stepRole ${role} ${delta}`, run: (a) => a.stepRole(role, delta) })),
   ),
-<<<<<<< HEAD
   // Click Power and the egg-chamber upgrades (Story 4.6).
   fc.constantFrom(...(Object.keys(upgradeBalance) as UpgradeId[])).map(
     (id): Command => ({ kind: 'action', name: `buyUpgrade ${id}`, run: (a) => a.buyUpgrade(id) }),
   ),
-  fc.constantFrom('barracks', 'walls', 'warehouse', 'silk_weaving', 'chitin_armory', 'venom_lab' as const).map(
-=======
-  act('buyUpgrade', (a) => a.buyUpgrade('click_power')),
   fc.constantFrom('barracks', 'walls', 'warehouse', 'fungus_garden', 'tunnels', 'silk_weaving', 'chitin_armory', 'venom_lab' as const).map(
->>>>>>> a8123f6 (Story 4.7: Colony has choices worth making)
     (b): Command => ({ kind: 'action', name: `buyBuilding ${b}`, run: (a) => a.buyBuilding(b) }),
   ),
   fc.constantFrom('basic_incubation', 'queens_pheromones', 'thermal_regulation', 'genetic_optimization', 'cloning_vats' as const).map(
