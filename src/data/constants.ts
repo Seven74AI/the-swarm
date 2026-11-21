@@ -23,6 +23,9 @@ export const FRAME_GAP_MS = 1_000 as const;
 /** One hour in ms. Hour-sized ms values are spelled only in this file (tests/arch/offlineCap.test.ts). */
 export const HOUR_MS = 60 * 60 * 1000;
 
+/** One day in ms (the simulated player's check-in schedule, Story 3.7). */
+export const DAY_MS = 24 * HOUR_MS;
+
 /**
  * The offline cap (Story 2.4, FR20): resumed time past `getOfflineCapMs(state)`
  * is not simulated. The baseline is 12 h; owned Legacy upgrades raise it
