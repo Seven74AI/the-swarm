@@ -50,6 +50,9 @@ import { NestScene } from './ui/nest/NestScene';
 import { ClickPowerCard } from './ui/nest/ClickPowerCard';
 import { WorkersPrimary, WorkersTab } from './ui/wrkr/WorkersTab';
 import { AutomationSection } from './ui/wrkr/AutomationSection';
+import { CombatLog, EnemyCard, MutationsSection, SoldiersSection, WarPrimary } from './ui/war/WarSegment';
+import { createWarSession } from './ui/war/warSession';
+import { openBattleSummary } from './ui/sheets/BattleSummarySheet';
 import { BuildHeader } from './ui/build/BuildHeader';
 import { BuildingCards } from './ui/build/BuildingCards';
 import { ResearchCards } from './ui/build/ResearchCards';
@@ -437,6 +440,16 @@ export function bootstrap(): {
     });
   };
 
+  // The tab shell (Story 1.15): tabs revealed by phase, `•` from what became affordable.
+  // A latched goal (Story 1.19): `•` on NEST and CONTINUE as its primary action.
+  const shell = createTabShell({ phase: selectPhase, affordable: selectAffordableKeys, goalMet: selectGoalMet });
+  // FRONT → WAR (Story 1.25): the enemy on the card and the battle replay, shared by the
+  // enemy card and FIGHT; the summary opens at battle priority when the replay ends.
+  const war = createWarSession({
+    actions,
+    onBattleDone: (result, enemy) => openBattleSummary(sheets, result, enemy.name),
+  });
+
   const ui = new UIRoot({
     bus,
     actions,
@@ -479,13 +492,18 @@ export function bootstrap(): {
       converter: (host) => render(<ConverterCard convert={() => actions.runConversions()} />, host),
       primary: (host) => render(<BuildPrimary perform={(intent) => actions.perform(intent)} />, host),
     },
+    // FRONT → WAR (Story 1.25): soldiers and equipment, mutations, the enemy card, the combat log, FIGHT.
+    mountWar: {
+      soldiers: (host) => render(<SoldiersSection actions={actions} />, host),
+      mutations: (host) => render(<MutationsSection actions={actions} />, host),
+      enemy: (host) => render(<EnemyCard session={war} />, host),
+      log: (host) => render(<CombatLog session={war} />, host),
+      primary: (host) => render(<WarPrimary session={war} segment={shell.segment} />, host),
+    },
   });
   if (app) {
     // The Preact root hosts the legacy UIRoot (Story 1.7). render() mounts it synchronously,
     // so the panels exist before the phase's panels are revealed below.
-    // The tab shell (Story 1.15): tabs revealed by phase, `•` from what became affordable.
-    // A latched goal (Story 1.19): `•` on NEST and CONTINUE as its primary action.
-    const shell = createTabShell({ phase: selectPhase, affordable: selectAffordableKeys, goalMet: selectGoalMet });
     render(<App legacy={ui} shell={shell} sheets={sheets} overlays={overlays} onContinue={actions.continuePhase} />, app);
   }
 

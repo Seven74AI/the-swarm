@@ -1,6 +1,6 @@
 import type { EventBus } from '../engine/EventBus';
 import type { GameState } from '../state/GameState';
-import { getRandomEnemy, scaleEnemy, type EnemyDef } from './EnemySystem';
+import { getEnemyDef, getRandomEnemy, scaleEnemy } from './EnemySystem';
 import {
   getSoldierStrength,
   getSoldierDefense,
@@ -9,8 +9,14 @@ import {
 } from './SoldierSystem';
 import { getPoisonDamagePerTick, consumeVenom } from './VenomSystem';
 
+export type BattleOutcome = 'victory' | 'defeat' | 'draw';
+
 export interface BattleResult {
   victory: boolean;
+  /** How it ended; the same value as `lastBattle.result`. A draw: the enemy fled after the last round. */
+  outcome: BattleOutcome;
+  /** Rounds fought (1 to `MAX_BATTLE_ROUNDS`), for the enemy card's round counter (Story 1.25). */
+  rounds: number;
   soldiersLost: number;
   enemyType: string;
   foodGained: number;
@@ -23,7 +29,9 @@ export interface BattleResult {
   narrative: string;
 }
 
-const MAX_ROUNDS = 20;
+/** A battle that lasts this many rounds is a draw: the enemy flees. */
+export const MAX_BATTLE_ROUNDS = 20;
+const MAX_ROUNDS = MAX_BATTLE_ROUNDS;
 
 function rng(min: number, max: number): number {
   return min + Math.random() * (max - min);
@@ -36,7 +44,11 @@ function rollInt(min: number, max: number): number {
 export class BattleSystem {
   constructor(private bus: EventBus) {}
 
-  resolveBattle(state: GameState): {
+  /**
+   * Fight one battle now. `enemyType` is the enemy the player saw on the enemy
+   * card (Story 1.25); without it a random enemy is drawn.
+   */
+  resolveBattle(state: GameState, enemyType?: string): {
     newState: GameState;
     result: BattleResult;
   } {
@@ -46,6 +58,8 @@ export class BattleSystem {
         newState: state,
         result: {
           victory: false,
+          outcome: 'defeat',
+          rounds: 0,
           soldiersLost: 0,
           enemyType: 'none',
           foodGained: 0,
@@ -57,7 +71,7 @@ export class BattleSystem {
     }
 
     // Pick and scale enemy
-    const baseEnemy = getRandomEnemy(state.battlesWon);
+    const baseEnemy = enemyType ? getEnemyDef(enemyType) : getRandomEnemy(state.battlesWon);
     const enemy = scaleEnemy(baseEnemy, state.battlesWon);
 
     // Poison DoT: activate if Venom Lab Lv.1+ and venom in stock
@@ -117,6 +131,9 @@ export class BattleSystem {
 
     const victory = enemyHp <= 0 && playerHp > 0;
     const defeat = playerHp <= 0;
+    const outcome: BattleOutcome = victory ? 'victory' : defeat ? 'defeat' : 'draw';
+    // A break leaves `round` on the round being fought; running out leaves it at MAX_ROUNDS.
+    const rounds = Math.min(round + 1, MAX_ROUNDS);
 
     // Calculate soldiers lost
     let soldiersLost: number;
@@ -177,6 +194,8 @@ export class BattleSystem {
 
     const result: BattleResult = {
       victory,
+      outcome,
+      rounds,
       soldiersLost,
       enemyType: enemy.type,
       foodGained,
@@ -203,7 +222,7 @@ export class BattleSystem {
       lastBattle: {
         status: 'done',
         enemyType: enemy.type,
-        result: victory ? 'victory' : defeat ? 'defeat' : 'draw',
+        result: outcome,
         soldiersLost,
         foodGained,
         atMs: state.stats.playTimeMs,

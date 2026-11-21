@@ -3,6 +3,8 @@ import { commit, current, refuse, type ActionResult } from './result';
 import { MAX_EQUIPMENT_LEVEL, SOLDIER_COST_FOOD, getEquipmentUpgradeCost } from '../systems/SoldierSystem';
 import type { BattleResult } from '../systems/BattleSystem';
 import { MUTATIONS, purchaseMutation } from '../systems/MutationSystem';
+import { getEnemyDefs } from '../systems/EnemySystem';
+import { freeWorkers } from '../systems/Workforce';
 import {
   SCOUT_BARRACKS_LEVEL,
   SCOUT_FOOD_COST,
@@ -14,10 +16,10 @@ import {
   recruitWarrior as recruitWarriorFrom,
 } from '../systems/RecruitmentSystem';
 
-/** Send one worker to soldier training. */
+/** Send one free worker to soldier training (a worker with a job stays on it). */
 export function trainSoldier(deps: ActionDeps): ActionResult {
   const s = current(deps);
-  if (s.resources.workers < 1) return refuse('no_free_workers');
+  if (s.resources.workers < 1 || freeWorkers(s) < 1) return refuse('no_free_workers');
   if (s.resources.food < SOLDIER_COST_FOOD) return refuse('cannot_afford');
   return commit(deps, s, deps.soldierSystem.recruitSoldier(s));
 }
@@ -40,12 +42,16 @@ export function upgradeArmor(deps: ActionDeps): ActionResult {
   return commit(deps, s, deps.soldierSystem.upgradeArmor(s));
 }
 
-/** Fight a battle now. The result says how it went. */
+/**
+ * Fight a battle now, against `enemyType` when given (the enemy on the enemy
+ * card, Story 1.25). The result says how it went.
+ */
 export function fight(deps: ActionDeps, enemyType?: string): ActionResult<BattleResult> {
   const s = current(deps);
   if (s.combatSoldiers <= 0) return refuse('no_soldiers');
+  if (enemyType !== undefined && !getEnemyDefs().some((e) => e.type === enemyType)) return refuse('unknown_id');
   if (enemyType) deps.bus.emit('battle_engage', { enemyType });
-  const { newState, result } = deps.battleSystem.resolveBattle(s);
+  const { newState, result } = deps.battleSystem.resolveBattle(s, enemyType);
   const r = commit(deps, s, newState);
   return r.ok ? { ok: true, value: result } : r;
 }

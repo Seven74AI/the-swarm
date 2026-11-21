@@ -27,6 +27,8 @@ export const EVENT_SAMPLES: { [K in keyof SwarmEvents]: SwarmEvents[K] } = {
   armor_upgraded: { level: 1 },
   battle_completed: {
     victory: true,
+    outcome: 'victory',
+    rounds: 3,
     soldiersLost: 0,
     enemyType: 'beetle',
     foodGained: 0,

@@ -314,6 +314,17 @@ describe('combat', () => {
     expect(after.soldierPipeline.count).toBeGreaterThan(before.soldierPipeline.count);
   });
 
+  it('trains only a free worker: one with a job stays on it (Story 1.25, as assignResearcher in ADR 0016)', () => {
+    const base = rich();
+    const workers = 4;
+    const busy = given({
+      ...base,
+      resources: { ...base.resources, workers },
+      workersAssigned: { ...base.workersAssigned, gather: workers, tend: 0, dig: 0, guard: 0 },
+    });
+    expectRefused(actions.trainSoldier(), 'no_free_workers', busy);
+  });
+
   it('upgrades weapons and armour behind their buildings', () => {
     const base = rich();
     let before = given(base);
@@ -348,6 +359,14 @@ describe('combat', () => {
     if (after.lastBattle.status === 'done') {
       expect(after.lastBattle.atMs).toBe(before.stats.playTimeMs);
     }
+  });
+
+  it('fights the enemy it is given and refuses an unknown one (Story 1.25)', () => {
+    const before = given(rich({ combatSoldiers: 20 }));
+    expectRefused(actions.fight('no_such_enemy'), 'unknown_id', before);
+    const result = actions.fight('termite');
+    expectApplied(result, before);
+    if (result.ok) expect(result.value.enemyType).toBe('termite');
   });
 
   it('buys a mutation once, behind its prerequisite', () => {

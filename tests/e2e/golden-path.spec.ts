@@ -180,21 +180,20 @@ test.describe('Golden Path — Full Progression', () => {
     const soldierPanel = page.locator('#soldier-panel');
     await expect(soldierPanel).toBeVisible();
 
-    const recruitBtn = soldierPanel.locator('button').filter({ hasText: 'Recruit Soldier' });
-    await expect(recruitBtn).toBeVisible();
+    // TRAIN replaces "Recruit Soldier" (Story 1.25).
+    await expect(soldierPanel.locator('[data-action="train-soldier"]')).toBeVisible();
 
     // Soldier count should be visible (5 combat soldiers)
-    await expect(soldierPanel).toContainText('Soldiers');
+    await expect(soldierPanel.locator('[data-soldiers]')).toContainText('SOLDIERS');
   });
 
-  test('battle panel shows scout and engage buttons', async ({ page }) => {
+  test('battle panel shows the enemy card and FIGHT', async ({ page }) => {
     await openTab(page, 'front', 'war');
     const battlePanel = page.locator('#battle-panel');
     await expect(battlePanel).toBeVisible();
+    await expect(battlePanel.locator('#enemy-name')).not.toBeEmpty();
 
-    const scoutBtn = page.locator('#scout-enemy');
-    await expect(scoutBtn).toBeVisible();
-
+    // > FIGHT (Story 1.25) keeps #engage-battle, in FRONT's primary zone.
     const engageBtn = page.locator('#engage-battle');
     await expect(engageBtn).toBeVisible();
   });
@@ -262,22 +261,16 @@ test.describe('Golden Path — Full Progression', () => {
     }).toPass({ timeout: 10_000 });
   });
 
-  test('scout reveals enemy information', async ({ page }) => {
+  test('the enemy card shows the enemy before committing', async ({ page }) => {
     await openTab(page, 'front', 'war');
-    // Scout button should be enabled (combatSoldiers=5 > 0)
-    const scoutBtn = page.locator('#scout-enemy');
-    await expect(scoutBtn).toBeEnabled({ timeout: 5000 });
-
-    await scoutBtn.dispatchEvent('click');
-
-    // Enemy name should appear
+    // No scout step any more (Story 1.25): the card always shows the enemy FIGHT fights.
     const enemyName = page.locator('#enemy-name');
     await expect(enemyName).toBeVisible({ timeout: 5000 });
     await expect(enemyName).not.toBeEmpty();
 
-    // Engage button should become enabled after scouting
+    // FIGHT is usable with soldiers (combatSoldiers=5 > 0)
     const engageBtn = page.locator('#engage-battle');
-    await expect(engageBtn).toBeEnabled({ timeout: 3000 });
+    await expect(engageBtn).not.toHaveAttribute('aria-disabled', 'true', { timeout: 3000 });
   });
 
   test('clicking Build on barracks increments its level', async ({ page }) => {
@@ -314,13 +307,8 @@ test.describe('Golden Path — Full Progression', () => {
       .locator('[data-building="barracks"] .card__level')
       .textContent();
 
-    const soldierPanelText = await page.locator('#soldier-panel').textContent();
-
-    // Read combat resource values (if visible)
-    const chitinText = await page
-      .locator('#battle-panel .combat-resources')
-      .textContent()
-      .catch(() => '');
+    // Combat drops live in the strip and the resource sheet (Story 1.16).
+    const chitinBefore = await readResource(page, 'chitin');
 
     // Trigger manual save
     await page.evaluate(() => {
@@ -387,9 +375,9 @@ test.describe('Golden Path — Full Progression', () => {
     expect(barracksLabelAfter).toBe(barracksLabelBefore);
 
     // ─── Verify soldier panel content preserved ───────────────────
-    const soldierPanelTextAfter = await page.locator('#soldier-panel').textContent();
-    // Should still show Recruit Soldier button (soldier system intact)
-    expect(soldierPanelTextAfter).toContain('Recruit Soldier');
+    // Should still show the TRAIN button (soldier system intact)
+    await openTab(page, 'front', 'war');
+    await expect(page.locator('#soldier-panel [data-action="train-soldier"]')).toBeVisible();
 
     // ─── Verify expedition panel has content ──────────────────────
     const expeditionPanel = page.locator('#expedition-panel');
@@ -400,15 +388,7 @@ test.describe('Golden Path — Full Progression', () => {
     expect(expContent).toContain('Expeditions');
 
     // ─── Verify combat resources preserved ────────────────────────
-    // The combat resources area should show seeded values (chitin: 5, silk: 3, venom: 1)
-    // Check if combat resources area is visible and has content
-    const crAfter = await page
-      .locator('#battle-panel .combat-resources')
-      .textContent()
-      .catch(() => '');
-    // If combat resources were visible before, they should be visible after
-    if (chitinText && chitinText.trim()) {
-      expect(crAfter).toBeTruthy();
-    }
+    // Returning expeditions may add drops; nothing spends them here.
+    expect(await readResource(page, 'chitin')).toBeGreaterThanOrEqual(chitinBefore);
   });
 });

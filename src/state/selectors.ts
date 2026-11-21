@@ -7,6 +7,8 @@ import { affordableKeys } from './affordances';
 import { getBuildAction, getNextAction, type NextAction } from '../systems/NextAction';
 import { assignedTotal, freeWorkers, getReallocation, workforceTotal, type Reallocation } from '../systems/Workforce';
 import { TerritorySystem } from '../systems/TerritorySystem';
+import { getSoldierDefense, getSoldierMaxHp, getSoldierSpeed, getSoldierStrength } from '../systems/SoldierSystem';
+import { canPurchaseMutation, isMutationUnlocked } from '../systems/MutationSystem';
 import {
   canBuildAuto,
   canResearch,
@@ -360,3 +362,31 @@ export const selectBuildAction = computed<NextAction>(() => {
   lastBuildAction = next;
   return next;
 });
+
+// --- FRONT → WAR: soldiers and mutations (Story 1.25) -----------------------------------------
+
+/** A soldier's strength, defense, speed and health with equipment and mutations. */
+export const selectSoldierStrength = computed(() => getSoldierStrength(gameState.value));
+export const selectSoldierDefense = computed(() => getSoldierDefense(gameState.value));
+export const selectSoldierSpeed = computed(() => getSoldierSpeed(gameState.value));
+export const selectSoldierMaxHp = computed(() => getSoldierMaxHp(gameState.value));
+
+/** Where a mutation stands: bought, behind its prerequisite, buyable now, or short of drops. */
+export type MutationStatus = 'owned' | 'locked' | 'affordable' | 'short';
+
+const mutationStatuses = new Map<string, ReadonlySignal<MutationStatus>>();
+
+/** One mutation's status (cached per id). */
+export function selectMutationStatus(id: string): ReadonlySignal<MutationStatus> {
+  let sel = mutationStatuses.get(id);
+  if (!sel) {
+    sel = computed<MutationStatus>(() => {
+      const s = gameState.value;
+      if (s.mutations.find((m) => m.id === id)?.purchased) return 'owned';
+      if (!isMutationUnlocked(s, id)) return 'locked';
+      return canPurchaseMutation(s, id) ? 'affordable' : 'short';
+    });
+    mutationStatuses.set(id, sel);
+  }
+  return sel;
+}

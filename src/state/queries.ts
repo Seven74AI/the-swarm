@@ -29,8 +29,8 @@ export {
   getSoldierSpeed,
   getSoldierStrength,
 } from '../systems/SoldierSystem';
-export type { BattleResult } from '../systems/BattleSystem';
-export { getRandomEnemy, scaleEnemy, type EnemyDef } from '../systems/EnemySystem';
+export type { BattleOutcome, BattleResult } from '../systems/BattleSystem';
+export { assessMatchup, getEnemyDef, getEnemyDefs, getRandomEnemy, scaleEnemy, type EnemyDef, type Matchup } from '../systems/EnemySystem';
 export type { DecisionEvent } from '../systems/DecisionSystem';
 export {
   canStartProject,

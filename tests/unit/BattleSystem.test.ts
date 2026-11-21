@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EventBus } from '../../src/engine/EventBus';
 import { createInitialState, type GameState } from '../../src/state/GameState';
-import { BattleSystem } from '../../src/systems/BattleSystem';
+import { BattleSystem, MAX_BATTLE_ROUNDS } from '../../src/systems/BattleSystem';
 
 describe('BattleSystem', () => {
   let bus: EventBus;
@@ -310,6 +310,31 @@ describe('BattleSystem', () => {
         };
         const { result } = system.resolveBattle(testState);
         expect(result.poisonDamageDealt).toBeGreaterThanOrEqual(0);
+      }
+    });
+  });
+
+  describe('the enemy on the card and the round counter (Story 1.25)', () => {
+    it('fights the enemy type it is given', () => {
+      setupStrongArmy(10);
+      for (const type of ['termite', 'spider', 'beetle']) {
+        const { result, newState } = system.resolveBattle(state, type);
+        expect(result.enemyType).toBe(type);
+        expect(newState.lastBattle.status === 'done' && newState.lastBattle.enemyType).toBe(type);
+      }
+    });
+
+    it('reports the outcome it wrote and the rounds fought', () => {
+      for (const soldiers of [1, 3, 50]) {
+        for (let i = 0; i < 10; i++) {
+          const { result, newState } = system.resolveBattle({ ...state, combatSoldiers: soldiers });
+          expect(['victory', 'defeat', 'draw']).toContain(result.outcome);
+          expect(result.victory).toBe(result.outcome === 'victory');
+          expect(newState.lastBattle.status === 'done' && newState.lastBattle.result).toBe(result.outcome);
+          expect(Number.isInteger(result.rounds)).toBe(true);
+          expect(result.rounds).toBeGreaterThanOrEqual(1);
+          expect(result.rounds).toBeLessThanOrEqual(MAX_BATTLE_ROUNDS);
+        }
       }
     });
   });

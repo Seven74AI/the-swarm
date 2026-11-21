@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { createInitialState } from '../../src/state/GameState';
 import {
+  assessMatchup,
   getEnemyDef,
   getEnemyDefs,
   getRandomEnemy,
@@ -221,5 +223,34 @@ describe('EnemySystem', () => {
       expect(result.strength).toBeLessThan(1000);
       expect(result.hp).toBeLessThan(2500);
     });
+  });
+});
+
+describe('assessMatchup (Story 1.25: the enemy card)', () => {
+  const ORDER = ['dangerous', 'even', 'favoured'] as const;
+  const rank = (m: string) => ORDER.indexOf(m as (typeof ORDER)[number]);
+  const army = (combatSoldiers: number, weapon = 0) => {
+    const s = createInitialState();
+    return { ...s, combatSoldiers, equipment: { ...s.equipment, weapon } };
+  };
+
+  it('calls an empty army outmatched by every enemy', () => {
+    for (const e of getEnemyDefs()) expect(assessMatchup(army(0), e)).toBe('dangerous');
+  });
+
+  it('never gets worse with more soldiers or better weapons', () => {
+    for (const e of getEnemyDefs()) {
+      let last = -1;
+      for (const n of [1, 2, 5, 10, 50, 500]) {
+        const r = rank(assessMatchup(army(n), e));
+        expect(r).toBeGreaterThanOrEqual(last);
+        last = r;
+      }
+      expect(rank(assessMatchup(army(5, 5), e))).toBeGreaterThanOrEqual(rank(assessMatchup(army(5, 0), e)));
+    }
+  });
+
+  it('favours a big enough army against anything', () => {
+    for (const e of getEnemyDefs()) expect(assessMatchup(army(100_000), e)).toBe('favoured');
   });
 });

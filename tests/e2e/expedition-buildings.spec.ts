@@ -11,7 +11,7 @@ import { openTab } from './helpers/tabs';
  * - ResourcePanel only has data-stat for eggs, larvae, workers, food.
  * - Food changes during ticks (gatherers produce food). Don't assert exact values.
  * - Building effects (warehouse capacity, etc.) are DISPLAY ONLY, not in game state.
- * - SoldierPanel doesn't use data-stat — use .soldier-count in expedition panel.
+ * - The WAR soldier section (Story 1.25) has no data-stat — use .soldier-count in expedition panel.
  * - Seeds start in EXPANSION directly; the only way in during play is COMBAT→EXPANSION.
  */
 

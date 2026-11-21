@@ -53,6 +53,9 @@ Dropped by enemies in the COMBAT phase. Used for crafting, equipment upgrades, a
 - **Chitin**: beetle/scorpion drop. Used for weapon (soldier strength) and Chitin Armory building.
 - **Venom**: scorpion drop. Used for poison damage (combat DoT) and Venom Lab building.
 
+### Battle and the enemy card
+A **battle** is one `actions.fight(enemyType)`: it resolves at once (one write) and ends in **victory**, **defeat** or **draw** (the enemy flees after `MAX_BATTLE_ROUNDS`); `BattleResult` carries the `outcome` and the `rounds` fought. The **enemy card** (FRONT → WAR, Story 1.25, ADR 0017) shows the enemy `> FIGHT` fights, drawn per session and redrawn after each battle (not saved); the **round counter** is a short replay of the rounds after the battle is resolved, then the **battle summary** sheet opens at `battle` priority. Training a combat soldier takes a free worker.
+
 ### Equipment
 Soldier upgrades purchased with combat resources. `weapon` (chitin) → strength, `armor` (silk) → defense + HP. Upgraded via dedicated buildings.
 

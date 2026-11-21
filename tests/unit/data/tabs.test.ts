@@ -93,6 +93,7 @@ describe('tab registry', () => {
       battle_panel: ['front', 'war'],
       combat_log: ['front', 'war'],
       mutation_panel: ['front', 'war'],
+      war_primary: ['front', 'war'],
       map_panel: ['front', 'map'],
       expedition_panel: ['front', 'map'],
       spaceship_panel: ['front', 'stars'],
@@ -124,6 +125,15 @@ describe('tab registry', () => {
     expect(colony).toEqual(['build_header', 'build_click_power', 'build_primary']);
     const space = panelsForPhase(Phase.SPACE).filter((id) => PANEL_PLACEMENT[id].tab === 'build' && !PANEL_PLACEMENT[id].zone);
     expect(space).toEqual(['build_header', 'build_click_power', 'building_panel', 'research_panel', 'resource_converter_panel']);
+  });
+
+  it('WAR stacks soldiers (and equipment), mutations, the enemy card, then the combat log; FIGHT is its primary (Story 1.25)', () => {
+    const war = panelsForPhase(Phase.COMBAT).filter((id) => {
+      const p = PANEL_PLACEMENT[id];
+      return p.segment === 'war' && p.zone !== 'primary';
+    });
+    expect(war).toEqual(['soldier_panel', 'mutation_panel', 'battle_panel', 'combat_log']);
+    expect(PANEL_PLACEMENT.war_primary.zone).toBe('primary');
   });
 
   it('panels accumulate: what one phase shows, every later phase shows too', () => {
