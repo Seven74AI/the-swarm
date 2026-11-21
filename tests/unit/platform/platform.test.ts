@@ -37,12 +37,26 @@ describe('createWebPlatform (Story 1.10)', () => {
     expect(p.introFlag.done()).toBe(true);
   });
 
+  it('asks navigator.storage for persistence through platform.durability (Story 2.12)', async () => {
+    const persist = vi.fn(async () => true);
+    const p = createWebPlatform({ navigator: { storage: { persist } }, matchMedia: () => ({ matches: false }) });
+    expect(await p.durability.requestPersist()).toBe('granted');
+    expect(persist).toHaveBeenCalledTimes(1);
+  });
+
   it('boots on an environment with no browser APIs at all', () => {
     const p = createWebPlatform({});
     expect(p.capabilities.vibrate).toBe(false);
     expect(p.settings.settings.value.haptics).toBe(false);
     expect(() => p.haptics.play('double')).not.toThrow();
     expect(p.viewport.wide.value).toBe(false);
+    expect(p.durability.wantsHomeScreenHint()).toBe(false);
+  });
+
+  it('has a service worker service that registers nothing where service workers are missing (Story 2.13)', async () => {
+    const p = createWebPlatform({});
+    const status = await p.serviceWorker.register({ enabled: true, url: '/the-swarm/sw.js', scope: '/the-swarm/', onUpdateReady: vi.fn() });
+    expect(status).toBe('unsupported');
   });
 
   it('survives storage that throws on access', () => {

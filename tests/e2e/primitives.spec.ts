@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { frames } from './helpers/time';
 
 /**
  * E2E: Story 1.12 primitives (FR45, UX-DR15, UX-DR17, UX-DR29) on a dev-server
@@ -36,7 +37,8 @@ test.describe('Stepper', () => {
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
     await expect.poll(() => value(page), { timeout: 10_000 }).toBe(await available(page));
-    await page.waitForTimeout(300);
+    // Keep holding for a few more repeats: it must not go past what is available.
+    await frames(page, 20);
     await page.mouse.up();
     expect(await value(page)).toBe(await available(page));
     await expect(page.locator('[data-step="add"]')).toHaveAttribute('aria-disabled', 'true');

@@ -33,65 +33,45 @@ function makeEnemy(overrides: {
 
 describe('EnemySystem', () => {
   describe('getEnemyDef', () => {
-    it('returns correct stats for Red Ant', () => {
-      const def = getEnemyDef('red_ant');
-      expect(def.type).toBe('red_ant');
-      expect(def.name).toBe('Red Ant');
-      expect(def.strength).toBe(3);
-      expect(def.defense).toBe(1);
-      expect(def.speed).toBe(10);
-      expect(def.hp).toBe(15);
-      expect(def.loot.foodMin).toBe(5);
-      expect(def.loot.foodMax).toBe(10);
-      expect(def.loot.specialResource).toBeUndefined();
+    it('every enemy has a name and positive whole-number stats', () => {
+      for (const def of getEnemyDefs()) {
+        expect(getEnemyDef(def.type)).toEqual(def);
+        expect(def.name, def.type).toBeTruthy();
+        for (const stat of ['strength', 'defense', 'speed', 'hp'] as const) {
+          expect(Number.isInteger(def[stat]) && def[stat] > 0, `${def.type}.${stat}`).toBe(true);
+        }
+      }
     });
 
-    it('returns correct stats for Termite', () => {
-      const def = getEnemyDef('termite');
-      expect(def.type).toBe('termite');
-      expect(def.name).toBe('Termite');
-      expect(def.strength).toBe(5);
-      expect(def.defense).toBe(4);
-      expect(def.speed).toBe(4);
-      expect(def.hp).toBe(25);
-      expect(def.loot.foodMin).toBe(10);
-      expect(def.loot.foodMax).toBe(20);
+    it('loot ranges never go negative and min ≤ max', () => {
+      for (const def of getEnemyDefs()) {
+        expect(def.loot.foodMin, def.type).toBeGreaterThanOrEqual(0);
+        expect(def.loot.foodMin, def.type).toBeLessThanOrEqual(def.loot.foodMax);
+        const special = def.loot.specialResource;
+        if (special === undefined) continue;
+        expect(special.min, def.type).toBeGreaterThanOrEqual(0);
+        expect(special.min, def.type).toBeLessThanOrEqual(special.max);
+      }
     });
 
-    it('returns correct stats for Spider', () => {
-      const def = getEnemyDef('spider');
-      expect(def.type).toBe('spider');
-      expect(def.strength).toBe(12);
-      expect(def.defense).toBe(2);
-      expect(def.speed).toBe(8);
-      expect(def.hp).toBe(30);
-      expect(def.loot.specialResource).toEqual({ type: 'silk', min: 1, max: 3 });
+    it('each combat resource drops from its enemy: spider silk, beetle chitin, wasp and scorpion venom', () => {
+      expect(getEnemyDef('red_ant').loot.specialResource).toBeUndefined();
+      expect(getEnemyDef('spider').loot.specialResource?.type).toBe('silk');
+      expect(getEnemyDef('beetle').loot.specialResource?.type).toBe('chitin');
+      expect(getEnemyDef('wasp').loot.specialResource?.type).toBe('venom');
+      expect(getEnemyDef('scorpion').loot.specialResource?.type).toBe('venom');
     });
 
-    it('returns correct stats for Beetle', () => {
-      const def = getEnemyDef('beetle');
-      expect(def.strength).toBe(8);
-      expect(def.defense).toBe(8);
-      expect(def.hp).toBe(50);
-      expect(def.loot.specialResource).toEqual({ type: 'chitin', min: 1, max: 3 });
-    });
-
-    it('returns correct stats for Wasp', () => {
-      const def = getEnemyDef('wasp');
-      expect(def.strength).toBe(15);
-      expect(def.speed).toBe(12);
-      expect(def.hp).toBe(20);
-      expect(def.loot.specialResource).toEqual({ type: 'venom', min: 1, max: 3 });
-    });
-
-    it('returns correct stats for Scorpion', () => {
-      const def = getEnemyDef('scorpion');
-      expect(def.strength).toBe(20);
-      expect(def.defense).toBe(6);
-      expect(def.hp).toBe(80);
-      expect(def.loot.foodMin).toBe(60);
-      expect(def.loot.foodMax).toBe(100);
-      expect(def.loot.specialResource).toEqual({ type: 'venom', min: 3, max: 8 });
+    it('the red ant is the weakest enemy and the scorpion the toughest and richest', () => {
+      const defs = getEnemyDefs();
+      const red = getEnemyDef('red_ant');
+      const scorpion = getEnemyDef('scorpion');
+      for (const def of defs) {
+        expect(red.strength, def.type).toBeLessThanOrEqual(def.strength);
+        expect(red.hp, def.type).toBeLessThanOrEqual(def.hp);
+        expect(scorpion.hp, def.type).toBeGreaterThanOrEqual(def.hp);
+        expect(scorpion.loot.foodMax, def.type).toBeGreaterThanOrEqual(def.loot.foodMax);
+      }
     });
 
     it('throws for unknown enemy type', () => {

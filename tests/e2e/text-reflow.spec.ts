@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { frames } from './helpers/time';
 import { openTab, type SegmentId, type TabId } from './helpers/tabs';
 
 /**
@@ -79,7 +80,7 @@ async function seed(page: Page, setup: Setup, gameState: Record<string, unknown>
 async function layoutProblems(page: Page): Promise<string[]> {
   // Reveal animations move panels for a moment (some start a frame after a tab opens):
   // measure the settled layout.
-  await page.waitForTimeout(100);
+  await frames(page, 2);
   await expect
     .poll(
       () =>
@@ -266,6 +267,17 @@ for (const setup of SETUPS) {
       await page.locator('[data-debug-inspector] [data-key="resources"] summary').click();
       await expect(page.locator('[data-debug-inspector] [data-key="resources"] pre')).toBeVisible();
       expect(await layoutProblems(page)).toEqual([]);
+    });
+
+    test('the add-to-home-screen hint fits the screen too (Story 2.12)', async ({ page }) => {
+      // A mobile browser (coarse pointer) that isn't the installed app, past the first phase.
+      await page.addInitScript(() => {
+        const real = window.matchMedia.bind(window);
+        window.matchMedia = (q: string) => (q === '(pointer: coarse)' ? ({ ...real(q), matches: true } as MediaQueryList) : real(q));
+      });
+      await seed(page, setup);
+      await expect(page.locator('[data-home-screen-hint]')).toBeVisible();
+      expect((await layoutProblems(page)).map((p) => `home-screen hint: ${p}`)).toEqual([]);
     });
   });
 }

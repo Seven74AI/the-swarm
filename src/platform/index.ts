@@ -12,7 +12,9 @@ import { createSettingsStore, type SettingsStore } from './settings';
 import { createViewport, type Viewport, type ViewportEnv } from './viewport';
 import { createLocalSaveStore, type RemovableStore, type SaveStore } from './storage/SaveStore';
 import { createIntroFlag, type IntroFlag } from './storage/introFlag';
+import { createDurability, type Durability, type StorageManagerLike } from './storage/durability';
 import { createLifecycle, type Lifecycle, type LifecycleEnv } from './lifecycle';
+import { createServiceWorker, type ServiceWorkerControl, type ServiceWorkerEnv } from './serviceWorker';
 
 export interface Platform {
   readonly capabilities: Capabilities;
@@ -28,12 +30,26 @@ export interface Platform {
   readonly introFlag: IntroFlag;
   /** Page hidden / returned signals for the one resume path (Story 2.3, D1). */
   readonly lifecycle: Lifecycle;
+  /** Persistent storage and the one-time add-to-home-screen hint (Story 2.12, D4). */
+  readonly durability: Durability;
+  /** Offline play: registers the precaching service worker; updates wait for a cold start (Story 2.13, D10). */
+  readonly serviceWorker: ServiceWorkerControl;
 }
 
 export interface WebPlatformEnv extends CapabilityEnv, BrowserEnv, Omit<LifecycleEnv, 'document'> {
   /** Read by the capability probes and kept by the viewport for its change events. */
   readonly matchMedia?: ViewportEnv['matchMedia'];
+  readonly navigator?: CapabilityEnv['navigator'] & { readonly storage?: StorageManagerLike };
   readonly localStorage?: RemovableStore;
+}
+
+/** `navigator.storage`, or undefined where it is missing or reading it throws. */
+function storageManagerOf(env: WebPlatformEnv): StorageManagerLike | undefined {
+  try {
+    return env.navigator?.storage ?? undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /** `localStorage`, or null where reading it throws (blocked storage). */
@@ -55,5 +71,7 @@ export function createWebPlatform(env: WebPlatformEnv = typeof window === 'undef
   const saves = createLocalSaveStore(storage);
   const introFlag = createIntroFlag(storage);
   const lifecycle = createLifecycle(env as LifecycleEnv);
-  return Object.freeze({ capabilities, settings, haptics, browser, viewport, saves, introFlag, lifecycle });
+  const durability = createDurability({ storageManager: storageManagerOf(env), storage, capabilities });
+  const serviceWorker = createServiceWorker(env as ServiceWorkerEnv);
+  return Object.freeze({ capabilities, settings, haptics, browser, viewport, saves, introFlag, lifecycle, durability, serviceWorker });
 }

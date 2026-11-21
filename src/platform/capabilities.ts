@@ -13,6 +13,8 @@ export interface Capabilities {
   readonly reducedMotion: boolean;
   /** The OS asks for more contrast. */
   readonly moreContrast: boolean;
+  /** A touch-first device (`(pointer: coarse)`): a phone or tablet (Story 2.12's home-screen hint). */
+  readonly mobile: boolean;
 }
 
 /** The parts of `window` the probes read; a plain object in tests. */
@@ -41,5 +43,6 @@ export function detectCapabilities(env: CapabilityEnv = typeof window === 'undef
       mediaMatches(env, '(display-mode: standalone)') || probe(() => env.navigator?.standalone === true),
     reducedMotion: mediaMatches(env, '(prefers-reduced-motion: reduce)'),
     moreContrast: mediaMatches(env, '(prefers-contrast: more)'),
+    mobile: mediaMatches(env, '(pointer: coarse)'),
   });
 }

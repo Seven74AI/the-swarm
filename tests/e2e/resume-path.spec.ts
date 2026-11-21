@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { frames } from './helpers/time';
 
 /**
  * Story 2.3 (D1, ADR 0002): hiding the page saves with `lastSeenAt` and stops the
@@ -41,7 +42,8 @@ test('hiding saves with lastSeenAt and stops the simulation', async ({ page }) =
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('the_swarm_save')!));
   expect(saved.lastSeenAt).toBeGreaterThanOrEqual(before);
   const hiddenPlay = await playTime(page);
-  await page.waitForTimeout(500);
+  // The simulation ticks on frames: let 30 render.
+  await frames(page, 30);
   expect(await playTime(page)).toBe(hiddenPlay);
 });
 

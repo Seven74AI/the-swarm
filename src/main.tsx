@@ -60,10 +60,13 @@ import { OnboardingManager } from './ui/OnboardingManager';
 import { bindPhaseTheme } from './ui/theme/phaseTheme';
 import { bindCrt, bindReducedMotion } from './ui/theme/reducedMotion';
 import { createAnnouncer } from './ui/shell/announcer';
-import { bindAnnouncements, battleLine, IMPORT_FAILED_LINE, SAVE_FAILED_LINE, SAVE_RECOVERED_LINE } from './ui/shell/announcements';
+import { bindAnnouncements, battleLine, IMPORT_FAILED_LINE, SAVE_FAILED_LINE, SAVE_RECOVERED_LINE, UPDATE_READY_LINE } from './ui/shell/announcements';
 import { SaveFailedMarker } from './ui/shell/SaveFailedMarker';
 import { openUnreadableSave } from './ui/sheets/UnreadableSaveSheet';
+import { openHomeScreenHint } from './ui/sheets/HomeScreenHintSheet';
+import { bindDurability } from './persistence/durability';
 import { createWebPlatform, type Platform } from './platform';
+import { serviceWorkerWanted } from './platform/serviceWorker';
 import { bindHapticFeedback, bindSoundSetting } from './platform/feedback';
 
 /**
@@ -376,6 +379,7 @@ export function bootstrap(): {
       seed: state.seed,
       settings: platform.settings.settings.value,
       capabilities: platform.capabilities,
+      storage: platform.durability.status(),
       log: log.entries(),
     });
     if (!platform.browser.download(DIAGNOSTICS_FILENAME, text)) log.warn('diagnostics', 'export download failed');
@@ -617,6 +621,17 @@ export function bootstrap(): {
   if (offlineSummary) showOfflineSummary(offlineSummary);
   uiReady = true;
 
+  // Durability (Story 2.12, D4): at the first meaningful play (the first committed phase,
+  // or a load already past it) ask for persistent storage once and log the answer; on a
+  // mobile browser that isn't the installed app, show the add-to-home-screen hint once.
+  // Bound after the offline summary, so the hint waits behind it.
+  bindDurability({
+    bus,
+    phase: () => gameState.peek().phase,
+    durability: platform.durability,
+    openHint: () => void openHomeScreenHint(sheets),
+  });
+
   // A cold load resumes once, from the save's lastSeenAt, AFTER the UI and its listeners
   // are bound: a goal the catch-up latches is then seen and announced like any other
   // (Story 1.32). An unreadable save waits behind its sheet with a fresh state: nothing to resume.
@@ -630,7 +645,14 @@ export function bootstrap(): {
 
   // Hidden and back (Story 2.3, D1): hiding saves with lastSeenAt and stops the ticker;
   // every return signal goes to the one resume path, which applies the gap once.
-  platform.lifecycle.bind({ hidden: () => resumePath.hide(), returned: () => resumePath.show() });
+  // A return also asks for a new version (Story 2.13): a PWA left open for days never navigates.
+  platform.lifecycle.bind({
+    hidden: () => resumePath.hide(),
+    returned: () => {
+      resumePath.show();
+      void platform.serviceWorker.checkForUpdate();
+    },
+  });
   // A visible frame gap over 1 s (a stall, a throttled tab) is resumed, not dropped.
   ticker.onGap((gapMs) => resumePath.frameGap(gapMs));
 
@@ -678,6 +700,17 @@ export function bootstrap(): {
   } else {
     loop.start();
   }
+
+  // Offline play (Story 2.13, D10): the service worker precaches the game. Production builds
+  // only (dev and E2E builds with `?sw=1`), so the dev server never runs a worker. A new
+  // version waits for the next cold start; the player is told once, and never reloaded.
+  void platform.serviceWorker.register({
+    enabled: serviceWorkerWanted({ prod: import.meta.env.PROD, search: typeof location === 'undefined' ? '' : location.search }),
+    url: `${import.meta.env.BASE_URL}sw.js`,
+    scope: import.meta.env.BASE_URL,
+    onUpdateReady: () => toasts.show(UPDATE_READY_LINE),
+    onError: (error) => log.warn('pwa', 'service worker registration failed; offline play is off', error),
+  });
 
   return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, panels, audio, actions, platform, sheets, overlays, chronicle, toasts, cheatsLoaded };
 }

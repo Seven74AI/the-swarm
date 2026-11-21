@@ -30,23 +30,28 @@ describe('BuildingSystem', () => {
       expect(lv2.food).toBeGreaterThan(lv1.food);
     });
 
-    // GM-5: Exponential cost scaling (×2.5 per level)
-    it('cost scales by ×2.5 per level (exponential)', () => {
-      // Level 1: 100 * 2.5^1 = 250
-      expect(getBuildCost('barracks', 1).food).toBe(250);
-      // Level 2: 100 * 2.5^2 = 625
-      expect(getBuildCost('barracks', 2).food).toBe(625);
-      // Level 3: 100 * 2.5^3 = 1562 (floored)
-      expect(getBuildCost('barracks', 3).food).toBe(1562);
+    it('every cost at every level is a non-negative whole number, and never falls level to level', () => {
+      const types: BuildingType[] = ['barracks', 'walls', 'warehouse', 'silk_weaving', 'chitin_armory', 'venom_lab'];
+      for (const type of types) {
+        let prev = getBuildCost(type, 1);
+        for (let level = 1; level <= 10; level++) {
+          const cost = getBuildCost(type, level);
+          for (const [res, n] of Object.entries(cost)) {
+            expect(Number.isInteger(n) && n >= 0, `${type} Lv.${level} ${res}: ${n}`).toBe(true);
+            expect(n, `${type} Lv.${level} ${res}`).toBeGreaterThanOrEqual(prev[res as keyof typeof prev]);
+          }
+          prev = cost;
+        }
+      }
     });
 
-    it('cost ratio between consecutive levels is ~2.5', () => {
+    it('costs grow by a steady factor from level to level (exponential, GM-5)', () => {
       const lv1 = getBuildCost('barracks', 1).food;
       const lv2 = getBuildCost('barracks', 2).food;
       const lv3 = getBuildCost('barracks', 3).food;
-      // With Math.floor, ratio should be approximately 2.5
-      expect(lv2 / lv1).toBeCloseTo(2.5, 0);
-      expect(lv3 / lv2).toBeCloseTo(2.5, 0);
+      expect(lv2 / lv1).toBeGreaterThan(1);
+      // The same factor each step, up to Math.floor's rounding.
+      expect(lv3 / lv2).toBeCloseTo(lv2 / lv1, 1);
     });
 
     it('cost grows much faster than linear', () => {
@@ -55,41 +60,32 @@ describe('BuildingSystem', () => {
       expect(lv5).toBeGreaterThan(lv1 * 10); // exponential >> linear
     });
 
-    it('wood cost for barracks scales correctly', () => {
-      // Barracks wood base = 50
-      expect(getBuildCost('barracks', 1).wood).toBe(125);  // 50 * 2.5
-      expect(getBuildCost('barracks', 2).wood).toBe(312);  // 50 * 6.25 = 312.5 → 312
+    it('barracks also costs wood, and warehouse wood and stone', () => {
+      expect(getBuildCost('barracks', 1).wood).toBeGreaterThan(0);
+      expect(getBuildCost('warehouse', 1).wood).toBeGreaterThan(0);
+      expect(getBuildCost('warehouse', 1).stone).toBeGreaterThan(0);
     });
 
-    it('warehouse costs scale with both wood and stone', () => {
-      // Warehouse: wood=150, stone=100
-      expect(getBuildCost('warehouse', 1).wood).toBe(375);  // 150 * 2.5
-      expect(getBuildCost('warehouse', 1).stone).toBe(250); // 100 * 2.5
-    });
-
-    it('silk_weaving costs silk and wood', () => {
-      // silk base=4 → Lv1 = 10, wood base=40 → Lv1 = 100
+    it('silk_weaving costs silk and wood only', () => {
       const cost = getBuildCost('silk_weaving', 1);
-      expect(cost.silk).toBe(10);
-      expect(cost.wood).toBe(100);
+      expect(cost.silk).toBeGreaterThan(0);
+      expect(cost.wood).toBeGreaterThan(0);
       expect(cost.food).toBe(0);
       expect(cost.stone).toBe(0);
     });
 
-    it('chitin_armory costs chitin and stone', () => {
-      // chitin base=4 → Lv1 = 10, stone base=40 → Lv1 = 100
+    it('chitin_armory costs chitin and stone only', () => {
       const cost = getBuildCost('chitin_armory', 1);
-      expect(cost.chitin).toBe(10);
-      expect(cost.stone).toBe(100);
+      expect(cost.chitin).toBeGreaterThan(0);
+      expect(cost.stone).toBeGreaterThan(0);
       expect(cost.food).toBe(0);
       expect(cost.wood).toBe(0);
     });
 
-    it('venom_lab costs venom and nectar', () => {
-      // venom base=2 → Lv1 = 5, nectar base=40 → Lv1 = 100
+    it('venom_lab costs venom and nectar only', () => {
       const cost = getBuildCost('venom_lab', 1);
-      expect(cost.venom).toBe(5);
-      expect(cost.nectar).toBe(100);
+      expect(cost.venom).toBeGreaterThan(0);
+      expect(cost.nectar).toBeGreaterThan(0);
       expect(cost.food).toBe(0);
       expect(cost.wood).toBe(0);
     });

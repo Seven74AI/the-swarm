@@ -34,9 +34,6 @@ test('resource increment triggers smooth tween animation', async ({ page }) => {
   // Click to increment eggs
   await page.locator('#click-egg').click();
 
-  // Wait for tween (300ms + buffer)
-  await page.waitForTimeout(500);
-
-  // The value should NOT be 0 anymore
+  // The value should NOT be 0 anymore (web-first: waits out the 300 ms tween)
   await expect(textEl).not.toHaveText('0');
 });

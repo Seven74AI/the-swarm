@@ -152,9 +152,6 @@ test.describe('Automation System (GM-3)', () => {
 
     const rateDisplay = page.locator('#automation-panel .auto-rate');
     await expect(rateDisplay).toContainText('0.5', { timeout: 5000 });
-
-    // Wait for auto-production to accumulate
-    await page.waitForTimeout(2500);
     await expect(rateDisplay).toBeVisible();
   });
 

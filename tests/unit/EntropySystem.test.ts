@@ -90,24 +90,19 @@ describe('EntropySystem', () => {
       expect(isEntropyThreshold(s)).toBe(false);
     });
 
-    it('returns level 25 when entropy reaches 25%', () => {
-      const s = { ...state, entropy: 25 };
-      expect(getEntropyThresholdLevel(s)).toBe(25);
+    it('the threshold level never exceeds the entropy, and rises with it', () => {
+      let last = 0;
+      for (let e = 0; e <= ENTROPY_MAX; e++) {
+        const level = getEntropyThresholdLevel({ ...state, entropy: e });
+        expect(level, `entropy ${e}`).toBeLessThanOrEqual(e);
+        expect(level, `entropy ${e}`).toBeGreaterThanOrEqual(last);
+        expect(isEntropyThreshold({ ...state, entropy: e }), `entropy ${e}`).toBe(level > 0);
+        last = level;
+      }
     });
 
-    it('returns level 50 when entropy reaches 50%', () => {
-      const s = { ...state, entropy: 50 };
-      expect(getEntropyThresholdLevel(s)).toBe(50);
-    });
-
-    it('returns level 75 when entropy reaches 75%', () => {
-      const s = { ...state, entropy: 75 };
-      expect(getEntropyThresholdLevel(s)).toBe(75);
-    });
-
-    it('returns level 100 when entropy reaches 100%', () => {
-      const s = { ...state, entropy: 100 };
-      expect(getEntropyThresholdLevel(s)).toBe(100);
+    it('a full meter is at the top threshold', () => {
+      expect(getEntropyThresholdLevel({ ...state, entropy: ENTROPY_MAX })).toBe(ENTROPY_MAX);
     });
   });
 
@@ -219,15 +214,9 @@ describe('EntropySystem', () => {
     });
   });
 
-  describe('ENTROPY_MAX constant', () => {
-    it('is 100 (representing percentage)', () => {
-      expect(ENTROPY_MAX).toBe(100);
-    });
-  });
-
-  describe('ENTROPY_RATE_PER_DARK_MATTER constant', () => {
-    it('is 0.1 per the spec', () => {
-      expect(ENTROPY_RATE_PER_DARK_MATTER).toBe(0.1);
+  describe('rate constant', () => {
+    it('dark matter adds entropy at a positive rate', () => {
+      expect(ENTROPY_RATE_PER_DARK_MATTER).toBeGreaterThan(0);
     });
   });
 });

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Narrative Event Log', () => {
   test('shows narrative flavor text after phase change', async ({ page }) => {
     await page.goto('/');
-    await page.waitForTimeout(1000);
+    await page.waitForFunction(() => (window as unknown as { __swarm?: { bus?: unknown } }).__swarm?.bus !== undefined);
 
     const log = page.locator('#activity-log');
     await expect(log).toBeVisible({ timeout: 5000 });
@@ -15,19 +15,13 @@ test.describe('Narrative Event Log', () => {
       bus.emit('phase_committed', { from: 'expansion', to: 'space' });
     });
 
-    await page.waitForTimeout(500);
-
-    const logText = await log.textContent();
-    expect(logText).toBeTruthy();
-
     // EventLog says "THE SWARM LOOKS TO THE STARS." on space phase
-    const hasNarrative = logText?.includes('THE SWARM LOOKS TO THE STARS') ?? false;
-    expect(hasNarrative).toBe(true);
+    await expect(log).toContainText('THE SWARM LOOKS TO THE STARS');
   });
 
   test('shows narrative flavor text for worker count changes', async ({ page }) => {
     await page.goto('/');
-    await page.waitForTimeout(1000);
+    await page.waitForFunction(() => (window as unknown as { __swarm?: { bus?: unknown } }).__swarm?.bus !== undefined);
 
     const log = page.locator('#activity-log');
     await expect(log).toBeVisible({ timeout: 5000 });
@@ -39,19 +33,13 @@ test.describe('Narrative Event Log', () => {
       bus.emit('workers_changed', { workers: 50 });
     });
 
-    await page.waitForTimeout(500);
-
-    const logText = await log.textContent();
-    expect(logText).toBeTruthy();
-
     // EventLog should have some worker-related entry
-    const hasWorkerNarrative = logText?.includes('WORKER') ?? false;
-    expect(hasWorkerNarrative).toBe(true);
+    await expect(log).toContainText('WORKER');
   });
 
   test('shows narrative flavor text for building completion', async ({ page }) => {
     await page.goto('/');
-    await page.waitForTimeout(1000);
+    await page.waitForFunction(() => (window as unknown as { __swarm?: { bus?: unknown } }).__swarm?.bus !== undefined);
 
     const log = page.locator('#activity-log');
     await expect(log).toBeVisible({ timeout: 5000 });
@@ -62,14 +50,8 @@ test.describe('Narrative Event Log', () => {
       bus.emit('building_complete', { building: 'barracks', level: 2 });
     });
 
-    await page.waitForTimeout(500);
-
-    const logText = await log.textContent();
-    expect(logText).toBeTruthy();
-
     // EventLog says "THE BARRACKS REACHES LEVEL 2."
-    const hasBuildingNarrative = logText?.includes('BARRACKS REACHES LEVEL 2') ?? false;
-    expect(hasBuildingNarrative).toBe(true);
+    await expect(log).toContainText('BARRACKS REACHES LEVEL 2');
   });
 
   test('activity log shows initial narrative message', async ({ page }) => {
