@@ -27,7 +27,6 @@ import { TranscendencePanel } from './panels/TranscendencePanel';
 import { ResearchPanel } from './panels/ResearchPanel';
 import { MutationPanel } from './panels/MutationPanel';
 import { FoodDisplay } from './panels/FoodDisplay';
-import { DecisionPopup } from './components/DecisionPopup';
 import type { AudioSystem } from './AudioSystem';
 import type { Actions } from '../actions';
 import { explain } from './components/refusal';
@@ -53,7 +52,6 @@ export class UIRoot {
   /** Promise resolve for waiting on transition end (set by startTransition, resolved by endTransition/skip). */
   private transitionResolve: (() => void) | null = null;
   /** Decision popup (bottom-right, non-blocking) */
-  private decisionPopup: DecisionPopup;
 
   /** Audio system for sound effects */
   private audio: AudioSystem | undefined;
@@ -87,7 +85,6 @@ export class UIRoot {
     this.saveManager = deps.saveManager;
     this.getState = deps.getState;
     this.eventLog = new EventLog(this.bus);
-    this.decisionPopup = new DecisionPopup(this.bus, (type, choice) => { this.actions.chooseDecision(type, choice); });
     this.audio = deps.audio;
     this.loop = deps.loop;
     this.confirmSettings = deps.confirmSettings;
@@ -287,11 +284,7 @@ export class UIRoot {
     // This makes panel reveals feel like genuine new features and avoids
     // cluttering the DOM with disabled buttons from the first second.
 
-    // ── Decision popup (bottom-right fixed, non-blocking) ──
-    container.appendChild(this.decisionPopup.getElement());
-    this.bus.subscribe('decision_event', (payload) => {
-      this.decisionPopup.show(payload);
-    });
+    // Decision events open a decision sheet through the SheetController (main.tsx, Story 1.14).
 
     container.appendChild(panels);
 

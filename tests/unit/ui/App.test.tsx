@@ -1,5 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { render, cleanup } from '@testing-library/preact';
+import { render, cleanup, act } from '@testing-library/preact';
+import '@preact/signals';
+import { createSheetController } from '../../../src/ui/shell/SheetController';
 import { App, type LegacyUi } from '../../../src/ui/App';
 
 /**
@@ -49,5 +51,14 @@ describe('App (Preact root)', () => {
 
     expect(legacy.mount).toHaveBeenCalledTimes(1);
     expect(container.querySelector('#top-bar')).toBe(bar);
+  });
+
+  it('draws the open sheet of the SheetController next to the legacy UI (Story 1.14)', () => {
+    const sheets = createSheetController();
+    const { container } = render(<App legacy={fakeLegacy()} sheets={sheets} />);
+    expect(container.querySelector('[data-probe]')).toBeNull();
+    act(() => void sheets.open({ priority: 'modal', render: () => <p data-probe="" /> }));
+    expect(container.querySelector('[data-probe]')).not.toBeNull();
+    expect(container.querySelector('#top-bar')).not.toBeNull();
   });
 });

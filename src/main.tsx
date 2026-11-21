@@ -32,7 +32,9 @@ import { AudioSystem } from './ui/AudioSystem';
 import { SaveManager } from './persistence/SaveManager';
 import type { OfflineLoadInfo } from './persistence/SaveManager';
 import { computeOfflineResourceDeltas } from './systems/OfflineProgression';
-import { OfflineSummaryPopup } from './ui/components/OfflineSummaryPopup';
+import { openOfflineSummary } from './ui/sheets/OfflineSummarySheet';
+import { bindDecisionSheets } from './ui/sheets/DecisionSheet';
+import { createSheetController, type SheetController } from './ui/shell/SheetController';
 import { PhaseStateMachine } from './phases/PhaseStateMachine';
 import { Phase, PHASE_ORDER } from './phases/phases';
 import { PhaseContent } from './ui/PhaseContent';
@@ -70,6 +72,7 @@ export function bootstrap(): {
   audio: AudioSystem;
   actions: Actions;
   platform: Platform;
+  sheets: SheetController;
 } {
   // Platform services, built once and passed on (Story 1.10, D9). Only main
   // imports platform/ values; settings live under their own key, outside the save.
@@ -89,7 +92,7 @@ export function bootstrap(): {
 
   // Try to load saved state
   const saved = saveManager.load();
-  let offlinePopup: OfflineSummaryPopup | null = null;
+  let offlineSummary: OfflineLoadInfo | null = null;
 
   if (saved) {
     gameState.value = saved.gameState;
@@ -152,10 +155,7 @@ export function bootstrap(): {
 
       // Show summary popup for absences >= 30 seconds
       if (offlineData.elapsedMs >= 30_000) {
-        offlinePopup = new OfflineSummaryPopup(offlineData, () => {
-          // Dismiss: game continues normally — UI is already mounted
-        });
-        log.debug('offline', `Popup created: ${!!offlinePopup}`);
+        offlineSummary = offlineData;
 
         // Emit event for resource delta tracking
         bus.emit('offline_progress', {
@@ -379,6 +379,10 @@ export function bootstrap(): {
   // not a listener: no listener writes state (AR18).
   const actions = createActions({ bus, resourceSystem, soldierSystem, battleSystem, decisionSystem, territorySystem });
 
+  // One sheet at a time (Story 1.14, D7): every sheet is requested here, drawn by App.
+  const sheets = createSheetController();
+  bindDecisionSheets({ bus, sheets, choose: (type, choice) => actions.chooseDecision(type, choice) });
+
   const ui = new UIRoot({
     bus,
     actions,
@@ -392,7 +396,7 @@ export function bootstrap(): {
   if (app) {
     // The Preact root hosts the legacy UIRoot (Story 1.7). render() mounts it synchronously,
     // so the panels exist before the phase's panels are revealed below.
-    render(<App legacy={ui} />, app);
+    render(<App legacy={ui} sheets={sheets} />, app);
   }
 
   // Start onboarding tutorial for new players (persisted via localStorage)
@@ -441,14 +445,9 @@ export function bootstrap(): {
     audio.play('discovery');
   });
 
-  log.debug('offline', `Before mount check. offlinePopup is: ${!!offlinePopup}`);
-
-  // If we have an offline popup, mount it after UI is mounted
-  if (offlinePopup) {
-    log.debug('offline', 'Mounting popup...');
-    offlinePopup.mount(document.body);
-    log.debug('offline', `Popup mounted. Body has overlay: ${!!document.querySelector('.offline-overlay')}`);
-  }
+  // The offline summary opens once the UI is mounted. Its priority puts it ahead
+  // of any decision sheet the first ticks request (Story 1.14).
+  if (offlineSummary) openOfflineSummary(sheets, offlineSummary);
 
   // Start autosave
   saveManager.startAutosave(() => ({
@@ -485,7 +484,7 @@ export function bootstrap(): {
 
   loop.start();
 
-  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, ui, decisionSystem, audio, actions, platform };
+  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, ui, decisionSystem, audio, actions, platform, sheets };
 }
 
 /**

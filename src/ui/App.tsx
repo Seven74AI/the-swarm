@@ -2,6 +2,8 @@
 // slice changes, and only then (ADR 0004). Keep this import in the root of the Preact tree.
 import '@preact/signals';
 import { useLayoutEffect, useRef } from 'preact/hooks';
+import type { SheetController } from './shell/SheetController';
+import { SheetHost } from './shell/SheetHost';
 
 /** The part of the legacy `UIRoot` that the Preact root needs. */
 export interface LegacyUi {
@@ -20,12 +22,20 @@ export interface LegacyUi {
  * inside `render()`, so boot can reveal the phase's panels right after
  * rendering. The host has no Preact children, so re-renders never touch the
  * legacy DOM.
+ *
+ * `sheets` is the one SheetController (Story 1.14): its open sheet is drawn
+ * after the legacy UI, so sheets sit above the panels.
  */
-export function App({ legacy }: { legacy: LegacyUi }) {
+export function App({ legacy, sheets }: { legacy: LegacyUi; sheets?: SheetController }) {
   const host = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     if (host.current) legacy.mount(host.current);
     // Mount once per legacy UI; UIRoot has no unmount.
   }, [legacy]);
-  return <div ref={host} data-legacy-ui="" style={{ display: 'contents' }} />;
+  return (
+    <>
+      <div ref={host} data-legacy-ui="" style={{ display: 'contents' }} />
+      {sheets && <SheetHost sheets={sheets} />}
+    </>
+  );
 }
