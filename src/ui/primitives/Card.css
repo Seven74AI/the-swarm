@@ -1,0 +1,28 @@
+/* Card primitive (Story 1.12). DESIGN.md → Components; colors only from the phase aliases in ui/styles/tokens.css. */
+/* ── Card: 1 px line border, no fill; raised when selected ─────────────────── */
+.card {
+  border: 1px solid var(--color-line);
+  border-radius: 0;
+  background: transparent;
+  padding: 0.75rem;
+  color: var(--color-accent);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.card[data-selected] { background: var(--color-raised); }
+.card[data-highlight] {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0.5rem var(--color-accent);
+}
+.card__title {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+.card__level { margin-left: auto; font-weight: 400; color: var(--color-dim); }
+.card__effect { margin: 0.25rem 0 0; font-size: 0.75rem; color: var(--color-dim); }
+.card__cost { margin: 0.25rem 0 0; font-size: 0.8125rem; color: var(--color-dim); }
+.card__shortfall { color: var(--color-warn); }
+.card__action { margin-top: 0.5rem; }

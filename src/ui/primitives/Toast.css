@@ -1,0 +1,25 @@
+/* Toast primitive (Story 1.12). DESIGN.md → Components; colors only from the phase aliases in ui/styles/tokens.css. */
+/* ── Toast: one line, aside on raised, 1 px accent border, above the primary zone ── */
+.toast-host {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--primary-zone-height, 8rem);
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 40;
+}
+.toast {
+  margin: 0;
+  max-width: calc(100% - 1.5rem);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--color-accent);
+  background: var(--color-raised);
+  border: 1px solid var(--color-accent);
+  border-radius: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
