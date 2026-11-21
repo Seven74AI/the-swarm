@@ -31,7 +31,7 @@
   background: var(--color-raised);
   border-top: 2px solid var(--color-accent);
   border-radius: 0;
-  font-family: "Swarm Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   text-align: left;
   transform: translate(-50%, var(--sheet-drag, 0px));
   touch-action: pan-x;
@@ -61,7 +61,7 @@
 /* `display` type role: the headline. */
 .sheet__headline {
   margin: 0;
-  font-size: 1.375rem;
+  font-size: var(--type-title);
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0.02em;
@@ -76,13 +76,13 @@
 }
 
 .sheet__header {
-  font-size: 0.8125rem;
+  font-size: var(--type-aside);
   font-weight: 700;
   color: var(--color-accent);
 }
 
 .sheet__body {
-  font-size: 0.9375rem;
+  font-size: var(--type-value);
   line-height: 1.4;
   color: var(--color-accent);
 }

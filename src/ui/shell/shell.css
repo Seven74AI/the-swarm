@@ -130,7 +130,7 @@
   height: 48px;
   padding: 0 16px;
   border-radius: 0;
-  font-size: 1.1rem;
+  font-size: var(--type-title);
   justify-content: flex-start;
 }
 
@@ -139,7 +139,7 @@
 }
 
 .shell-primary .click-counter {
-  font-size: 0.75rem;
+  font-size: var(--type-meta);
   white-space: nowrap;
 }
 
@@ -165,7 +165,7 @@
   background: transparent;
   color: var(--color-dim);
   font: inherit;
-  font-size: 0.8rem;
+  font-size: var(--type-aside);
   letter-spacing: 0.05em;
   cursor: pointer;
 }
@@ -287,7 +287,7 @@
   align-items: center;
   min-height: 44px;
   padding: 0 16px;
-  font-size: 0.875rem;
+  font-size: var(--type-body);
   text-align: left;
 }
 
@@ -302,7 +302,7 @@
 
 .tab-bar-key {
   margin-left: auto;
-  font-size: 0.75rem;
+  font-size: var(--type-meta);
   color: var(--color-edge);
 }
 

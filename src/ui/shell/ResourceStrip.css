@@ -18,7 +18,7 @@
   border: 0;
   border-bottom: 1px solid var(--color-line);
   border-radius: 0;
-  font-family: "Swarm Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   text-align: center;
   cursor: pointer;
@@ -39,7 +39,7 @@
 
 .strip-cell__head,
 .strip-cell__delta {
-  font-size: 0.75rem;
+  font-size: var(--type-meta);
   line-height: 1.2;
   color: var(--color-dim);
   white-space: nowrap;
@@ -52,7 +52,7 @@
 }
 
 .strip-cell__value {
-  font-size: 0.9375rem;
+  font-size: var(--type-value);
   font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
@@ -65,7 +65,7 @@
 }
 
 .strip-cell--more {
-  font-size: 0.9375rem;
+  font-size: var(--type-value);
   font-weight: 700;
 }
 

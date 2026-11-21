@@ -50,7 +50,7 @@
   box-sizing: border-box;
   background: var(--color-bg);
   color: var(--color-accent);
-  font-family: "Swarm Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   text-align: center;
   pointer-events: auto;
   touch-action: none;
@@ -62,7 +62,7 @@
 .phase-reveal__name {
   margin: 0;
   max-width: 100%;
-  font-size: min(1.5rem, 7vw);
+  font-size: min(var(--type-display), 7vw);
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0.1em;
@@ -74,7 +74,7 @@
   margin: 0;
   max-width: 32ch;
   min-height: 1.4em;
-  font-size: 0.9375rem;
+  font-size: var(--type-value);
   line-height: 1.4;
   color: var(--color-accent);
 }
@@ -86,7 +86,7 @@
 
 .phase-reveal__skip {
   margin: 0;
-  font-size: 0.8125rem;
+  font-size: var(--type-aside);
   color: var(--color-dim);
 }
 

@@ -16,7 +16,7 @@
   box-sizing: border-box;
   background: var(--color-scrim);
   color: var(--color-accent);
-  font-family: "Swarm Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   text-align: center;
   cursor: pointer;
   touch-action: none;
@@ -26,13 +26,13 @@
 
 .paused-overlay__line {
   margin: 0;
-  font-size: min(1.5rem, 7vw);
+  font-size: min(var(--type-display), 7vw);
   font-weight: 700;
   letter-spacing: 0.1em;
 }
 
 .paused-overlay__hint {
   margin: 0;
-  font-size: 0.8125rem;
+  font-size: var(--type-aside);
   color: var(--color-dim);
 }
