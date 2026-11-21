@@ -250,3 +250,12 @@ describe('Button primitive (Story 1.11)', () => {
     expect(button(container).dataset.action).toBe('lay-egg');
   });
 });
+
+describe('Button accessible name (Story 1.12)', () => {
+  afterEach(() => cleanup());
+
+  it('uses a caller-supplied label as its name, in place of the typed text', () => {
+    const { getByRole } = render(<Button verb="[+]" label="Add one gatherer" onPress={() => {}} />);
+    expect(getByRole('button', { name: 'Add one gatherer' })).toBeTruthy();
+  });
+});

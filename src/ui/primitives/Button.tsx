@@ -13,6 +13,8 @@ export interface ButtonProps {
   verb: string;
   /** What the verb acts on. Truncated with an ellipsis when the label would not fit. */
   target?: string;
+  /** Accessible name, when the visible label is typed decoration (a stepper's `[+]`). Default: verb and target. */
+  label?: string;
   /**
    * The intent. Called on release (a tap), or repeatedly while held when `repeat`
    * is set. Returning a refusal (an `ActionResult` with `ok: false`) stops the repeat.
@@ -56,7 +58,7 @@ interface Hold {
  *   3 luminance changes per second (flash rule, UX-DR38).
  */
 export function Button(props: ButtonProps) {
-  const { variant = 'secondary', verb, target, onPress, repeat = false, disabled = false, cost, ...hooks } = props;
+  const { variant = 'secondary', verb, target, label, onPress, repeat = false, disabled = false, cost, ...hooks } = props;
   const pressed = useSignal(false);
   const blink = useComputed(() => String(!pressed.value));
   const [blinkRun, setBlinkRun] = useState(0);
@@ -143,7 +145,7 @@ export function Button(props: ButtonProps) {
       data-kind={variant}
       data-pressed={pressed}
       aria-disabled={isDisabled ? 'true' : undefined}
-      aria-label={target ? `${verb} ${target}` : verb}
+      aria-label={label ?? (target ? `${verb} ${target}` : verb)}
       aria-describedby={costLine != null ? costId : undefined}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
