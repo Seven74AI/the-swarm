@@ -7,6 +7,7 @@ import { getPrestigeBonuses } from './PrestigeBonusSystem';
 import { getMutationEffects } from './MutationSystem';
 import { MS_PER_SEC } from '../data/constants';
 import { soldierBalance as B } from '../data/balance/soldiers';
+import { combatBalance } from '../data/balance/combat';
 
 /**
  * SoldierSystem handles soldier recruitment, training, and equipment upgrades.
@@ -129,12 +130,22 @@ export class SoldierSystem {
   }
 }
 
+/** What the first `level` levels of a piece of equipment add to one stat (`combatBalance.equipment`, Story 4.2). */
+function equipmentGain<K extends 'weapon' | 'armor'>(
+  piece: K,
+  level: number,
+  stat: keyof (typeof combatBalance.equipment)[K][number],
+): number {
+  const levels = combatBalance.equipment[piece] as readonly Record<string, unknown>[];
+  return levels.slice(0, level).reduce((sum, l) => sum + (typeof l[stat as string] === 'number' ? (l[stat as string] as number) : 0), 0);
+}
+
 export function getSoldierStrength(state: GameState): number {
-  return B.baseStrength + state.equipment.weapon * B.strengthPerWeaponLevel + getMutationEffects(state).strength;
+  return B.baseStrength + equipmentGain('weapon', state.equipment.weapon, 'strength') + getMutationEffects(state).strength;
 }
 
 export function getSoldierDefense(state: GameState): number {
-  return B.baseDefense + state.equipment.armor * B.defensePerArmorLevel;
+  return B.baseDefense + equipmentGain('armor', state.equipment.armor, 'defense');
 }
 
 export function getSoldierSpeed(state: GameState): number {
@@ -142,5 +153,5 @@ export function getSoldierSpeed(state: GameState): number {
 }
 
 export function getSoldierMaxHp(state: GameState): number {
-  return B.baseMaxHp + state.equipment.armor * B.maxHpPerArmorLevel + getMutationEffects(state).maxHp;
+  return B.baseMaxHp + equipmentGain('armor', state.equipment.armor, 'maxHp') + getMutationEffects(state).maxHp;
 }

@@ -21,8 +21,11 @@ import {
 } from '../../state/selectors';
 import { soldierBalance } from '../../data/balance/soldiers';
 import { TRAITS } from '../../data/content/enemies';
+import { combatBalance } from '../../data/balance/combat';
 import {
   MUTATIONS,
+  marksOf,
+  type CounterMarks,
   getEnemyDefs,
   getEquipmentUpgradeCost,
   type BattleOutcome,
@@ -147,9 +150,25 @@ function TrainButton({ actions }: { actions: WarActions }) {
   );
 }
 
+/** What an upgrade counters, after its effect (Story 4.2): `+1 STR · BEST AGAINST THICK SHELL, WEB`. */
+function withCounters(effect: string, marks: CounterMarks): string {
+  if (marks.strongAgainst.length === 0) return effect;
+  return `${effect} · BEST AGAINST ${marks.strongAgainst.map((t) => TRAITS[t].label).join(', ')}`;
+}
+
+/** The effect of the next level (`combatBalance.equipment`; level is 0-based here). */
+function equipmentEffect(id: 'weapon' | 'armor', level: number): string {
+  if (id === 'weapon') {
+    const next = combatBalance.equipment.weapon[level];
+    return next ? `+${next.strength} STR` : '';
+  }
+  const next = combatBalance.equipment.armor[level];
+  return next ? `+${next.defense} DEF AND +${next.maxHp} HP` : '';
+}
+
 const EQUIPMENT = [
-  { id: 'weapon', title: 'WEAPONS', effect: '+1 STR PER LEVEL', pool: 'chitin', label: 'CHTN', building: 'chitin_armory', buildingName: 'Chitin Armory' },
-  { id: 'armor', title: 'ARMOR', effect: '+1 DEF AND +2 HP PER LEVEL', pool: 'silk', label: 'SILK', building: 'silk_weaving', buildingName: 'Silk Weaving' },
+  { id: 'weapon', title: 'WEAPONS', pool: 'chitin', label: 'CHTN', building: 'chitin_armory', buildingName: 'Chitin Armory' },
+  { id: 'armor', title: 'ARMOR', pool: 'silk', label: 'SILK', building: 'silk_weaving', buildingName: 'Silk Weaving' },
 ] as const;
 
 function EquipmentCard({ item, actions }: { item: (typeof EQUIPMENT)[number]; actions: WarActions }) {
@@ -171,7 +190,7 @@ function EquipmentCard({ item, actions }: { item: (typeof EQUIPMENT)[number]; ac
       id={`equipment-${item.id}`}
       title={item.title}
       level={max ? `LV ${level} · MAX` : `LV ${level} → ${level + 1}`}
-      effect={item.effect}
+      effect={max ? 'AT ITS LAST LEVEL' : withCounters(equipmentEffect(item.id, level), marksOf({ kind: 'equipment', id: item.id, level: level + 1 }))}
       cost={
         max ? undefined : (
           <>
@@ -251,7 +270,7 @@ function MutationCard({ def, actions }: { def: MutationDef; actions: WarActions 
       <Card
         id={`mutation-${def.id}`}
         title={upper(def.name)}
-        effect={upper(def.description)}
+        effect={withCounters(upper(def.description), marksOf({ kind: 'mutation', id: def.id }))}
         cost={status === 'owned' ? undefined : costLine(def.cost)}
         affordable={status === 'affordable'}
         shortfall={short ? { amount: short.amount } : null}

@@ -94,4 +94,27 @@ describe('VenomSystem', () => {
       expect(newState.combatResources.venom).toBeLessThan(0);
     });
   });
+
+  describe('Potent Venom (Story 4.2)', () => {
+    const withLab = (potent: boolean) => {
+      const state = createInitialState();
+      state.buildings.venom_lab.level = 2;
+      state.combatResources.venom = combatBalance.venomPerBattle;
+      state.mutations = state.mutations.map((m) => (m.id === 'potent_venom' ? { ...m, purchased: potent } : m));
+      return state;
+    };
+
+    it('raises the poison damage of a Venom Lab', () => {
+      expect(getPoisonDamagePerTick(withLab(true))).toBeGreaterThan(getPoisonDamagePerTick(withLab(false)));
+    });
+
+    it('does nothing without a Venom Lab or venom', () => {
+      const noLab = withLab(true);
+      noLab.buildings.venom_lab.level = 0;
+      expect(getPoisonDamagePerTick(noLab)).toBe(0);
+      const noVenom = withLab(true);
+      noVenom.combatResources.venom = 0;
+      expect(getPoisonDamagePerTick(noVenom)).toBe(0);
+    });
+  });
 });
