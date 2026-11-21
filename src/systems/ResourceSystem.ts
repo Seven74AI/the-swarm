@@ -11,7 +11,7 @@ import { Phase } from '../phases/phases';
 import { combatBalance } from '../data/balance/combat';
 import { roleBalance } from '../data/balance/roles';
 import { getEffects } from './BuildingSystem';
-import { productionMultiplier, workerEfficiency } from '../engine/ProgressionCurve';
+import { productionMultiplierFor, workerEfficiency } from '../engine/ProgressionCurve';
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
 import { getMutationEffects } from './MutationSystem';
 
@@ -75,7 +75,7 @@ export function computeResourceRates(
   const gatherCount = assigned.gather;
   const unassignedCount = workers - getAssignedWorkers(state);
 
-  const prodMult = productionMultiplier(state.phase, state.prestige.legacyPoints);
+  const prodMult = productionMultiplierFor(state);
   const workerEff = workerEfficiency(workers);
 
   // The Fungus Garden feeds gatherers only (Story 4.7).

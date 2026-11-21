@@ -61,11 +61,11 @@ describe('GameLoop', () => {
       expect(combatMult).toBeGreaterThan(colonyMult);
     });
 
-    it('increases with legacy points', () => {
+    it('increases with the legacy points ever earned (Story 5.2)', () => {
       const loop = new GameLoop(ticker);
       const state: GameState = {
         ...createInitialState(),
-        prestige: { count: 1, legacyPoints: 3, totalFoodProduced: 100000, totalWoodProduced: 0, totalStoneProduced: 0, totalNectarProduced: 0 },
+        prestige: { count: 1, legacyPoints: 0, lifetimeLpEarned: 3, totalFoodProduced: 100000, totalWoodProduced: 0, totalStoneProduced: 0, totalNectarProduced: 0 },
       };
 
       const mult = loop.getProductionMultiplier(state);

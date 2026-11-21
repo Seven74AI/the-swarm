@@ -1,4 +1,5 @@
-import { createEmptyMap, type GameState } from '../state/GameState';
+import { createEmptyMap, createInitialState, type GameState } from '../state/GameState';
+import { getPhaseNumber } from '../engine/ProgressionCurve';
 import { resetEntropy, calculateEntropyPrestigeBonus } from './EntropySystem';
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
 import { PRESTIGE_UPGRADES, type PrestigeUpgradeId } from '../data/prestigeTree';
@@ -6,24 +7,12 @@ import { OFFLINE_RESEARCH_ID } from './ResearchSystem';
 import { prestigeBalance } from '../data/balance/prestige';
 
 /**
- * Map phase names to their numeric position.
- * egg_laying=1, colony=2, combat=3, expansion=4, space=5, transcendence=6
- */
-const PHASE_NUMBER: Record<string, number> = {
-  egg_laying: 1,
-  colony: 2,
-  combat: 3,
-  expansion: 4,
-  space: 5,
-  transcendence: 6,
-};
-
-/**
- * Get the phase score — sum of all reached phase numbers.
+ * Get the phase score — sum of all reached phase numbers (each phase's
+ * position in `PHASE_ORDER`, from 1; an unknown phase counts as the first).
  * For example, if current phase is 'space' (5), phaseScore = 1+2+3+4+5 = 15.
  */
 export function getPhaseScore(currentPhase: string): number {
-  const n = PHASE_NUMBER[currentPhase] ?? 1;
+  const n = getPhaseNumber(currentPhase);
   let sum = 0;
   for (let i = 1; i <= n; i++) {
     sum += i;
@@ -111,15 +100,29 @@ export function isLegacyRevealed(state: GameState): boolean {
 }
 
 /**
- * Calculate Legacy Points gained from a prestige reset.
- * Formula: floor(log10(totalFoodProduced) * phaseScore / 10)
+ * Legacy Points from lifetime food and the phase reached.
+ * Formula: floor(log10(totalFoodProduced) × phaseScore / divisor), none below
+ * the minimum food (numbers in `prestigeBalance.lp`).
  */
 export function calculateLegacyPoints(
   totalFoodProduced: number,
   phaseScore: number,
 ): number {
-  if (totalFoodProduced < 10) return 0;
-  return Math.floor(Math.log10(totalFoodProduced) * phaseScore / 10);
+  const { minFood, phaseScoreDivisor } = prestigeBalance.lp;
+  if (totalFoodProduced < minFood) return 0;
+  return Math.floor(Math.log10(totalFoodProduced) * phaseScore / phaseScoreDivisor);
+}
+
+/**
+ * The Legacy Points a prestige from this state awards (Story 5.2): the food
+ * formula plus the entropy bonus. `prestige()` adds it to the LP held and to
+ * `lifetimeLpEarned`; the prestige card previews it.
+ */
+export function legacyPointsAward(state: GameState): number {
+  return (
+    calculateLegacyPoints(state.prestige.totalFoodProduced, getPhaseScore(state.phase)) +
+    calculateEntropyPrestigeBonus(state)
+  );
 }
 
 /**
@@ -130,19 +133,15 @@ export function calculateLegacyPoints(
  *   - Phase 5+ resources preserved (voidCrystals, antimatter, darkMatter)
  *   - Buildings, upgrades, workers, soldiers reset to zero
  *   - Prestige count incremented
- *   - Legacy Points added based on formula
+ *   - Legacy Points added based on formula, to the LP held and to lifetimeLpEarned
  *   - totalFoodProduced preserved (never resets)
  *   - Phase set to egg_laying
  *   - The run's offline research wiped; Legacy nodes (prestigeTree) kept
  */
 export function prestige(state: GameState): GameState {
-  const phaseScore = getPhaseScore(state.phase);
-  const newLegacyPoints = calculateLegacyPoints(
-    state.prestige.totalFoodProduced,
-    phaseScore,
-  );
-  const entropyBonus = calculateEntropyPrestigeBonus(state);
-  const totalNewLegacyPoints = newLegacyPoints + entropyBonus;
+  const totalNewLegacyPoints = legacyPointsAward(state);
+  const fresh = createInitialState();
+  const cache = prestigeBalance.royalCache;
 
   // Reset entropy after calculating bonus
   const afterEntropyReset = resetEntropy(state);
@@ -159,11 +158,11 @@ export function prestige(state: GameState): GameState {
     phaseGoal: null,
     resources: {
       // The royal cache's eggs are real eggs in the pipeline, so they hatch (Story 2.5).
-      eggs: bonuses.startingResources ? 50 : 0,
+      eggs: bonuses.startingResources ? cache.eggs : 0,
       larvae: 0,
       workers: 0,
-      food: bonuses.startingResources ? 25 : 0,
-      nestCapacity: 25,
+      food: bonuses.startingResources ? cache.food : 0,
+      nestCapacity: fresh.resources.nestCapacity,
       wood: 0,
       stone: 0,
       nectar: 0,
@@ -173,7 +172,7 @@ export function prestige(state: GameState): GameState {
       surveyData: state.resources.surveyData,
     },
     eggPipeline: {
-      count: bonuses.startingResources ? 50 : 0,
+      count: bonuses.startingResources ? cache.eggs : 0,
       progress: 0,
     },
     larvaPipeline: { count: 0, progress: 0 },
@@ -221,14 +220,11 @@ export function prestige(state: GameState): GameState {
       silk: 0,
       venom: 0,
     },
-    spaceship: {
-      level: 0,
-      fuel: 0,
-      maxFuel: 100,
-    },
+    spaceship: fresh.spaceship,
     prestige: {
       count: state.prestige.count + 1,
       legacyPoints: state.prestige.legacyPoints + totalNewLegacyPoints,
+      lifetimeLpEarned: state.prestige.lifetimeLpEarned + totalNewLegacyPoints,
       totalFoodProduced: state.prestige.totalFoodProduced,
       totalWoodProduced: state.prestige.totalWoodProduced,
       totalStoneProduced: state.prestige.totalStoneProduced,
@@ -284,7 +280,8 @@ export function canPurchasePrestigeUpgrade(
  * Purchase a prestige tree upgrade.
  *
  * Returns a new GameState with the upgrade marked as purchased and Legacy Points
- * deducted. Returns null if requirements are not met.
+ * deducted. `lifetimeLpEarned` is untouched, so the production bonus stays
+ * (Story 5.2). Returns null if requirements are not met.
  */
 export function purchasePrestigeUpgrade(
   state: GameState,

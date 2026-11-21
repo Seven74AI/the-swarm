@@ -1,0 +1,758 @@
+{
+  "version": 30,
+  "timestamp": 1763800000000,
+  "lastSeenAt": 1763790000000,
+  "playTimeMs": 8400000,
+  "gameState": {
+    "phase": "space",
+    "seed": 2654435761,
+    "resources": {
+      "eggs": 1218,
+      "larvae": 340,
+      "workers": 260,
+      "food": 48000,
+      "nestCapacity": 420,
+      "wood": 3100,
+      "stone": 2200,
+      "nectar": 900,
+      "voidCrystals": 300,
+      "antimatter": 0,
+      "darkMatter": 0,
+      "surveyData": 0
+    },
+    "eggPipeline": {
+      "count": 75,
+      "progress": 0.42
+    },
+    "larvaPipeline": {
+      "count": 40,
+      "progress": 0.17
+    },
+    "workersAssigned": {
+      "gather": 90,
+      "tend": 50,
+      "dig": 40,
+      "guard": 20,
+      "researchers": 10,
+      "forage": 6
+    },
+    "soldiers": {
+      "scouts": 24,
+      "warriors": 12,
+      "totalKilled": 57
+    },
+    "buildings": {
+      "barracks": {
+        "level": 3,
+        "count": 2
+      },
+      "walls": {
+        "level": 2
+      },
+      "warehouse": {
+        "level": 6
+      },
+      "silk_weaving": {
+        "level": 0
+      },
+      "chitin_armory": {
+        "level": 0
+      },
+      "venom_lab": {
+        "level": 0
+      },
+      "fungus_garden": {
+        "level": 0
+      },
+      "tunnels": {
+        "level": 0
+      },
+      "midden": {
+        "level": 0
+      }
+    },
+    "territory": {
+      "ownedTiles": 9,
+      "bonuses": {}
+    },
+    "mapTiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 0,
+        "y": 1,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 0,
+        "y": 2,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 0,
+        "y": 3,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 0,
+        "y": 4,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 0,
+        "y": 5,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 0,
+        "y": 6,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 0,
+        "y": 7,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 1,
+        "y": 0,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 1,
+        "y": 1,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 1,
+        "y": 2,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 1,
+        "y": 3,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 1,
+        "y": 4,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 1,
+        "y": 5,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 1,
+        "y": 6,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 1,
+        "y": 7,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 2,
+        "y": 0,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 2,
+        "y": 1,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 2,
+        "y": 2,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 2,
+        "y": 3,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 2,
+        "y": 4,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 2,
+        "y": 5,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 2,
+        "y": 6,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 2,
+        "y": 7,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 3,
+        "y": 0,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 3,
+        "y": 1,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 3,
+        "y": 2,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 3,
+        "y": 3,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 3,
+        "y": 4,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 3,
+        "y": 5,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 3,
+        "y": 6,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 3,
+        "y": 7,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 4,
+        "y": 0,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 4,
+        "y": 1,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 4,
+        "y": 2,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 4,
+        "y": 3,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 4,
+        "y": 4,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 4,
+        "y": 5,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 4,
+        "y": 6,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 4,
+        "y": 7,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 5,
+        "y": 0,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 5,
+        "y": 1,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 5,
+        "y": 2,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 5,
+        "y": 3,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 5,
+        "y": 4,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 5,
+        "y": 5,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 5,
+        "y": 6,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 5,
+        "y": 7,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 6,
+        "y": 0,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 6,
+        "y": 1,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 6,
+        "y": 2,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 6,
+        "y": 3,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 6,
+        "y": 4,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 6,
+        "y": 5,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 6,
+        "y": 6,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 6,
+        "y": 7,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 7,
+        "y": 0,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 7,
+        "y": 1,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 7,
+        "y": 2,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 7,
+        "y": 3,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 7,
+        "y": 4,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 7,
+        "y": 5,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 7,
+        "y": 6,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      },
+      {
+        "x": 7,
+        "y": 7,
+        "type": "empty",
+        "discovered": false,
+        "claimed": false
+      }
+    ],
+    "expeditions": [
+      {
+        "id": "exp_1",
+        "status": "running",
+        "scouts": 3,
+        "warriors": 2,
+        "destination": "FOREST",
+        "remainingMs": 1200,
+        "durationMs": 3000,
+        "risk": 0.4
+      }
+    ],
+    "spaceExplorations": [
+      {
+        "id": "spc_1",
+        "status": "running",
+        "destination": "MARS",
+        "remainingMs": 2000,
+        "durationMs": 4000,
+        "risk": 0.3
+      }
+    ],
+    "discoveredPlanets": [],
+    "spaceships": [],
+    "upgrades": {},
+    "stats": {
+      "totalEggsLaid": 185000,
+      "totalClicks": 6400,
+      "playTimeMs": 7200000
+    },
+    "unlockedPanels": [],
+    "lastSaveTimestamp": 1763540000000,
+    "combatSoldiers": 85,
+    "soldierStats": {
+      "strength": 1,
+      "defense": 1,
+      "speed": 5,
+      "maxHp": 10
+    },
+    "equipment": {
+      "weapon": 3,
+      "armor": 2
+    },
+    "lastBattle": {
+      "status": "idle"
+    },
+    "combatResources": {
+      "chitin": 140,
+      "silk": 95,
+      "venom": 60
+    },
+    "battlesWon": 31,
+    "battlesLost": 6,
+    "soldierPipeline": {
+      "count": 6,
+      "progress": 0.8
+    },
+    "capacityAccumulator": 13,
+    "victoryAchieved": false,
+    "phaseGoal": null,
+    "decision": {
+      "open": {
+        "id": "scout_report",
+        "remainingMs": 21000,
+        "openedAtSessionMs": 64000,
+        "roll": 0.37
+      },
+      "nextSpawnSessionMs": 190000
+    },
+    "lifetime": {
+      "revealsSeen": [
+        "colony",
+        "combat",
+        "expansion",
+        "space"
+      ]
+    },
+    "spaceship": {
+      "level": 0,
+      "fuel": 0,
+      "maxFuel": 100
+    },
+    "spaceProbes": [
+      {
+        "id": "probe_2",
+        "status": "running",
+        "destination": "MARS",
+        "scouts": 4,
+        "remainingMs": 12000,
+        "durationMs": 15000
+      }
+    ],
+    "discoveries": [],
+    "nextIds": {
+      "expedition": 2,
+      "exploration": 2,
+      "spaceship": 1,
+      "probe": 3
+    },
+    "prestige": {
+      "count": 1,
+      "legacyPoints": 120,
+      "totalFoodProduced": 2400000,
+      "totalWoodProduced": 0,
+      "totalStoneProduced": 0,
+      "totalNectarProduced": 0
+    },
+    "autoProduction": {
+      "enabled": true,
+      "researches": {},
+      "buildings": {
+        "nursery": 0,
+        "hatchery": 0,
+        "queens_chamber": 0
+      },
+      "progress": 0
+    },
+    "research": {
+      "projects": {
+        "voidCrystalSynthesis": {
+          "status": "running"
+        },
+        "antimatterContainment": {
+          "status": "idle"
+        },
+        "darkMatterDetection": {
+          "status": "idle"
+        },
+        "dormantForaging": {
+          "status": "idle"
+        }
+      }
+    },
+    "conversions": {
+      "particleLab": 1,
+      "remainder": {
+        "voidCrystalSynthesis": 0,
+        "antimatterContainment": 0,
+        "darkMatterDetection": 0
+      }
+    },
+    "entropy": 37.5,
+    "entropyDampener": {
+      "level": 0
+    },
+    "prestigeTree": {
+      "purchased": [
+        "egg_laying_bonus",
+        "temporal_resonance"
+      ]
+    },
+    "mutations": [
+      {
+        "id": "efficient_gatherers",
+        "purchased": false
+      },
+      {
+        "id": "swift_soldiers",
+        "purchased": false
+      },
+      {
+        "id": "accelerated_hatching",
+        "purchased": false
+      },
+      {
+        "id": "tough_shells",
+        "purchased": false
+      },
+      {
+        "id": "potent_venom",
+        "purchased": false
+      },
+      {
+        "id": "reinforced_mandibles",
+        "purchased": false
+      }
+    ],
+    "resourceRemainder": {
+      "food": 0.4,
+      "wood": 0,
+      "stone": 0,
+      "nectar": 0
+    },
+    "rng": 2654435769,
+    "nextEnemy": "red_ant",
+    "automation": {
+      "performed": {
+        "lay": 6400,
+        "train": 60,
+        "scout": 12,
+        "warrior": 4
+      },
+      "targets": {
+        "lay": {
+          "target": 10,
+          "on": true
+        },
+        "train": {
+          "target": 25,
+          "on": true
+        },
+        "scout": {
+          "target": 10,
+          "on": false
+        },
+        "warrior": {
+          "target": 10,
+          "on": false
+        }
+      },
+      "layProgress": 0.35
+    }
+  },
+  "chronicle": {
+    "entries": [
+      {
+        "message": "THE FIRST SHIP LEAVES THE NEST.",
+        "timestamp": 1763720000000,
+        "target": "spaceship_panel"
+      }
+    ],
+    "milestones": [
+      "first_egg",
+      "first_worker",
+      "phase_colony",
+      "phase_combat",
+      "phase_expansion",
+      "phase_space"
+    ]
+  }
+}

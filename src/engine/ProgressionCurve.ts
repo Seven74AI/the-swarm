@@ -10,6 +10,7 @@
  */
 
 import { PHASE_ORDER, type Phase } from '../phases/phases';
+import type { GameState } from '../state/GameState';
 import { progressionBalance } from '../data/balance/progression';
 
 /**
@@ -24,12 +25,15 @@ export function getPhaseNumber(phase: string): number {
 /**
  * Compute the production multiplier for the current progression state.
  *
- * Formula:
- *   base = 1.12 ^ phaseNumber          (×1.12 per phase reached)
- *   result = base * (1 + 0.15 * legacyPoints)   (+15% per Legacy Point)
+ * Formula (numbers in `progressionBalance`):
+ *   base = productionPerPhase ^ phaseNumber
+ *   result = base * (1 + productionPerLegacyPoint * legacyPoints)
+ *
+ * The game passes the Legacy Points ever earned (`productionMultiplierFor`),
+ * never the points held (Story 5.2).
  *
  * @param phase         Current phase name (e.g., 'combat')
- * @param legacyPoints  Accumulated Legacy Points from prestige
+ * @param legacyPoints  Legacy Points the bonus counts
  * @param overridePhaseNumber  Optional override for testing (e.g., virtual phase 7)
  */
 export function productionMultiplier(
@@ -40,6 +44,15 @@ export function productionMultiplier(
   const phaseNumber = overridePhaseNumber ?? getPhaseNumber(phase);
   const base = Math.pow(progressionBalance.productionPerPhase, phaseNumber);
   return base * (1 + progressionBalance.productionPerLegacyPoint * legacyPoints);
+}
+
+/**
+ * The production multiplier a state runs at (Story 5.2, FR29): its phase and
+ * every Legacy Point ever earned (`prestige.lifetimeLpEarned`). Spending LP on
+ * a Legacy upgrade never changes it.
+ */
+export function productionMultiplierFor(state: GameState): number {
+  return productionMultiplier(state.phase, state.prestige.lifetimeLpEarned);
 }
 
 /**

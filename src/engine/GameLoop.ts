@@ -1,6 +1,6 @@
 import type { Ticker } from './Ticker';
 import type { GameState } from '../state/GameState';
-import { productionMultiplier, workerEfficiency } from './ProgressionCurve';
+import { productionMultiplierFor, workerEfficiency } from './ProgressionCurve';
 import { createTickContext, type TickContext } from './TickContext';
 import type { EventQueue } from './events';
 import { log } from '../utils/log';
@@ -114,11 +114,11 @@ export class GameLoop {
 
   /**
    * Get the current production multiplier for the given game state.
-   * Combines phase progression (×1.12 per phase) and legacy point bonuses (+50% per LP).
-   * Used by ResourceSystem.tick() to scale resource production each tick.
+   * Combines phase progression and every Legacy Point ever earned (Story 5.2);
+   * the same multiplier ResourceSystem scales production by.
    */
   getProductionMultiplier(state: GameState): number {
-    return productionMultiplier(state.phase, state.prestige.legacyPoints);
+    return productionMultiplierFor(state);
   }
 
   /**

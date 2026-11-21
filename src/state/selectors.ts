@@ -32,10 +32,9 @@ import {
 import { canBuild, isBuildingOpen, isBuildingUnlocked, type BuildingType } from '../systems/BuildingSystem';
 import { canStartProject, getAssignedResearchers, getProjectStatus } from '../systems/ResearchSystem';
 import {
-  calculateLegacyPoints,
   canPurchasePrestigeUpgrade,
-  getPhaseScore,
   isLegacyRevealed,
+  legacyPointsAward,
   isPrestigeAvailable,
   isRequirementMet,
   PRESTIGE_REQUIREMENTS,
@@ -52,6 +51,8 @@ import {
 } from '../systems/AutomationTargets';
 import type { AutomationBlock, AutomationVerb } from '../data/content/automation';
 import type { PrestigeUpgradeId } from '../data/prestigeTree';
+import { progressionBalance } from '../data/balance/progression';
+import { PERCENT } from '../data/constants';
 import type { ResearchProjectId, ResearchProjectStatus } from './GameState';
 import { conditionMet, goalFor, goalPercent, type GoalCondition, type Transition } from '../phases/transitions';
 
@@ -506,10 +507,16 @@ export function selectPrestigeRequirementMet(id: PrestigeRequirementId): Readonl
 }
 
 /** Legacy points the next prestige awards: the same scoring `prestige()` uses (#188). */
-export const selectProjectedLegacyPoints = computed(() => {
-  const s = gameState.value;
-  return calculateLegacyPoints(s.prestige.totalFoodProduced, getPhaseScore(s.phase));
-});
+export const selectProjectedLegacyPoints = computed(() => legacyPointsAward(gameState.value));
+
+/**
+ * The Legacy production bonus in whole percent (Story 5.2, FR29): every LP
+ * ever earned, spent or not, times the per-LP share. Buying a Legacy upgrade
+ * never lowers it.
+ */
+export const selectLegacyProductionBonusPercent = computed(() =>
+  Math.round(gameState.value.prestige.lifetimeLpEarned * progressionBalance.productionPerLegacyPoint * PERCENT),
+);
 
 /** Offline efficiency as a fraction (Story 2.8): base + run research + Legacy node, at most 1. */
 export const selectOfflineEfficiency = computed(() => getOfflineEfficiency(gameState.value));

@@ -1,4 +1,5 @@
 import type { GameState } from '../state/GameState';
+import { prestigeBalance } from '../data/balance/prestige';
 
 /**
  * Entropy System (GM-10)
@@ -188,11 +189,12 @@ export function resetEntropy(state: GameState): GameState {
 
 /**
  * Calculate bonus Legacy Points from entropy on prestige.
- * Formula: entropy × 2 (only when entropy reaches 100%).
+ * Formula: `floor(entropy × prestigeBalance.lp.entropyLpPerPoint)`, only
+ * once entropy reaches `ENTROPY_MAX`.
  *
- * @returns Bonus legacy points (0 if entropy < 100).
+ * @returns Bonus legacy points (0 below full entropy).
  */
 export function calculateEntropyPrestigeBonus(state: GameState): number {
-  if (state.entropy < 100) return 0;
-  return Math.floor(state.entropy * 2);
+  if (state.entropy < ENTROPY_MAX) return 0;
+  return Math.floor(state.entropy * prestigeBalance.lp.entropyLpPerPoint);
 }
