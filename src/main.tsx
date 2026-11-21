@@ -27,6 +27,7 @@ import {
 import { tickAutoProduction } from './engine/AutoProductionLoop';
 import { processTick } from './engine/processTick';
 import { catchUp, type CatchUpDeps } from './engine/catchUp';
+import { createResumePath, resume, type OfflineLoadInfo } from './engine/resume';
 import { getPrestigeBonuses } from './systems/PrestigeBonusSystem';
 import { render } from 'preact';
 import { computed, effect, signal } from '@preact/signals-core';
@@ -38,7 +39,6 @@ import { createTabShell } from './ui/shell/tabShell';
 import { selectAffordableKeys, selectCanChoose, selectCapacityReached, selectGoalMet, selectStarving, selectLifetime, selectOpenDecision, selectPaused, selectPhase } from './state/selectors';
 import { AudioSystem } from './ui/AudioSystem';
 import { SaveManager } from './persistence/SaveManager';
-import type { OfflineLoadInfo } from './persistence/SaveManager';
 import { openOfflineSummary } from './ui/sheets/OfflineSummarySheet';
 import { bindDecisionSheets, type DecisionSheets } from './ui/sheets/DecisionSheet';
 import { createToasts, type Toasts } from './ui/primitives/Toast';
@@ -84,7 +84,7 @@ import { bindHapticFeedback, bindSoundSetting } from './platform/feedback';
  * - Autosave every 30 seconds
  * - PhaseContent manages which panels are active
  * - Fixed 50ms timestep with rAF-based delta accumulator
- * - Offline progress: accelerated catch-up on load (capped at 8 hours)
+ * - Every return (cold load, tab return, long frame) goes through one resume path (engine/resume.ts)
  */
 /** The build in diagnostics: the commit Vite was given (`__BUILD_ID__`), or `dev`. */
 const BUILD_ID: string = typeof __BUILD_ID__ === 'string' ? __BUILD_ID__ : 'dev';
@@ -133,6 +133,8 @@ export function bootstrap(): {
   const catchUpDeps: CatchUpDeps = { resourceSystem, soldierSystem, mapSystem, territorySystem, latch: (s) => fsm.latch(s) };
   // The debug overlay's numbers (Story 1.34): how long resume took, and every tick's step.
   let catchUpMs: number | null = null;
+  // Set after 3 failed ticks (Story 1.17): the only state ever saved from then on.
+  let haltedSnapshot: GameState | null = null;
   const tickTimings = createTickTimings();
 
   // Read the save and what was found (Story 2.2). An unreadable save is never reset:
@@ -149,42 +151,55 @@ export function bootstrap(): {
     gameState.value = { ...gameState.value, seed: randomSeed(Math.random) };
   }
   if (saved) {
-    gameState.value = saved.gameState;
-    log.info('offline', `Save loaded. offline: ${saved.offline ? `ticks=${saved.offline.offlineTicks}` : 'null'}`);
-
-    // GM-8 Offline progression: compute catch-up from save timestamp + efficiency
-    if (saved.offline && saved.offline.offlineTicks > 0) {
-      const offlineData: OfflineLoadInfo = saved.offline;
-      log.info('offline', `Ticks to simulate: ${offlineData.offlineTicks} Elapsed: ${offlineData.elapsedMs} Efficiency: ${offlineData.efficiency}`);
-
-      // Capture before-state for resource delta calculation
-      const beforeState = gameState.value;
-
-      // Closed-form resources, then ticks for the non-linear parts (engine/catchUp.ts).
-      // Catch-up never commits a phase, but the goal may latch (D2). Its duration
-      // is shown in the debug overlay (Story 1.34).
-      const catchUpStart = performance.now();
-      const catchUpState = catchUp(beforeState, offlineData.effectiveMs, offlineData.offlineTicks, catchUpDeps);
-      catchUpMs = Math.round(performance.now() - catchUpStart);
-      log.info('offline', `caught up in ${catchUpMs} ms`);
-
-      gameState.value = catchUpState;
-
-      // Show summary popup for absences >= 30 seconds
-      if (offlineData.elapsedMs >= 30_000) {
-        offlineSummary = offlineData;
-
-        // Emit event for resource delta tracking
-        bus.emit('offline_progress', {
-          elapsedMs: offlineData.elapsedMs,
-          offlineTicks: offlineData.offlineTicks,
-          efficiency: offlineData.efficiency,
-          resourcesBefore: beforeState.resources,
-          resourcesAfter: catchUpState.resources,
-        });
-      }
-    }
+    // Pause is in-session only (ADR 0002): the game always reopens running.
+    gameState.value = { ...saved.gameState, paused: false };
+    log.info('offline', `Save loaded. lastSeenAt: ${saved.lastSeenAt ?? 'null'}`);
   }
+
+  // ── The one way back (Story 2.3, D1, ADR 0002) ──
+  // Cold load, tab return, bfcache pageshow, focus after sleep and long frames all
+  // call resume(elapsedMs) through this path. Under 60 s: full efficiency, no sheet.
+  // 60 s or more: the offline path and its summary.
+  let uiReady = false;
+  const resumePath = createResumePath({
+    now: () => Date.now(),
+    read: () => gameState.value,
+    write: (next) => {
+      gameState.value = next;
+    },
+    // Timed for the debug overlay (Story 1.34).
+    resume: (state, elapsedMs) => {
+      const start = performance.now();
+      const result = resume(state, elapsedMs, catchUpDeps);
+      catchUpMs = Math.round(performance.now() - start);
+      return result;
+    },
+    // Forced; once the simulation has halted, only the last good snapshot is ever saved.
+    save: () => {
+      const state = haltedSnapshot ?? gameState.value;
+      saveManager.save(state, state.stats.playTimeMs, true);
+    },
+    ticker: loop,
+    halted: () => loop.isHalted(),
+    onResumed: (result, before) => {
+      const info = result.offline;
+      if (!info) return;
+      log.info('offline', `Ticks to simulate: ${info.offlineTicks} Elapsed: ${info.elapsedMs} Efficiency: ${info.efficiency}`);
+      log.info('offline', `caught up in ${catchUpMs} ms`);
+      bus.emit('offline_progress', {
+        elapsedMs: info.elapsedMs,
+        offlineTicks: info.offlineTicks,
+        efficiency: info.efficiency,
+        resourcesBefore: before.resources,
+        resourcesAfter: result.state.resources,
+      });
+      // The summary opens once the UI is mounted (below), ahead of any decision sheet.
+      if (uiReady) openOfflineSummary(sheets, info);
+      else offlineSummary = info;
+    },
+  });
+  // Every save says when its state was last simulated to: the hide moment while hidden.
+  saveManager.setSeenAtSource(() => resumePath.seenAt());
 
   // A new session for decision events (Story 1.28, D8): an open event comes back with
   // its time left; the spawn time is drawn again on the session clock, so no event
@@ -388,7 +403,6 @@ export function bootstrap(): {
   // tick's one state write (which triggers all UI effects), and only then
   // flushes the tick's events. A tick that throws writes nothing and raises
   // nothing; 3 in a row stop the simulation and call onTickHalt (below).
-  let haltedSnapshot: GameState | null = null;
   const tick = loop.bindTick({
     read: () => gameState.value,
     // Timed for the debug overlay's tick p50/p95 (Story 1.34).
@@ -705,6 +719,12 @@ export function bootstrap(): {
   // The offline summary opens once the UI is mounted. Its priority puts it ahead
   // of any decision sheet the first ticks request (Story 1.14).
   if (offlineSummary) openOfflineSummary(sheets, offlineSummary);
+  uiReady = true;
+
+  // A cold load resumes once, from the save's lastSeenAt, AFTER the UI and its listeners
+  // are bound: a goal the catch-up latches is then seen and announced like any other
+  // (Story 1.32). An unreadable save waits behind its sheet with a fresh state: nothing to resume.
+  if (opened.status !== 'unreadable') resumePath.coldStart(saved?.lastSeenAt ?? null);
 
   // Start autosave
   saveManager.startAutosave(() => ({
@@ -712,7 +732,13 @@ export function bootstrap(): {
     playTimeMs: gameState.value.stats.playTimeMs,
   }));
 
-  // Save on beforeunload (forced — always saves regardless of rate limit)
+  // Hidden and back (Story 2.3, D1): hiding saves with lastSeenAt and stops the ticker;
+  // every return signal goes to the one resume path, which applies the gap once.
+  platform.lifecycle.bind({ hidden: () => resumePath.hide(), returned: () => resumePath.show() });
+  // A visible frame gap over 1 s (a stall, a throttled tab) is resumed, not dropped.
+  ticker.onGap((gapMs) => resumePath.frameGap(gapMs));
+
+  // beforeunload is a fallback save only (D1): pagehide/visibilitychange save first.
   if (typeof window !== 'undefined') {
     window.addEventListener('beforeunload', () => {
       // Once the simulation has halted, only the last good snapshot is ever saved.
@@ -734,12 +760,6 @@ export function bootstrap(): {
   bus.subscribe('prestige_upgrade_purchased', actionSave);
   bus.subscribe('expedition_return', actionSave);
   bus.subscribe('exploration_return', actionSave);
-
-  // Force unpause on load — game always starts running
-  const unpausedState = gameState.value;
-  if (unpausedState.paused) {
-    gameState.value = { ...unpausedState, paused: false };
-  }
 
   // A save that couldn't be read (Story 2.2): the game waits behind the sheet, writing
   // nothing, until the player chooses. LOAD BACKUP makes the backup the save and boots

@@ -207,105 +207,45 @@ describe('SaveManager', () => {
     });
   });
 
-  describe('offline progression', () => {
-    it('load returns offline data when save has a past timestamp', () => {
+  // Story 2.3 (D1): the save says when the game was last seen running; the gap is
+  // worked out by the one resume path (engine/resume.ts), not by the loader.
+  describe('lastSeenAt (Story 2.3)', () => {
+    it('writes lastSeenAt from its source and reads it back', () => {
+      saveManager.setSeenAtSource(() => 123_456);
+      saveManager.save(createInitialState(), 0, true);
+      expect(JSON.parse(localStorage.getItem('the_swarm_save')!).lastSeenAt).toBe(123_456);
+      expect(new SaveManager(createLocalSaveStore(localStorage)).load()!.lastSeenAt).toBe(123_456);
+    });
+
+    it('a save written while hidden keeps the hidden moment, not the write time', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
-
-      const state = createInitialState();
-      state.offlineEfficiency = 0.5;
-      saveManager.save(state, 0);
-
-      // Simulate player being away for 1 hour
-      vi.setSystemTime(new Date('2026-05-20T13:00:00Z'));
-
-      const loaded = saveManager.load();
-      expect(loaded).not.toBeNull();
-      expect(loaded!.offline).toBeDefined();
-      expect(loaded!.offline!.elapsedMs).toBe(3_600_000); // 1h
-      expect(loaded!.offline!.effectiveMs).toBe(3_600_000); // under cap
-      expect(loaded!.offline!.offlineTicks).toBe(36000); // 72000 * 0.5
-
+      const hiddenAt = Date.now();
+      saveManager.setSeenAtSource(() => hiddenAt);
+      vi.setSystemTime(new Date('2026-05-20T13:00:00Z')); // an autosave an hour later
+      saveManager.save(createInitialState(), 0, true);
+      expect(saveManager.load()!.lastSeenAt).toBe(hiddenAt);
       vi.useRealTimers();
     });
 
-    it('offline data is null when save is recent (< 1s)', () => {
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
-
-      const state = createInitialState();
-      saveManager.save(state, 0);
-
-      // Only 500ms later — not enough for offline catch-up
-      vi.setSystemTime(new Date('2026-05-20T12:00:00.500Z'));
-
-      const loaded = saveManager.load();
-      expect(loaded).not.toBeNull();
-      expect(loaded!.offline).toBeNull();
-
-      vi.useRealTimers();
+    it('without a source, lastSeenAt is the time of writing', () => {
+      const before = Date.now();
+      saveManager.save(createInitialState(), 0, true);
+      const seen = saveManager.load()!.lastSeenAt!;
+      expect(seen).toBeGreaterThanOrEqual(before);
+      expect(seen).toBeLessThanOrEqual(Date.now());
     });
 
-    it('offline data caps at 4 hours with 50% efficiency', async () => {
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
-
-      const state = createInitialState();
-      state.offlineEfficiency = 0.5;
-      saveManager.save(state, 0);
-
-      // Simulate 24 hours away
-      vi.setSystemTime(new Date('2026-05-21T12:00:00Z'));
-
-      const loaded = saveManager.load();
-      expect(loaded).not.toBeNull();
-      expect(loaded!.offline!.elapsedMs).toBe(24 * 3_600_000);
-      expect(loaded!.offline!.effectiveMs).toBe(4 * 3_600_000);
-      expect(loaded!.offline!.offlineTicks).toBe(144000);
-
-      vi.useRealTimers();
+    it('a current save with a malformed lastSeenAt falls back to its timestamp', () => {
+      localStorage.setItem(
+        'the_swarm_save',
+        JSON.stringify({ version: SaveManager.SAVE_VERSION, timestamp: 5_000, playTimeMs: 0, gameState: createInitialState(), lastSeenAt: 'x' }),
+      );
+      expect(saveManager.load()!.lastSeenAt).toBe(5_000);
     });
 
-    it('offline data respects efficiency from game state', () => {
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
-
-      const state = createInitialState();
-      state.offlineEfficiency = 0.75;
-      saveManager.save(state, 0);
-
-      vi.setSystemTime(new Date('2026-05-20T13:00:00Z')); // 1h later
-
-      const loaded = saveManager.load();
-      expect(loaded).not.toBeNull();
-      // 3600000ms / 50ms = 72000 ticks * 0.75 = 54000
-      expect(loaded!.offline!.offlineTicks).toBe(54000);
-
-      vi.useRealTimers();
-    });
-
-    it('offline data has efficiency from loaded state', () => {
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
-
-      const state = createInitialState();
-      state.offlineEfficiency = 1.0;
-      saveManager.save(state, 0);
-
-      vi.setSystemTime(new Date('2026-05-20T13:00:00Z'));
-
-      const loaded = saveManager.load();
-      expect(loaded).not.toBeNull();
-      // Full efficiency — all 72000 ticks
-      expect(loaded!.offline!.offlineTicks).toBe(72000);
-
-      vi.useRealTimers();
-    });
-
-    it('offline data is null when no save exists (fresh game)', () => {
-      // No save at all
-      const loaded = saveManager.load();
-      expect(loaded).toBeNull();
+    it('no save means no lastSeenAt (fresh game)', () => {
+      expect(saveManager.load()).toBeNull();
     });
   });
 

@@ -258,7 +258,7 @@ test.describe('Offline Progression — Pipeline Catch-Up', () => {
 
 test.describe('Offline Progression — Popup Lifecycle', () => {
 
-  test('popup appears for absence >= 30s with correct text', async ({ page }) => {
+  test('popup appears for absence >= 60s with correct text (Story 2.3)', async ({ page }) => {
     await setupOfflineTest(page, Date.now() - 90_000);
 
     const popup = page.locator('.offline-summary-popup');
@@ -271,10 +271,10 @@ test.describe('Offline Progression — Popup Lifecycle', () => {
     expect(popupText).toContain('CATCH-UP EFFICIENCY');
   });
 
-  test('popup does NOT appear for absence < 30s', async ({ page }) => {
-    await setupOfflineTest(page, Date.now() - 25_000, {}, 3000);
+  test('popup does NOT appear for absence < 60s (Story 2.3: full efficiency, no summary)', async ({ page }) => {
+    await setupOfflineTest(page, Date.now() - 45_000, {}, 3000);
 
-    // Popup threshold is 30s — 25s should NOT trigger it
+    // Under 60 s the gap is simulated at full efficiency with no summary sheet
     await expect(page.locator('.offline-summary-popup')).toHaveCount(0);
   });
 

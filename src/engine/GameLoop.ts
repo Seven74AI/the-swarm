@@ -58,6 +58,11 @@ export class GameLoop {
     this.ticker.resume();
   }
 
+  /** True while the ticker runs (not stopped, paused, halted or not yet started). */
+  isRunning(): boolean {
+    return this.ticker.isRunning();
+  }
+
   /** True once MAX_FAILED_TICKS consecutive ticks have failed; start/resume do nothing then. */
   isHalted(): boolean {
     return this.halted;

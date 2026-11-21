@@ -12,6 +12,7 @@ import { createSettingsStore, type SettingsStore } from './settings';
 import { createViewport, type Viewport, type ViewportEnv } from './viewport';
 import { createLocalSaveStore, type RemovableStore, type SaveStore } from './storage/SaveStore';
 import { createIntroFlag, type IntroFlag } from './storage/introFlag';
+import { createLifecycle, type Lifecycle, type LifecycleEnv } from './lifecycle';
 
 export interface Platform {
   readonly capabilities: Capabilities;
@@ -25,9 +26,11 @@ export interface Platform {
   readonly saves: SaveStore;
   /** The intro (onboarding) flag, outside the save (Story 2.2, D4). */
   readonly introFlag: IntroFlag;
+  /** Page hidden / returned signals for the one resume path (Story 2.3, D1). */
+  readonly lifecycle: Lifecycle;
 }
 
-export interface WebPlatformEnv extends CapabilityEnv, BrowserEnv {
+export interface WebPlatformEnv extends CapabilityEnv, BrowserEnv, Omit<LifecycleEnv, 'document'> {
   /** Read by the capability probes and kept by the viewport for its change events. */
   readonly matchMedia?: ViewportEnv['matchMedia'];
   readonly localStorage?: RemovableStore;
@@ -51,5 +54,6 @@ export function createWebPlatform(env: WebPlatformEnv = typeof window === 'undef
   const viewport = createViewport(env);
   const saves = createLocalSaveStore(storage);
   const introFlag = createIntroFlag(storage);
-  return Object.freeze({ capabilities, settings, haptics, browser, viewport, saves, introFlag });
+  const lifecycle = createLifecycle(env as LifecycleEnv);
+  return Object.freeze({ capabilities, settings, haptics, browser, viewport, saves, introFlag, lifecycle });
 }
