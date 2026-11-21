@@ -1,8 +1,10 @@
 import { Phase } from '../../phases/phases';
+import { NARRATIVE_BEATS } from './narrative';
 
 /**
  * The colony's lines (Story 1.33, UX-DR42; EXPERIENCE.md "Voice and Tone"):
- * every event line and narrative beat the chronicle writes, in one place.
+ * every event line the chronicle writes, in one place. The phase story beats
+ * (entry and near-goal, Story 4.9) are in `./narrative.ts`.
  *
  * The colony speaks in short, present-tense, upper-case terminal lines that
  * end with a full stop. No exclamation marks, no emoji, and no line names a
@@ -18,8 +20,8 @@ export interface ColonyLine {
 }
 
 const lines = {
-  // A new chronicle, and the first line after a prestige (EXPERIENCE.md Flow 7).
-  opening: { text: 'A QUEEN WAKES ALONE IN THE DARK.', from: Phase.EGG_LAYING },
+  // A new chronicle opens with the first phase's entry beat; a prestige with its own line (EXPERIENCE.md Flow 7).
+  opening: NARRATIVE_BEATS[Phase.EGG_LAYING].entry,
   prestige: { text: 'A QUEEN, AGAIN.', from: Phase.EGG_LAYING },
 
   // One-time beats.
@@ -30,12 +32,10 @@ const lines = {
   first_weapon: { text: 'SOLDIER MANDIBLES ARE HONED SHARP.', from: Phase.COMBAT },
   first_armor: { text: 'CHITIN PLATES COVER THE SOLDIERS.', from: Phase.COMBAT },
 
-  // Entering a phase: the log line, then the narrative beat.
-  phase_colony: { text: 'THE COLONY TAKES SHAPE. WORKERS WAIT FOR ORDERS.', from: Phase.COLONY },
-  phase_combat: { text: 'DANGER WAITS BEYOND THE NEST. SOLDIERS ARE NEEDED.', from: Phase.COMBAT },
+  // Entering a later phase: the log line, then the narrative beat. The MVP phases write their
+  // entry beat instead (`./narrative.ts`, Story 4.9).
   phase_expansion: { text: 'THE WORLD BEYOND THE NEST OPENS.', from: Phase.EXPANSION },
   phase_space: { text: 'THE SWARM LOOKS TO THE STARS.', from: Phase.SPACE },
-  enter_combat: { text: 'THE FIRST THREAT REACHES THE NEST. GUARDS TAKE THEIR POSTS.', from: Phase.COMBAT },
   enter_expansion: { text: 'THE NEST HOLDS. THE SWARM PUSHES OUTWARD.', from: Phase.EXPANSION },
   enter_space: { text: 'ROCKETS CLIMB. THE SWARM LEAVES THE GROUND.', from: Phase.SPACE },
   enter_transcendence: { text: 'SPACE, TIME AND MATTER DISSOLVE. THE SWARM TRANSCENDS.', from: Phase.TRANSCENDENCE },

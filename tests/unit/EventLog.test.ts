@@ -4,6 +4,7 @@ import { EventBus } from '../../src/engine/EventBus';
 import { Phase } from '../../src/phases/phases';
 import { getDecision } from '../../src/data/content/decisions';
 import { COLONY_LINES } from '../../src/data/content/colonyLines';
+import { NARRATIVE_BEATS } from '../../src/data/content/narrative';
 
 describe('EventLog', () => {
   let bus: EventBus;
@@ -204,7 +205,7 @@ describe('EventLog', () => {
       bus.emit('phase_committed', { from: Phase.EGG_LAYING, to: Phase.COLONY });
       bus.emit('phase_committed', { from: Phase.EGG_LAYING, to: Phase.COLONY }); // second should be ignored
       const entries = getEntries();
-      const colonyEntries = entries.filter((e) => e.endsWith(COLONY_LINES.phase_colony.text));
+      const colonyEntries = entries.filter((e) => e.endsWith(NARRATIVE_BEATS[Phase.COLONY].entry.text));
       expect(colonyEntries.length).toBe(1);
     });
   });

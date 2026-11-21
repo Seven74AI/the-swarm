@@ -25,7 +25,7 @@ import { gameViews } from './ui/gameViews';
 import { EventLog } from './ui/log/EventLog';
 import { createPanelReveal, type PanelReveal } from './ui/shell/panelReveal';
 import { createTabShell } from './ui/shell/tabShell';
-import { selectAffordableKeys, selectCanChoose, selectCapacityReached, selectGoalMet, selectStarving, selectLifetime, selectOpenDecision, selectPhase } from './state/selectors';
+import { selectAffordableKeys, selectCanChoose, selectCapacityReached, selectGoalMet, selectStarving, selectLifetime, selectOpenDecision, selectPhase, selectNearGoalPhase } from './state/selectors';
 import { AudioSystem } from './ui/AudioSystem';
 import { SaveManager } from './persistence/SaveManager';
 import { openOfflineSummary, type OfflineSummary } from './ui/sheets/OfflineSummarySheet';
@@ -494,8 +494,9 @@ export function bootstrap(): {
   }
 
   // The colony's event lines, written into the chronicle from game events (Story 1.26). It draws
-  // nothing: NEST and LOG are views of the chronicle (Story 1.36).
-  new EventLog(bus, { chronicle });
+  // nothing: NEST and LOG are views of the chronicle (Story 1.36). It also writes each phase's
+  // near-goal story beat, once per run (Story 4.9).
+  new EventLog(bus, { chronicle, nearGoal: selectNearGoalPhase });
 
   // Pause (the top bar's button, the P shortcut and PAUSE in settings; Story 2.10): in-session
   // only, owned by the resume path, which stops the ticker and ends the pause when the page hides.

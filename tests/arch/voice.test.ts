@@ -13,6 +13,7 @@ import { PHASE_ORDER, Phase } from '../../src/phases/phases';
 import { TRANSITIONS } from '../../src/phases/transitions';
 import { COLONY_LINES } from '../../src/data/content/colonyLines';
 import { PHASE_TITLES, REVEAL_LINES } from '../../src/data/content/phaseReveal';
+import { MVP_PHASES, NARRATIVE_BEATS } from '../../src/data/content/narrative';
 import { DECISIONS, timeoutLine } from '../../src/data/content/decisions';
 import { SEGMENTS, TABS } from '../../src/data/content/tabs';
 import { ROLES } from '../../src/data/content/roles';
@@ -135,6 +136,16 @@ describe('colony lines: short, upper case, present tense', () => {
     expect(bad).toEqual([]);
   });
 
+  it('every narrative beat keeps the colony voice (Story 4.9)', () => {
+    const bad = MVP_PHASES.flatMap((p) =>
+      (['entry', 'nearGoal'] as const).flatMap((k) => {
+        const problem = colonyVoiceProblem(NARRATIVE_BEATS[p][k].text);
+        return problem ? [`${p}.${k}: "${NARRATIVE_BEATS[p][k].text}" ${problem}`] : [];
+      }),
+    );
+    expect(bad).toEqual([]);
+  });
+
   it('the voice check catches what it should', () => {
     expect(colonyVoiceProblem('THE FIRST WORKER STIRS.')).toBeNull();
     expect(colonyVoiceProblem('The first worker stirs.')).not.toBeNull();
@@ -164,6 +175,9 @@ describe('no copy names a phase the player has not entered', () => {
   const scoped: [string, string, Phase][] = [
     ...Object.entries(COLONY_LINES).map(([id, l]): [string, string, Phase] => [`COLONY_LINES.${id}`, l.text, l.from]),
     ...PHASE_ORDER.map((p): [string, string, Phase] => [`REVEAL_LINES.${p}`, REVEAL_LINES[p], p]),
+    ...MVP_PHASES.flatMap((p) =>
+      (['entry', 'nearGoal'] as const).map((k): [string, string, Phase] => [`NARRATIVE_BEATS.${p}.${k}`, NARRATIVE_BEATS[p][k].text, NARRATIVE_BEATS[p][k].from]),
+    ),
     ...PHASE_ORDER.map((p): [string, string, Phase] => [`PHASE_TITLES.${p}`, PHASE_TITLES[p], p]),
     ...DECISIONS.flatMap((d) => {
       const from = PHASE_ORDER.find((p) => d.phases.includes(p))!;
