@@ -1,6 +1,6 @@
 import type { ActionDeps } from './context';
 import { commit, current, refuse, type ActionResult } from './result';
-import { build, canBuild, type BuildingType } from '../systems/BuildingSystem';
+import { build, canBuild, isBuildingOpen, type BuildingType } from '../systems/BuildingSystem';
 import {
   AUTOMATION_BUILDINGS,
   RESEARCHES,
@@ -12,9 +12,10 @@ import {
   type ResearchType,
 } from '../systems/AutomationSystem';
 
-/** Build or level up a colony building. */
+/** Build or level up a colony building; `locked` before its phase or while its price names a resource nothing makes yet (Story 3.5). */
 export function buyBuilding(deps: ActionDeps, type: BuildingType): ActionResult {
   const s = current(deps);
+  if (!isBuildingOpen(type, s)) return refuse('locked');
   if (!canBuild(type, s)) return refuse('cannot_afford');
   const r = commit(deps, s, build(type, s));
   if (r.ok) deps.bus.emit('building_complete', { building: type, level: current(deps).buildings[type].level });

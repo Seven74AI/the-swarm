@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { Phase } from '../../../src/phases/phases';
 import { createInitialState, type GameState } from '../../../src/state/GameState';
 import { affordableKeys } from '../../../src/state/affordances';
 import { gameState } from '../../../src/state/gameSignal';
@@ -12,6 +13,8 @@ function rich(): GameState {
   const lots = 10 ** 9;
   return {
     ...s,
+    // Colony: the first phase with buildings (Story 3.5).
+    phase: Phase.COLONY,
     resources: { ...s.resources, food: lots, wood: lots, stone: lots, nectar: lots },
     combatResources: { ...s.combatResources, chitin: lots, silk: lots, venom: lots },
   };

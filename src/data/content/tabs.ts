@@ -71,13 +71,14 @@ const placements = {
   food_display: { tab: 'wrkr', unlockPhase: Phase.COLONY },
   automation_panel: { tab: 'wrkr', unlockPhase: Phase.TRANSCENDENCE },
   // BUILD (Story 1.24), top to bottom: the header (`BUILD` or `NEXT: <item> IN ~<time>`), the
-  // Click Power card (from Phase 2, UX-DR18), buildings (none in Colony until Stories 3.4/3.5),
+  // Click Power card (from Phase 2, UX-DR18), the buildings (from Colony, Story 3.5: which ones
+  // per phase is `data/content/buildings.ts`),
   // the research chain, then the converter it unlocks. `> BUY` on the highlighted card is pinned.
   build_header: { tab: 'build', unlockPhase: Phase.COLONY },
   build_click_power: { tab: 'build', unlockPhase: Phase.COLONY },
   // The run's offline research (Story 2.8, FR21): open from Phase 2, paid in food.
   offline_research_panel: { tab: 'build', unlockPhase: Phase.COLONY },
-  building_panel: { tab: 'build', unlockPhase: Phase.EXPANSION },
+  building_panel: { tab: 'build', unlockPhase: Phase.COLONY },
   research_panel: { tab: 'build', unlockPhase: Phase.SPACE },
   resource_converter_panel: { tab: 'build', unlockPhase: Phase.SPACE },
   build_primary: { tab: 'build', zone: 'primary', unlockPhase: Phase.COLONY },

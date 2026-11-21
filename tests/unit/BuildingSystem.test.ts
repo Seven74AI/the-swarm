@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { Phase } from '../../src/phases/phases';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 import { canBuild, build, getBuildCost, getEffects, type BuildingType } from '../../src/systems/BuildingSystem';
 import { buildingBalance as B } from '../../src/data/balance/buildings';
@@ -16,7 +17,8 @@ describe('BuildingSystem', () => {
   let state: GameState;
 
   beforeEach(() => {
-    state = createInitialState();
+    // Expansion: every building is on sale and every resource has a producer (Story 3.5).
+    state = { ...createInitialState(), phase: Phase.EXPANSION };
   });
 
   describe('getBuildCost', () => {

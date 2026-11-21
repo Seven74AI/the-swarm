@@ -45,8 +45,15 @@ test.describe('BUILD tab', () => {
   test('in Colony, nothing affordable: the header names what comes next and > BUY is empty', async ({ page }) => {
     // Food comes in from the gatherers, so the price must stay out of reach for the
     // whole test: a high Click Power level, not an empty larder, keeps it unaffordable.
-    // The offline research (Story 2.8) is already done, so Click Power is the only BUILD item left.
-    await seed(page, { ...colony(0), upgrades: { click_power: 40 }, research: { projects: { dormantForaging: { status: 'done' } } } });
+    // The offline research (Story 2.8) is already done, so Click Power is the only BUILD item left:
+    // Walls and Warehouse need stone (no diggers), and Barracks sits one level short of the
+    // Lv.5 surcharge, whose combat loot nothing makes in Colony (Story 3.5).
+    await seed(page, {
+      ...colony(0),
+      upgrades: { click_power: 40 },
+      buildings: { barracks: { level: 4 } },
+      research: { projects: { dormantForaging: { status: 'done' } } },
+    });
     await openTab(page, 'build');
     const build = page.locator('[data-tab-panel="build"]');
     await expect(build.locator('[data-build-header]')).toHaveText(/^NEXT: CLICK POWER IN ~/);
@@ -55,8 +62,29 @@ test.describe('BUILD tab', () => {
     await expect(card.locator('[data-shortfall]')).toContainText('needs');
     await expect(card.locator('[data-action="buy-click-power"]')).toHaveAttribute('aria-disabled', 'true');
     await expect(page.locator('[data-primary-for="build"] [data-action="buy-highlighted"]')).toHaveCount(0);
-    // No buildings in Colony yet (Stories 3.4/3.5).
-    await expect(page.locator('#building-panel')).toHaveCount(0);
+    // The colony's buildings are listed, none buyable (Story 3.5).
+    for (const id of ['barracks', 'walls', 'warehouse']) {
+      await expect(build.locator(`[data-building="${id}"] [data-action="buy-building"]`)).toHaveAttribute('aria-disabled', 'true');
+    }
+  });
+
+  test('in Colony BUILD lists Barracks, Walls and Warehouse, not the workshops, and BUY levels one up (Story 3.5)', async ({ page }) => {
+    await seed(page, {
+      ...colony(0),
+      resources: { ...colony(0).resources, stone: 1_000_000 },
+      upgrades: { click_power: 40 },
+      research: { projects: { dormantForaging: { status: 'done' } } },
+    });
+    await openTab(page, 'build');
+    const build = page.locator('[data-tab-panel="build"]');
+    for (const id of ['barracks', 'walls', 'warehouse']) await expect(build.locator(`[data-building="${id}"]`)).toBeVisible();
+    for (const id of ['silk_weaving', 'chitin_armory', 'venom_lab']) await expect(build.locator(`[data-building="${id}"]`)).toHaveCount(0);
+    const buy = build.locator('[data-building="walls"] [data-action="buy-building"]');
+    await expect(buy).not.toHaveAttribute('aria-disabled', 'true');
+    const before = await state(page);
+    await buy.click();
+    await expect.poll(async () => (await state(page)).walls).toBeGreaterThan(before.walls);
+    await expect.poll(() => visibleText(build.locator('[data-building="walls"] .card__level'))).toContain(`LV.${before.walls + 1} →`);
   });
 
   test('the highlighted card is the one > BUY buys', async ({ page }) => {

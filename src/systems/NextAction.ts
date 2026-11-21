@@ -4,7 +4,7 @@ import { CRITICAL_PATH, type ItemRef } from '../data/content/criticalPath';
 import { PANEL_PLACEMENT, isUnlocked, type PanelId } from '../data/content/tabs';
 import { nextActionBalance } from '../data/balance/nextAction';
 import { MS_PER_SEC, PERCENT } from '../data/constants';
-import { canBuild, getBuildCost, getEffects, type BuildingType } from './BuildingSystem';
+import { canBuild, getBuildCost, getEffects, isBuildingOpen, type BuildingType } from './BuildingSystem';
 import { computeResourceRates, getAssignedWorkers, getUpgradeCost, type WorkerRole } from './ResourceSystem';
 import { TerritorySystem } from './TerritorySystem';
 import { MUTATIONS, canPurchaseMutation } from './MutationSystem';
@@ -117,7 +117,7 @@ function defOf(ref: ItemRef): ItemDef {
       return {
         panel: 'building_panel',
         name: titled(ref.id),
-        open: () => true,
+        open: (s) => isBuildingOpen(ref.id, s),
         cost: (s) => nonZero({ ...getBuildCost(ref.id, s.buildings[ref.id].level + 1) }),
         affordable: (s) => canBuild(ref.id, s),
         verb: () => 'BUY',
