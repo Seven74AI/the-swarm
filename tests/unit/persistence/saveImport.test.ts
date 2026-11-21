@@ -27,7 +27,7 @@ const fixtures = fs
   .sort()
   .map((file) => ({ file, text: fs.readFileSync(path.join(SAVES_DIR, file), 'utf-8') }));
 
-const caps = { vibrate: true, standalone: false, reducedMotion: false, moreContrast: false, mobile: false };
+const caps = { vibrate: true, standalone: false, reducedMotion: false, moreContrast: false, mobile: false, audio: false };
 const PHASES = new Set<string>(Object.values(Phase));
 
 function manager() {

@@ -17,11 +17,14 @@ import { createDurability, type Durability, type StorageManagerLike } from './st
 import { createLifecycle, type Lifecycle, type LifecycleEnv } from './lifecycle';
 import { createServiceWorker, type ServiceWorkerControl, type ServiceWorkerEnv } from './serviceWorker';
 import { createWebNotifications, type Notifications } from './notifications';
+import { createWebAudio, type Audio, type WebAudioEnv } from './audio';
 
 export interface Platform {
   readonly capabilities: Capabilities;
   readonly settings: SettingsStore;
   readonly haptics: Haptics;
+  /** Synthesized sound effects, off by default, no context before the first gesture (Story 8.8, FR42). */
+  readonly audio: Audio;
   /** File download and page reload (Story 1.17). */
   readonly browser: Browser;
   /** Wide (desktop columns) or not (Story 1.29). */
@@ -75,6 +78,8 @@ export function createWebPlatform(env: WebPlatformEnv = typeof window === 'undef
   const storage = storageOf(env);
   const settings = createSettingsStore({ storage, capabilities });
   const haptics = createWebHaptics({ navigator: env.navigator, enabled: () => settings.settings.value.haptics });
+  // Gestures are listened for on the window; Web Audio comes from it too.
+  const audio = createWebAudio({ env: env as WebAudioEnv, enabled: () => settings.settings.value.sound });
   const browser = createWebBrowser(env);
   const viewport = createViewport(env);
   const saves = createLocalSaveStore(storage);
@@ -84,5 +89,5 @@ export function createWebPlatform(env: WebPlatformEnv = typeof window === 'undef
   const durability = createDurability({ storageManager: storageManagerOf(env), storage, capabilities });
   const serviceWorker = createServiceWorker(env as ServiceWorkerEnv);
   const notifications = createWebNotifications();
-  return Object.freeze({ capabilities, settings, haptics, browser, viewport, saves, introFlag, telemetry, lifecycle, durability, serviceWorker, notifications });
+  return Object.freeze({ capabilities, settings, haptics, audio, browser, viewport, saves, introFlag, telemetry, lifecycle, durability, serviceWorker, notifications });
 }

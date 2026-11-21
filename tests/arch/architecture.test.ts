@@ -264,6 +264,25 @@ function notificationsSeamReach(files: SourceFile[]): Violation[] {
   return out;
 }
 
+/**
+ * Story 8.8 (FR42, AR12): sound plays only through the platform `Audio`
+ * service. Only platform/ names Web Audio (`AudioContext` and its prefixed and
+ * offline forms), and nothing names media-element audio (`new Audio(`,
+ * `HTMLAudioElement`, an `<audio>` tag): media elements ignore the silent
+ * switch on some phones and would need audio files (NFR11).
+ */
+const WEB_AUDIO_PATTERN = /(?<![\w$])(?:webkitAudioContext|OfflineAudioContext|AudioContext)\b/g;
+const MEDIA_AUDIO_PATTERN = /(?<![\w$.])new\s+Audio\s*\(|(?<![\w$])HTMLAudioElement\b|<audio\b/g;
+
+function audioViolations(files: SourceFile[]): Violation[] {
+  return files.flatMap((f) => [
+    ...(layerOf(f.rel) === 'platform'
+      ? []
+      : findInCode(f.text, WEB_AUDIO_PATTERN).map((h) => `${f.rel}:${h.line} uses ${h.text}; play sound through the platform Audio service`)),
+    ...findInCode(f.text, MEDIA_AUDIO_PATTERN).map((h) => `${f.rel}:${h.line} uses media-element audio (${h.text}); sound is synthesized with Web Audio`),
+  ]);
+}
+
 const fake = (rel: string, text: string): SourceFile => ({ rel, text });
 
 describe('architecture boundaries (AR21)', () => {
@@ -300,6 +319,12 @@ describe('architecture boundaries (AR21)', () => {
     expect(files.some((f) => f.rel === NOTIFICATIONS_SEAM)).toBe(true);
     const main = files.find((f) => f.rel === 'main.tsx');
     expect(main && findInCode(main.text, NOTIFICATIONS_READ_PATTERN).length).toBeGreaterThan(0);
+  });
+
+  it('only platform/ names Web Audio, and nothing uses media-element audio (Story 8.8)', () => {
+    expect(audioViolations(files)).toEqual([]);
+    // The service exists, or the rule guards nothing.
+    expect(files.some((f) => f.rel === 'platform/audio/index.ts')).toBe(true);
   });
 
   it('only platform/ touches localStorage (Story 2.2)', () => {
@@ -457,6 +482,18 @@ describe('architecture boundaries (AR21)', () => {
         ),
       ]);
       expect([...new Set(v.map((x) => x.split(':')[0]))]).toEqual(['platform/a.ts', 'ui/b.ts', 'systems/c.ts', 'main.tsx', 'ui/d.ts']);
+    });
+
+    it('flags Web Audio outside platform/ and media-element audio anywhere', () => {
+      const v = audioViolations([
+        fake('ui/a.ts', 'const ctx = new AudioContext();'),
+        fake('main.tsx', 'const C = window.webkitAudioContext;'),
+        fake('platform/audio/index.ts', 'const c = env.AudioContext ?? env.webkitAudioContext;'),
+        fake('platform/b.ts', "const el = new Audio('x.mp3');"),
+        fake('ui/c.tsx', 'return <audio src={url} />;'),
+        fake('ui/d.ts', "// AudioContext lives in platform/\nconst s = 'AudioContext';\nimport type { Audio } from '../platform/audio';"),
+      ]);
+      expect([...new Set(v.map((x) => x.split(':')[0]))]).toEqual(['ui/a.ts', 'main.tsx', 'platform/b.ts', 'ui/c.tsx']);
     });
 
     it('flags the Notifications seam outside main and platform/, types included', () => {

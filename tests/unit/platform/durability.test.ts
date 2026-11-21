@@ -18,7 +18,7 @@ function memory(): RemovableStore & { data: Record<string, string> } {
   };
 }
 
-const PHONE: Capabilities = { vibrate: true, standalone: false, reducedMotion: false, moreContrast: false, mobile: true };
+const PHONE: Capabilities = { vibrate: true, standalone: false, reducedMotion: false, moreContrast: false, mobile: true, audio: false };
 
 function manager(grant: boolean, persisted = false): StorageManagerLike & { persist: ReturnType<typeof vi.fn> } {
   return { persist: vi.fn(async () => grant), persisted: vi.fn(async () => persisted) };
@@ -110,7 +110,7 @@ describe('createDurability: the add-to-home-screen hint (Story 2.12)', () => {
 
   it('is not wanted in the installed app or on a desktop browser', () => {
     const installed = { ...PHONE, standalone: true };
-    const desktop = { ...PHONE, mobile: false };
+    const desktop = { ...PHONE, mobile: false, audio: false };
     expect(createDurability({ storageManager: undefined, storage: memory(), capabilities: installed }).wantsHomeScreenHint()).toBe(false);
     expect(createDurability({ storageManager: undefined, storage: memory(), capabilities: desktop }).wantsHomeScreenHint()).toBe(false);
   });

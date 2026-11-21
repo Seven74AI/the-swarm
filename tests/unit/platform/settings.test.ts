@@ -15,6 +15,7 @@ const caps = (over: Partial<Capabilities> = {}): Capabilities => ({
   reducedMotion: false,
   moreContrast: false,
   mobile: false,
+  audio: false,
   ...over,
 });
 
