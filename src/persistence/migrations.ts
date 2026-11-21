@@ -409,6 +409,20 @@ function migrateV14toV15(data: SaveData): SaveData {
   return { ...data, version: 15, gameState: { ...gs, phaseGoal } as unknown as GameState };
 }
 
+/**
+ * v15 → v16 (Story 1.20, UX-DR27): `lifetime.revealsSeen`, the phases whose
+ * reveal has been seen. Older saves start empty: each reveal plays once
+ * unskippable, as it would have for a new player.
+ */
+function migrateV15toV16(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  const lifetime = gs.lifetime as { revealsSeen?: unknown } | undefined;
+  const seen = Array.isArray(lifetime?.revealsSeen)
+    ? (lifetime.revealsSeen as unknown[]).filter((p): p is string => typeof p === 'string')
+    : [];
+  return { ...data, version: 16, gameState: { ...gs, lifetime: { ...lifetime, revealsSeen: seen } } as unknown as GameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -425,6 +439,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   12: migrateV12toV13,
   13: migrateV13toV14,
   14: migrateV14toV15,
+  15: migrateV15toV16,
 };
 
 /**

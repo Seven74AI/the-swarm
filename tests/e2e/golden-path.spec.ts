@@ -45,7 +45,8 @@ const SEED = {
         scouts: 2,
         warriors: 1,
         destination: 'FOREST',
-        ticksRemaining: 200,
+        // Long enough to still be out after CONTINUE's phase reveal (Story 1.20, up to 3.5 s).
+        ticksRemaining: 2000,
         risk: 0.35,
       },
     ],

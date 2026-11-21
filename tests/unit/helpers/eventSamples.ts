@@ -45,8 +45,6 @@ export const EVENT_SAMPLES: { [K in keyof SwarmEvents]: SwarmEvents[K] } = {
   phase_committed: { from: Phase.EGG_LAYING, to: Phase.COLONY },
   narrative: { message: 'sample' },
   victory: {},
-  transition_start: { phase: Phase.COLONY, quote: 'sample', skippable: false },
-  transition_complete: { phase: Phase.COLONY },
   offline_progress: {
     elapsedMs: 60_000,
     offlineTicks: 1,

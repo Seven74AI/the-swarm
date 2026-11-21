@@ -55,8 +55,6 @@ export interface SwarmEvents {
   phase_committed: { from: Phase; to: Phase };
   narrative: { message: string };
   victory: NoPayload;
-  transition_start: { phase: Phase; quote: string; skippable?: boolean; onSkip?: () => void };
-  transition_complete: { phase: Phase };
   panel_revealed: { panelId: string };
 
   // ── Offline ──

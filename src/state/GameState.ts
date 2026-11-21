@@ -149,6 +149,14 @@ export interface GameState {
    * prestige clears it. Null while the goal is not met.
    */
   phaseGoal: PhaseGoal | null;
+  /**
+   * What survives every run (arch D4). `revealsSeen`: the phases whose reveal
+   * has played to the end once (Story 1.20); from then on it can be skipped.
+   * Prestige keeps it.
+   */
+  lifetime: {
+    revealsSeen: string[];
+  };
   /** Spaceship state (SPACE phase). */
   spaceship: {
     level: number;
@@ -380,6 +388,7 @@ export function createInitialState(): GameState {
     capacityAccumulator: 0,
     victoryAchieved: false,
     phaseGoal: null,
+    lifetime: { revealsSeen: [] },
     spaceship: {
       level: 0,
       fuel: 0,

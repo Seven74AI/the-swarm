@@ -1,21 +1,18 @@
 /**
  * PhaseContent theme/body-class tests — UX-10 Phase Theme Shifting.
  * Tests that onPhaseEnter sets the correct body class for each phase,
- * and that the phase transition integration works.
+ * (The phase reveal itself is tests/unit/ui/overlays/PhaseReveal.test.tsx, Story 1.20.)
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PhaseContent } from '../../src/ui/PhaseContent';
 import { Phase } from '../../src/phases/phases';
-import { EventBus } from '../../src/engine/EventBus';
 
 describe('PhaseContent — Phase Theme Shifting', () => {
   let phaseContent: PhaseContent;
-  let bus: EventBus;
   let uiRoot: { showPanel: ReturnType<typeof vi.fn>; createPanel: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     phaseContent = new PhaseContent();
-    bus = new EventBus();
     uiRoot = { showPanel: vi.fn(), createPanel: vi.fn() };
     // Add a minimal CSS to support body class assertion
     const style = document.createElement('style');
@@ -87,26 +84,6 @@ describe('PhaseContent — Phase Theme Shifting', () => {
       );
       expect(phaseClasses).toHaveLength(1);
       expect(phaseClasses[0]).toBe('phase-combat');
-    });
-  });
-
-  describe('triggerTransition sets body class', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
-
-    afterEach(() => {
-      vi.useRealTimers();
-    });
-
-    it('sets phase body class during transition (onPhaseEnter is called)', () => {
-      phaseContent.triggerTransition(Phase.COLONY, bus, uiRoot as unknown as import('../../src/ui/UIRoot').UIRoot);
-
-      // Advance past the 300ms reveal delay
-      vi.advanceTimersByTime(300);
-
-      // Body class should be set by onPhaseEnter
-      expect(document.body.classList.contains('phase-colony')).toBe(true);
     });
   });
 

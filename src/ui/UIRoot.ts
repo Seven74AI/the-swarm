@@ -45,11 +45,6 @@ export class UIRoot {
   private getState: () => GameState;
   private eventLog: EventLog;
   private panelElements: Map<string, HTMLElement> = new Map();
-  private transitionOverlay: HTMLElement | null = null;
-  /** Cleanup for transition skip handler (removed on endTransition). */
-  private transitionCleanup: (() => void) | null = null;
-  /** Promise resolve for waiting on transition end (set by startTransition, resolved by endTransition/skip). */
-  private transitionResolve: (() => void) | null = null;
   /** Decision popup (bottom-right, non-blocking) */
 
   /** Audio system for sound effects */
@@ -299,24 +294,8 @@ export class UIRoot {
 
     // Decision events open a decision sheet through the SheetController (main.tsx, Story 1.14).
 
-    // ── Phase transition overlay ──
-    this.transitionOverlay = document.createElement('div');
-    this.transitionOverlay.id = 'phase-transition-overlay';
-    this.transitionOverlay.style.display = 'none';
-    document.body.appendChild(this.transitionOverlay);
-
-    // ── Transition events ──
-    this.bus.subscribe('transition_start', (payload: unknown) => {
-      const p = payload as { phase: string; quote: string; skippable?: boolean; onSkip?: () => void };
-      void this.startTransition(p.phase, p.quote, p.skippable, p.onSkip);
-    });
-
-    this.bus.subscribe('transition_complete', () => {
-      this.endTransition();
-    });
-
-    // Body class toggling on a phase commit is handled by PhaseContent.onPhaseEnter
-    // (transition_start → onPhaseEnter); main.tsx listens for phase_committed.
+    // The phase reveal is an overlay drawn by App (Story 1.20, ui/overlays/PhaseReveal);
+    // main.tsx reveals the new phase's panels on phase_committed (PhaseContent.onPhaseEnter).
 
     // Listen for worker changes to trigger narrative events
     this.bus.subscribe('workers_changed', (payload: unknown) => {
@@ -429,126 +408,6 @@ export class UIRoot {
       // Phase-based reveal: mark as unlocked and trigger animation
       el.classList.add('panel-unlocked', 'panel-revealed');
       this.bus.emit('panel_revealed', { panelId });
-    }
-  }
-
-  /**
-   * Begin the phase transition visual sequence.
-   * Shows the overlay with the phase name and lore quote, pulses the indicator, dims panels.
-   *
-   * @param phase           The new phase being entered.
-   * @param quote           The lore quote to display.
-   * @param skippable       Whether the transition can be skipped (prestige runs).
-   * @param onSkip          Callback invoked when the player skips the transition.
-   */
-  startTransition(phase: string, quote: string, skippable: boolean = false, onSkip?: () => void): Promise<void> {
-    if (!this.transitionOverlay) return Promise.resolve();
-
-    // Clean up any previous transition state
-    if (this.transitionCleanup) {
-      this.transitionCleanup();
-      this.transitionCleanup = null;
-    }
-    if (this.transitionResolve) {
-      this.transitionResolve();
-      this.transitionResolve = null;
-    }
-
-    // Create a promise that resolves when transition ends (skip or complete)
-    const transitionPromise = new Promise<void>((resolve) => {
-      this.transitionResolve = resolve;
-    });
-
-    // Format phase name: "egg_laying" → "Egg Laying"
-    const phaseName = phase
-      .replace(/_/g, ' ')
-      .replace(/\b\w/g, (c) => c.toUpperCase());
-
-    // Build overlay content: phase name + lore quote + optional skip hint
-    let overlayHTML =
-      `<div class="phase-transition-phase-name">${phaseName}</div>` +
-      `<div class="phase-transition-quote">${quote}</div>`;
-
-    if (skippable) {
-      overlayHTML += `<div class="phase-transition-skip-hint">Click to skip</div>`;
-    }
-
-    this.transitionOverlay.innerHTML = overlayHTML;
-    this.transitionOverlay.style.display = '';
-    this.transitionOverlay.classList.add('active');
-
-    // ── Skip handler for prestige runs ──
-    if (skippable && onSkip) {
-      const handleSkip = () => {
-        onSkip();
-        this.endTransition();
-      };
-
-      // Click on overlay to skip
-      this.transitionOverlay!.addEventListener('click', handleSkip);
-
-      // Also allow keypress (Space/Enter/Escape)
-      const handleKey = (e: KeyboardEvent) => {
-        if (e.key === ' ' || e.key === 'Enter' || e.key === 'Escape') {
-          e.preventDefault();
-          handleSkip();
-        }
-      };
-      document.addEventListener('keydown', handleKey);
-
-      this.transitionCleanup = () => {
-        this.transitionOverlay?.removeEventListener('click', handleSkip);
-        document.removeEventListener('keydown', handleKey);
-      };
-    }
-
-    // Pulse the phase indicator
-    const indicator = document.querySelector('.phase-indicator');
-    if (indicator) {
-      indicator.classList.add('transitioning');
-    }
-
-    // Dim all visible panel elements
-    const panels = document.querySelectorAll('.panel');
-    panels.forEach((panel) => panel.classList.add('transition-dimmed'));
-
-    return transitionPromise;
-  }
-
-  /**
-   * End the phase transition — fade out overlay, undim panels, scroll to new content.
-   */
-  endTransition(): void {
-    if (!this.transitionOverlay) return;
-
-    // Clean up skip handler if set
-    if (this.transitionCleanup) {
-      this.transitionCleanup();
-      this.transitionCleanup = null;
-    }
-
-    // Resolve transition promise if pending
-    if (this.transitionResolve) {
-      this.transitionResolve();
-      this.transitionResolve = null;
-    }
-
-    this.transitionOverlay.classList.remove('active');
-
-    // Undim panels
-    const panels = document.querySelectorAll('.panel.transition-dimmed');
-    panels.forEach((panel) => panel.classList.remove('transition-dimmed'));
-
-    // Remove transitioning class from phase indicator
-    const indicator = document.querySelector('.phase-indicator');
-    if (indicator) {
-      indicator.classList.remove('transitioning');
-    }
-
-    // Auto-scroll to first newly revealed panel
-    const firstUnlocked = document.querySelector('.panel-unlocked');
-    if (firstUnlocked) {
-      firstUnlocked.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }
 }

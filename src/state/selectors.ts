@@ -59,6 +59,7 @@ export const selectBattlesWon = slice('battlesWon');
 export const selectBattlesLost = slice('battlesLost');
 export const selectVictoryAchieved = slice('victoryAchieved');
 export const selectPhaseGoal = slice('phaseGoal');
+export const selectLifetime = slice('lifetime');
 export const selectSpaceship = slice('spaceship');
 export const selectSpaceProbes = slice('spaceProbes');
 export const selectDiscoveries = slice('discoveries');

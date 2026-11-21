@@ -30,7 +30,7 @@ import { render } from 'preact';
 import { UIRoot } from './ui/UIRoot';
 import { App } from './ui/App';
 import { createTabShell } from './ui/shell/tabShell';
-import { selectAffordableKeys, selectGoalMet, selectPhase } from './state/selectors';
+import { selectAffordableKeys, selectGoalMet, selectLifetime, selectPhase } from './state/selectors';
 import { AudioSystem } from './ui/AudioSystem';
 import { SaveManager } from './persistence/SaveManager';
 import type { OfflineLoadInfo } from './persistence/SaveManager';
@@ -42,6 +42,8 @@ import { createSheetController, type SheetController } from './ui/shell/SheetCon
 import { createResourceFeed } from './ui/shell/resourceFeed';
 import { ResourceStrip } from './ui/shell/ResourceStrip';
 import { PhaseLine } from './ui/shell/GoalMeter';
+import { createOverlayController, type OverlayController } from './ui/shell/OverlayController';
+import { bindPhaseReveal } from './ui/overlays/PhaseReveal';
 import { PhaseStateMachine } from './phases/PhaseStateMachine';
 import { Phase, PHASE_ORDER } from './phases/phases';
 import { PhaseContent } from './ui/PhaseContent';
@@ -80,6 +82,7 @@ export function bootstrap(): {
   actions: Actions;
   platform: Platform;
   sheets: SheetController;
+  overlays: OverlayController;
 } {
   // Platform services, built once and passed on (Story 1.10, D9). Only main
   // imports platform/ values; settings live under their own key, outside the save.
@@ -391,6 +394,16 @@ export function bootstrap(): {
 
   // One sheet at a time (Story 1.14, D7): every sheet is requested here, drawn by App.
   const sheets = createSheetController();
+  // The overlay layer (Story 1.20, D7): while an overlay is up, sheets and decision events wait.
+  // It marks <html data-overlay-active>, which turns on the phase reveal's palette cross-fade.
+  const overlays = createOverlayController(document.documentElement);
+  bindPhaseReveal({
+    bus,
+    overlays,
+    revealsSeen: () => selectLifetime.peek().revealsSeen,
+    markSeen: (phase) => actions.markRevealSeen(phase),
+    reducedMotion: platform.settings.reducedMotion,
+  });
   bindDecisionSheets({ bus, sheets, choose: (type, choice) => actions.chooseDecision(type, choice) });
   const resourceFeed = createResourceFeed();
 
@@ -431,7 +444,7 @@ export function bootstrap(): {
     // The tab shell (Story 1.15): tabs revealed by phase, `•` from what became affordable.
     // A latched goal (Story 1.19): `•` on NEST and CONTINUE as its primary action.
     const shell = createTabShell({ phase: selectPhase, affordable: selectAffordableKeys, goalMet: selectGoalMet });
-    render(<App legacy={ui} shell={shell} sheets={sheets} onContinue={actions.continuePhase} />, app);
+    render(<App legacy={ui} shell={shell} sheets={sheets} overlays={overlays} onContinue={actions.continuePhase} />, app);
   }
 
   // Start onboarding tutorial for new players (persisted via localStorage)
@@ -450,10 +463,9 @@ export function bootstrap(): {
     }
   });
 
-  // Listen for phase changes to reveal new panels with transition animation
-  bus.subscribe('phase_committed', ({ to: phase }) => {
-    const prestigeCount = gameState.value.prestige.count;
-    phaseContent.triggerTransition(phase, bus, ui, prestigeCount);
+  // A committed phase reveals its panels at once, under the phase reveal (Story 1.20).
+  bus.subscribe('phase_committed', ({ to }) => {
+    phaseContent.onPhaseEnter(to, ui);
   });
 
   // ── Haptics and the sound setting (Story 1.10) ──
@@ -520,7 +532,7 @@ export function bootstrap(): {
 
   loop.start();
 
-  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, ui, decisionSystem, audio, actions, platform, sheets };
+  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, ui, decisionSystem, audio, actions, platform, sheets, overlays };
 }
 
 // processTick lives in engine/processTick.ts; re-exported for existing callers.

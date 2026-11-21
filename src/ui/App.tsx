@@ -5,6 +5,8 @@ import { Shell, type LegacyUi } from './shell/Shell';
 import type { TabShell } from './shell/tabShell';
 import type { SheetController } from './shell/SheetController';
 import { SheetHost } from './shell/SheetHost';
+import type { OverlayController } from './shell/OverlayController';
+import { OverlayHost } from './shell/OverlayHost';
 
 export type { LegacyUi } from './shell/Shell';
 
@@ -19,23 +21,29 @@ export type { LegacyUi } from './shell/Shell';
  *
  * `sheets` is the one SheetController (Story 1.14): its open sheet is drawn
  * after the shell, so sheets sit above the panels.
+ *
+ * `overlays` is the overlay layer (Story 1.20): the playing overlay is drawn last,
+ * above everything, and no sheet is drawn while it is up.
  */
 export function App({
   legacy,
   shell,
   sheets,
   onContinue,
+  overlays,
 }: {
   legacy: LegacyUi;
   shell: TabShell;
   sheets?: SheetController;
   /** CONTINUE on NEST (Story 1.19): `actions.continuePhase`. */
   onContinue?: () => { readonly ok: boolean } | void;
+  overlays?: OverlayController;
 }) {
   return (
     <>
       <Shell shell={shell} legacy={legacy} onContinue={onContinue} />
-      {sheets && <SheetHost sheets={sheets} />}
+      {sheets && <SheetHost sheets={sheets} held={overlays?.held} />}
+      {overlays && <OverlayHost overlays={overlays} />}
     </>
   );
 }
