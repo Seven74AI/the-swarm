@@ -27,6 +27,8 @@ export interface DiagnosticsInput {
   readonly unreadableSave?: string | null;
   readonly settings: unknown;
   readonly capabilities: unknown;
+  /** What the persistent-storage request came to this session (Story 2.12); null or absent before one. */
+  readonly storage?: string | null;
   readonly log: readonly LogEntry[];
 }
 
@@ -62,6 +64,7 @@ export function buildDiagnostics(input: DiagnosticsInput): string {
       seed: input.seed ?? null,
       settings: input.settings,
       capabilities: input.capabilities,
+      storage: input.storage ?? null,
       log: input.log.map((e) => ({ ...e, detail: e.detail.map(plainDetail) })),
       save: parseOrText(input.save),
       unreadableSave: input.unreadableSave ?? null,

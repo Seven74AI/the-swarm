@@ -267,6 +267,17 @@ for (const setup of SETUPS) {
       await expect(page.locator('[data-debug-inspector] [data-key="resources"] pre')).toBeVisible();
       expect(await layoutProblems(page)).toEqual([]);
     });
+
+    test('the add-to-home-screen hint fits the screen too (Story 2.12)', async ({ page }) => {
+      // A mobile browser (coarse pointer) that isn't the installed app, past the first phase.
+      await page.addInitScript(() => {
+        const real = window.matchMedia.bind(window);
+        window.matchMedia = (q: string) => (q === '(pointer: coarse)' ? ({ ...real(q), matches: true } as MediaQueryList) : real(q));
+      });
+      await seed(page, setup);
+      await expect(page.locator('[data-home-screen-hint]')).toBeVisible();
+      expect((await layoutProblems(page)).map((p) => `home-screen hint: ${p}`)).toEqual([]);
+    });
   });
 }
 
