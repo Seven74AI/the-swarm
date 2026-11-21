@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "THE SWARM \u2014 Incremental game from ant queen to interstellar conquest",
+  "description": "THE SWARM — Incremental game from ant queen to interstellar conquest",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -18,12 +18,12 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",
-    "@types/node": "^25.9.0",
+    "@types/node": "^26.6.6",
     "@vitest/coverage-v8": "^5.1.1",
     "fast-check": "^4.10.2",
-    "jsdom": "^29.1.1",
+    "jsdom": "^31.0.1",
     "oxlint": "^1.94.0",
-    "typescript": "^5.5.0",
+    "typescript": "^7.0.2",
     "vite": "^8.3.8",
     "vitest": "^5.1.1"
   },
