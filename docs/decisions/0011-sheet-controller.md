@@ -1,4 +1,4 @@
-# 0010. One SheetController; modal and peek sheets
+# 0011. One SheetController; modal and peek sheets
 
 - **Status:** accepted (2026-11-21)
 - **Source:** [Game architecture](../../_bmad-output/planning-artifacts/architecture/architecture-the-swarm-2026-11-20/game-architecture.md)
