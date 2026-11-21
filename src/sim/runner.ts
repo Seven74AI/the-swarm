@@ -69,7 +69,7 @@ export class SimRunner {
   private readonly startPrestiges: number;
   private clockMs = 0;
   private playedMs = 0;
-  private stopped = false;
+  private halted = false;
 
   constructor(private readonly options: SimOptions) {
     this.s = { ...options.state, seed: options.seed, rng: rngFromSeed(options.seed) };
@@ -89,23 +89,37 @@ export class SimRunner {
     return this.s;
   }
 
+  /** Whether `stopWhen` has held: once it has, check-ins do nothing. */
+  get stopped(): boolean {
+    return this.halted;
+  }
+
   /** Play the whole schedule, or until `stopWhen` holds. */
   run(): SimResult {
     this.options.schedule.forEach((c, i) => {
-      if (!this.stopped) this.checkIn(c, i);
+      if (!this.halted) this.checkIn(c, i);
     });
+    return this.result();
+  }
+
+  /**
+   * The run so far. A caller driving `checkIn` itself (Story 3.8 checks
+   * progress day by day) reads its result here; `run()` returns the same.
+   */
+  result(): SimResult {
     return {
       state: this.s,
       probes: this.probes.report(),
       elapsedMs: this.clockMs,
       activeMs: this.playedMs,
       prestiged: this.s.prestige.count > this.startPrestiges,
-      stopped: this.stopped,
+      stopped: this.halted,
     };
   }
 
   /** One check-in: resume the gap, then play `activeMs`, looking every `activeStepMs`. */
   checkIn(c: CheckIn, index: number): void {
+    if (this.halted) return;
     if (this.advance(c.awayMs, false)) return;
     this.probes.beginCheckIn(index, this.s, this.clockMs);
     const step = simBalance.activeStepMs;
@@ -179,10 +193,10 @@ export class SimRunner {
   private check(): boolean {
     this.probes.observe(this.s, this.clockMs, this.playedMs);
     if (this.options.stopWhen?.(this.s)) {
-      this.stopped = true;
+      this.halted = true;
       this.probes.endCheckIn();
     }
-    return this.stopped;
+    return this.halted;
   }
 }
 
