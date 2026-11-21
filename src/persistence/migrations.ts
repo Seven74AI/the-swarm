@@ -797,6 +797,30 @@ function migrateV30toV31(data: SaveData): SaveData {
   return { ...data, version: 31, gameState: { ...gs, prestige: { ...p, lifetimeLpEarned } } as unknown as GameState };
 }
 
+/** The space resources a pre-v32 prestige carried into the next run (Story 5.4). */
+const CARRIED_SPACE_RESOURCES = ['voidCrystals', 'antimatter', 'darkMatter', 'surveyData'] as const;
+/** The phases before Space when v32 was added, frozen so a later reorder can't rewrite the step. */
+const V32_BEFORE_SPACE: ReadonlySet<string> = new Set(['egg_laying', 'colony', 'combat', 'expansion']);
+
+/**
+ * v31 → v32 (Story 5.4, FR30): before Story 5.3 a prestige carried void
+ * crystals, antimatter, dark matter and survey data into the next run. A run
+ * that has prestiged and hasn't reached Space can only hold them that way, so
+ * they go to 0 and the run meets Space's decisions like any other. A run in
+ * Space or Transcendence, or a save that never prestiged, is unchanged; so is
+ * everything else (LP, Legacy upgrades, lifetime stats, the victory record).
+ */
+function migrateV31toV32(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  const prestige = gs.prestige as { count?: unknown } | null | undefined;
+  const resources = gs.resources;
+  const prestiged = wholeCount(prestige?.count) > 0;
+  const beforeSpace = typeof gs.phase === 'string' && V32_BEFORE_SPACE.has(gs.phase);
+  if (!prestiged || !beforeSpace || resources === null || typeof resources !== 'object') return { ...data, version: 32 };
+  const cleared = Object.fromEntries(CARRIED_SPACE_RESOURCES.map((k) => [k, 0]));
+  return { ...data, version: 32, gameState: { ...gs, resources: { ...resources, ...cleared } } as unknown as GameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -829,6 +853,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   28: migrateV28toV29,
   29: migrateV29toV30,
   30: migrateV30toV31,
+  31: migrateV31toV32,
 };
 
 /**

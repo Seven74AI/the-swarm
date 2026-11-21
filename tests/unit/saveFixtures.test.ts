@@ -38,6 +38,18 @@ const CURRENT = SaveManager.SAVE_VERSION;
  */
 const RETIRED: Readonly<Record<number, string>> = {};
 
+/**
+ * The one progress a migration drops on purpose (Story 5.4, v31 → v32): a save
+ * from before v32 that has prestiged and whose run hasn't reached Space can
+ * only hold space resources by carrying them over a prestige, so they load as 0.
+ */
+function carriedAcrossPrestige(data: SaveData, key: string): boolean {
+  const gs = data.gameState as unknown as { phase?: unknown; prestige?: { count?: unknown } };
+  const space = ['voidCrystals', 'antimatter', 'darkMatter', 'surveyData'];
+  const beforeSpace = ['egg_laying', 'colony', 'combat', 'expansion'];
+  return data.version < 32 && space.includes(key) && Number(gs.prestige?.count) > 0 && beforeSpace.includes(String(gs.phase));
+}
+
 interface Fixture {
   file: string;
   data: SaveData;
@@ -146,7 +158,9 @@ describe('save fixtures (Story 2.1)', () => {
         const before = data.gameState as unknown as { phase: string; resources: Record<string, number> };
         expect(loaded.gameState.phase).toBe(before.phase);
         for (const [key, value] of Object.entries(before.resources)) {
-          expect(loaded.gameState.resources[key as keyof GameState['resources']], `${file}: resources.${key}`).toBe(value);
+          // Story 5.4 (v31 → v32): space resources a prestige carried into a run before Space load as 0.
+          const want = carriedAcrossPrestige(data, key) ? 0 : value;
+          expect(loaded.gameState.resources[key as keyof GameState['resources']], `${file}: resources.${key}`).toBe(want);
         }
       });
 
