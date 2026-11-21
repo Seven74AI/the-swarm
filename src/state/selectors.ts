@@ -5,6 +5,15 @@ import { getEffects } from '../systems/BuildingSystem';
 import { computeResourceRates } from '../systems/ResourceSystem';
 import { affordableKeys } from './affordances';
 import { getNextAction, type NextAction } from '../systems/NextAction';
+import { assignedTotal, freeWorkers, getReallocation, workforceTotal, type Reallocation } from '../systems/Workforce';
+import { TerritorySystem } from '../systems/TerritorySystem';
+import {
+  canBuildAuto,
+  canResearch,
+  getAutoEggRate,
+  type AutomationBuildingType,
+  type ResearchType,
+} from '../systems/AutomationSystem';
 import {
   getConversionDefs,
   getConversionRate,
@@ -13,6 +22,7 @@ import {
 import { conditionMet, goalFor, goalPercent, type GoalCondition, type Transition } from '../phases/transitions';
 
 export type { GoalCondition, Transition } from '../phases/transitions';
+export type { MoveSource, Reallocation } from '../systems/Workforce';
 export type { ActionIntent, NextAction, NextActionRule, NoAction, SuggestedAction } from '../systems/NextAction';
 
 /**
@@ -233,3 +243,65 @@ export const selectNextAction = computed<NextAction>(() => {
   lastNextAction = next;
   return next;
 });
+
+const territory = new TerritorySystem();
+const territoryBonuses = (s: GameState) => territory.getBonuses(s);
+
+// --- WRKR: the workforce (Story 1.23) ---------------------------------------------------------
+
+/** Workers on no role. */
+export const selectFreeWorkers = computed(() => freeWorkers(gameState.value));
+/** Every worker, researchers included. */
+export const selectWorkforceTotal = computed(() => workforceTotal(gameState.value));
+/** Workers on a role, Research included. */
+export const selectAssignedTotal = computed(() => assignedTotal(gameState.value));
+
+const foodRates = computed(() => computeResourceRates(gameState.value, territoryBonuses(gameState.value)));
+/** Gross food per second (unfloored; the UI floors it). Notifies only when the number changes. */
+export const selectFoodProductionPerSec = computed(() => foodRates.value.foodProducedPerSec);
+/** Food upkeep per second (unfloored; the UI floors it). */
+export const selectFoodUpkeepPerSec = computed(() => foodRates.value.foodConsumedPerSec);
+
+let lastReallocation: Reallocation | null = null;
+/**
+ * The WRKR primary action (`> MOVE 4 TO GATHER`), or null. The same object
+ * while the suggestion is unchanged, so it notifies only when it changes.
+ */
+export const selectReallocation = computed<Reallocation | null>(() => {
+  const next = getReallocation(gameState.value);
+  const last = lastReallocation;
+  if (next && last && next.rule === last.rule && next.from === last.from && next.to === last.to && next.count === last.count) {
+    return last;
+  }
+  lastReallocation = next;
+  return next;
+});
+
+// --- WRKR: automation (Story 1.23, replaces AutoProductionPanel) ------------------------------
+
+/** Eggs per second from automation research and buildings (0 while auto-production is off). */
+export const selectAutoEggRate = computed(() =>
+  selectAutoProduction.value.enabled ? getAutoEggRate(gameState.value) : 0,
+);
+
+const canResearchBy = new Map<ResearchType, ReadonlySignal<boolean>>();
+/** Whether one automation research can be bought now. */
+export function selectCanResearch(id: ResearchType): ReadonlySignal<boolean> {
+  let sel = canResearchBy.get(id);
+  if (!sel) {
+    sel = computed(() => canResearch(id, gameState.value));
+    canResearchBy.set(id, sel);
+  }
+  return sel;
+}
+
+const canBuildAutoBy = new Map<AutomationBuildingType, ReadonlySignal<boolean>>();
+/** Whether the next level of one automation building can be bought now. */
+export function selectCanBuildAuto(id: AutomationBuildingType): ReadonlySignal<boolean> {
+  let sel = canBuildAutoBy.get(id);
+  if (!sel) {
+    sel = computed(() => canBuildAuto(id, gameState.value));
+    canBuildAutoBy.set(id, sel);
+  }
+  return sel;
+}

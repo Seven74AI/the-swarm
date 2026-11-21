@@ -173,8 +173,7 @@ test.describe('Nest Capacity UI', () => {
 
     // Should show workers/capacity (use regex to avoid exact value assertions)
     const text = await capacityLine.textContent();
-    expect(text).toContain('Workers:');
-    expect(text).toMatch(/Workers: \d+\/\d+/);
+    expect(text).toMatch(/NEST \d[\d\u00a0]* \/ \d[\d\u00a0]*/);
   });
 
   test('capacity line shows warehouse bonus when present', async ({ page }) => {
@@ -192,7 +191,7 @@ test.describe('Nest Capacity UI', () => {
     await expect(capacityLine).toBeVisible();
 
     const text = await capacityLine.textContent();
-    expect(text).toContain('+Warehouse');
+    expect(text).toContain('WAREHOUSE');
     // Effective capacity should be base + warehouse bonus (invariant, not exact)
     expect(text).toMatch(/\d+/);
   });

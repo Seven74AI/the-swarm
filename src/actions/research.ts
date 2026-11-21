@@ -10,12 +10,14 @@ import {
   startProject,
   unassignResearcher as unassignResearcherFrom,
 } from '../systems/ResearchSystem';
+import { freeWorkers } from '../systems/Workforce';
 import { getConversionDefs, isConversionUnlocked, tickConversions } from '../systems/ResourceConversionSystem';
 
 /** Move one worker into the research pool. */
 export function assignResearcher(deps: ActionDeps): ActionResult {
   const s = current(deps);
-  if (s.resources.workers <= 0) return refuse('no_free_workers');
+  // A researcher comes from the free pool: never from a worker already on a job (Story 1.23).
+  if (freeWorkers(s) <= 0) return refuse('no_free_workers');
   return commit(deps, s, assignResearcherTo(s));
 }
 

@@ -20,7 +20,9 @@ The ant population. Workers consume 0.5 food/sec each (linear). They can be assi
 - **Guard**: soldiers for combat
 - **Researchers**: research projects
 
-Unassigned workers produce at half gather rate. Worker efficiency follows a diminishing-returns curve (`1/(1 + 0.0005 × (workers − 500))` for workers > 500).
+Unassigned (**free**) workers produce at half gather rate.
+
+**Roles and the workforce** (Story 1.23, ADR 0016): the WRKR rows come from the role data (`src/data/content/roles.ts`: Gather, Tend, Dig, Guard from Colony; Research with the research panel). A researcher leaves `resources.workers`, so the **workforce** is `workers + researchers`, the **assigned total** is the job roles plus the researchers, and **free** workers are the rest (`src/systems/Workforce.ts`). A stepper press is one `actions.stepRole(role, delta)` write; WRKR's primary action (`> MOVE 4 TO GATHER`) is `getReallocation(state)` → `actions.moveWorkers(from, to, count)`: the fewest workers that stop a food loss, or the free workers to DIG when the nest is full, otherwise none. Worker efficiency follows a diminishing-returns curve (`1/(1 + 0.0005 × (workers − 500))` for workers > 500).
 
 ### Phases
 6 sequential phases: EGG_LAYING → COLONY → COMBAT → EXPANSION → SPACE → TRANSCENDENCE. Phase transitions are gated by resource/worker thresholds and battles. Each phase unlocks new panels, mechanics, and resources.

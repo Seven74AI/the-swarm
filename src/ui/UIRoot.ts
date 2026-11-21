@@ -3,7 +3,6 @@ import type { SaveManager } from '../persistence/SaveManager';
 import type { GameState } from '../state/GameState';
 import type { GameLoop } from '../engine/GameLoop';
 import { EventLog } from './panels/EventLog';
-import { WorkerAssignment } from './panels/WorkerAssignment';
 import { SoldierPanel } from './panels/SoldierPanel';
 import { BattlePanel } from './panels/BattlePanel';
 import { CombatLogPanel } from './panels/CombatLogPanel';
@@ -16,7 +15,6 @@ import { CosmicPanel } from './panels/CosmicPanel';
 import { StarmapPanel } from './panels/StarmapPanel';
 import { ResourceConverterPanel } from './panels/ResourceConverterPanel';
 import { TechTreePanel } from './panels/TechTreePanel';
-import { AutoProductionPanel } from './panels/AutoProductionPanel';
 import { PrestigePanel } from './panels/PrestigePanel';
 import { PrestigeTreePanel } from './panels/PrestigeTreePanel';
 import { TranscendencePanel } from './panels/TranscendencePanel';
@@ -39,6 +37,16 @@ export interface NestMounts {
   scene(host: HTMLElement): void;
   /** The Click Power card, under the event lines. */
   clickPower(host: HTMLElement): void;
+}
+
+/** Where main renders WRKR's Preact parts (Story 1.23). */
+export interface WorkersMounts {
+  /** The upkeep readout and role rows, in `#worker-assignment`. */
+  tab(host: HTMLElement): void;
+  /** The primary action (the reallocation), in WRKR's primary zone. */
+  primary(host: HTMLElement): void;
+  /** The automation section, in the `automation_panel` host. */
+  automation(host: HTMLElement): void;
 }
 
 /**
@@ -76,6 +84,7 @@ export class UIRoot {
   private mountStrip?: (host: HTMLElement) => void;
   private mountPhaseLine?: (host: HTMLElement) => void;
   private mountNest?: NestMounts;
+  private mountWorkers?: WorkersMounts;
 
   /** Registry mapping panelId → factory function. Populated in constructor. */
   private panelRegistry: Map<string, () => HTMLElement> = new Map();
@@ -95,6 +104,8 @@ export class UIRoot {
     mountPhaseLine?: (host: HTMLElement) => void;
     /** Renders NEST's primary action, scene area and Click Power card into their hosts (Story 1.22). */
     mountNest?: NestMounts;
+    /** Renders WRKR's role rows and upkeep, its primary action and automation into their hosts (Story 1.23). */
+    mountWorkers?: WorkersMounts;
   }) {
     this.bus = deps.bus;
     this.actions = deps.actions;
@@ -107,6 +118,7 @@ export class UIRoot {
     this.mountStrip = deps.mountStrip;
     this.mountPhaseLine = deps.mountPhaseLine;
     this.mountNest = deps.mountNest;
+    this.mountWorkers = deps.mountWorkers;
 
     // ── Populate panel registry with factory functions ──
     // Phase 1 panels (mounted at boot for always-visible UI)
@@ -120,9 +132,14 @@ export class UIRoot {
     });
 
     // Phase 2 panels (lazy — created on demand when colony phase is entered)
-    this.panelRegistry.set('worker_assignment', () => new WorkerAssignment(
-      this.bus, this.actions, this.getState,
-    ).getElement());
+    // WRKR (Story 1.23): Preact role rows, upkeep and primary action; the hosts keep the legacy ids.
+    this.panelRegistry.set('worker_assignment', () =>
+      this.createHost('worker-assignment', 'panel worker-assignment-panel', (h) => this.mountWorkers?.tab(h)));
+    this.panelRegistry.set('wrkr_primary', () => {
+      const host = this.createHost('', '', (h) => this.mountWorkers?.primary(h));
+      host.setAttribute('data-wrkr-primary', '');
+      return host;
+    });
     this.panelRegistry.set('food_display', () => new FoodDisplay().getElement());
 
     // Phase 3 panels (lazy — created on demand when combat/expansion phase is entered)
@@ -189,9 +206,8 @@ export class UIRoot {
     this.panelRegistry.set('tech_tree_panel', () => new TechTreePanel(
       this.bus, this.getState, this.actions,
     ).getElement());
-    this.panelRegistry.set('automation_panel', () => new AutoProductionPanel(
-      this.bus, this.getState, this.actions,
-    ).getElement());
+    this.panelRegistry.set('automation_panel', () =>
+      this.createHost('', 'panel automation-host', (h) => this.mountWorkers?.automation(h)));
     this.panelRegistry.set('prestige_panel', () => new PrestigePanel(
       this.bus, this.getState, this.actions, this.confirmSettings,
     ).getElement());
@@ -400,6 +416,16 @@ export class UIRoot {
   private createNestHost(name: string, mount?: (host: HTMLElement) => void): HTMLElement {
     const host = document.createElement('div');
     host.setAttribute('data-nest-host', name);
+    mount?.(host);
+    return host;
+  }
+
+  /** A host div for a Preact-drawn panel (`id` empty for none), hidden until `showPanel`. */
+  private createHost(id: string, className: string, mount?: (host: HTMLElement) => void): HTMLElement {
+    const host = document.createElement('div');
+    host.style.display = 'none';
+    if (id) host.id = id;
+    if (className) host.className = className;
     mount?.(host);
     return host;
   }
