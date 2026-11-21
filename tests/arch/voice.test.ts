@@ -21,6 +21,7 @@ import { TRAITS } from '../../src/data/content/enemies';
 import { RESOURCES } from '../../src/ui/shell/resourceCatalog';
 import { causeLine, LOSS_CAUSES, WIN_CAUSES } from '../../src/systems/BattleCauses';
 import { CAUSE_UPGRADE_WORDS } from '../../src/data/content/battleCauses';
+import { AUTOMATION_BLOCK_TEXT, AUTOMATION_VERBS } from '../../src/data/content/automation';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const SRC = join(ROOT, 'src');
@@ -188,6 +189,10 @@ describe('no copy names a phase the player has not entered', () => {
     ...SEGMENTS.map((s): [string, string, Phase] => [`segment ${s.id}`, s.label, s.unlockPhase]),
     // Enemy traits show on the enemy card, which opens in Combat (Story 4.1).
     ...Object.entries(TRAITS).flatMap(([id, t]) => [t.label, t.line].map((s): [string, string, Phase] => [`trait ${id}`, s, Phase.COMBAT])),
+    // Automation target rows (Story 4.10) show from the verb's own phase.
+    ...AUTOMATION_VERBS.flatMap((v) => [v.keep, v.one, v.many].map((s): [string, string, Phase] => [`automation ${v.id}`, s, v.introducedIn])),
+    // The lay row's warn text can show from Egg Laying.
+    ...Object.entries(AUTOMATION_BLOCK_TEXT).map(([id, s]): [string, string, Phase] => [`automation block ${id}`, s, Phase.EGG_LAYING]),
     ...ROLES.flatMap((r) => [r.label, r.worker, r.effect].map((s): [string, string, Phase] => [`role ${r.id}`, s, r.unlockPhase])),
     ...RESOURCES.flatMap((r) => [r.label, r.name, r.source].map((s): [string, string, Phase] => [`resource ${r.id}`, s, r.unlockPhase])),
     ...TRANSITIONS.flatMap((t) =>

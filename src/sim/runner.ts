@@ -187,6 +187,10 @@ export class SimRunner {
         return this.actions.trainSoldier();
       case 'fight':
         return this.actions.fight(move.enemyType);
+      case 'setAutomationTarget':
+        return this.actions.setAutomationTarget(move.verb, move.target);
+      case 'setAutomation':
+        return this.actions.setAutomation(move.verb, move.on);
     }
   }
 

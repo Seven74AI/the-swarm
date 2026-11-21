@@ -103,7 +103,7 @@ export function gameViews(d: GameViewDeps): ShellViews {
         <>
           <PhaseIndicator />
           <div data-nest-host="scene">
-            <NestScene lay={d.actions.layEgg} />
+            <NestScene lay={d.actions.layEgg} automation={d.actions} />
           </div>
           <Panel id="event_log">
             <EventLines chronicle={d.chronicle} jump={d.jump} />

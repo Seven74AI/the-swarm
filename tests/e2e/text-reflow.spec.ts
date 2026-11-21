@@ -27,6 +27,15 @@ const SPACE = {
   // The longest enemy card title and trait line (Story 4.1): SCORPION · VENOM RESISTANCE.
   nextEnemy: 'scorpion',
   stats: { totalEggsLaid: 5000, totalClicks: 800, playTimeMs: 0 },
+  // Every automation target row (Story 4.10) is open in Space; the longest values and a warn line.
+  automation: {
+    targets: {
+      lay: { target: 999, on: true },
+      train: { target: 999, on: true },
+      scout: { target: 999, on: true },
+      warrior: { target: 999, on: true },
+    },
+  },
 };
 
 /** BUILD cards added by Story 4.7: they must fit with the rest. */
@@ -183,6 +192,26 @@ for (const setup of SETUPS) {
       await expect(page.locator('[data-action="buy-upgrade"]').first()).toBeAttached();
       expect(await page.locator('[data-nest-host="click-power"] [data-card]').count()).toBeGreaterThanOrEqual(4);
       expect(await layoutProblems(page)).toEqual([]);
+    });
+
+    test('the automation target rows fit the screen too (Story 4.10)', async ({ page }) => {
+      await seed(page, setup);
+      const found: string[] = [];
+      for (const [place, verbs] of [
+        [{ tab: 'nest' }, ['lay']],
+        [{ tab: 'front', segment: 'war' }, ['train']],
+        [{ tab: 'front', segment: 'map' }, ['scout', 'warrior']],
+      ] as const) {
+        await openTab(page, place.tab, 'segment' in place ? place.segment : undefined);
+        for (const verb of verbs) {
+          const row = page.locator(`[data-automation="${verb}"]`);
+          await row.scrollIntoViewIfNeeded();
+          await expect(row).toBeVisible();
+          await expect(row.locator('[data-automation-status]')).toBeVisible();
+        }
+        found.push(...(await layoutProblems(page)).map((p) => `${place.tab}: ${p}`));
+      }
+      expect(found).toEqual([]);
     });
 
     test('the save sheets and the SAVE FAILED marker fit the screen too (Story 2.2)', async ({ page }) => {

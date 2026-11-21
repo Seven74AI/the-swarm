@@ -3,11 +3,13 @@ import { commit, current, refuse, type ActionResult } from './result';
 import { getAssignedWorkers, getUpgradeCost, upgradeRefusal, type WorkerRole } from '../systems/ResourceSystem';
 import { freeWorkers, moveWorkers as move, roleCount, stepRole as step, type MoveSource } from '../systems/Workforce';
 import type { RoleId } from '../data/content/roles';
+import { recordManual } from '../systems/AutomationTargets';
 
 /** Lay eggs by hand. Always allowed. */
 export function layEgg(deps: ActionDeps): ActionResult {
   const s = current(deps);
-  const r = commit(deps, s, deps.resourceSystem.clickEgg(s));
+  // Each tap counts toward automating the laying (Story 4.10), in the same write.
+  const r = commit(deps, s, recordManual(deps.resourceSystem.clickEgg(s), 'lay'));
   if (r.ok) deps.bus.emit('egg_clicked', {});
   return r;
 }

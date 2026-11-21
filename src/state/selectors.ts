@@ -40,6 +40,14 @@ import {
 } from '../systems/PrestigeSystem';
 import { getOfflineCapMs, getOfflineEfficiency } from '../systems/OfflineProgression';
 import { entropyMeter } from '../systems/EntropySystem';
+import {
+  automationBlock,
+  automationCount,
+  automationStatus,
+  isAutomationShown,
+  type AutomationStatus,
+} from '../systems/AutomationTargets';
+import type { AutomationBlock, AutomationVerb } from '../data/content/automation';
 import type { PrestigeUpgradeId } from '../data/prestigeTree';
 import type { ResearchProjectId, ResearchProjectStatus } from './GameState';
 import { conditionMet, goalFor, goalPercent, type GoalCondition, type Transition } from '../phases/transitions';
@@ -505,4 +513,36 @@ const canPurchaseUpgrades = new Map<PrestigeUpgradeId, ReadonlySignal<boolean>>(
 /** Whether a Legacy-tree upgrade can be bought now. */
 export function selectCanPurchasePrestigeUpgrade(id: PrestigeUpgradeId): ReadonlySignal<boolean> {
   return memo(canPurchaseUpgrades, id, () => canPurchasePrestigeUpgrade(gameState.value, id));
+}
+
+// --- Automation targets (Story 4.10, UX-DR16) --------------------------------------------------
+
+const automationSelectors = new Map<string, ReadonlySignal<unknown>>();
+function automationMemo<T>(verb: AutomationVerb, part: string, read: (s: GameState) => T): ReadonlySignal<T> {
+  return memo(automationSelectors as Map<string, ReadonlySignal<T>>, `${verb}:${part}`, () => read(gameState.value));
+}
+
+/** The verb's target row shows (learned by hand, or the phase after its own; its screen open). */
+export function selectAutomationShown(verb: AutomationVerb): ReadonlySignal<boolean> {
+  return automationMemo(verb, 'shown', (s) => isAutomationShown(s, verb));
+}
+/** The row's `KEEP N`. */
+export function selectAutomationTarget(verb: AutomationVerb): ReadonlySignal<number> {
+  return automationMemo(verb, 'target', (s) => s.automation.targets[verb].target);
+}
+/** The row's `[AUTO]`. */
+export function selectAutomationOn(verb: AutomationVerb): ReadonlySignal<boolean> {
+  return automationMemo(verb, 'on', (s) => s.automation.targets[verb].on);
+}
+/** What the target counts now (the brood, the army, the scouts or warriors). */
+export function selectAutomationCount(verb: AutomationVerb): ReadonlySignal<number> {
+  return automationMemo(verb, 'count', (s) => automationCount(s, verb));
+}
+/** off, holding (at or over target), working (under, nothing in the way) or blocked. */
+export function selectAutomationState(verb: AutomationVerb): ReadonlySignal<AutomationStatus['kind']> {
+  return automationMemo(verb, 'state', (s) => automationStatus(s, verb, territoryBonuses(s)).kind);
+}
+/** Why a blocked row can't reach its target (`food_short`, …), or null. */
+export function selectAutomationBlock(verb: AutomationVerb): ReadonlySignal<AutomationBlock | null> {
+  return automationMemo(verb, 'block', (s) => automationBlock(s, verb, territoryBonuses(s)));
 }

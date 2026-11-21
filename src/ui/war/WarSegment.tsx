@@ -1,4 +1,5 @@
 import type { ReadonlySignal } from '@preact/signals-core';
+import { AutomationRow, type AutomationRowActions } from '../shell/AutomationRow';
 import type { ActionResult } from '../../actions';
 import type { SegmentId } from '../../data/content/tabs';
 import {
@@ -45,7 +46,7 @@ import type { WarSession } from './warSession';
 import './war.css';
 
 /** The actions WAR uses (a subset of `Actions`). */
-export interface WarActions {
+export interface WarActions extends AutomationRowActions {
   trainSoldier(): ActionResult;
   upgradeWeapon(): ActionResult;
   upgradeArmor(): ActionResult;
@@ -261,6 +262,8 @@ export function SoldiersSection({ actions }: { actions: WarActions }) {
       <TrainingLine />
       <StatsLine />
       <TrainButton actions={actions} />
+      {/* Under TRAIN once training can be automated (Story 4.10): KEEP [−] N [+] IN TRAINING [AUTO]. */}
+      <AutomationRow verb="train" actions={actions} />
       <div class="panel-subtitle">EQUIPMENT</div>
       {EQUIPMENT.map((e) => (
         <EquipmentCard key={e.id} item={e} actions={actions} />

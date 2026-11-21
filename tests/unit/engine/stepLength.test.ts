@@ -13,6 +13,10 @@ import { tickProbeSwarm, PROBE_SWARM_THRESHOLD, MAX_ACTIVE_EXPLORATIONS } from '
 import { Phase } from '../../../src/phases/phases';
 import { TICK_MS } from '../../../src/data/constants';
 import { pipelineTolerance, rateTolerance, stageRates, WHOLE_UNIT_CARRY } from '../helpers/stepTolerance';
+import { automationBalance } from '../../../src/data/balance/automation';
+import { combatBalance } from '../../../src/data/balance/combat';
+import { AUTOMATION_VERB_IDS } from '../../../src/data/content/automation';
+import { automationCount, autoLayPerSec } from '../../../src/systems/AutomationTargets';
 
 /**
  * Story 2.5 (FR2, AR4): every system gives the same result for any step length.
@@ -372,5 +376,110 @@ describe('Story 2.5: systems give the same result for any step length', { timeou
     expect(fineMean).toBeLessThan(MAX_ACTIVE_EXPLORATIONS);
     // Two sample means of a count bounded by the cap: within 15 % of each other.
     expect(Math.abs(fineMean - coarseMean)).toBeLessThanOrEqual(0.15 * fineMean);
+  });
+});
+
+// ─── Automation targets (Story 4.10) ───────────────────────────────────────
+
+/**
+ * Story 4.10: automation targets run inside `processTick`, so they join the
+ * step-length properties. A step works the count toward the target once,
+ * after its production; the fine run does it every 50 ms.
+ *
+ * Exact, for both runs: no ant is made or lost (eggs + larvae + workers, plus
+ * the workers in soldiers, scouts and warriors, grow by exactly the eggs
+ * laid), and no count passes its target (or the count it started above it).
+ *
+ * Within a tolerance: with food and free workers to spare for the whole
+ * target, both runs end with the army at the target exactly. The queen's
+ * eggs are laid at one rate in both: the runs differ by the carried fraction
+ * of an egg (one), by the eggs one fine step lays before the brood is
+ * re-measured (a tick's worth of the rate), and by the room larvae make by
+ * maturing inside the window, which the fine run refills as it opens and the
+ * single step only at its end (at most the workers the window adds).
+ */
+const arbAutomated: fc.Arbitrary<GameState> = fc
+  .record({
+    base: arbState,
+    phase: fc.constantFrom(Phase.COMBAT, Phase.EXPANSION, Phase.SPACE),
+    lay: fc.option(fc.integer({ min: 0, max: 900 }), { nil: null }),
+    train: fc.option(fc.integer({ min: 0, max: 200 }), { nil: null }),
+    scout: fc.option(fc.integer({ min: 0, max: 5 }), { nil: null }),
+    barracks: fc.integer({ min: 0, max: 3 }),
+    clickPower: fc.integer({ min: 0, max: 40 }),
+  })
+  .map((r) => {
+    const s = structuredClone(r.base);
+    s.phase = r.phase;
+    s.autoProduction.enabled = false;
+    s.prestigeTree.purchased = s.prestigeTree.purchased.filter((id) => id !== 'auto_egg_laying');
+    s.buildings.barracks = { level: r.barracks, count: r.barracks };
+    s.upgrades = { ...s.upgrades, click_power: r.clickPower };
+    const n = automationBalance.targets.unlockAfterManual;
+    const row = (t: number | null) => ({ target: t ?? 0, on: t !== null });
+    s.automation = {
+      performed: { lay: n, train: n, scout: n, warrior: n },
+      targets: { lay: row(r.lay), train: row(r.train), scout: row(r.scout), warrior: row(r.scout) },
+      layProgress: 0,
+    };
+    return s;
+  });
+
+const antsOf = (s: GameState) =>
+  s.resources.eggs + s.resources.larvae + s.resources.workers
+  + (s.combatSoldiers + s.soldierPipeline.count) * combatBalance.army.workersPerSoldier
+  + s.soldiers.scouts + s.soldiers.warriors;
+
+describe('Story 4.10: automation targets give the same result for any step length', { timeout: 30_000 }, () => {
+  it('no ant is made or lost, and no count passes its target, in either run', () => {
+    fc.assert(
+      fc.property(arbAutomated, arbTicks, (state, n) => {
+        const check = (before: GameState, after: GameState, where: string) => {
+          const laid = after.stats.totalEggsLaid - before.stats.totalEggsLaid;
+          expect(antsOf(after), `${where}: ants grow only by the eggs laid`).toBe(antsOf(before) + laid);
+          for (const verb of AUTOMATION_VERB_IDS) {
+            const t = before.automation.targets[verb];
+            if (!t.on) continue;
+            const bound = Math.max(t.target, automationCount(before, verb));
+            expect(automationCount(after, verb), `${where}: ${verb} within its target`).toBeLessThanOrEqual(bound);
+          }
+        };
+        let prev = state;
+        fine(state, n, (s) => { check(prev, s, 'fine step'); prev = s; });
+        check(state, coarse(state, n), `one ${n}-tick step`);
+      }),
+      { seed: SEED, numRuns: RUNS },
+    );
+  });
+
+  it('with enough food and free workers, both runs end at the training target', () => {
+    fc.assert(
+      fc.property(arbAutomated, arbTicks, fc.integer({ min: 0, max: 60 }), (state, n, target) => {
+        const s = structuredClone(state);
+        s.automation.targets.train = { target, on: true };
+        s.resources.food = 1_000_000;
+        s.resources.workers += target * combatBalance.army.workersPerSoldier;
+        s.resources.nestCapacity += target * combatBalance.army.workersPerSoldier;
+        const want = Math.max(target, automationCount(s, 'train'));
+        expect(automationCount(fine(s, n), 'train')).toBe(want);
+        expect(automationCount(coarse(s, n), 'train')).toBe(want);
+      }),
+      { seed: SEED, numRuns: RUNS },
+    );
+  });
+
+  it('the queen lays the same eggs within the tolerance', () => {
+    fc.assert(
+      fc.property(arbAutomated, arbTicks, (state, n) => {
+        fc.pre(state.automation.targets.lay.on);
+        const a = fine(state, n);
+        const b = coarse(state, n);
+        const laid = (s: GameState) => s.stats.totalEggsLaid - state.stats.totalEggsLaid;
+        const born = Math.max(a.resources.workers, b.resources.workers) - state.resources.workers;
+        const perTick = Math.ceil(autoLayPerSec(state) * TICK_SEC);
+        expect(Math.abs(laid(a) - laid(b)), `n=${n}`).toBeLessThanOrEqual(WHOLE_UNIT_CARRY + perTick + Math.max(0, born));
+      }),
+      { seed: SEED, numRuns: RUNS },
+    );
   });
 });

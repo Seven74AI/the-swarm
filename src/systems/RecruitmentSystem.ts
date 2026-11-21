@@ -63,3 +63,18 @@ export function recruitWarrior(state: GameState): GameState {
     },
   };
 }
+
+/**
+ * `n` scouts or warriors at once (Story 4.10's automation): each takes one
+ * worker and its food. The caller checks the barracks cap, the workers and
+ * the food.
+ */
+export function recruitMany(state: GameState, kind: 'scouts' | 'warriors', n: number): GameState {
+  if (n <= 0) return state;
+  const cost = kind === 'scouts' ? SCOUT_FOOD_COST : WARRIOR_FOOD_COST;
+  return {
+    ...state,
+    resources: { ...state.resources, workers: state.resources.workers - n, food: state.resources.food - n * cost },
+    soldiers: { ...state.soldiers, [kind]: state.soldiers[kind] + n },
+  };
+}
