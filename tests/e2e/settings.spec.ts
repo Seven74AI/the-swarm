@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openTab } from './helpers/tabs';
 
 /**
  * Story 1.10: settings are a platform service under their own key, outside the save.
@@ -122,4 +123,28 @@ test('export diagnostics downloads a file with the log and the save', async ({ p
   expect(Array.isArray(data.log)).toBe(true);
   expect(data.save).toHaveProperty('gameState');
   expect(data.settings).toHaveProperty('sound');
+});
+
+test('LOG opens the same settings screen', async ({ page }) => {
+  // Colony below its goal, so nothing latches during the test.
+  const gameState = {
+    phase: 'colony',
+    resources: { eggs: 0, larvae: 0, workers: 8, food: 500, nestCapacity: 1000, wood: 0, stone: 0, nectar: 0 },
+    eggPipeline: { count: 0, progress: 0 },
+    larvaPipeline: { count: 0, progress: 0 },
+    workersAssigned: { gather: 3, tend: 0, dig: 0, guard: 0, researchers: 0 },
+  };
+  await page.addInitScript((save: string) => {
+    localStorage.setItem('the_swarm_save', save);
+    localStorage.setItem('the_swarm_onboarding', 'done');
+  }, JSON.stringify({ version: 17, timestamp: Date.now(), playTimeMs: 0, gameState }));
+  await page.goto('/');
+  await expect(page.locator('[data-shell]')).toBeVisible();
+  await openTab(page, 'log');
+  const entry = page.locator('[data-log-section="settings"] [data-action="settings"]');
+  await expect(entry).not.toHaveAttribute('aria-disabled', 'true');
+  await entry.click();
+  await expect(page.locator('[data-settings-sheet]')).toBeVisible();
+  await page.locator('[data-setting="layMode"] [data-option="toggle"]').click();
+  expect(await settingsOf(page)).toMatchObject({ layMode: 'toggle' });
 });

@@ -554,7 +554,7 @@ export function bootstrap(): {
     mountLog: {
       chronicle: (host) => render(<ChronicleLog chronicle={chronicle} jump={jump} />, host),
       stats: (host) => render(<LifetimeStats />, host),
-      settings: (host) => render(<LogSettingsEntry />, host),
+      settings: (host) => render(<LogSettingsEntry onOpenSettings={openSettingsScreen} />, host),
       legacy: (host, panels) => render(<LegacySection panels={panels} />, host),
     },
   });
