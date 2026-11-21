@@ -54,7 +54,6 @@ const BASE_GAME_STATE = {
 async function seedAndGoto(
   page: any,
   gameStateOverrides: Record<string, unknown>,
-  preWaitMs = 3000,
 ) {
   await page.addInitScript((saveStr: string) => {
     localStorage.setItem('the_swarm_save', saveStr);
@@ -65,9 +64,7 @@ async function seedAndGoto(
     gameState: { ...BASE_GAME_STATE, ...gameStateOverrides },
   }));
   await page.goto('/');
-  if (preWaitMs > 0) {
-    await page.waitForTimeout(preWaitMs);
-  }
+  await expect(page.locator('[data-shell]')).toBeVisible();
 }
 
 test.describe('Nest Capacity UI', () => {

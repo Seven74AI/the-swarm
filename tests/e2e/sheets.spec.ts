@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { frames } from './helpers/time';
 
 /**
  * E2E: one sheet at a time (Story 1.14, AR10, UX-DR22).
@@ -85,7 +86,7 @@ test.describe('Sheets (Story 1.14)', () => {
     await seedBoth(page);
     await expect(offline(page)).toBeVisible({ timeout: 10_000 });
     // Give the first ticks time to raise the decision event: it must wait, not stack.
-    await page.waitForTimeout(1500);
+    await frames(page, 90);
     await expect(decision(page)).toHaveCount(0);
     await expect(page.locator('[role="dialog"][aria-modal="true"]')).toHaveCount(1);
 

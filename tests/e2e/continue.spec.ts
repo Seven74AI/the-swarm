@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { gameTimePasses } from './helpers/time';
 import { openTab } from './helpers/tabs';
 import { tapContinue } from './helpers/phase';
 
@@ -45,7 +46,7 @@ test.describe('CONTINUE', () => {
     await expect(cont).toBeVisible();
     await expect(cont).toContainText('CONTINUE');
     // Several ticks later the phase still has not moved, and the egg button gave way to CONTINUE.
-    await page.waitForTimeout(500);
+    await gameTimePasses(page, 500);
     expect(await phaseOf(page)).toBe('egg_laying');
     await expect(page.locator('#click-egg')).toBeHidden();
     await expect(page.locator('[data-goal-meter="full"] [data-goal-next]')).toHaveText(/^GOAL MET/);

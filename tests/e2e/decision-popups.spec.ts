@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { gameTimePasses } from './helpers/time';
 
 /**
  * E2E: decision events (GM-2, Story 1.28, N3).
@@ -55,7 +56,7 @@ test.describe('Decision events (Story 1.28)', () => {
   test('a long-played save spawns no event on load', async ({ page }) => {
     await seed(page, null);
     // Give the ticks well over a second: the old popup opened at once here.
-    await page.waitForTimeout(2000);
+    await gameTimePasses(page, 2000);
     await expect(popup(page)).toHaveCount(0);
     expect(await openDecision(page)).toBeNull();
   });
@@ -114,7 +115,7 @@ test.describe('Decision events (Story 1.28)', () => {
     await page.evaluate(() => (window as unknown as { __swarm: Swarm }).__swarm.platform.settings.update({ decisionTimers: 'off' }));
     await expect(popup(page).locator('[data-decision-timer]')).toHaveCount(0);
     const held = (await openDecision(page))!.remainingMs;
-    await page.waitForTimeout(1000);
+    await gameTimePasses(page, 1000);
     expect((await openDecision(page))!.remainingMs).toBe(held);
   });
 

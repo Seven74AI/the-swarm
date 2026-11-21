@@ -89,7 +89,7 @@ async function setupCombatPhase(page: Page, overrides?: Record<string, unknown>)
   }, JSON.stringify(data));
 
   await page.goto('/');
-  await page.waitForTimeout(2000);
+  await expect(page.locator('[data-shell]')).toBeVisible();
   // Soldiers and battles live in FRONT → WAR (Story 1.15).
   await openTab(page, 'front', 'war');
 }
