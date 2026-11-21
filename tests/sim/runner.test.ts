@@ -111,6 +111,19 @@ describe('SimRunner (Story 3.7)', () => {
     expect(r.prestiged).toBe(false);
   });
 
+  it('driven check-in by check-in, result() reports the run so far, as run() would', () => {
+    const schedule = repeatCheckIns(2, { awayMs: shortGap, activeMs: active });
+    const whole = runSim({ state: combatStart(), seed: 4, schedule });
+    const runner = new SimRunner({ state: combatStart(), seed: 4, schedule });
+    schedule.forEach((c, i) => runner.checkIn(c, i));
+    expect(runner.stopped).toBe(false);
+    const r = runner.result();
+    expect(r.elapsedMs).toBe(whole.elapsedMs);
+    expect(r.activeMs).toBe(whole.activeMs);
+    expect(r.probes).toEqual(whole.probes);
+    expect(r.state).toEqual(whole.state);
+  });
+
   it('stops as soon as stopWhen holds', () => {
     const r = runSim({
       state: colonyWithoutGuard(),
