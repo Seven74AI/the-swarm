@@ -15,6 +15,7 @@ import { createIntroFlag, type IntroFlag } from './storage/introFlag';
 import { createDurability, type Durability, type StorageManagerLike } from './storage/durability';
 import { createLifecycle, type Lifecycle, type LifecycleEnv } from './lifecycle';
 import { createServiceWorker, type ServiceWorkerControl, type ServiceWorkerEnv } from './serviceWorker';
+import { createWebNotifications, type Notifications } from './notifications';
 
 export interface Platform {
   readonly capabilities: Capabilities;
@@ -34,6 +35,11 @@ export interface Platform {
   readonly durability: Durability;
   /** Offline play: registers the precaching service worker; updates wait for a cold start (Story 2.13, D10). */
   readonly serviceWorker: ServiceWorkerControl;
+  /**
+   * Reminders at predicted times, for a store build (Story 2.14, D9). The web
+   * build's is a no-op: no permission request, no notifications, no setting.
+   */
+  readonly notifications: Notifications;
 }
 
 export interface WebPlatformEnv extends CapabilityEnv, BrowserEnv, Omit<LifecycleEnv, 'document'> {
@@ -73,5 +79,6 @@ export function createWebPlatform(env: WebPlatformEnv = typeof window === 'undef
   const lifecycle = createLifecycle(env as LifecycleEnv);
   const durability = createDurability({ storageManager: storageManagerOf(env), storage, capabilities });
   const serviceWorker = createServiceWorker(env as ServiceWorkerEnv);
-  return Object.freeze({ capabilities, settings, haptics, browser, viewport, saves, introFlag, lifecycle, durability, serviceWorker });
+  const notifications = createWebNotifications();
+  return Object.freeze({ capabilities, settings, haptics, browser, viewport, saves, introFlag, lifecycle, durability, serviceWorker, notifications });
 }

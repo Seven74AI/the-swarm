@@ -127,4 +127,14 @@ describe('PWA build (Story 2.13)', () => {
     const handler = /SKIP_WAITING[^;]{0,40}self\.skipWaiting\(\)/.test(sw) ? 1 : 0;
     expect(calls).toBe(handler);
   });
+  // Story 2.14 (FR26, D9): the web build has no notifications. No emitted script, the
+  // service worker and its Workbox runtime included, asks for permission, shows a
+  // notification, subscribes to push or listens for push or notification clicks.
+  it('ships no notification code: no permission request, showNotification, push or notification listener (Story 2.14)', () => {
+    const scripts = files.filter((f) => f.endsWith('.js') || f.endsWith('.mjs'));
+    expect(scripts).toContain('sw.js');
+    const API = /\b(?:requestPermission|showNotification|getNotifications|pushManager|PushManager)\b|addEventListener\(\s*["'](?:push|notificationclick|notificationclose)["']/;
+    const hits = scripts.filter((f) => API.test(readFileSync(join(outDir, f), 'utf8')));
+    expect(hits).toEqual([]);
+  });
 });

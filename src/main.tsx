@@ -646,9 +646,14 @@ export function bootstrap(): {
   // Hidden and back (Story 2.3, D1): hiding saves with lastSeenAt and stops the ticker;
   // every return signal goes to the one resume path, which applies the gap once.
   // A return also asks for a new version (Story 2.13): a PWA left open for days never navigates.
+  // Notifications (Story 2.14, D9) ride the same signals: once the player is back, any
+  // reminder still pending is stale. The web service is a no-op; a store build schedules
+  // reminders at predicted times on hide. Only main holds the service: no game outcome
+  // depends on it.
   platform.lifecycle.bind({
     hidden: () => resumePath.hide(),
     returned: () => {
+      platform.notifications.cancelAll();
       resumePath.show();
       void platform.serviceWorker.checkForUpdate();
     },
