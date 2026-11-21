@@ -14,13 +14,14 @@ import './Sheet.css';
  * headline in `display`, the body, and at most two actions. It is
  * `role="dialog"` + `aria-modal`; focus moves to the headline on open, Tab stays
  * inside, and focus returns to the trigger on close. A dismissible sheet closes
- * by swipe down, scrim tap, `[ CLOSE ]` or Esc, and `[ CLOSE ]` is one of its
- * two actions. A decision sheet (`dismissible={false}`) closes only by its own
- * choices or timer: it has no `[ CLOSE ]`, and its scrim lets taps through,
+ * by swipe down, scrim tap, `[ CLOSE ]` or the close shortcut (Esc by default;
+ * `ui/shell/shortcuts.ts` calls `SheetController.dismiss`, Story 1.30), and
+ * `[ CLOSE ]` is one of its two actions. A decision sheet (`dismissible={false}`,
+ * and its request at `decision` priority) closes only by its own choices or timer: it has no `[ CLOSE ]`, and its scrim lets taps through,
  * because a tap there can't close it and the colony keeps running underneath.
  *
  * Peek: no scrim, at most 160 px tall, a header naming the target, at most two
- * actions (`[ CLOSE ]` included). Esc closes it. It doesn't take focus.
+ * actions (`[ CLOSE ]` included). The close shortcut closes it. It doesn't take focus.
  */
 
 /** A downward drag of at least this many px closes a dismissible modal sheet. */
@@ -104,18 +105,11 @@ export function ModalSheet(props: ModalSheetProps) {
     };
   }, [trigger]);
 
-  // Esc and the Tab trap.
+  // The Tab trap. Esc (the close shortcut) goes through the SheetController (Story 1.30, `shortcuts.ts`).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = panel.current;
       if (!el) return;
-      if (e.key === 'Escape') {
-        if (dismissible) {
-          e.preventDefault();
-          close();
-        }
-        return;
-      }
       if (e.key !== 'Tab') return;
       const items = focusables(el);
       if (items.length === 0) {
@@ -136,7 +130,7 @@ export function ModalSheet(props: ModalSheetProps) {
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [dismissible, close]);
+  }, []);
 
   function onPointerDown(e: PointerEvent): void {
     if (!dismissible || e.button !== 0) return;
@@ -181,6 +175,7 @@ export function ModalSheet(props: ModalSheetProps) {
         id={id}
         class={['sheet', 'sheet--modal', cls].filter(Boolean).join(' ')}
         data-sheet="modal"
+        data-dismissible={dismissible ? 'true' : 'false'}
         role="dialog"
         aria-modal="true"
         aria-labelledby={headlineId}
@@ -226,13 +221,6 @@ export interface PeekSheetProps extends Hooks {
 export function PeekSheet({ header, children, action, ...hooks }: PeekSheetProps) {
   const { close } = useContext(SheetContext);
   const headerId = useId();
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [close]);
   return (
     <div class="sheet sheet--peek" data-sheet="peek" role="dialog" aria-labelledby={headerId} {...hooks}>
       <div class="sheet__header" id={headerId} data-sheet-header="">

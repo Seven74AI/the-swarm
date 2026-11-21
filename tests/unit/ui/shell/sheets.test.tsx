@@ -5,11 +5,14 @@ import { createSheetController, type SheetController } from '../../../../src/ui/
 import { SheetHost } from '../../../../src/ui/shell/SheetHost';
 import { ModalSheet, PeekSheet, SWIPE_CLOSE_PX } from '../../../../src/ui/shell/Sheet';
 import { Button } from '../../../../src/ui/primitives/Button';
+import { bindShortcuts } from '../../../../src/ui/shell/shortcuts';
+import { DEFAULT_KEY_BINDINGS } from '../../../../src/platform/settings';
+import { signal } from '@preact/signals-core';
 
 /**
  * Story 1.14 (UX-DR22): modal and peek sheets drawn by the SheetHost.
  * A modal has a scrim, a handle, a display headline and at most two actions;
- * it closes by swipe down, scrim tap, [ CLOSE ] or Esc, unless it is a decision
+ * it closes by swipe down, scrim tap, [ CLOSE ] or Esc (the close shortcut), unless it is a decision
  * sheet. It is a dialog: focus moves to the headline, stays inside, and goes
  * back to the trigger on close.
  */
@@ -27,9 +30,18 @@ beforeEach(() => {
   trigger.textContent = 'open';
   document.body.appendChild(trigger);
   render(<SheetHost sheets={sheets} />);
+  // Esc is the close shortcut (Story 1.30): it goes through the SheetController.
+  unbindKeys = bindShortcuts({
+    sheets,
+    pause: () => {},
+    settings: signal({ keyboardShortcuts: true, keyBindings: DEFAULT_KEY_BINDINGS }),
+  });
 });
 
+let unbindKeys = () => {};
+
 afterEach(() => {
+  unbindKeys();
   cleanup();
   document.body.replaceChildren();
 });

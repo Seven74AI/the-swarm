@@ -34,6 +34,11 @@ export interface SheetRequest {
   readonly render: (close: () => void) => ComponentChildren;
   /** Runs once when the sheet closes, opened or not (closed, replaced, or dropped by a modal). */
   readonly onClose?: () => void;
+  /**
+   * Whether the close shortcut (Esc, Story 1.30) may dismiss it. Default: true,
+   * except at `decision` priority, which closes only through its own choices.
+   */
+  readonly dismissible?: boolean;
 }
 
 export interface SheetEntry extends SheetRequest {
@@ -52,6 +57,16 @@ export interface SheetController {
   open(request: SheetRequest): number;
   /** Close a sheet, open or waiting. The next waiting sheet opens. Unknown ids are ignored. */
   close(id: number): void;
+  /**
+   * The close shortcut (Story 1.30): close the open sheet if it may be dismissed.
+   * Returns false when nothing is open or the open sheet is a decision.
+   */
+  dismiss(): boolean;
+}
+
+/** A decision sheet closes only through its own choices; others follow their request. */
+export function isDismissible(entry: SheetRequest): boolean {
+  return entry.dismissible ?? entry.priority !== 'decision';
 }
 
 const rank = (p: SheetPriority): number => SHEET_PRIORITIES.indexOf(p);
@@ -80,6 +95,20 @@ export function createSheetController(): SheetController {
     return focused;
   }
 
+  function close(id: number): void {
+    const s = state.value;
+    if (s.open?.id === id) {
+      const [head, ...rest] = s.queue;
+      state.value = { open: head ?? null, queue: rest };
+      s.open.onClose?.();
+      return;
+    }
+    const waiting = s.queue.find((q) => q.id === id);
+    if (!waiting) return;
+    state.value = { ...s, queue: s.queue.filter((q) => q.id !== id) };
+    waiting.onClose?.();
+  }
+
   return {
     state,
     open(request) {
@@ -102,18 +131,12 @@ export function createSheetController(): SheetController {
       for (const c of closed) c.onClose?.();
       return entry.id;
     },
-    close(id) {
-      const s = state.value;
-      if (s.open?.id === id) {
-        const [head, ...rest] = s.queue;
-        state.value = { open: head ?? null, queue: rest };
-        s.open.onClose?.();
-        return;
-      }
-      const waiting = s.queue.find((q) => q.id === id);
-      if (!waiting) return;
-      state.value = { ...s, queue: s.queue.filter((q) => q.id !== id) };
-      waiting.onClose?.();
+    close,
+    dismiss() {
+      const open = state.value.open;
+      if (!open || !isDismissible(open)) return false;
+      close(open.id);
+      return true;
     },
   };
 }

@@ -189,4 +189,40 @@ describe('SheetController', () => {
     const [waiting] = sheets.state.value.queue;
     expect(waiting.trigger).toBe(trigger);
   });
+
+  describe('dismiss (Story 1.30: the close shortcut)', () => {
+    it('closes the open sheet and opens the next one waiting', () => {
+      const sheets = createSheetController();
+      const onClose = vi.fn();
+      sheets.open(req('modal', onClose));
+      sheets.open(req('modal'));
+      expect(sheets.dismiss()).toBe(true);
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(sheets.state.value.open).not.toBeNull();
+      expect(sheets.state.value.queue).toHaveLength(0);
+    });
+
+    it('does nothing when no sheet is open', () => {
+      expect(createSheetController().dismiss()).toBe(false);
+    });
+
+    it('never dismisses a decision sheet, or a sheet opened as not dismissible', () => {
+      const sheets = createSheetController();
+      sheets.open(req('decision'));
+      expect(sheets.dismiss()).toBe(false);
+      expect(sheets.state.value.open?.priority).toBe('decision');
+
+      const other = createSheetController();
+      other.open({ ...req('offline'), dismissible: false });
+      expect(other.dismiss()).toBe(false);
+      expect(other.state.value.open).not.toBeNull();
+    });
+
+    it('dismisses a peek', () => {
+      const sheets = createSheetController();
+      sheets.open(req('peek'));
+      expect(sheets.dismiss()).toBe(true);
+      expect(sheets.state.value.open).toBeNull();
+    });
+  });
 });
