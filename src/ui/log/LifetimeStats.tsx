@@ -1,11 +1,13 @@
-import { selectBattlesWon, selectPrestige, selectStats } from '../../state/selectors';
+import { selectPrestige, selectStats, selectVictoryAchieved } from '../../state/selectors';
 import { formatFull, formatTime } from '../../utils/format';
 import './log.css';
 
 /**
  * LOG's lifetime stats (Story 1.26, UX-DR31): what the colony has done across
  * runs. Hooks: `[data-log-section="stats"]`, `[data-lifetime-stat=<id>]`
- * with its number in `[data-value]`.
+ * with its number in `[data-value]`. Once the colony has transcended, the
+ * victory is a permanent row (`[data-lifetime-stat="victory"]`, Story 5.5): a
+ * record, kept by prestige, that changes nothing in play.
  */
 export function LifetimeStats() {
   const stats = selectStats.value;
@@ -14,10 +16,11 @@ export function LifetimeStats() {
     ['eggs', 'EGGS LAID', formatFull(stats.totalEggsLaid)],
     ['taps', 'TAPS', formatFull(stats.totalClicks)],
     ['food', 'FOOD GATHERED', formatFull(prestige.totalFoodProduced)],
-    ['battles', 'BATTLES WON', formatFull(selectBattlesWon.value)],
+    ['battles', 'BATTLES WON', formatFull(stats.totalBattlesWon)],
     ['prestiges', 'PRESTIGES', formatFull(prestige.count)],
     ['time', 'TIME PLAYED', formatTime(stats.playTimeMs).toUpperCase()],
   ];
+  if (selectVictoryAchieved.value) rows.push(['victory', 'VICTORY', 'TRANSCENDED']);
   return (
     <section class="log-section" data-log-section="stats" aria-labelledby="log-stats-heading">
       <h2 class="log-heading" id="log-stats-heading">

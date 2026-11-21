@@ -52,6 +52,9 @@ describe('prestige selectors', () => {
       expect(selectOfflineEfficiency.value).toBe(getOfflineEfficiency(s));
       expect(selectOfflineAwayLimitMs.value).toBe(getOfflineCapMs(s));
     }
+    // After the ending LEGACY stays, though no system reads the record (Story 5.5).
+    gameState.value = { ...createInitialState(), victoryAchieved: true };
+    expect(selectLegacyUnlocked.value).toBe(true);
     const id = PRESTIGE_REQUIREMENTS[0].id;
     expect(selectPrestigeRequirementMet(id)).toBe(selectPrestigeRequirementMet(id));
   });

@@ -35,7 +35,7 @@ function oldSave(phase: string, count: number, amounts: Record<(typeof SPACE_KEY
       prestige: { ...s.prestige, count, legacyPoints: 9, lifetimeLpEarned: 30 },
       prestigeTree: { purchased: ['egg_laying_bonus'] },
       victoryAchieved: true,
-      stats: { totalEggsLaid: 500, totalClicks: 200, playTimeMs: 1000 },
+      stats: { ...s.stats, totalEggsLaid: 500, totalClicks: 200, playTimeMs: 1000 },
     },
   };
 }
@@ -53,7 +53,8 @@ const migrated = (d: SaveData): GameState => migrateSave(d, FROM, TO).gameState;
 function expectRecordKept(before: GameState, after: GameState): void {
   expect(after.prestige).toEqual(before.prestige);
   expect(after.prestigeTree).toEqual(before.prestigeTree);
-  expect(after.stats).toEqual(before.stats);
+  // Later steps may add a stat (v33: the lifetime battles tally); none the save held changes.
+  expect(after.stats).toMatchObject(before.stats);
   expect(after.lifetime).toEqual(before.lifetime);
   expect(after.victoryAchieved).toBe(before.victoryAchieved);
 }

@@ -82,7 +82,8 @@ describe('LifetimeStats', () => {
   it('shows the lifetime numbers from the state', () => {
     gameState.value = makeState({
       phase: Phase.COLONY,
-      stats: { totalEggsLaid: 1234, totalClicks: 56, playTimeMs: 0 },
+      stats: { totalEggsLaid: 1234, totalClicks: 56, playTimeMs: 0, totalBattlesWon: 7 },
+      // This run's battles (the Combat goal) are not the lifetime tally (Story 5.5).
       battlesWon: 3,
       prestige: { count: 2, totalFoodProduced: 98765 },
     });
@@ -91,9 +92,30 @@ describe('LifetimeStats', () => {
     expect(stat('eggs')).toBe(formatFull(1234));
     expect(stat('taps')).toBe(formatFull(56));
     expect(stat('food')).toBe(formatFull(98765));
-    expect(stat('battles')).toBe(formatFull(3));
+    expect(stat('battles')).toBe(formatFull(7));
     expect(stat('prestiges')).toBe(formatFull(2));
     expect(container.querySelector('[data-lifetime-stat="time"] [data-value]')).not.toBeNull();
+  });
+
+  it('shows no victory before the ending (Story 5.5)', () => {
+    gameState.value = makeState({ phase: Phase.SPACE, victoryAchieved: false });
+    const { container } = render(<LifetimeStats />);
+    expect(container.querySelector('[data-lifetime-stat="victory"]')).toBeNull();
+  });
+
+  it('records the victory as a permanent entry, in every run after it (Story 5.5)', () => {
+    for (const s of [
+      makeState({ phase: Phase.TRANSCENDENCE, victoryAchieved: true }),
+      // A later run, after a prestige: the record stays.
+      makeState({ phase: Phase.EGG_LAYING, victoryAchieved: true, prestige: { count: 3 } }),
+    ]) {
+      gameState.value = s;
+      const { container, unmount } = render(<LifetimeStats />);
+      const row = container.querySelector('[data-lifetime-stat="victory"]');
+      expect(row).not.toBeNull();
+      expect(row!.querySelector('[data-value]')!.textContent!.length).toBeGreaterThan(0);
+      unmount();
+    }
   });
 });
 

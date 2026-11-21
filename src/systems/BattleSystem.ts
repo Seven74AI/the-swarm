@@ -182,6 +182,8 @@ export class BattleSystem {
         venom: workingState.combatResources.venom + venomGained,
       },
       battlesWon,
+      // The lifetime tally LOG shows (Story 5.5): it survives prestige, `battlesWon` doesn't.
+      stats: { ...workingState.stats, totalBattlesWon: workingState.stats.totalBattlesWon + (victory ? 1 : 0) },
       nextEnemy,
       battlesLost: workingState.battlesLost + (defeat ? 1 : 0),
       rng: rng.state,

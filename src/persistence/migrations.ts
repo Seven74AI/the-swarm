@@ -821,6 +821,22 @@ function migrateV31toV32(data: SaveData): SaveData {
   return { ...data, version: 32, gameState: { ...gs, resources: { ...resources, ...cleared } } as unknown as GameState };
 }
 
+/**
+ * v32 → v33 (Story 5.5): `stats.totalBattlesWon`, LOG's lifetime tally of
+ * battles won. Prestige now resets `battlesWon` (this run's count, the Combat
+ * goal, Story 5.3); before v33 it kept it, so a save's `battlesWon` is its
+ * lifetime count and the tally starts there. A tally already at least that is
+ * kept; a save without stats is left for SaveManager's defaults.
+ */
+function migrateV32toV33(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  const stats = gs.stats;
+  if (stats === null || typeof stats !== 'object') return { ...data, version: 33 };
+  const st = stats as Record<string, unknown>;
+  const totalBattlesWon = Math.max(wholeCount(gs.battlesWon), wholeCount(st.totalBattlesWon));
+  return { ...data, version: 33, gameState: { ...gs, stats: { ...st, totalBattlesWon } } as unknown as GameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -854,6 +870,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   29: migrateV29toV30,
   30: migrateV30toV31,
   31: migrateV31toV32,
+  32: migrateV32toV33,
 };
 
 /**

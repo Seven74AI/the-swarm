@@ -93,11 +93,12 @@ export function getUnmetRequirements(state: GameState): UnmetRequirement[] {
  * LOG → LEGACY shows from the moment the prestige condition is first met, and
  * stays (Story 5.1). Within a run nothing the condition reads goes down
  * (building levels only rise, lifetime totals never reset), so a met condition
- * stays met until a prestige; after one, `prestige.count` keeps the section,
- * and the ending (which leads to LEGACY) keeps it too.
+ * stays met until a prestige; after one, `prestige.count` keeps the section.
+ * The ending keeps it too, but that is the UI's to say (`selectLegacyUnlocked`):
+ * no system reads the victory record (Story 5.5).
  */
 export function isLegacyRevealed(state: GameState): boolean {
-  return state.prestige.count > 0 || state.victoryAchieved || isPrestigeAvailable(state);
+  return state.prestige.count > 0 || isPrestigeAvailable(state);
 }
 
 /**

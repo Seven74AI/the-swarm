@@ -483,9 +483,10 @@ export function selectMutationStatus(id: string): ReadonlySignal<MutationStatus>
 
 /**
  * LOG shows LEGACY from the moment the GDD's prestige unlock condition is first met, and keeps it
- * (`isLegacyRevealed`, Story 5.1): for the rest of the run, after a prestige and after the ending.
+ * (`isLegacyRevealed`, Story 5.1): for the rest of the run, after a prestige and after the ending
+ * (the victory record, read only here and by the screens, Story 5.5).
  */
-export const selectLegacyUnlocked = computed(() => isLegacyRevealed(gameState.value));
+export const selectLegacyUnlocked = computed(() => gameState.value.victoryAchieved || isLegacyRevealed(gameState.value));
 
 // --- LOG → LEGACY: the prestige card and the Legacy tree (Story 1.36) --------------------------------
 

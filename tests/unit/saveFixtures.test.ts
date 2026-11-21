@@ -87,6 +87,9 @@ function expectValidState(gs: GameState, where: string, { integers = true } = {}
     expect(p.count, `${where}: ${key}.count >= 0`).toBeGreaterThanOrEqual(0);
     expect(p.progress, `${where}: ${key}.progress >= 0`).toBeGreaterThanOrEqual(0);
   }
+  // Story 5.5: the lifetime battles tally counts this run's wins and every earlier run's.
+  expect(Number.isInteger(gs.stats.totalBattlesWon), `${where}: stats.totalBattlesWon is an integer`).toBe(true);
+  expect(gs.stats.totalBattlesWon, `${where}: stats.totalBattlesWon >= battlesWon`).toBeGreaterThanOrEqual(gs.battlesWon);
   // Story 5.2: lifetime LP counts the LP held and the LP spent, so it is never below the LP held.
   const { legacyPoints, lifetimeLpEarned } = gs.prestige;
   expect(Number.isInteger(lifetimeLpEarned), `${where}: prestige.lifetimeLpEarned is an integer`).toBe(true);

@@ -183,6 +183,11 @@ export interface GameState {
     totalEggsLaid: number;
     totalClicks: number;
     playTimeMs: number;
+    /**
+     * Battles won across every run (Story 5.5, save v33): LOG's lifetime
+     * tally. `battlesWon` is this run's count, the Combat goal, reset by prestige.
+     */
+    totalBattlesWon: number;
   };
   unlockedPanels: string[];
   lastSaveTimestamp: number;
@@ -473,6 +478,7 @@ export function createInitialState(): GameState {
       totalEggsLaid: 0,
       totalClicks: 0,
       playTimeMs: 0,
+      totalBattlesWon: 0,
     },
     unlockedPanels: [],
     lastSaveTimestamp: 0,

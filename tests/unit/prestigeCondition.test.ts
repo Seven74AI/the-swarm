@@ -115,8 +115,8 @@ describe('LOG → LEGACY is revealed when the condition is first met, and stays'
     expect(isLegacyRevealed(after)).toBe(true);
   });
 
-  it('stays after the ending, which leads to LEGACY', () => {
-    expect(isLegacyRevealed({ ...createInitialState(), victoryAchieved: true })).toBe(true);
+  it('the victory record is not part of the condition: the UI keeps LEGACY after the ending (Story 5.5)', () => {
+    expect(isLegacyRevealed({ ...createInitialState(), victoryAchieved: true })).toBe(false);
   });
 
   it("no requirement's current value drops while a run plays, so the reveal cannot flicker off", () => {
