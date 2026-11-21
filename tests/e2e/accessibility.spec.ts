@@ -122,6 +122,18 @@ test.describe('sheets', () => {
     expect(await axe(page)).toEqual([]);
   });
 
+  test('LOG → LEGACY with what the next prestige needs passes axe and reads no decoration (Story 5.1)', async ({ page }) => {
+    // A run after a prestige: LEGACY stays, and every requirement is short.
+    await seed(page, {
+      ...COMBAT,
+      prestige: { count: 1, legacyPoints: 0, totalFoodProduced: 0, totalWoodProduced: 0, totalStoneProduced: 0, totalNectarProduced: 0 },
+    });
+    await openTab(page, 'log');
+    await expect(page.locator('[data-prestige-needs] li[data-requirement]').first()).toBeVisible();
+    expect(await axe(page)).toEqual([]);
+    expect((await spokenTree(page)).split('\n').filter((l) => DECORATION.test(l))).toEqual([]);
+  });
+
   test('the battle summary with its cause and > CHANGE passes axe and reads no decoration (Story 4.3)', async ({ page }) => {
     // One soldier cannot beat the beetle: the summary shows a cause and a counter to change to.
     await seed(page, { ...COMBAT, combatSoldiers: 1, buildings: { chitin_armory: { level: 1 }, silk_weaving: { level: 1 } } });

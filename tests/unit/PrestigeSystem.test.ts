@@ -1,8 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 import {
-  isPrestigeAvailable,
-  getUnmetRequirements,
   calculateLegacyPoints,
   prestige,
 } from '../../src/systems/PrestigeSystem';
@@ -12,106 +10,8 @@ import {
  * PrestigeSystem module does not exist yet, these tests document the API.
  */
 describe('PrestigeSystem', () => {
-  let state: GameState;
-
-  beforeEach(() => {
-    state = createInitialState();
-  });
-
-  describe('isPrestigeAvailable', () => {
-    it('returns false when no buildings are upgraded', () => {
-      expect(isPrestigeAvailable(state)).toBe(false);
-    });
-
-    it('returns false when buildings are below level 5', () => {
-      state.buildings.barracks.level = 4;
-      state.buildings.walls.level = 4;
-      state.buildings.warehouse.level = 4;
-      expect(isPrestigeAvailable(state)).toBe(false);
-    });
-
-    it('returns false when buildings meet level 5 but totalFoodProduced < 100K', () => {
-      state.buildings.barracks.level = 5;
-      state.buildings.walls.level = 5;
-      state.buildings.warehouse.level = 5;
-      state.prestige.totalFoodProduced = 50_000;
-      expect(isPrestigeAvailable(state)).toBe(false);
-    });
-
-    it('returns false when totalFoodProduced >= 100K but buildings are below level 5', () => {
-      state.prestige.totalFoodProduced = 150_000;
-      state.buildings.barracks.level = 5;
-      state.buildings.walls.level = 4;
-      state.buildings.warehouse.level = 5;
-      expect(isPrestigeAvailable(state)).toBe(false);
-    });
-
-    it('returns true when all buildings are level 5+ and totalFoodProduced >= 100K', () => {
-      state.buildings.barracks.level = 5;
-      state.buildings.walls.level = 5;
-      state.buildings.warehouse.level = 5;
-      state.prestige.totalFoodProduced = 100_000;
-      state.prestige.totalWoodProduced = 50_000;
-      state.prestige.totalStoneProduced = 50_000;
-      state.prestige.totalNectarProduced = 25_000;
-      expect(isPrestigeAvailable(state)).toBe(true);
-    });
-
-    it('returns true when buildings exceed level 5 and food far exceeds 100K', () => {
-      state.buildings.barracks.level = 10;
-      state.buildings.walls.level = 8;
-      state.buildings.warehouse.level = 7;
-      state.prestige.totalFoodProduced = 500_000;
-      state.prestige.totalWoodProduced = 50_000;
-      state.prestige.totalStoneProduced = 50_000;
-      state.prestige.totalNectarProduced = 25_000;
-      expect(isPrestigeAvailable(state)).toBe(true);
-    });
-  });
-
-  describe('getUnmetRequirements', () => {
-    it('lists all buildings when none meet level 5', () => {
-      const unmet = getUnmetRequirements(state);
-      expect(unmet).toContain('barracks level 5+');
-      expect(unmet).toContain('walls level 5+');
-      expect(unmet).toContain('warehouse level 5+');
-      expect(unmet).toContain('100K total food produced');
-    });
-
-    it('lists only missing buildings when one is at level 5', () => {
-      state.buildings.barracks.level = 5;
-      state.prestige.totalFoodProduced = 0;
-      const unmet = getUnmetRequirements(state);
-      expect(unmet).not.toContain('barracks level 5+');
-      expect(unmet).toContain('walls level 5+');
-      expect(unmet).toContain('warehouse level 5+');
-      expect(unmet).toContain('100K total food produced');
-    });
-
-    it('lists only food requirement when all buildings meet level 5', () => {
-      state.buildings.barracks.level = 5;
-      state.buildings.walls.level = 5;
-      state.buildings.warehouse.level = 5;
-      state.prestige.totalFoodProduced = 80_000;
-      const unmet = getUnmetRequirements(state);
-      expect(unmet).not.toContain('barracks level 5+');
-      expect(unmet).not.toContain('walls level 5+');
-      expect(unmet).not.toContain('warehouse level 5+');
-      expect(unmet).toContain('100K total food produced');
-    });
-
-    it('returns empty array when all requirements are met', () => {
-      state.buildings.barracks.level = 5;
-      state.buildings.walls.level = 5;
-      state.buildings.warehouse.level = 5;
-      state.prestige.totalFoodProduced = 100_000;
-      state.prestige.totalWoodProduced = 50_000;
-      state.prestige.totalStoneProduced = 50_000;
-      state.prestige.totalNectarProduced = 25_000;
-      const unmet = getUnmetRequirements(state);
-      expect(unmet).toEqual([]);
-    });
-  });
+  // The unlock condition (isPrestigeAvailable, getUnmetRequirements) is tested from its balance data
+  // in tests/unit/prestigeCondition.test.ts (Story 5.1).
 
   describe('calculateLegacyPoints', () => {
     it('returns 0 for food produced < 10 (log10 < 1)', () => {

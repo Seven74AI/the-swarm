@@ -257,6 +257,17 @@ for (const setup of SETUPS) {
       expect((await layoutProblems(page)).map((p) => `battle summary: ${p}`)).toEqual([]);
     });
 
+    test('LOG → LEGACY with what the next prestige needs fits the screen too (Story 5.1)', async ({ page }) => {
+      // A run after a prestige: LEGACY stays, and every requirement is short.
+      await seed(page, setup, {
+        ...SPACE,
+        prestige: { count: 1, legacyPoints: 0, totalFoodProduced: 0, totalWoodProduced: 0, totalStoneProduced: 0, totalNectarProduced: 0 },
+      });
+      await openTab(page, 'log');
+      await expect(page.locator('[data-prestige-needs] li[data-requirement]').first()).toBeVisible();
+      expect((await layoutProblems(page)).map((p) => `legacy: ${p}`)).toEqual([]);
+    });
+
     test('the settings sheet and the import sheets fit the screen too (Story 2.11)', async ({ page }) => {
       await seed(page, setup);
       const openSettings = async () => {

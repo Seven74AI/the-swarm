@@ -34,8 +34,11 @@ import {
   calculateLegacyPoints,
   canPurchasePrestigeUpgrade,
   getPhaseScore,
-  getUnmetRequirements,
+  isLegacyRevealed,
   isPrestigeAvailable,
+  isRequirementMet,
+  PRESTIGE_REQUIREMENTS,
+  type PrestigeRequirementId,
 } from '../systems/PrestigeSystem';
 import { getOfflineCapMs, getOfflineEfficiency } from '../systems/OfflineProgression';
 import { entropyMeter } from '../systems/EntropySystem';
@@ -303,7 +306,7 @@ const conditionCurrents = new Map<GoalCondition, ReadonlySignal<number>>();
 const conditionTargets = new Map<GoalCondition, ReadonlySignal<number>>();
 const conditionMets = new Map<GoalCondition, ReadonlySignal<boolean>>();
 
-function cached<T>(map: Map<GoalCondition, ReadonlySignal<T>>, c: GoalCondition, read: () => T): ReadonlySignal<T> {
+function cached<K, T>(map: Map<K, ReadonlySignal<T>>, c: K, read: () => T): ReadonlySignal<T> {
   let sel = map.get(c);
   if (!sel) {
     sel = computed(read);
@@ -461,22 +464,29 @@ export function selectMutationStatus(id: string): ReadonlySignal<MutationStatus>
 // --- LOG: the LEGACY section (Story 1.26, UX-DR31) --------------------------------------------
 
 /**
- * LOG shows LEGACY once the GDD's prestige unlock condition is met (`isPrestigeAvailable`), and keeps
- * it for the runs after: once the player has prestiged (the Legacy tree spends LP) or won (the ending
- * leads to LEGACY, EXPERIENCE.md).
+ * LOG shows LEGACY from the moment the GDD's prestige unlock condition is first met, and keeps it
+ * (`isLegacyRevealed`, Story 5.1): for the rest of the run, after a prestige and after the ending.
  */
-export const selectLegacyUnlocked = computed(() => {
-  const s = gameState.value;
-  return s.prestige.count > 0 || s.victoryAchieved || isPrestigeAvailable(s);
-});
+export const selectLegacyUnlocked = computed(() => isLegacyRevealed(gameState.value));
 
 // --- LOG → LEGACY: the prestige card and the Legacy tree (Story 1.36) --------------------------------
 
 /** The GDD's prestige condition is met: PRESTIGE can be held. */
 export const selectPrestigeAvailable = computed(() => isPrestigeAvailable(gameState.value));
 
-/** What prestige still needs, one requirement per line; empty once it is available. */
-export const selectPrestigeShortfall = computed(() => getUnmetRequirements(gameState.value).join('\n'));
+const prestigeRequirementCurrents = new Map<PrestigeRequirementId, ReadonlySignal<number>>();
+const prestigeRequirementMets = new Map<PrestigeRequirementId, ReadonlySignal<boolean>>();
+const requirementOf = (id: PrestigeRequirementId) => PRESTIGE_REQUIREMENTS.find((r) => r.id === id)!;
+
+/** Where one prestige requirement stands now: a building level or a lifetime total (whole). */
+export function selectPrestigeRequirementCurrent(id: PrestigeRequirementId): ReadonlySignal<number> {
+  return cached(prestigeRequirementCurrents, id, () => requirementOf(id).current(gameState.value));
+}
+
+/** Whether one prestige requirement is met, decided by PrestigeSystem (never by comparing in the UI). */
+export function selectPrestigeRequirementMet(id: PrestigeRequirementId): ReadonlySignal<boolean> {
+  return cached(prestigeRequirementMets, id, () => isRequirementMet(requirementOf(id), gameState.value));
+}
 
 /** Legacy points the next prestige awards: the same scoring `prestige()` uses (#188). */
 export const selectProjectedLegacyPoints = computed(() => {

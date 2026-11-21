@@ -3,6 +3,7 @@ import { resetEntropy, calculateEntropyPrestigeBonus } from './EntropySystem';
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
 import { PRESTIGE_UPGRADES, type PrestigeUpgradeId } from '../data/prestigeTree';
 import { OFFLINE_RESEARCH_ID } from './ResearchSystem';
+import { prestigeBalance } from '../data/balance/prestige';
 
 /**
  * Map phase names to their numeric position.
@@ -30,40 +31,83 @@ export function getPhaseScore(currentPhase: string): number {
   return sum;
 }
 
+type UnlockBuilding = keyof typeof prestigeBalance.unlock.buildingLevels;
+type UnlockProduced = keyof typeof prestigeBalance.unlock.lifetimeProduced;
+
+/** One requirement of the prestige condition: a building level or a lifetime total. */
+export type PrestigeRequirementId = UnlockBuilding | UnlockProduced;
+
+export interface PrestigeRequirement {
+  readonly id: PrestigeRequirementId;
+  readonly kind: 'building' | 'produced';
+  /** The whole current value: the building's level, or the lifetime total (floored). */
+  readonly current: (state: GameState) => number;
+  /** The value to reach, from `data/balance/prestige.ts`. */
+  readonly target: number;
+}
+
+/** A requirement still short: what it is, where it stands and what it needs. */
+export interface UnmetRequirement {
+  readonly id: PrestigeRequirementId;
+  readonly kind: PrestigeRequirement['kind'];
+  readonly current: number;
+  readonly target: number;
+}
+
+const LIFETIME_TOTAL: Readonly<Record<UnlockProduced, keyof GameState['prestige']>> = {
+  food: 'totalFoodProduced',
+  wood: 'totalWoodProduced',
+  stone: 'totalStoneProduced',
+  nectar: 'totalNectarProduced',
+};
+
 /**
- * Check whether prestige is available for the current game state.
- * Requirements:
- *   - All colony buildings at level 5+
- *   - 100K+ total food produced (lifetime)
- *   - 50K+ total wood produced (lifetime)
- *   - 50K+ total stone produced (lifetime)
- *   - 25K+ total nectar produced (lifetime)
+ * The prestige condition (Story 5.1, FR28), one entry per value in
+ * `prestigeBalance.unlock`: buildings first, then lifetime production.
  */
+export const PRESTIGE_REQUIREMENTS: readonly PrestigeRequirement[] = [
+  ...(Object.entries(prestigeBalance.unlock.buildingLevels) as [UnlockBuilding, number][]).map(
+    ([id, target]): PrestigeRequirement => ({ id, kind: 'building', target, current: (s) => s.buildings[id].level }),
+  ),
+  ...(Object.entries(prestigeBalance.unlock.lifetimeProduced) as [UnlockProduced, number][]).map(
+    ([id, target]): PrestigeRequirement => ({
+      id,
+      kind: 'produced',
+      target,
+      current: (s) => Math.floor(s.prestige[LIFETIME_TOTAL[id]]),
+    }),
+  ),
+];
+
+/** Whether one requirement is met: its current value has reached its target. */
+export function isRequirementMet(r: PrestigeRequirement, state: GameState): boolean {
+  return r.current(state) >= r.target;
+}
+
+/** Whether prestige is available: every requirement in `PRESTIGE_REQUIREMENTS` is met. */
 export function isPrestigeAvailable(state: GameState): boolean {
-  const buildings = state.buildings;
-  if (buildings.barracks.level < 5) return false;
-  if (buildings.walls.level < 5) return false;
-  if (buildings.warehouse.level < 5) return false;
-  if (state.prestige.totalFoodProduced < 100_000) return false;
-  if (state.prestige.totalWoodProduced < 50_000) return false;
-  if (state.prestige.totalStoneProduced < 50_000) return false;
-  if (state.prestige.totalNectarProduced < 25_000) return false;
-  return true;
+  return PRESTIGE_REQUIREMENTS.every((r) => isRequirementMet(r, state));
+}
+
+/** The requirements still short, in table order; empty exactly when prestige is available. */
+export function getUnmetRequirements(state: GameState): UnmetRequirement[] {
+  return PRESTIGE_REQUIREMENTS.filter((r) => !isRequirementMet(r, state)).map((r) => ({
+    id: r.id,
+    kind: r.kind,
+    current: r.current(state),
+    target: r.target,
+  }));
 }
 
 /**
- * Return a list of unmet prestige requirements.
+ * LOG → LEGACY shows from the moment the prestige condition is first met, and
+ * stays (Story 5.1). Within a run nothing the condition reads goes down
+ * (building levels only rise, lifetime totals never reset), so a met condition
+ * stays met until a prestige; after one, `prestige.count` keeps the section,
+ * and the ending (which leads to LEGACY) keeps it too.
  */
-export function getUnmetRequirements(state: GameState): string[] {
-  const unmet: string[] = [];
-  if (state.buildings.barracks.level < 5) unmet.push('barracks level 5+');
-  if (state.buildings.walls.level < 5) unmet.push('walls level 5+');
-  if (state.buildings.warehouse.level < 5) unmet.push('warehouse level 5+');
-  if (state.prestige.totalFoodProduced < 100_000) unmet.push('100K total food produced');
-  if (state.prestige.totalWoodProduced < 50_000) unmet.push('50K total wood produced');
-  if (state.prestige.totalStoneProduced < 50_000) unmet.push('50K total stone produced');
-  if (state.prestige.totalNectarProduced < 25_000) unmet.push('25K total nectar produced');
-  return unmet;
+export function isLegacyRevealed(state: GameState): boolean {
+  return state.prestige.count > 0 || state.victoryAchieved || isPrestigeAvailable(state);
 }
 
 /**
