@@ -95,9 +95,11 @@ const SEED = {
 test.describe('Golden Path — Full Progression', () => {
   test.beforeEach(async ({ page }) => {
     // Inject seed BEFORE page load (avoids beforeunload overwrite)
+    // A fresh timestamp per test: the module-level one ages over the file's run,
+    // and past 30 s the offline summary sheet opens and covers NEST.
     await page.addInitScript((seedStr) => {
       localStorage.setItem('the_swarm_save', seedStr);
-    }, JSON.stringify(SEED));
+    }, JSON.stringify({ ...SEED, timestamp: Date.now() }));
 
     await page.goto('/');
 

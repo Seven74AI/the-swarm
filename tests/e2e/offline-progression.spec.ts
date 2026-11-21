@@ -715,7 +715,9 @@ test.describe('Offline Progression — Edge Cases', () => {
 
     // Game should be interactive — click the egg button should work
     await expect(page.locator('#click-egg')).toBeVisible({ timeout: 3000 });
-    await page.locator('#click-egg').click();
+    // A decision sheet may open right after (the seeded play time makes one due);
+    // it covers the bottom zone, so press the button programmatically.
+    await page.locator('#click-egg').evaluate((el) => (el as HTMLElement).click());
 
     // Verify click registered (eggs changed)
     const eggsEl = page.locator('[data-stat="resources.eggs"] .critical-value');
