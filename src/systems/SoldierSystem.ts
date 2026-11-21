@@ -22,18 +22,20 @@ export class SoldierSystem {
   constructor(private bus: EventBus) {}
 
   /**
-   * Recruit a soldier: convert 1 worker to 1 soldier after training time.
-   * Workers reduce immediately; soldier added via pipeline.
+   * Recruit a soldier: `combatBalance.army.workersPerSoldier` workers become
+   * 1 soldier after training time (Story 4.4). Workers reduce immediately;
+   * the soldier is added via the pipeline and eats from now on.
    */
   recruitSoldier(state: GameState): GameState {
-    if (state.resources.workers < 1) return state;
+    const workers = combatBalance.army.workersPerSoldier;
+    if (state.resources.workers < workers) return state;
     if (state.resources.food < B.costFood) return state;
 
     const result: GameState = {
       ...state,
       resources: {
         ...state.resources,
-        workers: state.resources.workers - 1,
+        workers: state.resources.workers - workers,
         food: state.resources.food - B.costFood,
       },
       soldierPipeline: {

@@ -6,6 +6,7 @@ import { creditWhole, upgradeCost } from '../utils/math';
 import { chainedShare, completedShare } from '../utils/decay';
 import { MS_PER_SEC, TICK_MS } from '../data/constants';
 import { resourceBalance } from '../data/balance/resources';
+import { combatBalance } from '../data/balance/combat';
 import { roleBalance } from '../data/balance/roles';
 import { getEffects } from './BuildingSystem';
 import { productionMultiplier, workerEfficiency } from '../engine/ProgressionCurve';
@@ -19,7 +20,7 @@ import { getMutationEffects } from './MutationSystem';
 export interface ResourceRates {
   /** Gross food produced per second (before consumption). */
   foodProducedPerSec: number;
-  /** Food consumed per second (workers × upkeep). */
+  /** Food consumed per second: workers × their upkeep, plus the army's upkeep (Story 4.4). */
   foodConsumedPerSec: number;
   /** Wood produced per second: gatherers plus forest territory. */
   woodPerSec: number;
@@ -27,6 +28,31 @@ export interface ResourceRates {
   stonePerSec: number;
   /** Nectar produced per second: foragers plus meadow territory. */
   nectarPerSec: number;
+}
+
+/**
+ * Soldiers alive (Story 4.4): trained and in training. Training never changes
+ * the total (every soldier who leaves the pipeline joins the army), so the
+ * army's upkeep stays the same across any step, and offline catch-up's
+ * closed-form food matches the live ticks.
+ */
+export function armySize(state: GameState): number {
+  return state.combatSoldiers + state.soldierPipeline.count;
+}
+
+/** Food the army eats per second (`combatBalance.army.upkeepFoodPerSec` a soldier, Story 4.4). */
+export function armyUpkeepPerSec(state: GameState): number {
+  return armySize(state) * combatBalance.army.upkeepFoodPerSec;
+}
+
+/**
+ * Starving (Story 1.32, Story 4.4): the food store is empty and the colony
+ * eats more than it makes. A starving colony trains no new soldiers.
+ */
+export function isStarving(state: GameState, territoryBonuses?: TerritoryBonuses): boolean {
+  if (state.resources.food > 0) return false;
+  const r = computeResourceRates(state, territoryBonuses);
+  return r.foodProducedPerSec - r.foodConsumedPerSec < 0;
 }
 
 /**
@@ -55,7 +81,7 @@ export function computeResourceRates(
     * prodMult * workerEff * prestigeBonuses.food * prestigeBonuses.workerEfficiency
     * (1 + mutationEffects.gatherRate)
   );
-  const foodConsumedPerSec = workers * resourceBalance.upkeepFoodPerSec;
+  const foodConsumedPerSec = workers * resourceBalance.upkeepFoodPerSec + armyUpkeepPerSec(state);
 
   // Basic resources from the roles (Story 3.4, FR36): no territory needed.
   const roleMult = prodMult * workerEff * prestigeBonuses.workerEfficiency;
@@ -269,8 +295,8 @@ export class ResourceSystem {
         remainder = { ...remainder, [key]: r.remainder };
         return r.amount;
       };
-      const workers = state.resources.workers;
-      if (workers > 0) {
+      // Workers and soldiers eat (Story 4.4): an army with no worker left still eats.
+      if (state.resources.workers > 0 || armySize(state) > 0) {
         const netFood = (rates.foodProducedPerSec - rates.foodConsumedPerSec) * dtSec;
         const before = food;
         food = credit('food', food, netFood);

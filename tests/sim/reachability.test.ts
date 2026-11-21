@@ -20,6 +20,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SimRunner, type SimResult } from '../../src/sim/runner';
+import { defaultPolicy, maxArmyPolicy, type PlayerPolicy } from '../../src/sim/policy';
 import { dailySchedule, type CheckIn } from '../../src/sim/schedule';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 import { Phase } from '../../src/phases/phases';
@@ -88,12 +89,12 @@ const conditionValues = (goal: Transition, s: GameState): number[] => goal.condi
  * Play from `entry` until the phase's goal commits into the next phase, the
  * ceiling runs out, or a whole day passes without progress on any condition.
  */
-function reach(entry: GameState, ceiling: Ceiling): Reach {
+function reach(entry: GameState, ceiling: Ceiling, policy: PlayerPolicy): Reach {
   const goal = goalFor(entry.phase);
   if (!goal) throw new Error(`no goal for ${entry.phase}`);
   const days = Math.ceil(ceiling.realMs / DAY_MS);
   const schedule = dailySchedule(days);
-  const runner = new SimRunner({ state: entry, seed: SEED, schedule, stopWhen: (s) => s.phase === goal.to });
+  const runner = new SimRunner({ state: entry, seed: SEED, schedule, policy, stopWhen: (s) => s.phase === goal.to });
   const commits: { from: Phase; to: Phase }[] = [];
   runner.bus.subscribe('phase_committed', (e) => commits.push(e));
   let best = conditionValues(goal, runner.state);
@@ -115,7 +116,16 @@ function reach(entry: GameState, ceiling: Ceiling): Reach {
   return { reached: result.state.phase === goal.to, prestiged: result.prestiged, stalled, result, end: result.state, commits };
 }
 
-describe('every MVP phase goal is reachable (Story 3.8)', () => {
+/**
+ * Story 4.4: the max-army player ("train the maximum, then fight") must reach
+ * every goal too: a bigger army costs food, never the run.
+ */
+const POLICIES: readonly (readonly [string, PlayerPolicy])[] = [
+  ['default player', defaultPolicy],
+  ['max-army player', maxArmyPolicy],
+];
+
+for (const [name, policy] of POLICIES) describe(`every MVP phase goal is reachable (Story 3.8), ${name}`, () => {
   // Each phase starts where the one before committed: computed once, in order.
   const runs = new Map<MvpPhase, Reach>();
   const entryOf = (phase: MvpPhase): GameState => {
@@ -128,7 +138,7 @@ describe('every MVP phase goal is reachable (Story 3.8)', () => {
   const runOf = (phase: MvpPhase): Reach => {
     let r = runs.get(phase);
     if (!r) {
-      r = reach(entryOf(phase), ceilingFor(phase));
+      r = reach(entryOf(phase), ceilingFor(phase), policy);
       runs.set(phase, r);
     }
     return r;

@@ -85,6 +85,27 @@ test.describe('FRONT · WAR', () => {
     await expect.poll(async () => digits(await training.textContent())).toBeGreaterThan(before);
   });
 
+  test('the army upkeep sits next to the soldier count, and TRAIN names its ongoing cost (Story 4.4)', async ({ page }) => {
+    await seed(page, combat({ combatSoldiers: 8 }));
+    await openTab(page, 'front', 'war');
+    const line = war(page).locator('.war-line', { has: page.locator('[data-soldiers]') });
+    const upkeep = line.locator('[data-army-upkeep]');
+    await expect(upkeep).toBeVisible();
+    await expect(upkeep).toContainText('UPKEEP');
+    await expect(upkeep).toContainText('FOOD/S');
+    expect(Number((await upkeep.textContent())!.replace(/[^\d.]/g, ''))).toBeGreaterThan(0);
+    await expect(war(page).locator('#soldier-panel')).toContainText(/1 WORKER/);
+  });
+
+  test('a starving colony trains no soldiers: TRAIN is disabled and says why (Story 4.4)', async ({ page }) => {
+    // An empty store, nobody gathering, and an army that eats far more than the idle workers make.
+    await seed(page, combat({ combatSoldiers: 500, resources: { eggs: 0, larvae: 0, workers: 20, food: 0, nestCapacity: 1000, wood: 0, stone: 0, nectar: 0 }, workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 4, researchers: 0 } }));
+    await openTab(page, 'front', 'war');
+    const train = war(page).locator('[data-action="train-soldier"]');
+    await expect(train).toHaveAttribute('aria-disabled', 'true');
+    await expect(war(page).locator('#soldier-panel')).toContainText('the colony is starving');
+  });
+
   test('FIGHT runs a round counter on the enemy card, then the battle summary opens', async ({ page }) => {
     await seed(page, combat({ combatSoldiers: 50, equipment: { weapon: 5, armor: 5 } }));
     await openTab(page, 'front', 'war');

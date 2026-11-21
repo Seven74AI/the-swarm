@@ -1,11 +1,12 @@
-import { createInitialState } from '../state/GameState';
+import { createInitialState, type GameState } from '../state/GameState';
 import { Phase, PHASE_ORDER } from '../phases/phases';
 import { DAY_MS } from '../data/constants';
 import { simBalance } from '../data/balance/sim';
 import { pacingReportDefaults, pacingTargets, type PacingTargets, type PhaseTarget } from '../data/balance/pacing';
 import { formatTime } from '../utils/format';
-import { runSim, type SimResult } from './runner';
-import { dailySchedule } from './schedule';
+import { SimRunner, runSim, type SimResult } from './runner';
+import { dailySchedule, type CheckInSchedule } from './schedule';
+import { defaultPolicy, maxArmyPolicy, type PlayerPolicy } from './policy';
 import type { CheckInRecord, EggSample, ProbeReport } from './probes';
 
 export type { PacingTargets, PhaseTarget } from '../data/balance/pacing';
@@ -145,6 +146,95 @@ export interface PacingReport {
   readonly idle: readonly CheckInRecord[];
   /** Check-ins of `targets.criticalMoments.phase` where food, and capacity, was critical (Story 3.11). */
   readonly critical: { readonly food: number; readonly capacity: number };
+  /** The default and the max-army player through Combat from the same seed (Story 4.4); absent when not run. */
+  readonly army?: ArmyComparison;
+}
+
+/** One player's run through Combat (Story 4.4). */
+export interface ArmyRun {
+  /** Every check-in played, by its index in the whole schedule. */
+  readonly checkIns: readonly CheckInRecord[];
+  /** The goal committed: the run left Combat. */
+  readonly reached: boolean;
+  /** The check-in (in the whole schedule) it left Combat in; null when it never did. */
+  readonly endedInCheckIn: number | null;
+  readonly activeMs: number;
+  readonly elapsedMs: number;
+  readonly battlesWon: number;
+  readonly battlesLost: number;
+  /** Indexes of the check-ins where food was critical. */
+  readonly foodCritical: readonly number[];
+}
+
+/**
+ * The army trade-off (Story 4.4, FR12): the default player and the max-army
+ * player play Combat from the same entry state, seed and schedule.
+ */
+export interface ArmyComparison {
+  readonly seed: number;
+  /** The check-in (in the whole schedule) both runs start with. */
+  readonly startCheckIn: number;
+  readonly default: ArmyRun;
+  readonly maxArmy: ArmyRun;
+  /** Check-ins both runs arrived at in Combat where the max-army colony was food-critical and the default one was not. */
+  readonly onlyMaxArmyFoodCritical: readonly number[];
+}
+
+/**
+ * The state a run enters Combat in, and the check-in after the one it
+ * entered in: play `schedule` with the default player until Combat. Null
+ * when the schedule never gets there.
+ */
+export function combatEntry(seed: number, schedule: CheckInSchedule): { readonly state: GameState; readonly nextCheckIn: number } | null {
+  const runner = new SimRunner({ state: createInitialState(), seed, schedule, stopWhen: (s) => s.phase === Phase.COMBAT });
+  for (let i = 0; i < schedule.length; i++) {
+    runner.checkIn(schedule[i], i);
+    if (runner.stopped) return { state: runner.state, nextCheckIn: i + 1 };
+  }
+  return null;
+}
+
+/** Play Combat with `policy` from `entry`, check-ins `first` on of `schedule`, until the run leaves Combat. */
+function playCombat(entry: GameState, seed: number, schedule: CheckInSchedule, first: number, policy: PlayerPolicy): ArmyRun {
+  const runner = new SimRunner({ state: entry, seed, schedule, policy, stopWhen: (s) => s.phase !== Phase.COMBAT });
+  let endedInCheckIn: number | null = null;
+  for (let i = first; i < schedule.length && !runner.stopped; i++) {
+    runner.checkIn(schedule[i], i);
+    if (runner.stopped) endedInCheckIn = i;
+  }
+  const r = runner.result();
+  const checkIns = r.probes.checkIns;
+  return {
+    checkIns,
+    reached: r.state.phase !== Phase.COMBAT,
+    endedInCheckIn,
+    activeMs: r.activeMs,
+    elapsedMs: r.elapsedMs,
+    battlesWon: r.state.battlesWon,
+    battlesLost: r.state.battlesLost,
+    foodCritical: checkIns.filter((c) => c.foodCritical).map((c) => c.index),
+  };
+}
+
+/** The check-ins both runs arrived at in Combat where only the max-army colony was food-critical. Pure. */
+export function onlyMaxArmyFoodCritical(def: readonly CheckInRecord[], max: readonly CheckInRecord[]): number[] {
+  const byIndex = new Map(def.filter((c) => c.phase === Phase.COMBAT).map((c) => [c.index, c]));
+  return max.filter((c) => c.phase === Phase.COMBAT && c.foodCritical && byIndex.get(c.index)?.foodCritical === false).map((c) => c.index);
+}
+
+/** Play Combat from `entry` with both players (Story 4.4). */
+export function compareArmies(entry: GameState, opts: { readonly seed: number; readonly schedule: CheckInSchedule; readonly first: number }): ArmyComparison {
+  const def = playCombat(entry, opts.seed, opts.schedule, opts.first, defaultPolicy);
+  const max = playCombat(entry, opts.seed, opts.schedule, opts.first, maxArmyPolicy);
+  return { seed: opts.seed, startCheckIn: opts.first, default: def, maxArmy: max, onlyMaxArmyFoodCritical: onlyMaxArmyFoodCritical(def.checkIns, max.checkIns) };
+}
+
+/** A fresh game to Combat with the default player, then Combat with both players (Story 4.4). Null when Combat is never reached. */
+export function runArmyComparison(opts: { readonly seed?: number; readonly days?: number } = {}): ArmyComparison | null {
+  const seed = opts.seed ?? pacingReportDefaults.seed;
+  const schedule = dailySchedule(opts.days ?? pacingReportDefaults.days);
+  const entry = combatEntry(seed, schedule);
+  return entry ? compareArmies(entry.state, { seed, schedule, first: entry.nextCheckIn }) : null;
 }
 
 /** The report's numbers for one run (Story 3.9). Pure. */
@@ -180,7 +270,8 @@ export function runPacingReport(opts: { readonly seed?: number; readonly days?: 
   const seed = opts.seed ?? pacingReportDefaults.seed;
   const days = opts.days ?? pacingReportDefaults.days;
   const result = runSim({ state: createInitialState(), seed, schedule: dailySchedule(days) });
-  return buildPacingReport(result, { seed, days });
+  const army = runArmyComparison({ seed, days });
+  return { ...buildPacingReport(result, { seed, days }), ...(army ? { army } : {}) };
 }
 
 /** Real time as `2d 3h 4m` from a day on, else `formatTime`. */
@@ -224,6 +315,23 @@ function laterPhases(r: PacingReport): string[] {
     .map((s) => `  - ${s.phase}: entered day ${Math.floor(s.startedAtMs / DAY_MS) + 1} after ${formatTime(s.startedActiveMs)} of play; ${s.completed ? `lasted ${formatTime(s.activeMs)} played, ${span(s.realMs)} real` : 'run ended in it'}`);
 }
 
+const checkInList = (indexes: readonly number[]): string => (indexes.length === 0 ? 'none' : indexes.map((i) => i + 1).join(', '));
+
+function armyLine(name: string, run: ArmyRun): string {
+  const end = run.reached && run.endedInCheckIn !== null ? `left Combat in check-in ${run.endedInCheckIn + 1}` : 'still in Combat at the end';
+  return `  ${name.padEnd(8)}  ${end}, after ${formatTime(run.activeMs)} played (${span(run.elapsedMs)} real); won ${run.battlesWon}, lost ${run.battlesLost}; food-critical check-ins: ${checkInList(run.foodCritical)}`;
+}
+
+/** The army trade-off section of the report (Story 4.4). Pure. */
+export function formatArmyComparison(a: ArmyComparison): string[] {
+  return [
+    `Army trade-off (Story 4.4): Combat from check-in ${a.startCheckIn + 1}, same seed, default player vs max-army player (trains every free worker, then fights)`,
+    armyLine('default', a.default),
+    armyLine('max-army', a.maxArmy),
+    `  Food-critical for the max-army colony only: check-ins ${checkInList(a.onlyMaxArmyFoodCritical)} (target ≥ 1)`,
+  ];
+}
+
 /** The report as a plain-text table (what `pnpm sim` prints). Pure. */
 export function formatPacingReport(r: PacingReport): string {
   const t = r.targets;
@@ -253,6 +361,7 @@ export function formatPacingReport(r: PacingReport): string {
     ...(laterPhases(r).length > 0 ? ['Later phases (no GDD target in the MVP):', ...laterPhases(r)] : []),
     `Check-ins with nothing affordable within ${formatTime(t.idleCheckInMaxMs)} (pacing defects): ${r.idle.length}`,
     ...r.idle.map((c) => `  - check-in ${c.index + 1} (day ${Math.floor(c.startMs / DAY_MS) + 1}, ${c.phase}): ${c.waitMs === null ? 'nothing ever affordable at current rates' : `next in ${span(c.waitMs)}`}`),
+    ...(r.army ? ['', ...formatArmyComparison(r.army)] : []),
   ];
   return lines.join('\n');
 }

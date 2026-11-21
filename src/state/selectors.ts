@@ -3,7 +3,7 @@ import { gameState } from './gameSignal';
 import type { GameState, PhaseGoal } from './GameState';
 import type { Phase } from '../phases/phases';
 import { getEffects } from '../systems/BuildingSystem';
-import { computeResourceRates } from '../systems/ResourceSystem';
+import { armyUpkeepPerSec, computeResourceRates, isStarving } from '../systems/ResourceSystem';
 import { affordableKeys } from './affordances';
 import { getBuildAction, getNextAction, type NextAction } from '../systems/NextAction';
 import { assignedTotal, freeWorkers, getReallocation, workforceTotal, type Reallocation } from '../systems/Workforce';
@@ -134,8 +134,12 @@ export const selectFoodRatePerSec = computed(() => {
   return rates.foodProducedPerSec - rates.foodConsumedPerSec;
 });
 
-/** Starving (Story 1.32): the food store is empty and upkeep exceeds production. A primitive: notifies on its edges only. */
-export const selectStarving = computed(() => selectResources.value.food <= 0 && selectFoodRatePerSec.value < 0);
+/**
+ * Starving (Story 1.32): the food store is empty and upkeep (workers and the
+ * army, Story 4.4) exceeds production; the same rule refuses training
+ * (`isStarving`). A primitive: notifies on its edges only.
+ */
+export const selectStarving = computed(() => isStarving(gameState.value, territoryBonuses(gameState.value)));
 
 /** The workforce fills the effective nest capacity (the strip's capped workers cell). */
 export const selectCapacityReached = computed(() => {
@@ -362,6 +366,9 @@ const foodRates = computed(() => computeResourceRates(gameState.value, territory
 export const selectFoodProductionPerSec = computed(() => foodRates.value.foodProducedPerSec);
 /** Food upkeep per second (unfloored; the UI floors it). */
 export const selectFoodUpkeepPerSec = computed(() => foodRates.value.foodConsumedPerSec);
+
+/** Food the army eats per second, trainees included (Story 4.4; unfloored, the UI floors it). A primitive. */
+export const selectArmyUpkeepPerSec = computed(() => armyUpkeepPerSec(gameState.value));
 
 let lastReallocation: Reallocation | null = null;
 /**

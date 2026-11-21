@@ -76,10 +76,12 @@ export interface Reallocation {
   readonly count: number;
 }
 
-const netFood = (s: GameState): number => {
+/** Food made minus food eaten per second (workers and the army), territory included. */
+export function netFoodPerSec(s: GameState): number {
   const r = computeResourceRates(s, new TerritorySystem().getBonuses(s));
   return r.foodProducedPerSec - r.foodConsumedPerSec;
-};
+}
+const netFood = netFoodPerSec;
 
 /** How many of a source may be moved: all free workers, every worker on a job, guards above the minimum. */
 function movable(s: GameState, from: MoveSource): number {

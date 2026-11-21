@@ -2,6 +2,8 @@ import type { ActionDeps } from './context';
 import { commit, current, refuse, type ActionResult } from './result';
 import { getEquipmentUpgradeCost } from '../systems/SoldierSystem';
 import { soldierBalance } from '../data/balance/soldiers';
+import { combatBalance } from '../data/balance/combat';
+import { isStarving } from '../systems/ResourceSystem';
 import type { BattleResult } from '../systems/BattleSystem';
 import { MUTATIONS, purchaseMutation } from '../systems/MutationSystem';
 import { isEnemyType } from '../data/content/enemies';
@@ -17,10 +19,16 @@ import {
   recruitWarrior as recruitWarriorFrom,
 } from '../systems/RecruitmentSystem';
 
-/** Send one free worker to soldier training (a worker with a job stays on it). */
+/**
+ * Send free workers to soldier training (a worker with a job stays on it).
+ * A starving colony trains no new soldiers (Story 4.4): checked first, so the
+ * refusal names it.
+ */
 export function trainSoldier(deps: ActionDeps): ActionResult {
   const s = current(deps);
-  if (s.resources.workers < 1 || freeWorkers(s) < 1) return refuse('no_free_workers');
+  const workers = combatBalance.army.workersPerSoldier;
+  if (s.resources.workers < workers || freeWorkers(s) < workers) return refuse('no_free_workers');
+  if (isStarving(s, deps.territorySystem.getBonuses(s))) return refuse('starving');
   if (s.resources.food < soldierBalance.costFood) return refuse('cannot_afford');
   return commit(deps, s, deps.soldierSystem.recruitSoldier(s));
 }
