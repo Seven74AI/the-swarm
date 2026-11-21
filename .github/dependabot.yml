@@ -10,8 +10,7 @@ updates:
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: weekly
-      day: monday
+      interval: daily
       time: '04:37'
       timezone: Etc/UTC
     # pnpm 11 can refuse versions published in the last day, which would fail
@@ -34,8 +33,7 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-      day: monday
+      interval: daily
       time: '04:37'
       timezone: Etc/UTC
     cooldown:

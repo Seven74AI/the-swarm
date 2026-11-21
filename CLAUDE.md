@@ -39,7 +39,7 @@ If `pnpm install` cannot reach the registry (network access off), no tests can r
   Implement only `ready-for-agent` issues unattended. Stop on the other labels.
 - **PR flow:** branch → PR → it merges itself (squash) once CI is green. `.github/workflows/auto-merge.yml` arms
   auto-merge on every non-draft, non-fork PR, so don't arm it by hand; it needs the `AUTOMERGE_TOKEN`
-  secret (also saved as a Dependabot secret). Dependabot PRs (`.github/dependabot.yml`, weekly) are armed only for
+  secret (also saved as a Dependabot secret). Dependabot PRs (`.github/dependabot.yml`, daily) are armed only for
   patch/minor updates; majors wait for the owner. Dependabot raises no security alerts for pnpm 11 lockfiles, so
   `.github/workflows/audit-fix.yml` runs `pnpm audit` daily and opens a fix PR (`scripts/audit-fix.mjs`).
   No approving review is required (owner decision, 2026-11-20), so CI is the only gate: never weaken a check
