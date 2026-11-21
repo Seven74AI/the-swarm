@@ -138,7 +138,11 @@ export function ModalSheet(props: ModalSheetProps) {
 
   function onPointerDown(e: PointerEvent): void {
     if (!dismissible || e.button !== 0) return;
+    // A press on a control belongs to that control (Buttons fire on their own pointer-up).
+    if (e.target instanceof Element && e.target.closest(FOCUSABLE)) return;
     drag.current = { pointerId: e.pointerId, y: e.clientY };
+    // Keep the drag when the finger leaves the sheet on its way down.
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
   }
   function dragDistance(e: PointerEvent): number {
     const d = drag.current;
