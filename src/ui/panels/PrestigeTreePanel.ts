@@ -1,5 +1,8 @@
-import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import { effect, untracked } from '@preact/signals-core';
+import {
+  selectPrestige,
+  selectPrestigeTree,
+} from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import { PRESTIGE_UPGRADES, type PrestigeUpgrade } from '../../data/prestigeTree';
@@ -37,9 +40,10 @@ export class PrestigeTreePanel {
 
     // Reactive: re-render when prestige data changes
     effect(() => {
-      void gameState.value.prestige;
-      void gameState.value.prestigeTree;
-      this.render();
+      void selectPrestige.value;
+      void selectPrestigeTree.value;
+      // Render reads through getState(); keep it from subscribing to the whole state.
+      untracked(() => this.render());
     });
   }
 

@@ -37,7 +37,7 @@ import type { AudioSystem } from './AudioSystem';
 
 /**
  * Root UI controller. Mounts all panels into #app.
- * State flows through @preact/signals-core — no Store dependency.
+ * State flows through @preact/signals-core; panels read it through state/selectors.
  * Phase 2+ panels use lazy creation via createPanel() for progressive unfolding.
  */
 export class UIRoot {

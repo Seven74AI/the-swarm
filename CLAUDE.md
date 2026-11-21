@@ -89,7 +89,8 @@ module must be pinned (`--pin gds=<tag>`) where the GitHub API is unreachable. T
 - **Signals track the signal, not object paths.** `gameState` (`src/state/gameSignal.ts`) is one
   `signal<GameState>`. `effect(() => { void gameState.value.prestige })` re-runs on EVERY write — every tick at 20 Hz —
   not only when `prestige` changes. To react to one slice, wrap it in `computed(() => gameState.value.prestige)`
-  (notifies only when the reference changes) or keep a hash/dirty check. (#186)
+  (notifies only when the reference changes). The UI reads only the `select*` slices in `src/state/selectors.ts`;
+  panel effects read their selectors, then call `render()` inside `untracked()`. (#186)
 - **Pipelines** (`eggPipeline`, `larvaPipeline`, `soldierPipeline`) are rate-based `{ count, progress }`.
   When one feeds another, every exit must increment the next pipeline's `count`, or items vanish.
 - **Two soldier systems — don't conflate.** Combat soldiers (`SoldierSystem`, `state.combatSoldiers`, pipeline,

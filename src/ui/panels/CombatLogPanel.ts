@@ -1,5 +1,5 @@
 import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import { selectLastBattle } from '../../state/selectors';
 import { formatNumber } from '../../utils/format';
 
 /**
@@ -108,8 +108,7 @@ export class CombatLogPanel {
 
     // Reactive: auto-refresh when lastBattle changes
     effect(() => {
-      const s = gameState.value;
-      void s.lastBattle;
+      void selectLastBattle.value;
       this.refresh();
     });
 
@@ -144,7 +143,7 @@ export class CombatLogPanel {
   }
 
   private refresh(): void {
-    const lastBattle = gameState.value.lastBattle;
+    const lastBattle = selectLastBattle.value;
 
     if (!lastBattle) {
       this.emptyState.style.display = '';

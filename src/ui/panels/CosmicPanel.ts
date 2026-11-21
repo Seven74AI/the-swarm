@@ -1,5 +1,7 @@
-import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import { effect, untracked } from '@preact/signals-core';
+import {
+  selectDiscoveries,
+} from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 
@@ -19,8 +21,9 @@ export class CosmicPanel {
     this.render();
 
     effect(() => {
-      void gameState.value.discoveries;
-      this.scheduleRender();
+      void selectDiscoveries.value;
+      // Render reads through getState(); keep it from subscribing to the whole state.
+      untracked(() => this.scheduleRender());
     });
   }
 

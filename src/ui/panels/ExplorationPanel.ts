@@ -1,5 +1,10 @@
-import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import { effect, untracked } from '@preact/signals-core';
+import {
+  selectSpaceProbes,
+  selectSpaceship,
+  selectSoldiers,
+  selectResources,
+} from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import { formatNumber } from '../../utils/format';
@@ -23,10 +28,12 @@ export class ExplorationPanel {
     this.render();
 
     effect(() => {
-      void gameState.value.spaceProbes;
-      void gameState.value.spaceship;
-      void gameState.value.soldiers;
-      this.render();
+      void selectSpaceProbes.value;
+      void selectSpaceship.value;
+      void selectSoldiers.value;
+      void selectResources.value;
+      // Render reads through getState(); keep it from subscribing to the whole state.
+      untracked(() => this.render());
     });
   }
 

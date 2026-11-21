@@ -1,5 +1,12 @@
-import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import { effect, untracked } from '@preact/signals-core';
+import {
+  selectCombatSoldiers,
+  selectEquipment,
+  selectBattlesWon,
+  selectBattlesLost,
+  selectCombatResources,
+  selectSoldierStats,
+} from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import type { SoldierSystem, getSoldierStrength, getSoldierDefense, getSoldierSpeed, getSoldierMaxHp } from '../../systems/SoldierSystem';
@@ -201,14 +208,14 @@ export class BattlePanel {
 
     // Reactive: auto-refresh when battle state changes
     effect(() => {
-      const s = gameState.value;
-      void s.combatSoldiers;
-      void s.equipment;
-      void s.battlesWon;
-      void s.battlesLost;
-      void s.combatResources;
-      void s.soldierStats;
-      this.refresh();
+      void selectCombatSoldiers.value;
+      void selectEquipment.value;
+      void selectBattlesWon.value;
+      void selectBattlesLost.value;
+      void selectCombatResources.value;
+      void selectSoldierStats.value;
+      // refresh() reads through getState(); keep it from subscribing to the whole state.
+      untracked(() => this.refresh());
     });
 
     // Initial render

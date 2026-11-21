@@ -1,10 +1,14 @@
 import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import {
+  selectEffectiveNestCapacity,
+  selectNestCapacity,
+  selectNetFoodPerSec,
+  selectWorkers,
+  selectWorkersAssigned,
+} from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { ResourceSystem } from '../../systems/ResourceSystem';
-import { computeResourceRates } from '../../systems/ResourceSystem';
 import type { GameState } from '../../state/GameState';
-import { getEffects } from '../../systems/BuildingSystem';
 
 type Role = 'gather' | 'tend' | 'dig' | 'guard';
 
@@ -58,13 +62,13 @@ export class WorkerAssignment {
 
     // Reactive: update capacity display
     effect(() => {
-      const s = gameState.value;
-      const effectiveCap = s.resources.nestCapacity + (getEffects('warehouse', s.buildings.warehouse.level).nestCapacity ?? 0);
-      const baseCap = s.resources.nestCapacity;
+      const effectiveCap = selectEffectiveNestCapacity.value;
+      const baseCap = selectNestCapacity.value;
+      const workers = selectWorkers.value;
       const warehouseBonus = effectiveCap - baseCap;
       capacityLine.textContent = warehouseBonus > 0
-        ? `Capacity: ${baseCap} (+Warehouse ${warehouseBonus}) — Workers: ${s.resources.workers}/${effectiveCap}`
-        : `Capacity: ${baseCap} — Workers: ${s.resources.workers}/${effectiveCap}`;
+        ? `Capacity: ${baseCap} (+Warehouse ${warehouseBonus}) — Workers: ${workers}/${effectiveCap}`
+        : `Capacity: ${baseCap} — Workers: ${workers}/${effectiveCap}`;
     });
 
     const summary = document.createElement('div');
@@ -87,9 +91,8 @@ export class WorkerAssignment {
 
     // Reactive: refresh counts and food summary when state changes
     effect(() => {
-      const s = gameState.value;
-      this.refreshCounts(s);
-      this.refreshSummary(s);
+      this.refreshCounts(selectWorkersAssigned.value);
+      this.refreshSummary(selectNetFoodPerSec.value);
     });
   }
 
@@ -153,13 +156,13 @@ export class WorkerAssignment {
     return row;
   }
 
-  private refreshCounts(state: GameState): void {
+  private refreshCounts(assigned: GameState['workersAssigned']): void {
     const rows = this.container.querySelectorAll('[data-role]');
     rows.forEach((row) => {
       const role = row.getAttribute('data-role') as Role;
       const countSpan = row.querySelector('.role-count');
       if (countSpan) {
-        const newValue = String(state.workersAssigned[role] ?? 0);
+        const newValue = String(assigned[role] ?? 0);
         // Dirty-check: only update DOM if value changed
         if (countSpan.textContent !== newValue) {
           countSpan.textContent = newValue;
@@ -168,11 +171,7 @@ export class WorkerAssignment {
     });
   }
 
-  private refreshSummary(state: GameState): void {
-    const rates = computeResourceRates(state);
-    const net = rates.foodProducedPerSec - rates.foodConsumedPerSec;
-
-    const netInt = Math.floor(net);
+  private refreshSummary(netInt: number): void {
     const newText = netInt >= 0 ? `+${netInt}/sec` : `${netInt}/sec`;
     const newClass = netInt >= 0 ? 'worker-summary-value food-positive' : 'worker-summary-value food-negative';
 

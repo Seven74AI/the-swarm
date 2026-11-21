@@ -1,5 +1,8 @@
-import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import { effect, untracked } from '@preact/signals-core';
+import {
+  selectAutoProduction,
+  selectResources,
+} from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import {
@@ -43,8 +46,10 @@ export class AutoProductionPanel {
 
     // Reactive refresh when automation state changes
     effect(() => {
-      void gameState.value.autoProduction;
-      this.build();
+      void selectAutoProduction.value;
+      void selectResources.value;
+      // Render reads through getState(); keep it from subscribing to the whole state.
+      untracked(() => this.build());
     });
   }
 

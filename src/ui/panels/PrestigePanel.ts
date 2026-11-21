@@ -1,5 +1,10 @@
-import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import { effect, untracked } from '@preact/signals-core';
+import {
+  selectPrestige,
+  selectBuildings,
+  selectOfflineEfficiency,
+  selectPhase,
+} from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import {
@@ -46,9 +51,12 @@ export class PrestigePanel {
 
     // Reactive: auto-refresh when prestige data changes
     effect(() => {
-      void gameState.value.prestige;
-      void gameState.value.buildings;
-      this.render();
+      void selectPrestige.value;
+      void selectBuildings.value;
+      void selectOfflineEfficiency.value;
+      void selectPhase.value;
+      // Render reads through getState(); keep it from subscribing to the whole state.
+      untracked(() => this.render());
     });
   }
 

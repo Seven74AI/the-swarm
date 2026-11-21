@@ -39,35 +39,12 @@ const SEEDED_LAYERS = ['systems', 'sim'];
 const DEBUG_IMPORTERS = ['main'];
 
 /**
- * Legacy UI files that still read `gameState.value` directly. New UI reads
- * state through `state/selectors.ts` (Story 1.5). Remove an entry when its file
- * is migrated or deleted. Only files under `ui/UIRoot.ts`, `ui/panels/` and
+ * Legacy UI files that still read `gameState.value` directly. UI reads state
+ * through `state/selectors.ts` (Story 1.5 migrated every file and emptied this
+ * list). Keep it empty: migrate a file instead of listing it. Only files under `ui/UIRoot.ts`, `ui/panels/` and
  * `ui/components/` may be listed.
  */
-const LEGACY_GAME_STATE_READERS: readonly string[] = [
-  'ui/components/ClickButton.ts',
-  'ui/components/NumberDisplay.ts',
-  'ui/panels/AutoProductionPanel.ts',
-  'ui/panels/BattlePanel.ts',
-  'ui/panels/BuildingPanel.ts',
-  'ui/panels/CombatLogPanel.ts',
-  'ui/panels/CosmicPanel.ts',
-  'ui/panels/ExpeditionPanel.ts',
-  'ui/panels/ExplorationPanel.ts',
-  'ui/panels/FoodDisplay.ts',
-  'ui/panels/MutationPanel.ts',
-  'ui/panels/PrestigePanel.ts',
-  'ui/panels/PrestigeTreePanel.ts',
-  'ui/panels/ResearchPanel.ts',
-  'ui/panels/ResourceConverterPanel.ts',
-  'ui/panels/ResourcePanel.ts',
-  'ui/panels/SoldierPanel.ts',
-  'ui/panels/SpaceshipPanel.ts',
-  'ui/panels/StarmapPanel.ts',
-  'ui/panels/TechTreePanel.ts',
-  'ui/panels/TranscendencePanel.ts',
-  'ui/panels/WorkerAssignment.ts',
-];
+const LEGACY_GAME_STATE_READERS: readonly string[] = [];
 const LEGACY_READER_SCOPE = /^ui\/(UIRoot\.ts$|panels\/|components\/)/;
 
 /**

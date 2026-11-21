@@ -1,5 +1,9 @@
-import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import { effect, untracked } from '@preact/signals-core';
+import {
+  selectResearch,
+  selectResearchers,
+  selectResources,
+} from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState, ResearchProjectId } from '../../state/GameState';
 import {
@@ -47,10 +51,11 @@ export class ResearchPanel {
 
     // Reactive: re-render on state changes
     effect(() => {
-      void gameState.value.research;
-      void gameState.value.workersAssigned.researchers;
-      void gameState.value.resources;
-      this.render();
+      void selectResearch.value;
+      void selectResearchers.value;
+      void selectResources.value;
+      // Render reads through getState(); keep it from subscribing to the whole state.
+      untracked(() => this.render());
     });
   }
 

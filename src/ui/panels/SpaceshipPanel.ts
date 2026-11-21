@@ -1,5 +1,8 @@
-import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import { effect, untracked } from '@preact/signals-core';
+import {
+  selectSpaceship,
+  selectResources,
+} from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 
@@ -31,9 +34,10 @@ export class SpaceshipPanel {
     this.render();
 
     effect(() => {
-      void gameState.value.spaceship;
-      void gameState.value.resources;
-      this.scheduleRender();
+      void selectSpaceship.value;
+      void selectResources.value;
+      // Render reads through getState(); keep it from subscribing to the whole state.
+      untracked(() => this.scheduleRender());
     });
   }
 

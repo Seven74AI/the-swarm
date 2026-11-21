@@ -1,5 +1,8 @@
-import { effect } from '@preact/signals-core';
-import { gameState } from '../../state/gameSignal';
+import { effect, untracked } from '@preact/signals-core';
+import {
+  selectVictoryAchieved,
+  selectPrestige,
+} from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import { formatNumber } from '../../utils/format';
@@ -29,9 +32,10 @@ export class TranscendencePanel {
 
     // Reactive: auto-refresh when victory or prestige data changes
     effect(() => {
-      void gameState.value.victoryAchieved;
-      void gameState.value.prestige;
-      this.render();
+      void selectVictoryAchieved.value;
+      void selectPrestige.value;
+      // Render reads through getState(); keep it from subscribing to the whole state.
+      untracked(() => this.render());
     });
   }
 
