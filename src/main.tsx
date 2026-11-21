@@ -200,9 +200,6 @@ export function bootstrap(): {
   });
   // Every save says when its state was last simulated to: the hide moment while hidden.
   saveManager.setSeenAtSource(() => resumePath.seenAt());
-  // A cold load resumes once, from the save's lastSeenAt. An unreadable save waits
-  // behind its sheet with a fresh state: nothing to resume.
-  if (opened.status !== 'unreadable') resumePath.coldStart(saved?.lastSeenAt ?? null);
 
   // A new session for decision events (Story 1.28, D8): an open event comes back with
   // its time left; the spawn time is drawn again on the session clock, so no event
@@ -723,6 +720,11 @@ export function bootstrap(): {
   // of any decision sheet the first ticks request (Story 1.14).
   if (offlineSummary) openOfflineSummary(sheets, offlineSummary);
   uiReady = true;
+
+  // A cold load resumes once, from the save's lastSeenAt, AFTER the UI and its listeners
+  // are bound: a goal the catch-up latches is then seen and announced like any other
+  // (Story 1.32). An unreadable save waits behind its sheet with a fresh state: nothing to resume.
+  if (opened.status !== 'unreadable') resumePath.coldStart(saved?.lastSeenAt ?? null);
 
   // Start autosave
   saveManager.startAutosave(() => ({
