@@ -20,6 +20,8 @@ import type { ReadonlySignal } from '@preact/signals-core';
 import type { ConfirmSettings } from './primitives/HoldToConfirm';
 import type { ShellHosts } from './shell/hosts';
 import { PANEL_PLACEMENT, placementOf } from '../data/content/tabs';
+import type { Chronicle } from '../state/chronicle';
+import type { LineJump } from './log/jump';
 
 /** Where main renders NEST's Preact parts (Story 1.22). */
 export interface NestMounts {
@@ -71,6 +73,18 @@ export interface BuildMounts {
   primary(host: HTMLElement): void;
 }
 
+/** Where main renders LOG's Preact parts (Story 1.26), top to bottom. */
+export interface LogMounts {
+  /** The full event log. */
+  chronicle(host: HTMLElement): void;
+  /** Lifetime stats. */
+  stats(host: HTMLElement): void;
+  /** The settings entry. */
+  settings(host: HTMLElement): void;
+  /** LEGACY, hosting the legacy prestige panels (`#prestige-panel`, the Legacy tree). */
+  legacy(host: HTMLElement, panels: readonly HTMLElement[]): void;
+}
+
 /**
  * Root UI controller. Mounts all panels into #app.
  * State flows through @preact/signals-core; panels read it through state/selectors.
@@ -109,6 +123,7 @@ export class UIRoot {
   private mountWorkers?: WorkersMounts;
   private mountBuild?: BuildMounts;
   private mountWar?: WarMounts;
+  private mountLog?: LogMounts;
 
   /** Registry mapping panelId → factory function. Populated in constructor. */
   private panelRegistry: Map<string, () => HTMLElement> = new Map();
@@ -134,12 +149,18 @@ export class UIRoot {
     mountBuild?: BuildMounts;
     /** Renders FRONT → WAR: soldiers, mutations, the enemy card, the combat log and FIGHT (Story 1.25). */
     mountWar?: WarMounts;
+    /** Renders LOG's chronicle, lifetime stats, settings entry and LEGACY into their hosts (Story 1.26). */
+    mountLog?: LogMounts;
+    /** The event lines, saved with the game (Story 1.26); default: a new chronicle. */
+    chronicle?: Chronicle;
+    /** Tapping an event line that points at something jumps to it (Story 1.26). */
+    jump?: LineJump;
   }) {
     this.bus = deps.bus;
     this.actions = deps.actions;
     this.saveManager = deps.saveManager;
     this.getState = deps.getState;
-    this.eventLog = new EventLog(this.bus);
+    this.eventLog = new EventLog(this.bus, { chronicle: deps.chronicle, jump: deps.jump });
     this.audio = deps.audio;
     this.loop = deps.loop;
     this.confirmSettings = deps.confirmSettings;
@@ -149,6 +170,7 @@ export class UIRoot {
     this.mountWorkers = deps.mountWorkers;
     this.mountBuild = deps.mountBuild;
     this.mountWar = deps.mountWar;
+    this.mountLog = deps.mountLog;
 
     // ── Populate panel registry with factory functions ──
     // Phase 1 panels (mounted at boot for always-visible UI)
@@ -233,12 +255,25 @@ export class UIRoot {
     // Phase 5 panels (lazy — created on demand)
     this.panelRegistry.set('automation_panel', () =>
       this.createHost('', 'panel automation-host', (h) => this.mountWorkers?.automation(h)));
-    this.panelRegistry.set('prestige_panel', () => new PrestigePanel(
-      this.bus, this.getState, this.actions, this.confirmSettings,
-    ).getElement());
-    this.panelRegistry.set('prestige_tree_panel', () => new PrestigeTreePanel(
-      this.bus, this.getState, this.actions,
-    ).getElement());
+    // LOG (Story 1.26): the prestige panels live in LOG → LEGACY; creating either creates LEGACY.
+    this.panelRegistry.set('prestige_panel', () => this.legacyPanel('prestige_panel'));
+    this.panelRegistry.set('prestige_tree_panel', () => this.legacyPanel('prestige_tree_panel'));
+    this.panelRegistry.set('log_chronicle', () => this.createLogHost('chronicle', this.mountLog?.chronicle));
+    this.panelRegistry.set('log_stats', () => this.createLogHost('stats', this.mountLog?.stats));
+    this.panelRegistry.set('log_settings', () => this.createLogHost('settings', this.mountLog?.settings));
+    this.panelRegistry.set('log_legacy', () => {
+      // LEGACY is LOG's last section, whichever LOG panel is asked for first.
+      for (const id of ['log_chronicle', 'log_stats', 'log_settings']) this.createPanel(id);
+      const prestige = new PrestigePanel(this.bus, this.getState, this.actions, this.confirmSettings).getElement();
+      const tree = new PrestigeTreePanel(this.bus, this.getState, this.actions).getElement();
+      this.panelElements.set('prestige_panel', prestige);
+      this.panelElements.set('prestige_tree_panel', tree);
+      const host = document.createElement('div');
+      host.setAttribute('data-log-host', 'legacy');
+      if (this.mountLog) this.mountLog.legacy(host, [prestige, tree]);
+      else host.append(prestige, tree);
+      return host;
+    });
     this.panelRegistry.set('transcendence_panel', () => new TranscendencePanel(
       this.bus, this.getState,
     ).getElement());
@@ -417,6 +452,9 @@ export class UIRoot {
 
     // Create and mount, in the panel's tab host when the shell is mounted
     const element = factory();
+    // A factory that placed its panel itself (LOG → LEGACY) already registered it.
+    const placed = this.panelElements.get(panelId);
+    if (placed) return placed;
     const placement = placementOf(panelId);
     const host = this.hosts && placement ? this.hosts.host(placement) : panelsEl;
     host.appendChild(element);
@@ -463,6 +501,25 @@ export class UIRoot {
     if (className) host.className = className;
     mount?.(host);
     return host;
+  }
+
+  /** A LOG content host (`[data-log-host=<name>]`) that main renders into (Story 1.26). */
+  private createLogHost(name: string, mount?: (host: HTMLElement) => void): HTMLElement {
+    const host = document.createElement('div');
+    host.setAttribute('data-log-host', name);
+    mount?.(host);
+    return host;
+  }
+
+  /** A legacy prestige panel, created inside LOG → LEGACY (Story 1.26). */
+  private legacyPanel(panelId: 'prestige_panel' | 'prestige_tree_panel'): HTMLElement {
+    this.createPanel('log_legacy');
+    return this.panelElements.get(panelId)!;
+  }
+
+  /** A created panel's element (for a jump from an event line, Story 1.26). */
+  panelElement(panelId: string): HTMLElement | undefined {
+    return this.panelElements.get(panelId);
   }
 
   /** A BUILD content host (`[data-build-host=<name>]`) that main renders into. */

@@ -1,44 +1,59 @@
+import { effect } from '@preact/signals-core';
 import type { EventBus } from '../../engine/EventBus';
+import type { PanelId } from '../../data/content/tabs';
+import { createChronicle, type Chronicle, type ChronicleEntry } from '../../state/chronicle';
+import type { LineJump } from '../log/jump';
 
-export interface LogEntry {
-  message: string;
-  timestamp: number;
+/** One event line (kept in the chronicle, Story 1.26). */
+export type LogEntry = ChronicleEntry;
+
+/** The first line of a new chronicle. */
+export const OPENING_LINE = 'You are an ant queen. Your purpose is clear.';
+/** The first line after a prestige (EXPERIENCE.md Flow 7). */
+export const PRESTIGE_LINE = 'A queen, again. The colony begins anew.';
+
+export interface EventLogOptions {
+  /** Where the lines go (main passes the saved one); default: a new chronicle. */
+  chronicle?: Chronicle;
+  /** Tapping a line that points at something jumps to it (Story 1.26). */
+  jump?: LineJump;
 }
 
-/** Entries kept in memory (the LOG tab reads them; Story 2.x persists them). */
-const MAX_ENTRIES = 100;
+/** "Now available" lines, written once per run when a panel is first revealed. */
+const PANEL_LINES: Readonly<Record<string, string>> = {
+  soldier_panel: '⚔️ Soldier Command is now available — recruit and equip your army.',
+  building_panel: '🏗️ Construction unlocked — buildings strengthen the colony.',
+  expedition_panel: '🗺️ Expeditions are now available — send scouts to gather resources.',
+  spaceship_panel: '🚀 Spaceship construction unlocked — build your vessel to the stars.',
+};
+
 /** NEST shows this many newest lines; CSS keeps only the newest below 560 px viewport height (UX-DR30). */
 export const NEST_LINES = 3;
 
 /**
  * The colony's event lines. Listens for game events and writes
- * milestone-based narrative messages, newest first, keeping the last
- * `MAX_ENTRIES` in memory (`entries()`).
+ * milestone-based narrative messages, newest first, into the chronicle
+ * (`state/chronicle.ts`, Story 1.26), which keeps the last 100 and is saved
+ * with the game. One-time lines are chronicle milestones, so a reload never
+ * repeats them; a prestige starts a new chronicle.
  *
  * On NEST (Story 1.22, UX-DR30) it shows only the newest `NEST_LINES`: the
  * newest prefixed `> ` in accent, older ones `· ` in dim. The full log is
  * the LOG tab's. Hooks kept: `#activity-log` (set by UIRoot), `.log-entry`
- * per line; new: `[data-newest]`, `[data-line-prefix]`.
+ * per line, `[data-newest]`, `[data-line-prefix]`; a line that points at
+ * something holds a `[data-jump=<panelId>]` button.
  */
 export class EventLog {
   private container: HTMLDivElement;
-  private entriesList: LogEntry[] = [];
   private logEl: HTMLDivElement;
-  private firstClickFired = false;
-  private firstWorkerFired = false;
-  private tenthWorkerFired = false;
-  private firstSoldierFired = false;
-  private firstWeaponFired = false;
-  private firstArmorFired = false;
-  private firstBuildingFired = false;
-  private colonyUnlockedFired = false;
-  private combatUnlockedFired = false;
-  private expansionUnlockedFired = false;
-  private spaceUnlockedFired = false;
+  private chronicle: Chronicle;
+  private jump?: LineJump;
 
   /** Stored callback references for unsubscribe. */
   private unsubscribeHandles: Array<() => void> = [];
-  constructor(private bus: EventBus) {
+  constructor(private bus: EventBus, options: EventLogOptions = {}) {
+    this.chronicle = options.chronicle ?? createChronicle();
+    this.jump = options.jump;
     this.container = document.createElement('div');
     this.container.className = 'event-log event-lines';
 
@@ -48,8 +63,18 @@ export class EventLog {
     this.logEl.setAttribute('aria-label', 'Latest events');
     this.container.appendChild(this.logEl);
 
-    // Initial message
-    this.addEntry('You are an ant queen. Your purpose is clear.');
+    // A new chronicle opens with one line; a saved one already has its lines.
+    if (this.chronicle.entries.peek().length === 0) this.addEntry(OPENING_LINE);
+    // NEST redraws whenever the chronicle changes (a line, a load, a prestige).
+    this.unsubscribeHandles.push(effect(() => this.render(this.chronicle.entries.value)));
+
+    // A prestige starts a new run, and with it a new chronicle (GDD: a prestige wipes the run).
+    const onPrestigeCb = () => {
+      this.chronicle.reset();
+      this.addEntry(PRESTIGE_LINE);
+    };
+    bus.subscribe('prestige_triggered', onPrestigeCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('prestige_triggered', onPrestigeCb));
 
     // Listen for events (milestone-based, no spam)
     const onClickCb = () => this.onClick();
@@ -77,21 +102,21 @@ export class EventLog {
 
     const onScoutCb = (payload: unknown) => {
       const p = payload as { enemyType: string; enemyName: string };
-      this.addEntry(`Scouts report a ${p.enemyName} in the territory.`);
+      this.addEntry(`Scouts report a ${p.enemyName} in the territory.`, { target: 'battle_panel' });
     };
     bus.subscribe('enemy_scouted', onScoutCb);
     this.unsubscribeHandles.push(() => bus.unsubscribe('enemy_scouted', onScoutCb));
 
     const onEngageCb = (payload: unknown) => {
       const p = payload as { enemyType: string };
-      this.addEntry(`The soldiers march to meet the ${p.enemyType}.`);
+      this.addEntry(`The soldiers march to meet the ${p.enemyType}.`, { target: 'battle_panel' });
     };
     bus.subscribe('battle_engage', onEngageCb);
     this.unsubscribeHandles.push(() => bus.unsubscribe('battle_engage', onEngageCb));
 
     const onBattleDoneCb = (payload: unknown) => {
       const p = payload as { narrative: string };
-      this.addEntry(p.narrative || 'The battle is over.');
+      this.addEntry(p.narrative || 'The battle is over.', { target: 'battle_panel' });
     };
     bus.subscribe('battle_completed', onBattleDoneCb);
     this.unsubscribeHandles.push(() => bus.unsubscribe('battle_completed', onBattleDoneCb));
@@ -101,7 +126,7 @@ export class EventLog {
       const party = [];
       if (p.scouts > 0) party.push(`${p.scouts} scout${p.scouts > 1 ? 's' : ''}`);
       if (p.warriors > 0) party.push(`${p.warriors} warrior${p.warriors > 1 ? 's' : ''}`);
-      this.addEntry(`An expedition departs for ${p.destination} — ${party.join(' and ')} march into the unknown.`);
+      this.addEntry(`An expedition departs for ${p.destination} — ${party.join(' and ')} march into the unknown.`, { target: 'expedition_panel' });
     };
     bus.subscribe('expedition_launch', onExpeditionLaunchCb);
     this.unsubscribeHandles.push(() => bus.unsubscribe('expedition_launch', onExpeditionLaunchCb));
@@ -131,11 +156,11 @@ export class EventLog {
       const lootStr = loot.length > 0 ? loot.join(', ') : 'nothing';
 
       if (result === 'success') {
-        this.addEntry(`Expedition returns triumphant from ${dest}! ${returnedStr} came back with ${lootStr}.`);
+        this.addEntry(`Expedition returns triumphant from ${dest}! ${returnedStr} came back with ${lootStr}.`, { target: 'expedition_panel' });
       } else if (result === 'partial') {
-        this.addEntry(`Expedition returns from ${dest} — battered but alive. ${returnedStr} made it back. Loot: ${lootStr}.`);
+        this.addEntry(`Expedition returns from ${dest} — battered but alive. ${returnedStr} made it back. Loot: ${lootStr}.`, { target: 'expedition_panel' });
       } else {
-        this.addEntry(`The expedition to ${dest} has been lost. No one returned. The colony mourns.`);
+        this.addEntry(`The expedition to ${dest} has been lost. No one returned. The colony mourns.`, { target: 'expedition_panel' });
       }
     };
     bus.subscribe('expedition_return', onExpeditionReturnCb);
@@ -145,9 +170,9 @@ export class EventLog {
       const p = payload as { building: string; level: number };
       const label = p.building.charAt(0).toUpperCase() + p.building.slice(1);
       if (p.level === 1) {
-        this.addEntry(`${label} constructed — a new building rises in the colony.`);
+        this.addEntry(`${label} constructed — a new building rises in the colony.`, { target: 'building_panel' });
       } else {
-        this.addEntry(`${label} upgraded to level ${p.level}. The colony grows stronger.`);
+        this.addEntry(`${label} upgraded to level ${p.level}. The colony grows stronger.`, { target: 'building_panel' });
       }
     };
     bus.subscribe('building_complete', onBuildingCb);
@@ -167,9 +192,9 @@ export class EventLog {
       if (p.darkMatter > 0) resources.push(`${p.darkMatter} dark matter`);
       const resStr = resources.length > 0 ? ` with ${resources.join(', ')}` : '';
       if (p.result === 'success' || p.result === 'partial') {
-        this.addEntry(`Scouts return from ${p.destination}${resStr}.`);
+        this.addEntry(`Scouts return from ${p.destination}${resStr}.`, { target: 'exploration_panel' });
       } else {
-        this.addEntry(`Scouts return from ${p.destination} — the mission yielded nothing.`);
+        this.addEntry(`Scouts return from ${p.destination} — the mission yielded nothing.`, { target: 'exploration_panel' });
       }
     };
     bus.subscribe('exploration_return', onExplorationReturnCb);
@@ -177,7 +202,7 @@ export class EventLog {
 
     const onProbeLaunchCb = (payload: unknown) => {
       const p = payload as { destination: string };
-      this.addEntry(`Probe launched toward ${p.destination}.`);
+      this.addEntry(`Probe launched toward ${p.destination}.`, { target: 'exploration_panel' });
     };
     bus.subscribe('probe_launch', onProbeLaunchCb);
     this.unsubscribeHandles.push(() => bus.unsubscribe('probe_launch', onProbeLaunchCb));
@@ -202,9 +227,9 @@ export class EventLog {
         accessibility?: string; requirement?: string; discovered?: boolean;
       };
       if (p.discovered === false) {
-        this.addEntry(`Planet ${p.name}: undiscovered. ${p.requirement || 'Requires further exploration.'}`);
+        this.addEntry(`Planet ${p.name}: undiscovered. ${p.requirement || 'Requires further exploration.'}`, { target: 'starmap_panel' });
       } else {
-        this.addEntry(`Planet ${p.name} (${p.type}): ${p.yields}. ${p.accessibility || ''}`);
+        this.addEntry(`Planet ${p.name} (${p.type}): ${p.yields}. ${p.accessibility || ''}`, { target: 'starmap_panel' });
       }
     };
     bus.subscribe('planet_clicked', onPlanetClickCb);
@@ -219,9 +244,9 @@ export class EventLog {
     this.unsubscribeHandles = [];
   }
 
-  /** Every kept entry, newest first (for the LOG tab). */
+  /** Every kept entry, newest first (the LOG tab reads the chronicle itself). */
   entries(): readonly LogEntry[] {
-    return this.entriesList;
+    return this.chronicle.entries.peek();
   }
 
   /**
@@ -230,23 +255,26 @@ export class EventLog {
    * under the phase line, so NEST's newest line is the phase change.
    */
   private phaseLineOnTop = false;
-  /** Entries ever added (the list itself stops growing at `MAX_ENTRIES`). */
+  /** Entries ever added by this log (the chronicle itself stops growing at 100). */
   private added = 0;
 
-  private addEntry(message: string, under = false): void {
-    const at = under && this.phaseLineOnTop ? 1 : 0;
+  private addEntry(message: string, options: { under?: boolean; target?: PanelId } = {}): void {
+    const at = options.under && this.phaseLineOnTop ? 1 : 0;
     this.added++;
-    this.entriesList.splice(at, 0, { message, timestamp: Date.now() });
-    if (this.entriesList.length > MAX_ENTRIES) {
-      this.entriesList.pop();
-    }
-    this.render();
+    this.chronicle.add(message, { at, target: options.target });
+  }
+
+  /** A one-time line: written once per run, remembered through the save. */
+  private once(milestone: string, message: string, options: { under?: boolean; target?: PanelId } = {}): void {
+    if (this.chronicle.hasMilestone(milestone)) return;
+    this.chronicle.markMilestone(milestone);
+    this.addEntry(message, options);
   }
 
   /** Draw the newest `NEST_LINES` entries, newest first. */
-  private render(): void {
+  private render(all: readonly LogEntry[]): void {
     this.logEl.textContent = '';
-    this.entriesList.slice(0, NEST_LINES).forEach((entry, i) => {
+    all.slice(0, NEST_LINES).forEach((entry, i) => {
       const line = document.createElement('p');
       line.className = 'log-entry event-line';
       line.dataset.newest = i === 0 ? 'true' : 'false';
@@ -256,70 +284,79 @@ export class EventLog {
       prefix.setAttribute('aria-hidden', 'true');
       prefix.textContent = i === 0 ? '> ' : '· ';
       line.appendChild(prefix);
-      line.appendChild(document.createTextNode(entry.message));
+      const target = entry.target;
+      if (target && this.jump?.canJump(target)) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'event-line__jump';
+        btn.dataset.jump = target;
+        btn.textContent = entry.message;
+        btn.addEventListener('click', () => this.jump?.jump(target));
+        line.appendChild(btn);
+      } else {
+        line.appendChild(document.createTextNode(entry.message));
+      }
       this.logEl.appendChild(line);
     });
   }
 
   private onClick(): void {
-    if (!this.firstClickFired) {
-      this.firstClickFired = true;
-      this.addEntry('You lay your first egg. It is small, white, and perfect.');
-    }
+    this.once('first_egg', 'You lay your first egg. It is small, white, and perfect.');
   }
 
   private onWorkersChanged(): void {
-    if (!this.firstWorkerFired) {
-      this.firstWorkerFired = true;
-      this.addEntry('The first worker emerges. She looks at you with absolute devotion.');
-    }
+    this.once('first_worker', 'The first worker emerges. She looks at you with absolute devotion.', {
+      target: 'worker_assignment',
+    });
   }
 
   notifyWorkerCount(count: number): void {
-    if (!this.tenthWorkerFired && count >= 10) {
-      this.tenthWorkerFired = true;
-      this.addEntry('The colony hums. You feel it through the soil.');
+    if (count >= 10) {
+      this.once('tenth_worker', 'The colony hums. You feel it through the soil.', { target: 'worker_assignment' });
     }
   }
 
   private onSoldiersChanged(count: number): void {
-    if (!this.firstSoldierFired && count > 0) {
-      this.firstSoldierFired = true;
-      this.addEntry('The first soldier ant emerges. Her mandibles gleam with purpose.');
+    if (count > 0) {
+      this.once('first_soldier', 'The first soldier ant emerges. Her mandibles gleam with purpose.', {
+        target: 'soldier_panel',
+      });
     }
   }
 
   private onWeaponUpgraded(): void {
-    if (!this.firstWeaponFired) {
-      this.firstWeaponFired = true;
-      this.addEntry("The soldiers' mandibles are honed sharper. Nature's design, perfected.");
-    }
+    this.once('first_weapon', "The soldiers' mandibles are honed sharper. Nature's design, perfected.", {
+      target: 'soldier_panel',
+    });
   }
 
   private onArmorUpgraded(): void {
-    if (!this.firstArmorFired) {
-      this.firstArmorFired = true;
-      this.addEntry('Chitin plates are strapped to soldier thoraxes. The colony armors itself.');
-    }
+    this.once('first_armor', 'Chitin plates are strapped to soldier thoraxes. The colony armors itself.', {
+      target: 'soldier_panel',
+    });
   }
 
   private onPhaseChanged(phase: string): void {
     const before = this.added;
-    if (phase === 'colony' && !this.colonyUnlockedFired) {
-      this.colonyUnlockedFired = true;
-      this.addEntry('The colony takes shape. Worker ants now serve a purpose — assign them.');
+    if (phase === 'colony') {
+      this.once('phase_colony', 'The colony takes shape. Worker ants now serve a purpose — assign them.', {
+        target: 'worker_assignment',
+      });
     }
-    if (phase === 'combat' && !this.combatUnlockedFired) {
-      this.combatUnlockedFired = true;
-      this.addEntry('⚔️ Danger lurks beyond the nest. Train soldiers, forge weapons, defend the colony.');
+    if (phase === 'combat') {
+      this.once('phase_combat', '⚔️ Danger lurks beyond the nest. Train soldiers, forge weapons, defend the colony.', {
+        target: 'soldier_panel',
+      });
     }
-    if (phase === 'expansion' && !this.expansionUnlockedFired) {
-      this.expansionUnlockedFired = true;
-      this.addEntry('🗺️ The world beyond the nest calls. Build, explore, expand your territory.');
+    if (phase === 'expansion') {
+      this.once('phase_expansion', '🗺️ The world beyond the nest calls. Build, explore, expand your territory.', {
+        target: 'map_panel',
+      });
     }
-    if (phase === 'space' && !this.spaceUnlockedFired) {
-      this.spaceUnlockedFired = true;
-      this.addEntry('🚀 The swarm looks to the stars. New resources await in the void.');
+    if (phase === 'space') {
+      this.once('phase_space', '🚀 The swarm looks to the stars. New resources await in the void.', {
+        target: 'spaceship_panel',
+      });
     }
     if (this.added !== before) {
       this.phaseLineOnTop = true;
@@ -330,16 +367,9 @@ export class EventLog {
   }
 
   private onPanelRevealed(panelId: string): void {
-    if (panelId === 'soldier_panel') {
-      this.addEntry('⚔️ Soldier Command is now available — recruit and equip your army.', true);
-    } else if (panelId === 'building_panel' && !this.firstBuildingFired) {
-      this.firstBuildingFired = true;
-      this.addEntry('🏗️ Construction unlocked — buildings strengthen the colony.', true);
-    } else if (panelId === 'expedition_panel') {
-      this.addEntry('🗺️ Expeditions are now available — send scouts to gather resources.', true);
-    } else if (panelId === 'spaceship_panel') {
-      this.addEntry('🚀 Spaceship construction unlocked — build your vessel to the stars.', true);
-    }
+    // One line per panel and run: a reload reveals the panels again, and must not repeat it.
+    const line = PANEL_LINES[panelId];
+    if (line) this.once(`panel_${panelId}`, line, { under: true, target: panelId as PanelId });
   }
 
   getElement(): HTMLDivElement {

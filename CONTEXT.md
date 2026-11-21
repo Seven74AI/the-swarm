@@ -41,6 +41,9 @@ The one most useful thing to do now (Story 1.21, UX-DR12, ADR 0015): pure `getNe
 
 **BUILD's highlighted card** (Story 1.24): `getBuildAction(state)` (same file, `selectBuildAction`) runs the item rules over the items BUILD sells only (`buildItems`: Click Power from Phase 2, the buildings, the research chain): an affordable critical-path item, then any affordable one, else none with the BUILD item that becomes affordable soonest. That card is drawn `data-selected`, BUILD's pinned `> BUY` buys it, and with none the BUILD header reads `NEXT: <item> IN ~<time>`. Click Power is sold by NEST in Phase 1 and by BUILD (`build_click_power`) after it. The BUILD UI is `src/ui/build/` (UIRoot dep `mountBuild`).
 
+### Chronicle (event log)
+The colony's event lines (Story 1.26, ADR 0018): `src/state/chronicle.ts`, newest first, last 100, saved with the game in `SaveData.chronicle` beside the game state (not in it: lines are written by event listeners). One-time lines are chronicle **milestones**, so a reload never repeats them; a prestige starts a new chronicle. NEST shows the newest 3; LOG (`src/ui/log/`) shows all of them, then lifetime stats, the settings entry, and **LEGACY** (prestige and the Legacy tree) once the prestige unlock condition is met (`selectLegacyUnlocked`). A line with a `target` panel jumps to it when tapped.
+
 ### Pipelines
 Rate-based O(1) processing: `eggPipeline`, `larvaPipeline`, `soldierPipeline`. Each has `count` (rate) and `progress` (accumulated). No per-item timers.
 

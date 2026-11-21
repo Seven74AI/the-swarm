@@ -58,6 +58,12 @@ import { BuildingCards } from './ui/build/BuildingCards';
 import { ResearchCards } from './ui/build/ResearchCards';
 import { ConverterCard } from './ui/build/ConverterCard';
 import { BuildPrimary } from './ui/build/BuildPrimary';
+import { ChronicleLog } from './ui/log/ChronicleLog';
+import { LifetimeStats } from './ui/log/LifetimeStats';
+import { LogSettingsEntry } from './ui/log/LogSettingsEntry';
+import { LegacySection } from './ui/log/LegacySection';
+import { createLineJump } from './ui/log/jump';
+import { createChronicle, type Chronicle } from './state/chronicle';
 import { PhaseStateMachine } from './phases/PhaseStateMachine';
 import { Phase, PHASE_ORDER } from './phases/phases';
 import { PhaseContent } from './ui/PhaseContent';
@@ -97,6 +103,8 @@ export function bootstrap(): {
   platform: Platform;
   sheets: SheetController;
   overlays: OverlayController;
+  /** The event lines, saved with the game (Story 1.26). */
+  chronicle: Chronicle;
 } {
   // Platform services, built once and passed on (Story 1.10, D9). Only main
   // imports platform/ values; settings live under their own key, outside the save.
@@ -119,6 +127,9 @@ export function bootstrap(): {
   // Try to load saved state
   const saved = saveManager.load();
   let offlineSummary: OfflineLoadInfo | null = null;
+  // The event lines (Story 1.26, ADR 0018): kept beside the game state, written into every save.
+  const chronicle = createChronicle(saved?.chronicle);
+  saveManager.setChronicleSource(() => chronicle.snapshot());
 
   if (saved) {
     gameState.value = saved.gameState;
@@ -449,9 +460,18 @@ export function bootstrap(): {
     actions,
     onBattleDone: (result, enemy) => openBattleSummary(sheets, result, enemy.name),
   });
+  // Tapping an event line that points at something opens its tab and scrolls to it (Story 1.26).
+  const jump = createLineJump({
+    phase: () => selectPhase.peek(),
+    select: (tab) => shell.select(tab),
+    selectSegment: (segment) => shell.selectSegment(segment),
+    element: (panelId) => ui.panelElement(panelId),
+  });
 
   const ui = new UIRoot({
     bus,
+    chronicle,
+    jump,
     actions,
     saveManager,
     getState: () => gameState.value,
@@ -499,6 +519,14 @@ export function bootstrap(): {
       enemy: (host) => render(<EnemyCard session={war} />, host),
       log: (host) => render(<CombatLog session={war} />, host),
       primary: (host) => render(<WarPrimary session={war} segment={shell.segment} />, host),
+    },
+    // LOG (Story 1.26): the full chronicle, lifetime stats, the settings entry (the screen is
+    // Story 1.27), and LEGACY with the prestige panels once the prestige condition is met.
+    mountLog: {
+      chronicle: (host) => render(<ChronicleLog chronicle={chronicle} jump={jump} />, host),
+      stats: (host) => render(<LifetimeStats />, host),
+      settings: (host) => render(<LogSettingsEntry />, host),
+      legacy: (host, panels) => render(<LegacySection panels={panels} />, host),
     },
   });
   if (app) {
@@ -597,7 +625,7 @@ export function bootstrap(): {
 
   loop.start();
 
-  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, ui, decisionSystem, audio, actions, platform, sheets, overlays };
+  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, ui, decisionSystem, audio, actions, platform, sheets, overlays, chronicle };
 }
 
 // processTick lives in engine/processTick.ts; re-exported for existing callers.

@@ -91,9 +91,15 @@ const placements = {
   exploration_panel: { tab: 'front', segment: 'stars', unlockPhase: Phase.SPACE },
   cosmic_panel: { tab: 'front', segment: 'stars', unlockPhase: Phase.SPACE },
   starmap_panel: { tab: 'front', segment: 'stars', unlockPhase: Phase.SPACE },
-  // LOG → LEGACY
-  prestige_panel: { tab: 'log', unlockPhase: Phase.TRANSCENDENCE },
-  prestige_tree_panel: { tab: 'log', unlockPhase: Phase.TRANSCENDENCE },
+  // LOG (Story 1.26), top to bottom: the full event log, lifetime stats, the settings entry, then
+  // LEGACY. LEGACY hosts the prestige panels and shows once the GDD's prestige unlock condition
+  // is met (`selectLegacyUnlocked`), whatever the phase; `log_legacy` creates them inside it.
+  log_chronicle: { tab: 'log', unlockPhase: Phase.COLONY },
+  log_stats: { tab: 'log', unlockPhase: Phase.COLONY },
+  log_settings: { tab: 'log', unlockPhase: Phase.COLONY },
+  log_legacy: { tab: 'log', unlockPhase: Phase.COLONY },
+  prestige_panel: { tab: 'log', unlockPhase: Phase.COLONY },
+  prestige_tree_panel: { tab: 'log', unlockPhase: Phase.COLONY },
 } as const satisfies Record<string, PanelPlacement>;
 
 export type PanelId = keyof typeof placements;

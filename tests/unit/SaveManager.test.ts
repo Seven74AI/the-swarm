@@ -67,7 +67,7 @@ describe('SaveManager', () => {
       const raw = localStorage.getItem('the_swarm_save');
       expect(raw).not.toBeNull();
       const parsed = JSON.parse(raw!);
-      expect(parsed.version).toBe(16);
+      expect(parsed.version).toBe(17);
       expect(parsed.timestamp).toBeGreaterThanOrEqual(before);
     });
   });
@@ -95,6 +95,34 @@ describe('SaveManager', () => {
       const result = saveManager.load();
       // Missing gameState — structural validation fails, returns null
       expect(result).toBeNull();
+    });
+  });
+
+  describe('the chronicle (Story 1.26)', () => {
+    it('writes the chronicle source into the save and reads it back', () => {
+      const chronicle = { entries: [{ message: 'a line', timestamp: 3, target: 'building_panel' as const }], milestones: ['first_egg'] };
+      saveManager.setChronicleSource(() => chronicle);
+      saveManager.save(createInitialState(), 0, true);
+      expect(JSON.parse(saveManager.serialize(createInitialState(), 0)).chronicle).toEqual(chronicle);
+      expect(new SaveManager().load()!.chronicle).toEqual(chronicle);
+    });
+
+    it('loads an older save with an empty chronicle', () => {
+      localStorage.setItem(
+        'the_swarm_save',
+        JSON.stringify({ version: 16, timestamp: Date.now(), playTimeMs: 0, gameState: createInitialState() }),
+      );
+      expect(saveManager.load()!.chronicle.entries).toEqual([]);
+    });
+
+    it('drops a malformed chronicle instead of failing the load', () => {
+      localStorage.setItem(
+        'the_swarm_save',
+        JSON.stringify({ version: 17, timestamp: Date.now(), playTimeMs: 0, gameState: createInitialState(), chronicle: 'junk' }),
+      );
+      const loaded = saveManager.load();
+      expect(loaded).not.toBeNull();
+      expect(loaded!.chronicle.entries).toEqual([]);
     });
   });
 

@@ -1,6 +1,7 @@
 import type { SaveData } from './SaveManager';
 import type { GameState, PhaseGoal } from '../state/GameState';
 import { PhaseStateMachine, reachedValues } from '../phases/PhaseStateMachine';
+import { normalizeChronicle, type ChronicleSave } from '../state/chronicle';
 
 /**
  * Migration system for save data version upgrades.
@@ -423,6 +424,49 @@ function migrateV15toV16(data: SaveData): SaveData {
   return { ...data, version: 16, gameState: { ...gs, lifetime: { ...lifetime, revealsSeen: seen } } as unknown as GameState };
 }
 
+/** Frozen at v17: phases in game order, for the milestones a save has passed. */
+const V17_PHASES = ['egg_laying', 'colony', 'combat', 'expansion', 'space', 'transcendence'];
+/** Frozen at v17: panels whose reveal writes a one-time line, and the phase that reveals them. */
+const V17_PANEL_LINES: ReadonlyArray<readonly [string, string]> = [
+  ['soldier_panel', 'combat'],
+  ['building_panel', 'expansion'],
+  ['expedition_panel', 'expansion'],
+  ['spaceship_panel', 'space'],
+];
+
+/**
+ * v16 → v17 (Story 1.26, UX-DR30): the chronicle (event lines, newest first,
+ * last 100) goes into the save, beside the game state (ADR 0018). Older saves
+ * had none: they start with no lines, and their one-time lines (first egg,
+ * first worker, phase lines, "now available" lines, …) are marked as passed from the game state, so
+ * a "first egg" line never turns up deep into a run.
+ */
+function migrateV16toV17(data: SaveData): SaveData {
+  if (data.chronicle !== undefined) return { ...data, version: 17, chronicle: normalizeChronicle(data.chronicle) };
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  const obj = (v: unknown): Record<string, unknown> => (v !== null && typeof v === 'object' ? (v as Record<string, unknown>) : {});
+  const stats = obj(gs.stats);
+  const resources = obj(gs.resources);
+  const equipment = obj(gs.equipment);
+  const phaseRank = Math.max(0, V17_PHASES.indexOf(typeof gs.phase === 'string' ? gs.phase : ''));
+  const milestones: string[] = [];
+  const mark = (id: string, passed: boolean) => {
+    if (passed) milestones.push(id);
+  };
+  mark('first_egg', num(stats.totalClicks) > 0 || num(stats.totalEggsLaid) > 0);
+  mark('first_worker', num(resources.workers) > 0 || phaseRank >= 1);
+  mark('tenth_worker', num(resources.workers) >= 10);
+  mark('first_soldier', num(gs.combatSoldiers) > 0);
+  mark('first_weapon', num(equipment.weapon) > 0);
+  mark('first_armor', num(equipment.armor) > 0);
+  for (const phase of V17_PHASES.slice(1)) mark(`phase_${phase}`, phaseRank >= V17_PHASES.indexOf(phase));
+  // "Now available" lines for panels the save's phase has already revealed.
+  for (const [panel, phase] of V17_PANEL_LINES) mark(`panel_${panel}`, phaseRank >= V17_PHASES.indexOf(phase));
+  const chronicle: ChronicleSave = { entries: [], milestones };
+  return { ...data, version: 17, chronicle };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -440,6 +484,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   13: migrateV13toV14,
   14: migrateV14toV15,
   15: migrateV15toV16,
+  16: migrateV16toV17,
 };
 
 /**

@@ -24,6 +24,7 @@ import {
 } from '../systems/ResourceConversionSystem';
 import { canBuild, type BuildingType } from '../systems/BuildingSystem';
 import { canStartProject, getAssignedResearchers, getProjectStatus } from '../systems/ResearchSystem';
+import { isPrestigeAvailable } from '../systems/PrestigeSystem';
 import type { ResearchProjectId, ResearchProjectStatus } from './GameState';
 import { conditionMet, goalFor, goalPercent, type GoalCondition, type Transition } from '../phases/transitions';
 
@@ -390,3 +391,14 @@ export function selectMutationStatus(id: string): ReadonlySignal<MutationStatus>
   }
   return sel;
 }
+// --- LOG: the LEGACY section (Story 1.26, UX-DR31) --------------------------------------------
+
+/**
+ * LOG shows LEGACY once the GDD's prestige unlock condition is met (`isPrestigeAvailable`), and keeps
+ * it for the runs after: once the player has prestiged (the Legacy tree spends LP) or won (the ending
+ * leads to LEGACY, EXPERIENCE.md).
+ */
+export const selectLegacyUnlocked = computed(() => {
+  const s = gameState.value;
+  return s.prestige.count > 0 || s.victoryAchieved || isPrestigeAvailable(s);
+});
