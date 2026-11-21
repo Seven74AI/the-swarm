@@ -32,7 +32,7 @@ reward different soldier, equipment or mutation choices.
   write. `actions.fight(enemyType?)` fights `state.nextEnemy` and refuses (`unavailable`) a named enemy that is no
   longer next. The v26 → v27 migration stores the enemy the card would have shown (the generator's peek), without
   advancing the generator; `SaveManager` replaces an unknown type the same way. Prestige keeps it, as it keeps
-  battles won.
+  battles won. *(Superseded by ADR 0040: prestige resets battles won and re-peeks the next enemy for a fresh run.)*
 - **The interest bar is a test:** `tests/sim/combatMatchups.test.ts` fights four builds (twice the plain soldiers;
   or weapons, armor or a Venom Lab three levels deep) at several army sizes against every type the generator draws
   before the boss, over fixed seeds and battle counts, and asserts that every build is beaten by another against
