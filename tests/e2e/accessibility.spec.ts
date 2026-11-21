@@ -115,6 +115,8 @@ test.describe('sheets', () => {
     expect((await spokenTree(page)).split('\n').filter((l) => DECORATION.test(l))).toEqual([]);
     await page.locator('[data-resource-sheet] [data-action="settings"]').click();
     await expect(page.locator('[data-settings-sheet]')).toBeVisible();
+    // EXPORT TELEMETRY (Story 3.10): named by its visible verb, checked with the rest of the sheet.
+    await expect(page.getByRole('button', { name: 'EXPORT TELEMETRY' })).toBeVisible();
     expect(await axe(page)).toEqual([]);
   });
 
