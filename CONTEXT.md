@@ -74,7 +74,7 @@ The one most useful thing to do now (Story 1.21, UX-DR12, ADR 0015): pure `getNe
 The colony's event lines (Story 1.26, ADR 0018): `src/state/chronicle.ts`, newest first, last 100, saved with the game in `SaveData.chronicle` beside the game state (not in it: lines are written by event listeners). One-time lines are chronicle **milestones**, so a reload never repeats them; a prestige starts a new chronicle. NEST shows the newest 3; LOG (`src/ui/log/`) shows all of them, then lifetime stats, the settings entry, and **LEGACY** (prestige and the Legacy tree) once the prestige unlock condition is met (`selectLegacyUnlocked`). A line with a `target` panel jumps to it when tapped.
 
 ### Pipelines
-Rate-based O(1) processing: `eggPipeline`, `larvaPipeline`, `soldierPipeline`. Each has `count` (rate) and `progress` (accumulated). No per-item timers.
+Rate-based O(1) processing: `eggPipeline`, `larvaPipeline`, `soldierPipeline`. Each has `count` (rate) and `progress` (accumulated). No per-item timers. Story 2.5 (ADR 0028): a step moves the exact share `1 − e^(−k·dt)` of a pipeline (`src/utils/decay.ts`), plus the eggs that hatch and mature within the same step, so one long step moves what many short ones do. Every egg laid (tap, automation, the prestige auto egg layer, the royal cache) is in `eggPipeline.count`: `resources.eggs === eggPipeline.count` and `resources.larvae === larvaPipeline.count`.
 
 ### Prestige
 Reset loop: sacrifice progress for Legacy Points (LP). LP come from lifetime food produced and the phase reached (`calculateLegacyPoints()` in `PrestigeSystem.ts`) plus an entropy bonus. Each LP adds a production bonus via `productionMultiplier()` in `ProgressionCurve.ts`. LP also buy permanent upgrades in the prestige tree (`src/data/prestigeTree.ts`). Requires all buildings Lv.5 + 100K food lifetime. Void crystals, antimatter, dark matter and survey data carry over the reset.
@@ -98,4 +98,7 @@ One-time permanent bonuses purchased with combat resources. Stacking upgrades (e
 Send scouts to map tiles (EXPANSION phase) to harvest resources. Tiles yield: Forest → wood + silk, Mountain → stone + chitin, Meadow → food + venom. Enemy Nests require combat first, then loot.
 
 ### Resources
-Integers only (`Math.floor()`). Food, wood, stone, nectar (phases 1-4). Void crystals, antimatter, dark matter (phase 5+).
+Integers only (`Math.floor()`). Food, wood, stone, nectar (phases 1-4). Void crystals, antimatter, dark matter (phase 5+). Rate-credited amounts go through `creditWhole` (`src/utils/math.ts`): the whole part is credited, the fraction carries in **`resourceRemainder`** (save v21) for food, wood, stone and nectar, and in `conversions.remainder` for each conversion's next run.
+
+### Step length
+Story 2.5 (ADR 0028): `processTick(state, …, events, dtSec)` (`src/engine/processTick.ts`) is the one simulation step: main's live tick (50 ms, `TICK_MS` in `src/data/constants.ts`) runs it, then adds the foreground-only parts (decision events, the latch); offline catch-up runs it too. Every system in it gives the same result for one step of `n × 50 ms` as for `n` steps of 50 ms, within the tolerance stated in `tests/unit/engine/stepLength.test.ts`. Balance values still in ticks (mission length, dig rate) are converted with `TICK_MS` until Story 3.2.

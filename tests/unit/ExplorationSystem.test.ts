@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createInitialState, type GameState } from '../../src/state/GameState';
+import { TICK_MS } from '../../src/data/constants';
 import {
   launchExploration,
   tickExplorations,
@@ -10,6 +11,8 @@ import {
   SURVEY_DATA_PER_EXPLORATION,
   PROBE_SWARM_THRESHOLD,
 } from '../../src/systems/ExplorationSystem';
+
+const TICK_SEC = TICK_MS / 1000;
 
 describe('ExplorationSystem — recursive scaling', () => {
   let state: GameState;
@@ -127,7 +130,7 @@ describe('ExplorationSystem — recursive scaling', () => {
   describe('tickProbeSwarm', () => {
     it('does nothing when surveyData below threshold', () => {
       const belowThreshold = { ...state, resources: { ...state.resources, surveyData: PROBE_SWARM_THRESHOLD - 1 } };
-      const result = tickProbeSwarm(belowThreshold);
+      const result = tickProbeSwarm(belowThreshold, TICK_SEC);
       expect(result.spaceExplorations).toHaveLength(0);
     });
 
@@ -139,7 +142,7 @@ describe('ExplorationSystem — recursive scaling', () => {
         filled = launchExploration(filled, 'MARS');
       }
       vi.mocked(Math.random).mockReturnValue(0.01); // would trigger if slots available
-      const result = tickProbeSwarm(filled);
+      const result = tickProbeSwarm(filled, TICK_SEC);
       // Should not add more (already at max)
       expect(result.spaceExplorations).toHaveLength(MAX_ACTIVE_EXPLORATIONS);
     });
@@ -147,14 +150,14 @@ describe('ExplorationSystem — recursive scaling', () => {
     it('auto-launches when above threshold and slots available', () => {
       const rich = { ...state, resources: { ...state.resources, surveyData: PROBE_SWARM_THRESHOLD } };
       vi.mocked(Math.random).mockReturnValue(0.01); // well below 5% trigger chance
-      const result = tickProbeSwarm(rich);
+      const result = tickProbeSwarm(rich, TICK_SEC);
       expect(result.spaceExplorations.length).toBeGreaterThanOrEqual(1);
     });
 
     it('does nothing when random roll misses', () => {
       const rich = { ...state, resources: { ...state.resources, surveyData: PROBE_SWARM_THRESHOLD } };
       vi.mocked(Math.random).mockReturnValue(0.99); // well above trigger chance
-      const result = tickProbeSwarm(rich);
+      const result = tickProbeSwarm(rich, TICK_SEC);
       expect(result.spaceExplorations).toHaveLength(0);
     });
   });

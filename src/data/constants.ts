@@ -25,3 +25,10 @@ export const HOUR_MS = 60 * 60 * 1000;
 export const OFFLINE_CAP_BASE_MS = 12 * HOUR_MS;
 /** The highest the offline cap can be raised (Story 2.8: "the cap never above 24 h"). */
 export const OFFLINE_CAP_MAX_MS = 24 * HOUR_MS;
+
+/**
+ * The fixed simulation step (Ticker, 20 Hz). Systems are correct for any step
+ * length (Story 2.5, AR4); until Story 3.2 moves balance to milliseconds, the
+ * values still written in ticks are converted with this.
+ */
+export const TICK_MS = 50 as const;

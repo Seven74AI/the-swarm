@@ -1,4 +1,5 @@
 import type { GameState } from '../state/GameState';
+import { TICK_MS } from '../data/constants';
 
 export type SpaceshipType = 'scout_ship' | 'cruiser' | 'capital_ship';
 export type SpaceshipStatus = 'idle' | 'exploring' | 'returning';
@@ -405,12 +406,19 @@ export function launchMission(
   };
 }
 
-export function tickMissions(state: GameState): GameState {
+/**
+ * Count every exploring ship down by the step's game time (Story 2.5): a
+ * mission's length is in ticks of TICK_MS, so one long step counts down what
+ * many short ones do.
+ */
+export function tickMissions(state: GameState, dtSec: number): GameState {
+  const elapsedTicks = Math.round(dtSec * 1000) / TICK_MS;
+  if (elapsedTicks <= 0) return state;
   let changed = false;
   const updated = state.spaceships.map((ship) => {
     if (ship.status === 'exploring' && ship.missionTicksRemaining > 0) {
       changed = true;
-      const newTicks = ship.missionTicksRemaining - 1;
+      const newTicks = Math.max(0, ship.missionTicksRemaining - elapsedTicks);
       const newStatus: SpaceshipStatus = newTicks <= 0 ? 'returning' : 'exploring';
       return {
         ...ship,

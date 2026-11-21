@@ -149,9 +149,8 @@ describe('save fixtures (Story 2.1)', () => {
       it('runs a tick after loading and still passes the state invariants', () => {
         const loaded = loadThroughSaveManager(structuredClone(data))!;
         const next = tickOnce(loaded.gameState);
-        // Integers are not checked here: a tick from a fresh state leaves food
-        // fractional too (ResourceSystem), which is not a save-loading matter.
-        expectValidState(next, `${file} after one tick`, { integers: false });
+        // Resources stay whole numbers through a tick (Story 2.5): fractions carry in resourceRemainder.
+        expectValidState(next, `${file} after one tick`);
       });
     });
   }

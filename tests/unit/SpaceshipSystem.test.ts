@@ -15,6 +15,9 @@ import {
   type Spaceship,
 } from '../../src/systems/SpaceshipSystem';
 import { createInitialState, type GameState } from '../../src/state/GameState';
+import { TICK_MS } from '../../src/data/constants';
+
+const TICK_SEC = TICK_MS / 1000;
 
 const ALL_SHIP_TYPES: SpaceshipType[] = ['scout_ship', 'cruiser', 'capital_ship'];
 
@@ -60,7 +63,7 @@ describe('SpaceshipSystem', () => {
     s = launchMission(ship.id, 'Alpha Centauri', s);
     const totalTicks = s.spaceships[0].missionTicksRemaining;
     for (let i = 0; i < totalTicks; i++) {
-      s = tickMissions(s);
+      s = tickMissions(s, TICK_SEC);
     }
     return [s, s.spaceships[0]];
   }
@@ -582,13 +585,13 @@ describe('SpaceshipSystem', () => {
       const launched = launchMission(shipId, 'Alpha Centauri', gameState);
       const initialTicks = launched.spaceships[0].missionTicksRemaining;
 
-      const result = tickMissions(launched);
+      const result = tickMissions(launched, TICK_SEC);
       const ship = result.spaceships[0];
       expect(ship.missionTicksRemaining).toBe(initialTicks - 1);
     });
 
     it('does nothing when no missions are active', () => {
-      const result = tickMissions(state);
+      const result = tickMissions(state, TICK_SEC);
       expect(result).toBe(state);
     });
 
@@ -599,7 +602,7 @@ describe('SpaceshipSystem', () => {
       const totalTicks = launched.spaceships[0].missionTicksRemaining;
 
       for (let i = 0; i < totalTicks; i++) {
-        launched = tickMissions(launched);
+        launched = tickMissions(launched, TICK_SEC);
       }
       // After timer hits 0, status should change to 'returning'
       const ship = launched.spaceships[0];

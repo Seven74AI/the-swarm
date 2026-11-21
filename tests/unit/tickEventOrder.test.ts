@@ -71,7 +71,7 @@ describe('tick events arrive after the state they describe', () => {
     gameState.value = {
       ...base,
       phase: Phase.EGG_LAYING,
-      resources: { ...base.resources, workers: 10_000, eggs: 50, larvae: 50 },
+      resources: { ...base.resources, workers: 10_000, eggs: 50, larvae: 50, food: 1_000 },
       eggPipeline: { ...base.eggPipeline, count: 50 },
       larvaPipeline: { ...base.larvaPipeline, count: 50 },
     };

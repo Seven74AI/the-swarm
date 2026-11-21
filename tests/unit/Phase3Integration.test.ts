@@ -77,8 +77,9 @@ describe('Phase 3 integration: discover → claim → bonuses', () => {
     }
 
     // After several ticks with workers, both resources should accumulate
-    expect(result.resources.stone).toBeGreaterThan(0);
-    expect(result.resources.nectar).toBeGreaterThan(0);
+    // (whole units plus the fraction carried to the next tick, Story 2.5).
+    expect(result.resources.stone + result.resourceRemainder.stone).toBeGreaterThan(0);
+    expect(result.resources.nectar + result.resourceRemainder.nectar).toBeGreaterThan(0);
   });
 
   it('cannot claim undiscovered tile', () => {

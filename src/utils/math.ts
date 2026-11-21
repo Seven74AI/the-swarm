@@ -30,3 +30,20 @@ export function clamp(value: number, min: number, max: number): number {
   if (value > max) return max;
   return value;
 }
+
+/**
+ * Credit (or spend) a fractional `delta` to a whole-number amount (Story 2.5,
+ * AR20): the amount stays an integer ≥ 0 and the fraction carries in
+ * `remainder` (in [0, 1)) to the next step, so many short steps credit what
+ * one long step does. An amount driven below 0 stops at 0 with no carry.
+ */
+export function creditWhole(
+  amount: number,
+  remainder: number,
+  delta: number,
+): { amount: number; remainder: number } {
+  const total = amount + remainder + delta;
+  if (total <= 0) return { amount: 0, remainder: 0 };
+  const whole = Math.floor(total);
+  return { amount: whole, remainder: total - whole };
+}

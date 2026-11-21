@@ -112,7 +112,8 @@ export function prestige(state: GameState): GameState {
     // A new run starts with no met goal (Story 1.19).
     phaseGoal: null,
     resources: {
-      eggs: 0,
+      // The royal cache's eggs are real eggs in the pipeline, so they hatch (Story 2.5).
+      eggs: bonuses.startingResources ? 50 : 0,
       larvae: 0,
       workers: 0,
       food: bonuses.startingResources ? 25 : 0,
@@ -131,6 +132,8 @@ export function prestige(state: GameState): GameState {
     },
     larvaPipeline: { count: 0, progress: 0 },
     soldierPipeline: { count: 0, progress: 0 },
+    // The reset stocks carry no fractions (Story 2.5).
+    resourceRemainder: { food: 0, wood: 0, stone: 0, nectar: 0 },
     workersAssigned: {
       gather: 0,
       tend: 0,
