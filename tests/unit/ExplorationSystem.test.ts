@@ -11,8 +11,11 @@ import {
   SURVEY_DATA_PER_EXPLORATION,
   PROBE_SWARM_THRESHOLD,
 } from '../../src/systems/ExplorationSystem';
+import { fixedRng } from './helpers/rng';
 
 const TICK_SEC = TICK_MS / 1000;
+/** A full-success roll (risk < 0.95 for all planets). */
+const success = fixedRng(0.95);
 
 describe('ExplorationSystem — recursive scaling', () => {
   let state: GameState;
@@ -20,8 +23,8 @@ describe('ExplorationSystem — recursive scaling', () => {
   beforeEach(() => {
     state = createInitialState();
     state.soldiers.scouts = 10;
-    // Seed Math.random for deterministic tests
-    vi.spyOn(Math, 'random').mockReturnValue(0.95); // always full success (risk < 0.95 for all planets)
+    // Pin the outcome rolls (Story 3.1): `success` is a full success (risk < 0.95 for all planets).
+
   });
 
   describe('getScaledDistance', () => {
@@ -94,7 +97,7 @@ describe('ExplorationSystem — recursive scaling', () => {
       for (let i = 0; i < exp.remainingMs; i++) {
         ticked = tickExplorations(ticked, 0.05);
       }
-      const resolved = resolveExploration(ticked, { ...ticked.spaceExplorations[0], status: 'running' as const, remainingMs: 0, durationMs: 0 });
+      const resolved = resolveExploration(ticked, { ...ticked.spaceExplorations[0], status: 'running' as const, remainingMs: 0, durationMs: 0 }, success);
       expect(resolved.resources.surveyData).toBeGreaterThanOrEqual(1);
     });
 
@@ -107,22 +110,22 @@ describe('ExplorationSystem — recursive scaling', () => {
         for (let i = 0; i < exp.remainingMs; i++) {
           s = tickExplorations(s, 0.05);
         }
-        s = resolveExploration(s, { ...s.spaceExplorations[0], status: 'running' as const, remainingMs: 0, durationMs: 0 });
+        s = resolveExploration(s, { ...s.spaceExplorations[0], status: 'running' as const, remainingMs: 0, durationMs: 0 }, success);
       }
       // At least 3 surveyData from 3 full successes
       expect(s.resources.surveyData).toBeGreaterThanOrEqual(3);
     });
 
     it('does not grant surveyData on failure', () => {
-      vi.mocked(Math.random).mockReturnValue(0.1); // 0.1 < risk for all planets → failure
+      // 0.1 < risk for all planets → failure
       const launched = launchExploration(state, 'MARS');
       const exp = launched.spaceExplorations[0];
       let ticked = launched;
       for (let i = 0; i < exp.remainingMs; i++) {
         ticked = tickExplorations(ticked, 0.05);
       }
-      vi.mocked(Math.random).mockReturnValue(0.1); // failure roll too
-      const resolved = resolveExploration(ticked, { ...ticked.spaceExplorations[0], status: 'running' as const, remainingMs: 0, durationMs: 0 });
+
+      const resolved = resolveExploration(ticked, { ...ticked.spaceExplorations[0], status: 'running' as const, remainingMs: 0, durationMs: 0 }, fixedRng(0.1));
       expect(resolved.resources.surveyData).toBe(0);
     });
   });
@@ -141,7 +144,7 @@ describe('ExplorationSystem — recursive scaling', () => {
       for (let i = 0; i < MAX_ACTIVE_EXPLORATIONS; i++) {
         filled = launchExploration(filled, 'MARS');
       }
-      vi.mocked(Math.random).mockReturnValue(0.01); // would trigger if slots available
+
       const result = tickProbeSwarm(filled, TICK_SEC);
       // Should not add more (already at max)
       expect(result.spaceExplorations).toHaveLength(MAX_ACTIVE_EXPLORATIONS);
@@ -149,16 +152,20 @@ describe('ExplorationSystem — recursive scaling', () => {
 
     it('auto-launches when above threshold and slots available', () => {
       const rich = { ...state, resources: { ...state.resources, surveyData: PROBE_SWARM_THRESHOLD } };
-      vi.mocked(Math.random).mockReturnValue(0.01); // well below 5% trigger chance
-      const result = tickProbeSwarm(rich, TICK_SEC);
+      // A per-tick chance: over a long step (400 ticks) a launch is all but certain.
+      const result = tickProbeSwarm(rich, 400 * TICK_SEC);
       expect(result.spaceExplorations.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('does nothing when random roll misses', () => {
-      const rich = { ...state, resources: { ...state.resources, surveyData: PROBE_SWARM_THRESHOLD } };
-      vi.mocked(Math.random).mockReturnValue(0.99); // well above trigger chance
-      const result = tickProbeSwarm(rich, TICK_SEC);
-      expect(result.spaceExplorations).toHaveLength(0);
+    it('launches are fixed by the seed and the game tick (Story 3.1): one tick sometimes launches, sometimes not', () => {
+      const outcomes = new Set<number>();
+      for (let seed = 0; seed < 200; seed++) {
+        const rich = { ...state, seed, resources: { ...state.resources, surveyData: PROBE_SWARM_THRESHOLD } };
+        const n = tickProbeSwarm(rich, TICK_SEC).spaceExplorations.length;
+        expect(tickProbeSwarm(rich, TICK_SEC).spaceExplorations.length).toBe(n);
+        outcomes.add(n);
+      }
+      expect([...outcomes].sort()).toEqual([0, 1]);
     });
   });
 
@@ -173,7 +180,7 @@ describe('ExplorationSystem — recursive scaling', () => {
       for (let i = 0; i < firstDist; i++) {
         s = tickExplorations(s, 0.05);
       }
-      s = resolveExploration(s, { ...s.spaceExplorations[0], status: 'running' as const, remainingMs: 0, durationMs: 0 });
+      s = resolveExploration(s, { ...s.spaceExplorations[0], status: 'running' as const, remainingMs: 0, durationMs: 0 }, success);
       // surveyData should have increased
       expect(s.resources.surveyData).toBeGreaterThan(0);
 
@@ -191,7 +198,6 @@ describe('ExplorationSystem — base behavior preserved', () => {
 
   beforeEach(() => {
     state = createInitialState();
-    vi.spyOn(Math, 'random').mockReturnValue(0.95);
   });
 
   it('tickExplorations decrements ticksRemaining', () => {
@@ -208,7 +214,7 @@ describe('ExplorationSystem — base behavior preserved', () => {
     for (let i = 0; i < exp.remainingMs; i++) {
       ticked = tickExplorations(ticked, 0.05);
     }
-    const resolved = resolveExploration(ticked, { ...ticked.spaceExplorations[0], status: 'running' as const, remainingMs: 0, durationMs: 0 });
+    const resolved = resolveExploration(ticked, { ...ticked.spaceExplorations[0], status: 'running' as const, remainingMs: 0, durationMs: 0 }, success);
     expect(resolved.spaceExplorations).toHaveLength(0);
   });
 

@@ -113,7 +113,8 @@ module must be pinned (`--pin gds=<tag>`) where the GitHub API is unreachable. T
 - Build seeds from `createInitialState()` overrides; `SaveManager.load()` migrates + deep-merges partial saves.
   A seed must still be a well-formed save (`version`, `timestamp`, `gameState`): anything else is unreadable and
   opens `THIS SAVE COULDN'T BE READ.` (Story 2.2). `SaveManager` needs a store: `new SaveManager(createLocalSaveStore(localStorage))`.
-- Combat RNG is unseeded: assert `Victory|Defeat`, never a specific outcome.
+- Randomness is seeded from the save (Story 3.1, `src/utils/rng.ts`): a fixed save replays the same battles, but tests
+  still assert outcome sets (`victory|defeat|draw`), never one specific outcome. Pin a roll with `fixedRng` (`tests/unit/helpers/rng.ts`), never by mocking `Math.random`.
 - rAF fake timers don't reliably drive `Ticker`; test the public API, not tick counts.
 - Panels are absent from the DOM until their phase reveals them (`src/ui/shell/Panel.tsx`) — wait for them with `toBeVisible()`.
 - Selectors: grep `src/ui/panels/*.ts` for `data-` / `id=`; there is no canonical selector list.

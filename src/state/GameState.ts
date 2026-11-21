@@ -1,4 +1,5 @@
 import { DEFAULT_SEED } from './seed';
+import { rngFromSeed } from '../utils/rng';
 import type { DecisionId } from '../data/content/decisions';
 export enum TileType {
   EMPTY = 'empty',
@@ -68,6 +69,12 @@ export interface GameState {
    * the generator from it.
    */
   seed: number;
+  /**
+   * The seeded generator's state (Story 3.1, ADR 0005): an unsigned 32-bit
+   * integer, advanced by every random draw (battles, enemies, decisions, the
+   * map). Starts from `rngFromSeed(seed)`; prestige keeps it running.
+   */
+  rng: number;
   resources: {
     eggs: number;
     larvae: number;
@@ -349,6 +356,7 @@ export function createInitialState(): GameState {
   return {
     phase: 'egg_laying',
     seed: DEFAULT_SEED,
+    rng: rngFromSeed(DEFAULT_SEED),
     resources: {
       eggs: 0,
       larvae: 0,

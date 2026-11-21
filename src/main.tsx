@@ -40,6 +40,7 @@ import { createTickTimings } from './debug/timings';
 import { debugEnabled } from './debug/enabled';
 import type { Cheats } from './debug/cheats';
 import { randomSeed } from './state/seed';
+import { rngFromSeed } from './utils/rng';
 import { createSheetController, type SheetController } from './ui/shell/SheetController';
 import { bindShortcuts } from './ui/shell/shortcuts';
 import { bindTips } from './ui/shell/tips';
@@ -143,7 +144,8 @@ export function bootstrap(): {
 
   if (!saved) {
     // A new game draws its seed (Story 1.34, D6); a loaded one keeps the seed in its save.
-    gameState.value = { ...gameState.value, seed: randomSeed(Math.random) };
+    const seed = randomSeed(Math.random);
+    gameState.value = { ...gameState.value, seed, rng: rngFromSeed(seed) };
   }
   if (saved) {
     // Pause is in-session only (Story 2.10, ADR 0002): it is never in the save, so the game always reopens running.
@@ -233,7 +235,8 @@ export function bootstrap(): {
     sessionMs += Math.round(dtSec * 1000);
 
     // Every system, through the one simulation step offline catch-up runs too (Story 2.5).
-    let newState = processTick(state, resourceSystem, soldierSystem, mapSystem, territorySystem, events, dtSec);
+    // Every random draw of the tick comes from ctx.rng, the stream of state.rng (Story 3.1).
+    let newState = processTick(state, resourceSystem, soldierSystem, mapSystem, territorySystem, events, dtSec, false, ctx.rng);
 
     // Decision events (Story 1.28, D8): spawn on the session clock, count down on game
     // time only while the sheet is on screen, time out through applyChoice.
@@ -243,7 +246,7 @@ export function bootstrap(): {
       shown: decisionSheets?.shown() ?? false,
       canSpawn: decisionGate(),
       timers: platform.settings.settings.peek().decisionTimers,
-      rand: Math.random,
+      rand: () => ctx.rng.float(),
       events,
     });
 
@@ -251,7 +254,8 @@ export function bootstrap(): {
     // latches. The player commits it with CONTINUE (actions.continuePhase).
     newState = fsm.latch(newState);
 
-    return newState;
+    // The tick's draws end up in its one write (Story 3.1).
+    return newState.rng === ctx.rng.state ? newState : { ...newState, rng: ctx.rng.state };
   };
   // The tick boundary (Story 1.17, AR16): GameLoop runs `step`, makes the
   // tick's one state write (which triggers all UI effects), and only then

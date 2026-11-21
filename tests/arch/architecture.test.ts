@@ -75,16 +75,11 @@ const REMOVED_LEGACY_UI = ['ui/UIRoot.ts', 'ui/components', 'ui/shell/hosts.ts']
 
 /**
  * Known `Math.random` uses in `systems/`, with how many each file has.
- * Story 3.1 (#281) replaces them with the seeded generator and empties this
- * list. Counts may only go down: lower one when you remove a use.
+ * Story 3.1 (#281) replaced them with the seeded generator (`utils/rng.ts`,
+ * ADR 0005) and emptied this list. It stays empty: draw from the tick's
+ * `ctx.rng` or a stream of `state.rng` instead.
  */
-const KNOWN_MATH_RANDOM: Readonly<Record<string, number>> = {
-  'systems/BattleSystem.ts': 1, // Story 3.1 (#281)
-  'systems/EnemySystem.ts': 1, // Story 3.1 (#281)
-  'systems/ExpeditionSystem.ts': 4, // Story 3.1 (#281)
-  'systems/ExplorationSystem.ts': 5, // Story 3.1 (#281)
-  'systems/MapSystem.ts': 1, // Story 3.1 (#281)
-};
+const KNOWN_MATH_RANDOM: Readonly<Record<string, number>> = {};
 
 type Violation = string;
 

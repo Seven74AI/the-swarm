@@ -1,8 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { EventBus } from '../../src/engine/EventBus';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 import { BattleSystem, MAX_BATTLE_ROUNDS } from '../../src/systems/BattleSystem';
+import { fixedRng } from './helpers/rng';
+import { rngFromSeed } from '../../src/utils/rng';
 
+/** Loops fight from a fixed seed per iteration (Story 3.1): reproducible, and still varied. */
 describe('BattleSystem', () => {
   let bus: EventBus;
   let system: BattleSystem;
@@ -44,9 +47,8 @@ describe('BattleSystem', () => {
     it('returns defeat with 1 weak soldier vs scorpion (after 5+ battles to unlock boss)', () => {
       setupWeakArmy(1);
       state.battlesWon = 10; // unlock scorpion
-      // Force scorpion by mocking random to hit the scorpion bucket (indices 97-99 of 100)
-      vi.spyOn(Math, 'random').mockReturnValue(0.98);
-      const { result, newState } = system.resolveBattle(state);
+      // Force scorpion: a pinned roll hits the scorpion bucket (indices 97-99 of 100)
+      const { result, newState } = system.resolveBattle(state, undefined, fixedRng(0.98));
       expect(result.enemyType).toBe('scorpion');
       expect(result.victory).toBe(false);
       expect(newState.battlesLost).toBe(state.battlesLost + 1);
@@ -55,7 +57,7 @@ describe('BattleSystem', () => {
     it('soldiers lost never exceeds soldier count', () => {
       setupWeakArmy(3);
       for (let i = 0; i < 20; i++) {
-        const testState = { ...state, combatSoldiers: 3 };
+        const testState = { ...state, rng: rngFromSeed(i), combatSoldiers: 3 };
         const { result } = system.resolveBattle(testState);
         expect(result.soldiersLost).toBeGreaterThanOrEqual(0);
         expect(result.soldiersLost).toBeLessThanOrEqual(3);
@@ -65,7 +67,7 @@ describe('BattleSystem', () => {
     it('soldiers lost is never negative', () => {
       setupWeakArmy(10);
       for (let i = 0; i < 20; i++) {
-        const testState = { ...state, combatSoldiers: 10 };
+        const testState = { ...state, rng: rngFromSeed(i), combatSoldiers: 10 };
         const { result } = system.resolveBattle(testState);
         expect(result.soldiersLost).toBeGreaterThanOrEqual(0);
       }
@@ -95,7 +97,7 @@ describe('BattleSystem', () => {
     it('BattleResult has correct structure on defeat', () => {
       setupWeakArmy(1);
       for (let i = 0; i < 50; i++) {
-        const testState = { ...state, combatSoldiers: 1 };
+        const testState = { ...state, rng: rngFromSeed(i), combatSoldiers: 1 };
         const { result } = system.resolveBattle(testState);
         if (!result.victory) {
           expect(result.foodGained).toBe(0);
@@ -110,7 +112,7 @@ describe('BattleSystem', () => {
     it('food gained on victory is always positive', () => {
       setupStrongArmy(100);
       for (let i = 0; i < 50; i++) {
-        const testState = { ...state, combatSoldiers: 100 };
+        const testState = { ...state, rng: rngFromSeed(i), combatSoldiers: 100 };
         testState.equipment.weapon = 5;
         testState.equipment.armor = 5;
         const { result } = system.resolveBattle(testState);
@@ -124,7 +126,7 @@ describe('BattleSystem', () => {
     it('special resources gained on victory are non-negative and increase combat resources', () => {
       setupStrongArmy(100);
       for (let i = 0; i < 50; i++) {
-        const testState = { ...state, combatSoldiers: 100 };
+        const testState = { ...state, rng: rngFromSeed(i), combatSoldiers: 100 };
         testState.equipment.weapon = 5;
         testState.equipment.armor = 5;
         const { result, newState } = system.resolveBattle(testState);
@@ -168,7 +170,7 @@ describe('BattleSystem', () => {
       setupWeakArmy(1);
       // Need to fight enough to likely get a defeat
       for (let i = 0; i < 50; i++) {
-        const testState = { ...state, combatSoldiers: 1 };
+        const testState = { ...state, rng: rngFromSeed(i), combatSoldiers: 1 };
         const { result, newState } = system.resolveBattle(testState);
         if (!result.victory) {
           expect(newState.battlesLost).toBe(testState.battlesLost + 1);
@@ -230,8 +232,8 @@ describe('BattleSystem', () => {
       let weakWins = 0;
 
       for (let i = 0; i < TRIALS; i++) {
-        const strongState = { ...createInitialState(), combatSoldiers: 100, equipment: { weapon: 5, armor: 5 } };
-        const weakState = { ...createInitialState(), combatSoldiers: 1, equipment: { weapon: 0, armor: 0 } };
+        const strongState = { ...createInitialState(), rng: rngFromSeed(i), combatSoldiers: 100, equipment: { weapon: 5, armor: 5 } };
+        const weakState = { ...createInitialState(), rng: rngFromSeed(i), combatSoldiers: 1, equipment: { weapon: 0, armor: 0 } };
         if (system.resolveBattle(strongState).result.victory) strongWins++;
         if (system.resolveBattle(weakState).result.victory) weakWins++;
       }
@@ -243,8 +245,7 @@ describe('BattleSystem', () => {
     it('defeat loses all combat soldiers', () => {
       setupWeakArmy(1);
       state.battlesWon = 10; // unlock scorpion
-      vi.spyOn(Math, 'random').mockReturnValue(0.98); // force scorpion
-      const { result, newState } = system.resolveBattle(state);
+      const { result, newState } = system.resolveBattle(state, undefined, fixedRng(0.98)); // force scorpion
       expect(result.victory).toBe(false);
       // On defeat, all soldiers are lost — army strength was insufficient
       expect(result.soldiersLost).toBe(state.combatSoldiers);
@@ -303,6 +304,7 @@ describe('BattleSystem', () => {
       for (let i = 0; i < 10; i++) {
         const testState = {
           ...createInitialState(),
+          rng: rngFromSeed(i),
           combatSoldiers: 100,
           equipment: { weapon: 5, armor: 5 },
           buildings: { ...createInitialState().buildings, venom_lab: { level: 1 } },
@@ -327,7 +329,7 @@ describe('BattleSystem', () => {
     it('reports the outcome it wrote and the rounds fought', () => {
       for (const soldiers of [1, 3, 50]) {
         for (let i = 0; i < 10; i++) {
-          const { result, newState } = system.resolveBattle({ ...state, combatSoldiers: soldiers });
+          const { result, newState } = system.resolveBattle({ ...state, rng: rngFromSeed(i), combatSoldiers: soldiers });
           expect(['victory', 'defeat', 'draw']).toContain(result.outcome);
           expect(result.victory).toBe(result.outcome === 'victory');
           expect(newState.lastBattle.status === 'done' && newState.lastBattle.result).toBe(result.outcome);

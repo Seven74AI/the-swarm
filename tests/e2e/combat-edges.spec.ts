@@ -203,7 +203,7 @@ const fightBtn = (page: Page) => page.locator('#engage-battle[data-action="fight
 /** The battle summary sheet (Story 1.25) keeps the legacy #battle-result id. */
 const summary = (page: Page) => page.locator('#battle-result[data-battle-summary]');
 
-/** FIGHT, wait for the summary (any outcome: combat RNG is unseeded), close it. */
+/** FIGHT, wait for the summary (any outcome: tests assert the outcome set, never one, Story 3.1), close it. */
 async function fightOnce(page: Page): Promise<void> {
   await fightBtn(page).click();
   await expect(summary(page)).toBeVisible({ timeout: 5000 });

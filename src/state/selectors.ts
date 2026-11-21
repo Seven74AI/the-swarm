@@ -84,6 +84,8 @@ export const selectEquipment = slice('equipment');
 export const selectLastBattle = slice('lastBattle');
 export const selectCombatResources = slice('combatResources');
 export const selectBattlesWon = slice('battlesWon');
+/** The seeded generator's state (Story 3.1): the enemy card peeks the next enemy from it. */
+export const selectRng = slice('rng');
 export const selectBattlesLost = slice('battlesLost');
 export const selectVictoryAchieved = slice('victoryAchieved');
 export const selectPhaseGoal = slice('phaseGoal');

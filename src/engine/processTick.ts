@@ -11,6 +11,7 @@ import { tickConversions } from '../systems/ResourceConversionSystem';
 import { tickEntropy } from '../systems/EntropySystem';
 import { tickMissions, resolveMission } from '../systems/SpaceshipSystem';
 import { tickAutoProduction } from './AutoProductionLoop';
+import { rngStream, type RngStream } from '../utils/rng';
 
 /**
  * Advance the simulation by one step of `dtSec` (Story 2.5, AR4): the live
@@ -18,6 +19,12 @@ import { tickAutoProduction } from './AutoProductionLoop';
  * here gives the same result for one long step as for many short ones, within
  * the tolerance stated in `tests/unit/engine/stepLength.test.ts`.
  * Pure: events go to `events`, the state is returned, nothing is written.
+ *
+ * Randomness (Story 3.1, ADR 0005): shared draws (the map) come from `rng`,
+ * the tick context's stream (live) or a stream opened on `state.rng`
+ * (catch-up), and the returned state carries its advanced state. Timed
+ * outcomes (expeditions, explorations, probe launches) use keyed streams, so
+ * they draw per game time, not per call, and step length can't change them.
  */
 export function processTick(
   state: GameState,
@@ -28,12 +35,13 @@ export function processTick(
   events: EventSink,
   dtSec: number,
   skipDeterministicResources: boolean = false,
+  rng: RngStream = rngStream(state.rng),
 ): GameState {
   let workingState = state;
 
   // Generate map if tiles are all empty
   if (state.mapTiles.length > 0 && state.mapTiles.every((t) => t.type === 'empty' && !t.discovered)) {
-    workingState = mapSystem.generateMap(workingState);
+    workingState = mapSystem.generateMap(workingState, undefined, rng);
   }
 
   const bonuses = territorySystem.getBonuses(workingState);
@@ -159,6 +167,7 @@ export function processTick(
   // Advance playTimeMs
   newState = {
     ...newState,
+    rng: rng.state,
     stats: {
       ...newState.stats,
       playTimeMs: newState.stats.playTimeMs + (dtSec * 1000),
