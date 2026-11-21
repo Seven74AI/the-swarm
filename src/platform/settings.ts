@@ -184,6 +184,8 @@ export interface SettingsStore {
   readonly settings: ReadonlySignal<Settings>;
   /** Reduced motion in effect: the player's choice, or the OS's when `os`. */
   readonly reducedMotion: ReadonlySignal<boolean>;
+  /** CRT effects in effect: the player's choice, but OFF under reduced motion (UX-DR39, Story 1.32). */
+  readonly crt: ReadonlySignal<CrtMode>;
   /** Apply the valid fields of `patch` and write them to storage at once. */
   update(patch: Partial<Settings>): void;
 }
@@ -200,9 +202,11 @@ export function createSettingsStore({ storage, capabilities }: SettingsDeps): Se
     const choice = settings.value.reducedMotion;
     return choice === 'os' ? capabilities.reducedMotion : choice === 'on';
   });
+  const crt = computed<CrtMode>(() => (reducedMotion.value ? 'off' : settings.value.crt));
   return {
     settings,
     reducedMotion,
+    crt,
     update(patch) {
       const next = merge(settings.value, patch);
       if ((Object.keys(VALID) as (keyof Settings)[]).every((k) => sameValue(next[k], settings.value[k]))) return;

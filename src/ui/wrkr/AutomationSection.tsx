@@ -12,6 +12,8 @@ import { formatFull, formatRate } from '../../utils/format';
 import { Button } from '../primitives/Button';
 import { Card } from '../primitives/Card';
 import { RESOURCES } from '../shell/resourceCatalog';
+import { Abbr, Sep } from '../primitives/Deco';
+import type { ComponentChildren } from 'preact';
 
 /** The actions the automation section uses (a subset of `Actions`). */
 export interface AutomationActions {
@@ -21,13 +23,18 @@ export interface AutomationActions {
 }
 
 const labelOf = (key: string) => RESOURCES.find((r) => r.id === key)?.label ?? key.toUpperCase();
+const nameOf = (key: string) => RESOURCES.find((r) => r.id === key)?.name ?? key;
 
-/** `100 FOOD · 50 WRKR`: the non-zero parts of a cost, with the strip labels. */
-function costLine(cost: object): string {
+/** `100 FOOD · 50 WRKR`: the non-zero parts of a cost, with the strip labels (read as full names, UX-DR40). */
+function costLine(cost: object): ComponentChildren {
   return (Object.entries(cost) as [string, number | undefined][])
     .filter(([, v]) => (v ?? 0) > 0)
-    .map(([k, v]) => `${formatFull(v ?? 0)} ${labelOf(k)}`)
-    .join(' · ');
+    .map(([k, v], i) => (
+      <span key={k}>
+        {i > 0 && <Sep />}
+        {formatFull(v ?? 0)} <Abbr shown={labelOf(k)} full={nameOf(k)} />
+      </span>
+    ));
 }
 
 function researchEffect(id: ResearchType): string {
@@ -124,7 +131,7 @@ export function AutomationSection({ actions }: { actions: AutomationActions }) {
   const enabled = selectAutoProduction.value.enabled;
   return (
     <section id="automation-panel" class="automation-panel wrkr-automation" aria-label="Automation">
-      <div class="panel-title">AUTOMATION</div>
+      <h2 class="panel-title">AUTOMATION</h2>
       <label class="auto-toggle-label">
         <input
           type="checkbox"

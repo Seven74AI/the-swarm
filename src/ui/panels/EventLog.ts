@@ -46,7 +46,7 @@ export const NEST_LINES = 3;
  */
 export class EventLog {
   private container: HTMLDivElement;
-  private logEl: HTMLDivElement;
+  private logEl: HTMLOListElement;
   private chronicle: Chronicle;
   private jump?: LineJump;
 
@@ -58,11 +58,16 @@ export class EventLog {
     this.container = document.createElement('div');
     this.container.className = 'event-log event-lines';
 
-    this.logEl = document.createElement('div');
+    // A `role="log"` region holding a real list (UX-DR40); it reads each new line once
+    // (render keeps the old nodes).
+    const region = document.createElement('div');
+    region.className = 'event-lines__region';
+    region.setAttribute('role', 'log');
+    region.setAttribute('aria-label', 'Latest events');
+    this.logEl = document.createElement('ol');
     this.logEl.className = 'event-lines__list';
-    this.logEl.setAttribute('role', 'log');
-    this.logEl.setAttribute('aria-label', 'Latest events');
-    this.container.appendChild(this.logEl);
+    region.appendChild(this.logEl);
+    this.container.appendChild(region);
 
     // A new chronicle opens with one line; a saved one already has its lines.
     if (this.chronicle.entries.peek().length === 0) this.addEntry(OPENING_LINE);
@@ -279,33 +284,54 @@ export class EventLog {
     this.addEntry(message, options);
   }
 
-  /** Draw the newest `NEST_LINES` entries, newest first. */
+  /**
+   * Draw the newest `NEST_LINES` entries, newest first. A line already drawn
+   * keeps its node (only its prefix and `data-newest` change), so the log
+   * region announces a new line once and never re-reads the old ones (Story 1.32).
+   */
   private render(all: readonly LogEntry[]): void {
-    this.logEl.textContent = '';
-    all.slice(0, NEST_LINES).forEach((entry, i) => {
-      const line = document.createElement('p');
-      line.className = 'log-entry event-line';
+    const shown = all.slice(0, NEST_LINES);
+    const kept = new Map<LogEntry, HTMLElement>();
+    for (const el of [...this.logEl.children] as HTMLElement[]) {
+      const entry = this.drawn.get(el);
+      if (entry && shown.includes(entry) && !kept.has(entry)) kept.set(entry, el);
+      else el.remove();
+    }
+    shown.forEach((entry, i) => {
+      const line = kept.get(entry) ?? this.drawLine(entry);
       line.dataset.newest = i === 0 ? 'true' : 'false';
-      const prefix = document.createElement('span');
-      prefix.className = 'event-line__prefix';
-      prefix.setAttribute('data-line-prefix', '');
-      prefix.setAttribute('aria-hidden', 'true');
-      prefix.textContent = i === 0 ? '> ' : '· ';
-      line.appendChild(prefix);
-      const target = entry.target;
-      if (target && this.jump?.canJump(target)) {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'event-line__jump';
-        btn.dataset.jump = target;
-        btn.textContent = entry.message;
-        btn.addEventListener('click', () => this.jump?.jump(target));
-        line.appendChild(btn);
-      } else {
-        line.appendChild(document.createTextNode(entry.message));
-      }
-      this.logEl.appendChild(line);
+      const prefix = line.querySelector<HTMLElement>('[data-line-prefix]');
+      if (prefix) prefix.textContent = i === 0 ? '> ' : '· ';
+      // Already in place: leave it (moving a node would read it again).
+      if (this.logEl.children[i] !== line) this.logEl.insertBefore(line, this.logEl.children[i] ?? null);
     });
+  }
+
+  /** Lines on screen and the entry each one draws. */
+  private drawn = new WeakMap<HTMLElement, LogEntry>();
+
+  private drawLine(entry: LogEntry): HTMLElement {
+    const line = document.createElement('li');
+    line.className = 'log-entry event-line';
+    this.drawn.set(line, entry);
+    const prefix = document.createElement('span');
+    prefix.className = 'event-line__prefix';
+    prefix.setAttribute('data-line-prefix', '');
+    prefix.setAttribute('aria-hidden', 'true');
+    line.appendChild(prefix);
+    const target = entry.target;
+    if (target && this.jump?.canJump(target)) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'event-line__jump';
+      btn.dataset.jump = target;
+      btn.textContent = entry.message;
+      btn.addEventListener('click', () => this.jump?.jump(target));
+      line.appendChild(btn);
+    } else {
+      line.appendChild(document.createTextNode(entry.message));
+    }
+    return line;
   }
 
   private onClick(): void {

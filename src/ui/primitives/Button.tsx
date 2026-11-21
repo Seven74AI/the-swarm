@@ -2,6 +2,7 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useId, useRef, useState } from 'preact/hooks';
 import { useComputed, useSignal } from '@preact/signals';
 import { HOLD_DELAY_MS, repeatDelay } from './holdRepeat';
+import { decorate } from './Deco';
 import './Button.css';
 
 export type ButtonVariant = 'primary' | 'secondary';
@@ -13,7 +14,7 @@ export interface ButtonProps {
   verb: string;
   /** What the verb acts on. Truncated with an ellipsis when the label would not fit. */
   target?: string;
-  /** Accessible name, when the visible label is typed decoration (a stepper's `[+]`). Default: verb and target. */
+  /** Accessible name, only when the visible label is typed decoration (a stepper's `[+]`): the face is then hidden and this is read. Default: the visible verb and target (WCAG 2.5.3); the cost line is the description. */
   label?: string;
   /**
    * The intent. Called on release (a tap), or repeatedly while held when `repeat`
@@ -150,7 +151,6 @@ export function Button(props: ButtonProps) {
       data-kind={variant}
       data-pressed={pressed}
       aria-disabled={isDisabled ? 'true' : undefined}
-      aria-label={label ?? (target ? `${verb} ${target}` : verb)}
       aria-describedby={costLine != null ? costId : undefined}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
@@ -166,10 +166,13 @@ export function Button(props: ButtonProps) {
             {'> '}
           </span>
         )}
-        <span class="swarm-btn__label">
+        {/* A face of typed decoration (`[+]`) is hidden; its full name is read instead (Story 1.32). */}
+        {label !== undefined && <span class="visually-hidden">{label}</span>}
+        <span class="swarm-btn__label" aria-hidden={label !== undefined ? 'true' : undefined}>
           <span class="swarm-btn__verb" data-verb="">
             {verb}
           </span>
+          {target && ' '}
           {target && (
             <span class="swarm-btn__target" data-target="">
               {target}
@@ -183,8 +186,8 @@ export function Button(props: ButtonProps) {
         )}
       </span>
       {costLine != null && (
-        <span class="swarm-btn__cost" data-cost="" id={costId}>
-          {costLine}
+        <span class="swarm-btn__cost" data-cost="" id={costId} aria-hidden="true">
+          {decorate(costLine)}
         </span>
       )}
     </button>

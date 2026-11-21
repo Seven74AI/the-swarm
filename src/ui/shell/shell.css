@@ -307,3 +307,8 @@
 .tab-bar-tab[aria-selected="true"] .tab-bar-key {
   color: var(--color-on-accent);
 }
+
+/* Section titles are real headings (Story 1.32) but keep the panel-title look. */
+h2.panel-title {
+  font-weight: inherit;
+}

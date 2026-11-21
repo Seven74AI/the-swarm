@@ -1,5 +1,6 @@
 import './ui/styles/tokens.css';
 import './ui/styles/base.css';
+import './ui/styles/motion.css';
 import { log } from './utils/log';
 import { EventBus } from './engine/EventBus';
 import { EventQueue, type EventSink } from './engine/events';
@@ -32,7 +33,7 @@ import { computed } from '@preact/signals-core';
 import { UIRoot } from './ui/UIRoot';
 import { App } from './ui/App';
 import { createTabShell } from './ui/shell/tabShell';
-import { selectAffordableKeys, selectCanChoose, selectGoalMet, selectLifetime, selectOpenDecision, selectPhase } from './state/selectors';
+import { selectAffordableKeys, selectCanChoose, selectCapacityReached, selectGoalMet, selectStarving, selectLifetime, selectOpenDecision, selectPhase } from './state/selectors';
 import { AudioSystem } from './ui/AudioSystem';
 import { SaveManager } from './persistence/SaveManager';
 import type { OfflineLoadInfo } from './persistence/SaveManager';
@@ -77,7 +78,9 @@ import { TRANSITIONS } from './phases/transitions';
 import type { GameState } from './state/GameState';
 import { OnboardingManager } from './ui/OnboardingManager';
 import { bindPhaseTheme } from './ui/theme/phaseTheme';
-import { bindReducedMotion } from './ui/theme/reducedMotion';
+import { bindCrt, bindReducedMotion } from './ui/theme/reducedMotion';
+import { createAnnouncer } from './ui/shell/announcer';
+import { bindAnnouncements, battleLine, SAVE_FAILED_LINE } from './ui/shell/announcements';
 import { createWebPlatform, type Platform } from './platform';
 import { bindHapticFeedback, bindSoundSetting } from './platform/feedback';
 
@@ -437,6 +440,8 @@ export function bootstrap(): {
   bindPhaseTheme(document.documentElement);
   // Reduced motion in effect (Story 1.10 setting, OS by default) as one root attribute (Story 1.11).
   bindReducedMotion(document.documentElement, platform.settings.reducedMotion);
+  // CRT effects in effect (Story 1.32): OFF under reduced motion; Story 8.4 draws them.
+  bindCrt(document.documentElement, platform.settings.crt);
 
   // Every player intent goes through an action (Story 1.6): the UI never
   // writes state or touches a system. Decision choices are an action too,
@@ -474,6 +479,20 @@ export function bootstrap(): {
   };
   // A costly timeout is logged (EventLog) and toasted once (Story 1.28).
   const toasts = createToasts();
+  // The polite live region (Story 1.32, UX-DR40): key changes are announced once, values never per tick.
+  const announcer = createAnnouncer();
+  bindAnnouncements({
+    bus,
+    announcer,
+    goalMet: selectGoalMet,
+    starving: selectStarving,
+    capacityReached: selectCapacityReached,
+  });
+  // A failed save is toasted (the toast host is a polite status region) and written to the log.
+  saveManager.onSaveFailed(() => {
+    toasts.show(SAVE_FAILED_LINE);
+    bus.emit('narrative', { message: SAVE_FAILED_LINE });
+  });
   bus.subscribe('decision_resolved', ({ id, timedOut, policy }) => {
     if (timedOut && policy === 'costly') toasts.show(timeoutLine(getDecision(id)));
   });
@@ -541,7 +560,10 @@ export function bootstrap(): {
   // enemy card and FIGHT; the summary opens at battle priority when the replay ends.
   const war = createWarSession({
     actions,
-    onBattleDone: (result, enemy) => openBattleSummary(sheets, result, enemy.name),
+    onBattleDone: (result, enemy) => {
+      announcer.announce(battleLine(result, enemy.name));
+      openBattleSummary(sheets, result, enemy.name);
+    },
   });
   // Tapping an event line that points at something opens its tab and scrolls to it (Story 1.26).
   const jump = createLineJump({
@@ -623,6 +645,7 @@ export function bootstrap(): {
         sheets={sheets}
         overlays={overlays}
         toasts={toasts}
+        announcer={announcer}
         onContinue={actions.continuePhase}
         tabKeys={tabKeys}
       />,

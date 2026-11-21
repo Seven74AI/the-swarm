@@ -8,6 +8,7 @@ import { SegmentRow } from './SegmentRow';
 import { CondensedGoalMeter } from './GoalMeter';
 import { Button } from '../primitives/Button';
 import type { CharGrid } from './charGrid';
+import { bindColumnFocus } from './focusOrder';
 import './shell.css';
 import './reflow.css';
 
@@ -84,7 +85,13 @@ export function Shell({ shell, legacy, onContinue, tabKeys, grid }: ShellProps) 
       observer.disconnect();
       if (frame) cancelAnimationFrame(frame);
     };
-  }, []);
+    // The tab bar is drawn in a new place when the layout switches (Story 1.32): observe the new one.
+  }, [columns]);
+  // Desktop: Tab goes column by column (Story 1.32); the phone layout keeps the DOM order.
+  useLayoutEffect(() => {
+    if (!columns || !root.current) return;
+    return bindColumnFocus(root.current);
+  }, [columns]);
 
   // The element that scrolls a tab: the one scroll area, or the tab's own column on desktop.
   const scrollerOf = (tab: TabId): HTMLElement | null =>
@@ -131,9 +138,11 @@ export function Shell({ shell, legacy, onContinue, tabKeys, grid }: ShellProps) 
       <header class="shell-strip" data-shell-strip="" />
       {/* Story 1.18: NEST shows the full goal meter on its phase line; every other tab, this one line. */}
       {/* On desktop NEST, with its full meter, never leaves column 1. */}
-      <div class="shell-goal-line" data-goal-line="" hidden={active === 'nest' || columns}>
+      <div class="shell-goal-line" data-goal-line="" role="region" aria-label="Phase goal" hidden={active === 'nest' || columns}>
         <CondensedGoalMeter />
       </div>
+      {/* Desktop: the rail comes right after the strip in reading and focus order (UX-DR40). */}
+      {columns && <TabBar shell={shell} onSelect={onTab} keys={tabKeys?.value ?? DEFAULT_TAB_KEYS} />}
       <main ref={scroller} id="panels" class="shell-scroll" data-shell-scroll="">
         {TABS.map((t) => (
           <section
@@ -182,7 +191,8 @@ export function Shell({ shell, legacy, onContinue, tabKeys, grid }: ShellProps) 
           </div>
         )}
       </div>
-      <TabBar shell={shell} onSelect={onTab} keys={columns ? (tabKeys?.value ?? DEFAULT_TAB_KEYS) : null} />
+      {/* Phone: the tab bar comes last, after the primary action. */}
+      {!columns && <TabBar shell={shell} onSelect={onTab} keys={null} />}
     </div>
   );
 }

@@ -119,6 +119,15 @@ export const selectFoodRatePerSec = computed(() => {
   return rates.foodProducedPerSec - rates.foodConsumedPerSec;
 });
 
+/** Starving (Story 1.32): the food store is empty and upkeep exceeds production. A primitive: notifies on its edges only. */
+export const selectStarving = computed(() => selectResources.value.food <= 0 && selectFoodRatePerSec.value < 0);
+
+/** The workforce fills the effective nest capacity (the strip's capped workers cell). */
+export const selectCapacityReached = computed(() => {
+  const cap = Math.floor(selectEffectiveNestCapacity.value);
+  return cap > 0 && selectWorkers.value >= cap;
+});
+
 /** Net food per second, floored (WRKR summary). Recomputes on every write, notifies only on change. */
 export const selectNetFoodPerSec = computed(() => {
   return Math.floor(selectFoodRatePerSec.value);

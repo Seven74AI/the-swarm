@@ -5,6 +5,7 @@ import { Button } from '../primitives/Button';
 import { Card } from '../primitives/Card';
 import { CONVERSION_NOT_READY, CONVERTER_GLYPH } from './buildCatalog';
 import { PriceText } from './cost';
+import { Arrow, decorate } from '../primitives/Deco';
 
 function Step({ def }: { def: ConversionDef }) {
   const unlocked = selectConversionUnlocked(def.id).value;
@@ -20,10 +21,12 @@ function Step({ def }: { def: ConversionDef }) {
   return (
     <li class="build-conversion" data-conversion={def.id} data-unlocked={unlocked ? 'true' : 'false'}>
       <span class="build-conversion__flow">
-        <PriceText price={def.inputs} /> → <PriceText price={def.outputs} />
+        <PriceText price={def.inputs} />
+        <Arrow />
+        <PriceText price={def.outputs} />
       </span>
       <span class="build-conversion__status" data-warn={unlocked ? undefined : ''}>
-        {status}
+        {decorate(status)}
       </span>
     </li>
   );

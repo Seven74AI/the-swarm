@@ -17,6 +17,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.65.1",
     "@testing-library/preact": "^3.2.6",
     "@types/node": "^26.6.6",

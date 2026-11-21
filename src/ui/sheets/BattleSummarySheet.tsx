@@ -2,6 +2,8 @@ import type { BattleOutcome, BattleResult } from '../../state/queries';
 import type { SheetController } from '../shell/SheetController';
 import { ModalSheet } from '../shell/Sheet';
 import { formatFull } from '../../utils/format';
+import { Abbr, decorate } from '../primitives/Deco';
+import { RESOURCE_BY_ID } from '../shell/resourceCatalog';
 import '../war/war.css';
 
 /**
@@ -18,6 +20,9 @@ const HEADLINE: Record<BattleOutcome, string> = {
   draw: 'DRAW · THEY RETREATED.',
 };
 
+/** The resource the strip abbreviates, by its full name (UX-DR40). */
+const nameOf = (id: string): string => RESOURCE_BY_ID[id as keyof typeof RESOURCE_BY_ID]?.name ?? id;
+
 const DROPS = [
   { id: 'chitin', label: 'CHTN' },
   { id: 'silk', label: 'SILK' },
@@ -27,18 +32,20 @@ const DROPS = [
 export function BattleSummarySheet({ result, enemyName }: { result: BattleResult; enemyName: string }) {
   return (
     <ModalSheet
-      headline={HEADLINE[result.outcome]}
+      headline={decorate(HEADLINE[result.outcome])}
       id="battle-result"
       class="battle-result"
       data-battle-summary=""
       data-outcome={result.outcome}
     >
       <ul class="battle-summary__lines">
-        <li data-losses="">▼ SOLDIERS LOST −{formatFull(result.soldiersLost)}</li>
+        <li data-losses="">
+          <span aria-hidden="true">▼ </span>SOLDIERS LOST −{formatFull(result.soldiersLost)}
+        </li>
         {result.foodGained > 0 && <li data-drop="food">FOOD +{formatFull(result.foodGained)}</li>}
         {DROPS.filter((d) => result.specialLoot[d.id] > 0).map((d) => (
           <li key={d.id} data-drop={d.id}>
-            {d.label} +{formatFull(result.specialLoot[d.id])}
+            <Abbr shown={d.label} full={nameOf(d.id)} /> +{formatFull(result.specialLoot[d.id])}
           </li>
         ))}
         <li data-enemy="">ENEMY {enemyName.toUpperCase()}</li>

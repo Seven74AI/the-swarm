@@ -12,6 +12,8 @@ import { ToastHost, type Toasts } from './primitives/Toast';
 import { useEffect, useMemo } from 'preact/hooks';
 import { appGridCols } from './primitives/charGrid';
 import { createCharGrid } from './shell/charGrid';
+import { LiveRegion } from './shell/LiveRegion';
+import type { Announcer } from './shell/announcer';
 
 export type { LegacyUi } from './shell/Shell';
 
@@ -41,6 +43,7 @@ export function App({
   overlays,
   toasts,
   tabKeys,
+  announcer,
 }: {
   legacy: LegacyUi;
   shell: TabShell;
@@ -52,6 +55,8 @@ export function App({
   toasts?: Toasts;
   /** The rail's key hints on desktop (Story 1.29). */
   tabKeys?: ReadonlySignal<readonly string[]>;
+  /** The polite live region's lines (Story 1.32). */
+  announcer?: Announcer;
 }) {
   const grid = useMemo(() => createCharGrid({ root: document.documentElement, cols: appGridCols }), []);
   useEffect(() => () => grid.dispose(), [grid]);
@@ -59,6 +64,7 @@ export function App({
     <>
       <Shell shell={shell} legacy={legacy} onContinue={onContinue} tabKeys={tabKeys} grid={grid} />
       {toasts && <ToastHost toasts={toasts} />}
+      {announcer && <LiveRegion announcer={announcer} />}
       {sheets && <SheetHost sheets={sheets} held={overlays?.held} />}
       {overlays && <OverlayHost overlays={overlays} />}
     </>

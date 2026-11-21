@@ -73,6 +73,16 @@ export class SaveManager {
   /** Where the event lines come from (main: the chronicle, Story 1.26). */
   private chronicleSource: (() => ChronicleSave) | null = null;
 
+  /** Told when saving starts failing (Story 1.32: the player hears and sees "save failed"). */
+  private saveFailedListener: (() => void) | null = null;
+  /** The last save attempt failed; the listener is told again only after a save succeeds. */
+  private failing = false;
+
+  /** Call `listener` each time saving goes from working to failing (storage full or blocked). */
+  onSaveFailed(listener: () => void): void {
+    this.saveFailedListener = listener;
+  }
+
   /** Every save from now on writes the chronicle this returns (Story 1.26). */
   setChronicleSource(source: () => ChronicleSave): void {
     this.chronicleSource = source;
@@ -108,9 +118,14 @@ export class SaveManager {
       }
 
       localStorage.setItem(SaveManager.SAVE_KEY, json);
+      this.failing = false;
       return true;
     } catch (e) {
       log.warn('save', 'failed to save', e);
+      if (!this.failing) {
+        this.failing = true;
+        this.saveFailedListener?.();
+      }
       return false;
     }
   }

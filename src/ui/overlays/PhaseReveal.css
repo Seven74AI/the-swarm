@@ -79,7 +79,7 @@
   color: var(--color-accent);
 }
 .phase-reveal__line::after {
-  content: "\2588";
+  content: "\2588" / "";
   margin-left: 0.1em;
   animation: phase-reveal-cursor 1s steps(1) infinite;
 }
