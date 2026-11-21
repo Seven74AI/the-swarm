@@ -343,7 +343,7 @@ The game's "levels" are its six phases. Each defines a scale, a new decision typ
 | E5 | Prestige rework | Full wipe except LP, Legacy upgrades, lifetime stats and victory record; save migration (#192) | ✅ |
 | E6 | Phases 4–5 on mobile, with depth | Map and star map in portrait, depth bar, entropy tuning | — |
 | E7 | Transcendence and ending | Ending sequence, victory record, Legacy balance | — |
-| E8 | Art and audio pass | Direction from `gds-ux`, icon set, phase palettes, sound effects | Partial |
+| E8 | Art and audio pass | Direction from `gds-ux`, icon set, phase palettes, sound effects, countable-ant nest scene (MVP) | Partial |
 
 **Sequence:** E1 → E2 → E3 ↔ E4 (iterate) → E5 → MVP playtest → E6 → E7, with E8 running in parallel from E1. Details are in `epics.md`.
 
