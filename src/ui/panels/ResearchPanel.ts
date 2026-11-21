@@ -1,4 +1,5 @@
-import { effect, untracked } from '@preact/signals-core';
+import { effect, untracked, type ReadonlySignal } from '@preact/signals-core';
+import { h, render as renderPreact } from 'preact';
 import {
   selectResearch,
   selectResearchers,
@@ -15,6 +16,7 @@ import {
 } from '../../state/queries';
 import type { Actions } from '../../actions';
 import { explain } from '../components/refusal';
+import { HoldToConfirm, type ConfirmSettings } from '../primitives/HoldToConfirm';
 
 /** Game-time progress of a project, in ms (0 unless it is running). */
 function progressMs(state: GameState, id: ResearchProjectId): number {
@@ -26,16 +28,26 @@ function progressMs(state: GameState, id: ResearchProjectId): number {
  * ResearchPanel — UI for the tick-based Research system.
  * Lists projects with name, cost, progress bar, unlock description.
  * Shows researcher assignment pool and project action buttons.
+ *
+ * Cancel is irreversible (half the cost is lost), so it is a `HoldToConfirm`
+ * (Story 1.13) in its own Preact root. Progress updates patch the bar and its
+ * text in place; the panel is rebuilt only when what it offers changes, so a
+ * running hold is never dropped by a tick.
  */
 export class ResearchPanel {
   private container: HTMLDivElement;
   private researcherCountEl: HTMLSpanElement | null = null;
   private lastHash: string = '';
+  private lastProgressHash: string = '';
+  /** Preact roots of the cancel controls, unmounted on rebuild. */
+  private confirmHosts: HTMLElement[] = [];
 
   constructor(
     private bus: EventBus,
     private getState: () => GameState,
     private actions: Actions,
+    /** Confirm style and hold duration from the platform settings, passed in from main. */
+    private confirmSettings: ReadonlySignal<ConfirmSettings>,
   ) {
     this.container = document.createElement('div');
     this.container.id = 'research-panel';
@@ -75,20 +87,31 @@ export class ResearchPanel {
   private render(): void {
     const state = this.getState();
 
-    // Compute hash of research state to skip re-render when unchanged
+    // Structure hash (what the panel offers) and progress hash (bars only).
     const projects = getProjects();
     const hashParts: string[] = [];
+    const progressParts: string[] = [];
     hashParts.push(`researchers:${getAssignedResearchers(state)}`);
     for (const p of projects) {
       const status = getProjectStatus(state, p.id);
-      const progress = progressMs(state, p.id);
-      hashParts.push(`${p.id}:${status}:${progress}`);
+      hashParts.push(`${p.id}:${status}:${status === 'available' && canStartProject(state, p.id)}`);
+      progressParts.push(`${p.id}:${progressMs(state, p.id)}`);
     }
 
     const hash = hashParts.join('|');
-    if (hash === this.lastHash) return;
+    const progressHash = progressParts.join('|');
+    if (hash === this.lastHash) {
+      if (progressHash !== this.lastProgressHash) {
+        this.lastProgressHash = progressHash;
+        for (const p of projects) this.patchProgress(p, state);
+      }
+      return;
+    }
     this.lastHash = hash;
+    this.lastProgressHash = progressHash;
 
+    for (const host of this.confirmHosts) renderPreact(null, host);
+    this.confirmHosts = [];
     this.container.innerHTML = '';
 
     // ── Title ──
@@ -201,21 +224,15 @@ export class ResearchPanel {
 
       const progressFill = document.createElement('div');
       progressFill.className = 'progress-bar-fill';
-      const pct = Math.min(
-        100,
-        Math.round((progressMs(state, project.id) / project.durationMs) * 100),
-      );
-      progressFill.style.width = `${pct}%`;
       progressFill.setAttribute('role', 'progressbar');
-      progressFill.setAttribute('aria-valuenow', String(pct));
       progressContainer.appendChild(progressFill);
 
       card.appendChild(progressContainer);
 
       const progressText = document.createElement('div');
       progressText.className = 'research-progress-text';
-      progressText.textContent = `${Math.floor(progressMs(state, project.id) / 1000)}s / ${Math.round(project.durationMs / 1000)}s`;
       card.appendChild(progressText);
+      this.fillProgress(card, project, state);
     }
 
     // ── Actions ──
@@ -235,17 +252,45 @@ export class ResearchPanel {
     }
 
     if (status === 'in_progress') {
-      const cancelBtn = document.createElement('button');
-      cancelBtn.className = 'btn btn-sm btn-danger';
-      cancelBtn.textContent = 'Cancel (50% refund)';
-      cancelBtn.addEventListener('click', () => {
-        explain(cancelBtn, this.actions.cancelResearch(project.id));
-      });
-      actions.appendChild(cancelBtn);
+      // Irreversible (half the cost is lost): hold or two taps (Story 1.13).
+      const host = document.createElement('div');
+      host.className = 'research-cancel';
+      actions.appendChild(host);
+      this.confirmHosts.push(host);
+      renderPreact(
+        h(HoldToConfirm, {
+          verb: 'Cancel',
+          target: 'research',
+          cost: '50% refund',
+          onConfirm: () => explain(host.querySelector('button'), this.actions.cancelResearch(project.id)),
+          settings: this.confirmSettings,
+          class: 'btn-danger',
+          'data-action': 'cancel-research',
+        }),
+        host,
+      );
     }
 
     card.appendChild(actions);
 
     return card;
+  }
+
+  /** Update a running project's bar and text in place. */
+  private patchProgress(project: ResearchProjectDef, state: GameState): void {
+    const card = this.container.querySelector<HTMLElement>(`[data-research-project="${project.id}"]`);
+    if (card) this.fillProgress(card, project, state);
+  }
+
+  private fillProgress(card: HTMLElement, project: ResearchProjectDef, state: GameState): void {
+    const fill = card.querySelector<HTMLElement>('.progress-bar-fill');
+    const text = card.querySelector<HTMLElement>('.research-progress-text');
+    const done = progressMs(state, project.id);
+    const pct = Math.min(100, Math.round((done / project.durationMs) * 100));
+    if (fill) {
+      fill.style.width = `${pct}%`;
+      fill.setAttribute('aria-valuenow', String(pct));
+    }
+    if (text) text.textContent = `${Math.floor(done / 1000)}s / ${Math.round(project.durationMs / 1000)}s`;
   }
 }

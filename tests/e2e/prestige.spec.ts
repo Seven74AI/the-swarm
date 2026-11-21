@@ -119,8 +119,10 @@ test.describe('Prestige System — Legacy Layer', () => {
     const disabled = await prestigeBtn.isDisabled();
     expect(disabled).toBe(false);
 
-    // Click prestige
-    await prestigeBtn.click();
+    // Hold prestige (hold-to-confirm, Story 1.13); the page clock is installed, so run it past the hold.
+    await prestigeBtn.dispatchEvent('pointerdown', { pointerId: 1, button: 0, isPrimary: true });
+    await page.clock.runFor(1500);
+    await prestigeBtn.dispatchEvent('pointerup', { pointerId: 1, button: 0, isPrimary: true });
 
     // Verify resources reset — food should be 0 after prestige
     await page.waitForTimeout(500);

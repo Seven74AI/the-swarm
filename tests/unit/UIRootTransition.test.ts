@@ -12,6 +12,7 @@ import { createInitialState } from '../../src/state/GameState';
 import type { GameState } from '../../src/state/GameState';
 import { Ticker } from '../../src/engine/Ticker';
 import { GameLoop } from '../../src/engine/GameLoop';
+import { confirmSettings } from './helpers/confirm';
 
 describe('UIRoot — phase transition overlay', () => {
   let bus: EventBus;
@@ -40,6 +41,7 @@ describe('UIRoot — phase transition overlay', () => {
       saveManager,
       getState: () => state,
       loop,
+      confirmSettings: confirmSettings(),
     });
   }
 

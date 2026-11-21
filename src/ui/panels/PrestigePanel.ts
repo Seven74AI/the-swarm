@@ -1,4 +1,5 @@
-import { effect, untracked } from '@preact/signals-core';
+import { effect, untracked, type ReadonlySignal } from '@preact/signals-core';
+import { h, render as renderPreact } from 'preact';
 import {
   selectPrestige,
   selectBuildings,
@@ -19,6 +20,7 @@ import {
 } from '../../state/queries';
 import type { Actions } from '../../actions';
 import { explain } from '../components/refusal';
+import { HoldToConfirm, type ConfirmSettings } from '../primitives/HoldToConfirm';
 
 /**
  * PrestigePanel — Legacy Layer UI.
@@ -27,24 +29,35 @@ import { explain } from '../components/refusal';
  *  - Current Legacy Points count
  *  - Prestige count ("Legacy N")
  *  - Projected Legacy Points for next reset
- *  - Legacy button (greyed → glowing → clickable)
+ *  - Legacy button (greyed → glowing → hold-to-confirm, Story 1.13)
+ *
+ * The prestige control is a `HoldToConfirm` in its own Preact root
+ * (`confirmHost`), outside the rebuilt markup, so a re-render never drops a hold.
  *
  * Uses @preact/signals-core for reactivity.
  */
 export class PrestigePanel {
   private container: HTMLDivElement;
+  private body: HTMLDivElement;
+  private confirmHost: HTMLDivElement;
   private lastMarkup: string | null = null;
 
   constructor(
     private bus: EventBus,
     private getState: () => GameState,
     private actions: Actions,
+    /** Confirm style and hold duration from the platform settings, passed in from main. */
+    private confirmSettings: ReadonlySignal<ConfirmSettings>,
   ) {
     this.container = document.createElement('div');
+    this.body = document.createElement('div');
+    this.confirmHost = document.createElement('div');
+    this.confirmHost.className = 'prestige-confirm';
     this.container.id = 'prestige-panel';
     this.container.className = 'panel prestige-panel';
     this.container.setAttribute('data-tooltip',
       'Legacy Prestige: Reset your colony to earn Legacy Points. Each Legacy Point gives +2% production. Buildings, phases, and food produced determine your legacy.');
+    this.container.append(this.body, this.confirmHost);
 
     this.render();
 
@@ -202,30 +215,29 @@ export class PrestigePanel {
     projRow.appendChild(projValue);
     root.appendChild(projRow);
 
-    // ── Legacy button ──
-    const btn = document.createElement('button');
-    btn.className = 'btn btn-prestige';
-    btn.textContent = '⚡ Transcend';
-    btn.disabled = !available;
-
-    if (available) {
-      // Glowing state: requirements met, ready to prestige
-      btn.classList.add('prestige-ready');
-    } else {
-      // Greyed-out state with tooltip
-      const tooltip = `Your colony has reached the limits of physics. Only transcendence can break these bonds.\n\nRequirements:\n${unmet.map((u) => `  ✗ ${u}`).join('\n')}`;
-      btn.setAttribute('title', tooltip);
-    }
-
-    btn.addEventListener('click', () => {
-      // The action raises prestige_triggered after its write.
-      explain(btn, this.actions.prestige());
-    });
-
-    root.appendChild(btn);
+    // ── Legacy button: irreversible, so it needs a hold or two taps (Story 1.13) ──
+    const tooltip = available
+      ? undefined
+      : `Your colony has reached the limits of physics. Only transcendence can break these bonds.\n\nRequirements:\n${unmet.map((u) => `  ✗ ${u}`).join('\n')}`;
+    renderPreact(
+      h(HoldToConfirm, {
+        verb: 'Transcend',
+        onConfirm: () => {
+          // The action raises prestige_triggered after its write.
+          const el = this.confirmHost.querySelector('button');
+          return explain(el, this.actions.prestige());
+        },
+        settings: this.confirmSettings,
+        disabled: available ? false : 'requirements not met',
+        class: available ? 'btn-prestige prestige-ready' : 'btn-prestige',
+        title: tooltip,
+        'data-action': 'prestige',
+      }),
+      this.confirmHost,
+    );
 
     if (root.innerHTML === this.lastMarkup) return;
     this.lastMarkup = root.innerHTML;
-    this.container.replaceChildren(...Array.from(root.childNodes));
+    this.body.replaceChildren(...Array.from(root.childNodes));
   }
 }
