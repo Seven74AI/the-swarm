@@ -74,19 +74,26 @@ test('click pause button stops food production', async ({ page }) => {
   await seedSave(page);
   await page.goto('/');
 
-  // Wait for a few ticks so food increases from 100
-  await page.waitForTimeout(350);
-  const foodBefore = await getFoodValue(page);
-  expect(foodBefore).toBeGreaterThan(100);
+  // Wait (by condition, not by clock) until ticks have grown food past the seed.
+  await expect.poll(() => getFoodValue(page), { timeout: 10_000 }).toBeGreaterThan(100);
 
-  // Click pause
+  // Click pause, then wait until the game itself reports paused before taking the baseline,
+  // so ticks that ran during the click aren't counted as "while paused".
   await page.click(PAUSE_BUTTON);
+  await expect
+    .poll(() => page.evaluate(() => {
+      // @ts-ignore - runs in browser context
+      return window.__swarm.manager.getState().paused;
+    }), { timeout: 5_000 })
+    .toBe(true);
+  // Let the display catch up with the last pre-pause tick.
+  await page.waitForTimeout(300);
+  const foodBefore = await getFoodValue(page);
 
-  // Wait — food should barely change while paused (allow 1-2 ticks already in rAF queue)
+  // While paused, food must not grow at all.
   await page.waitForTimeout(500);
   const foodPaused = await getFoodValue(page);
-  const foodIncrease = foodPaused - foodBefore;
-  expect(foodIncrease).toBeLessThanOrEqual(2);
+  expect(foodPaused).toBe(foodBefore);
 });
 
 test('click resume restarts food production', async ({ page }) => {

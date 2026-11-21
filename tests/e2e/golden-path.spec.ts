@@ -129,7 +129,21 @@ test.describe('Golden Path — Full Progression', () => {
     // Food should show 5000+
     const foodDisplay = page.locator('[data-stat="resources.food"]');
     await expect(foodDisplay).toBeVisible();
-    await expect(foodDisplay).toContainText(/5[,.]?0/); // 5000+
+    // Food grows every tick, so compare the shown number with the live state
+    // (both read in one evaluate) instead of pinning the seed's leading digits.
+    await expect(async () => {
+      const { shown, actual } = await page.evaluate(() => {
+        const swarm = (window as unknown as Record<string, unknown>).__swarm as Record<string, unknown>;
+        const st = (swarm.manager as { getState: () => { resources: { food: number } } }).getState();
+        const text = document.querySelector('[data-stat="resources.food"]')?.textContent ?? '';
+        return { shown: Number(text.replace(/[^0-9]/g, '')), actual: st.resources.food };
+      });
+      expect(shown).toBeGreaterThan(0);
+      // The panel may lag the state by a tick, but never shows more than the colony has
+      // (ceil: formatNumber still rounds until Story 1.9 makes it floor).
+      expect(shown).toBeLessThanOrEqual(Math.ceil(actual));
+      expect(shown).toBeGreaterThanOrEqual(Math.floor(actual * 0.9));
+    }).toPass({ timeout: 10_000 });
 
     // Eggs and workers are also in the resource panel
     await expect(page.locator('[data-stat="resources.eggs"]')).toBeVisible();

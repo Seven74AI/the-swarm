@@ -29,6 +29,7 @@ import {
  */
 export class PrestigePanel {
   private container: HTMLDivElement;
+  private lastMarkup: string | null = null;
 
   constructor(
     private bus: EventBus,
@@ -70,13 +71,15 @@ export class PrestigePanel {
     // Same scoring prestige() uses, so the preview can't drift from the award.
     const projected = calculateLegacyPoints(totalFoodProduced, getPhaseScore(state.phase));
 
-    this.container.innerHTML = '';
+    // Build into a scratch root and swap only when the markup changed: the effect
+    // re-runs on every tick (#186), and rebuilding the button 20×/s can eat a tap.
+    const root = document.createElement('div');
 
     // ── Title ──
     const title = document.createElement('div');
     title.className = 'panel-title';
     title.textContent = '✨ Legacy Prestige';
-    this.container.appendChild(title);
+    root.appendChild(title);
 
     // ── Legacy Points display ──
     const pointsRow = document.createElement('div');
@@ -89,7 +92,7 @@ export class PrestigePanel {
     pointsValue.textContent = String(legacyPoints);
     pointsRow.appendChild(pointsLabel);
     pointsRow.appendChild(pointsValue);
-    this.container.appendChild(pointsRow);
+    root.appendChild(pointsRow);
 
     // ── Prestige count ──
     const countRow = document.createElement('div');
@@ -102,7 +105,7 @@ export class PrestigePanel {
     countValue.textContent = String(count);
     countRow.appendChild(countLabel);
     countRow.appendChild(countValue);
-    this.container.appendChild(countRow);
+    root.appendChild(countRow);
 
     // ── Prestige Tree button ──
     const treeBtn = document.createElement('button');
@@ -111,7 +114,7 @@ export class PrestigePanel {
     treeBtn.addEventListener('click', () => {
       this.bus.emit('open_prestige_tree', {});
     });
-    this.container.appendChild(treeBtn);
+    root.appendChild(treeBtn);
 
     // ── Production bonus ──
     if (legacyPoints > 0) {
@@ -125,7 +128,7 @@ export class PrestigePanel {
       bonusValue.textContent = `+${legacyPoints * 2}%`;
       bonusRow.appendChild(bonusLabel);
       bonusRow.appendChild(bonusValue);
-      this.container.appendChild(bonusRow);
+      root.appendChild(bonusRow);
     }
 
     // ── Offline Efficiency display ──
@@ -139,7 +142,7 @@ export class PrestigePanel {
     effValue.textContent = `${Math.round(state.offlineEfficiency * 100)}%`;
     effRow.appendChild(effLabel);
     effRow.appendChild(effValue);
-    this.container.appendChild(effRow);
+    root.appendChild(effRow);
 
     // ── Temporal Resonance upgrade button (50% → 75%, cost: 10 LP) ──
     const canBuyTR = canBuyTemporalResonance(state);
@@ -157,7 +160,7 @@ export class PrestigePanel {
     } else {
       trBtn.setAttribute('title', `Requires ${TEMPORAL_RESONANCE_COST} Legacy Points`);
     }
-    this.container.appendChild(trBtn);
+    root.appendChild(trBtn);
 
     // ── Chrono-Synchronization upgrade button (75% → 100%, cost: 5 voidCrystals) ──
     const canBuyCS = canBuyChronoSynchronization(state);
@@ -177,7 +180,7 @@ export class PrestigePanel {
     } else {
       csBtn.setAttribute('title', `Requires ${CHRONO_SYNCHRONIZATION_COST} void crystals`);
     }
-    this.container.appendChild(csBtn);
+    root.appendChild(csBtn);
 
     // ── Projected points ──
     const projRow = document.createElement('div');
@@ -192,7 +195,7 @@ export class PrestigePanel {
       : '—';
     projRow.appendChild(projLabel);
     projRow.appendChild(projValue);
-    this.container.appendChild(projRow);
+    root.appendChild(projRow);
 
     // ── Legacy button ──
     const btn = document.createElement('button');
@@ -222,6 +225,10 @@ export class PrestigePanel {
       });
     });
 
-    this.container.appendChild(btn);
+    root.appendChild(btn);
+
+    if (root.innerHTML === this.lastMarkup) return;
+    this.lastMarkup = root.innerHTML;
+    this.container.replaceChildren(...Array.from(root.childNodes));
   }
 }
