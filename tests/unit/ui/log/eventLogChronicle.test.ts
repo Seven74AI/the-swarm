@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { EventLog } from '../../../../src/ui/panels/EventLog';
+import { EventLog } from '../../../../src/ui/log/EventLog';
 import { EventBus } from '../../../../src/engine/EventBus';
 import { createChronicle } from '../../../../src/state/chronicle';
 
@@ -24,13 +24,6 @@ describe('EventLog writes the chronicle', () => {
     bus.emit('narrative', { message: 'one' });
     bus.emit('narrative', { message: 'two' });
     expect(messages(c).slice(0, 2)).toEqual(['two', 'one']);
-  });
-
-  it('draws NEST lines from the chronicle, including a loaded one', () => {
-    const c = createChronicle();
-    const log = new EventLog(new EventBus(), { chronicle: c });
-    c.load({ entries: [{ message: 'loaded line', timestamp: 1 }], milestones: [] });
-    expect(log.getElement().querySelector('.log-entry')?.textContent).toContain('loaded line');
   });
 
   it('remembers one-time lines through the save, so a reload never repeats them', () => {
@@ -67,33 +60,5 @@ describe('EventLog writes the chronicle', () => {
     const before = c.entries.value.length;
     bus.emit('egg_clicked', { eggs: 1 } as never);
     expect(c.entries.value.length).toBeGreaterThan(before);
-  });
-
-  it('a NEST line that points somewhere jumps there when tapped', () => {
-    const c = createChronicle();
-    const bus = new EventBus();
-    const jumps: string[] = [];
-    const log = new EventLog(bus, { chronicle: c, jump: { canJump: () => true, jump: (id) => jumps.push(id) } });
-    bus.emit('building_complete', { building: 'walls', level: 2 } as never);
-    const btn = log.getElement().querySelector<HTMLElement>('.log-entry [data-jump]');
-    expect(btn?.dataset.jump).toBe('building_panel');
-    btn!.click();
-    expect(jumps).toEqual(['building_panel']);
-  });
-
-  it('NEST lines are a real list, and a new line leaves the others in place, so the log region reads only the new one (Story 1.32)', () => {
-    const c = createChronicle();
-    const bus = new EventBus();
-    const log = new EventLog(bus, { chronicle: c });
-    bus.emit('narrative', { message: 'one' });
-    const list = log.getElement().querySelector('[role="log"] > ol')!;
-    expect(list).not.toBeNull();
-    const before = [...list.children];
-    expect(before.every((li) => li.tagName === 'LI')).toBe(true);
-    bus.emit('narrative', { message: 'two' });
-    const after = [...list.children];
-    expect(after[0].textContent).toContain('two');
-    // The lines that were there are the same nodes, not redrawn copies.
-    expect(after.slice(1)).toEqual(before.slice(0, after.length - 1));
   });
 });

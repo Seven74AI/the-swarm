@@ -1,12 +1,11 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
+import type { ComponentChildren } from 'preact';
 import { render, cleanup, act, fireEvent } from '@testing-library/preact';
 import '@preact/signals';
 import { signal } from '@preact/signals-core';
 import { Phase } from '../../../../src/phases/phases';
 import { createTabShell } from '../../../../src/ui/shell/tabShell';
 import { Shell } from '../../../../src/ui/shell/Shell';
-import type { ShellHosts } from '../../../../src/ui/shell/hosts';
-import { PANEL_PLACEMENT } from '../../../../src/data/content/tabs';
 import { createSheetController } from '../../../../src/ui/shell/SheetController';
 import { SheetHost } from '../../../../src/ui/shell/SheetHost';
 import { ModalSheet, PeekSheet } from '../../../../src/ui/shell/Sheet';
@@ -35,29 +34,22 @@ function setup(phase: Phase = Phase.COLONY, initial: Partial<ShortcutSettings> =
   const held = signal(false);
   const pause = vi.fn();
   const primaries: Record<string, ReturnType<typeof vi.fn>> = {};
-  let hosts: ShellHosts | undefined;
-  const legacy = { mount: (h: ShellHosts) => void (hosts = h) };
+  const primary: Record<string, ComponentChildren> = {};
+  for (const tab of ['nest', 'wrkr', 'build'] as const) {
+    const press = vi.fn();
+    primaries[tab] = press;
+    primary[tab] = <Button variant="primary" verb={`GO ${tab}`} onPress={press} data-test-primary={tab} />;
+  }
   render(
     <>
-      <Shell shell={shell} legacy={legacy} />
+      <Shell shell={shell} views={{ primary }} />
       <SheetHost sheets={sheets} held={held} />
     </>,
   );
-  for (const [id, tab] of [
-    ['click_button', 'nest'],
-    ['wrkr_primary', 'wrkr'],
-    ['build_primary', 'build'],
-  ] as const) {
-    const press = vi.fn();
-    primaries[tab] = press;
-    const slot = document.createElement('div');
-    hosts!.host(PANEL_PLACEMENT[id]).appendChild(slot);
-    act(() => void render(<Button variant="primary" verb={`GO ${tab}`} onPress={press} data-test-primary={tab} />, { container: slot }));
-  }
   const unbind = bindShortcuts({ settings, sheets, overlayHeld: held, pause });
   const key = (k: string, target: Element = document.activeElement ?? document.body, init: KeyboardEventInit = {}) =>
     act(() => void fireEvent.keyDown(target, { key: k, ...init }));
-  return { ph, shell, settings, sheets, held, pause, primaries, hosts: () => hosts!, unbind, key };
+  return { ph, shell, settings, sheets, held, pause, primaries, unbind, key };
 }
 
 let cleanups: (() => void)[] = [];

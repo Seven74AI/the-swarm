@@ -1,11 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { testActions } from './helpers/actions';
 import { effect } from '@preact/signals-core';
 import { gameState } from '../../src/state/gameSignal';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 import * as selectors from '../../src/state/selectors';
 import { getEffects } from '../../src/systems/BuildingSystem';
-import { PrestigeTreePanel } from '../../src/ui/panels/PrestigeTreePanel';
+import { StarmapPanel } from '../../src/ui/panels/StarmapPanel';
 import { EventBus } from '../../src/engine/EventBus';
 
 /** One tick that changes only food: a new state and a new resources object, every other slice kept. */
@@ -126,13 +125,13 @@ describe('UI effects depend on selectors, not on the whole state', () => {
   it('a panel that shows no food does not re-render on a food-only tick', () => {
     const bus = new EventBus();
     // Production wiring: getState reads the live signal, which must not subscribe the panel's effect.
-    const panel = new PrestigeTreePanel(bus, () => gameState.value, testActions(bus, () => gameState.value, (s) => { gameState.value = s; }));
+    const panel = new StarmapPanel(bus, () => gameState.value);
     const render = vi.spyOn(panel as unknown as { render: () => void }, 'render');
     gameState.value = foodOnlyTick(gameState.value);
     gameState.value = foodOnlyTick(gameState.value);
     expect(render).not.toHaveBeenCalled();
     const s = gameState.value;
-    gameState.value = { ...s, prestige: { ...s.prestige, legacyPoints: s.prestige.legacyPoints + 1 } };
+    gameState.value = { ...s, discoveredPlanets: [...s.discoveredPlanets] };
     expect(render).toHaveBeenCalled();
   });
 });

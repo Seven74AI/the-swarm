@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { EventBus } from '../../src/engine/EventBus';
-import { EventLog } from '../../src/ui/panels/EventLog';
+import { EventLog } from '../../src/ui/log/EventLog';
 
 describe('EventLog — Combat Events', () => {
   let bus: EventBus;
@@ -13,13 +13,13 @@ describe('EventLog — Combat Events', () => {
 
   it('logs enemy_scouted event with enemy name', () => {
     bus.emit('enemy_scouted', { enemyType: 'red_ant', enemyName: 'Red Ant' });
-    const el = log.getElement();
+    const el = { textContent: log.entries().map((e) => e.message).join('\n') };
     expect(el.textContent).toContain('SCOUTS SPOT A RED ANT');
   });
 
   it('logs battle_engage event with enemy type', () => {
     bus.emit('battle_engage', { enemyType: 'spider' });
-    const el = log.getElement();
+    const el = { textContent: log.entries().map((e) => e.message).join('\n') };
     expect(el.textContent).toContain('SOLDIERS MARCH ON THE SPIDER');
   });
 
@@ -35,7 +35,7 @@ describe('EventLog — Combat Events', () => {
         poisonDamageDealt: 0,
         narrative: '⚔️ 20 soldiers defeated a Beetle. 3 fell. +45 food. The colony salvages 2 chitin from the Beetle carcass.',
     });
-    const el = log.getElement();
+    const el = { textContent: log.entries().map((e) => e.message).join('\n') };
     expect(el.textContent).toContain('20 soldiers defeated a Beetle');
   });
 
@@ -51,7 +51,7 @@ describe('EventLog — Combat Events', () => {
         poisonDamageDealt: 0,
         narrative: '💀 10 soldiers were slaughtered by a Scorpion. None survived.',
     });
-    const el = log.getElement();
+    const el = { textContent: log.entries().map((e) => e.message).join('\n') };
     expect(el.textContent).toContain('soldiers were slaughtered');
   });
 });

@@ -5,6 +5,7 @@ import { Phase, PHASE_ORDER } from '../../phases/phases';
  * hosts each panel, and from which phase. Data, not code: it replaces
  * `PHASE_PANELS` in `ui/PhaseContent.ts`. The panel consolidation follows
  * EXPERIENCE.md (Information Architecture → Panel consolidation).
+ * `ui/gameViews.tsx` draws each panel where its placement says (Story 1.36).
  */
 
 export type TabId = 'nest' | 'wrkr' | 'build' | 'front' | 'log';

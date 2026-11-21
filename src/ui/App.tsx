@@ -2,7 +2,8 @@
 // slice changes, and only then (ADR 0004). Keep this import in the root of the Preact tree.
 import '@preact/signals';
 import type { ReadonlySignal } from '@preact/signals-core';
-import { Shell, type LegacyUi } from './shell/Shell';
+import { Shell, type ShellViews } from './shell/Shell';
+import { PanelRevealContext, type PanelReveal } from './shell/panelReveal';
 import type { TabShell } from './shell/tabShell';
 import type { SheetController } from './shell/SheetController';
 import { SheetHost } from './shell/SheetHost';
@@ -15,16 +16,15 @@ import { createCharGrid } from './shell/charGrid';
 import { LiveRegion } from './shell/LiveRegion';
 import type { Announcer } from './shell/announcer';
 
-export type { LegacyUi } from './shell/Shell';
+export type { ShellViews } from './shell/Shell';
 
 /**
  * Root of the Preact UI (Story 1.7, ADR 0004).
  *
  * It renders the tab shell (Story 1.15): strip, tabs, primary zone and tab
- * bar. The legacy `UIRoot` mounts its panels into the shell's host
- * containers once, synchronously inside `render()`, so boot can reveal the
- * phase's panels right after rendering. The hosts have no Preact children, so
- * re-renders never touch the legacy DOM.
+ * bar, with `views` in them (Story 1.36: every panel is a Preact view; UIRoot
+ * is gone). `panels` says which panels the session has revealed: a panel is
+ * absent until its phase reveals it.
  *
  * `sheets` is the one SheetController (Story 1.14): its open sheet is drawn
  * after the shell, so sheets sit above the panels.
@@ -36,7 +36,8 @@ export type { LegacyUi } from './shell/Shell';
  * Preact root (sheets and tab hosts included) reads them through `appGridCols`.
  */
 export function App({
-  legacy,
+  views,
+  panels,
   shell,
   sheets,
   onContinue,
@@ -45,7 +46,9 @@ export function App({
   tabKeys,
   announcer,
 }: {
-  legacy: LegacyUi;
+  views?: ShellViews;
+  /** Which panels the session has revealed (main reveals them on boot and on each phase commit). */
+  panels?: PanelReveal;
   shell: TabShell;
   sheets?: SheetController;
   /** CONTINUE on NEST (Story 1.19): `actions.continuePhase`. */
@@ -61,12 +64,12 @@ export function App({
   const grid = useMemo(() => createCharGrid({ root: document.documentElement, cols: appGridCols }), []);
   useEffect(() => () => grid.dispose(), [grid]);
   return (
-    <>
-      <Shell shell={shell} legacy={legacy} onContinue={onContinue} tabKeys={tabKeys} grid={grid} />
+    <PanelRevealContext.Provider value={panels ?? null}>
+      <Shell shell={shell} views={views} onContinue={onContinue} tabKeys={tabKeys} grid={grid} />
       {toasts && <ToastHost toasts={toasts} />}
       {announcer && <LiveRegion announcer={announcer} />}
       {sheets && <SheetHost sheets={sheets} held={overlays?.held} />}
       {overlays && <OverlayHost overlays={overlays} />}
-    </>
+    </PanelRevealContext.Provider>
   );
 }

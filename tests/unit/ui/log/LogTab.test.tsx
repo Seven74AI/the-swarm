@@ -116,22 +116,17 @@ describe('LogSettingsEntry', () => {
 });
 
 describe('LegacySection', () => {
-  const panel = () => {
-    const el = document.createElement('div');
-    el.id = 'prestige-panel';
-    return el;
-  };
+  const panel = () => <div id="prestige-panel" />;
   const met = {
     buildings: { barracks: { level: 5, count: 0 }, walls: { level: 5 }, warehouse: { level: 5 } },
     prestige: { totalFoodProduced: 100_000, totalWoodProduced: 50_000, totalStoneProduced: 50_000, totalNectarProduced: 25_000 },
   };
 
-  it('hosts the legacy panels, hidden until the prestige unlock condition is met', () => {
+  it('hosts the prestige views, hidden until the prestige unlock condition is met', () => {
     gameState.value = makeState({ phase: Phase.SPACE });
-    const p = panel();
-    const { container } = render(<LegacySection panels={[p]} />);
+    const { container } = render(<LegacySection>{panel()}</LegacySection>);
     const section = container.querySelector<HTMLElement>('[data-log-section="legacy"]')!;
-    expect(section.contains(p)).toBe(true);
+    expect(section.querySelector('#prestige-panel')).not.toBeNull();
     expect(section.hidden).toBe(true);
     act(() => {
       gameState.value = makeState({ phase: Phase.SPACE, ...met });
@@ -141,11 +136,11 @@ describe('LegacySection', () => {
 
   it('stays for the runs after a prestige, and after the ending', () => {
     gameState.value = makeState({ phase: Phase.COLONY, prestige: { count: 1 } });
-    const { container } = render(<LegacySection panels={[panel()]} />);
+    const { container } = render(<LegacySection>{panel()}</LegacySection>);
     expect(container.querySelector<HTMLElement>('[data-log-section="legacy"]')!.hidden).toBe(false);
     cleanup();
     gameState.value = makeState({ phase: Phase.TRANSCENDENCE, victoryAchieved: true });
-    const second = render(<LegacySection panels={[panel()]} />);
+    const second = render(<LegacySection>{panel()}</LegacySection>);
     expect(second.container.querySelector<HTMLElement>('[data-log-section="legacy"]')!.hidden).toBe(false);
   });
 });

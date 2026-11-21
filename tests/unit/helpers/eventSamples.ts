@@ -78,7 +78,6 @@ export const EVENT_SAMPLES: { [K in keyof SwarmEvents]: SwarmEvents[K] } = {
   enemy_scouted: { enemyType: 'beetle', enemyName: 'sample' },
   battle_engage: { enemyType: 'beetle' },
   mutation_purchased: { mutationId: 'sample', name: 'sample' },
-  open_prestige_tree: {},
   prestige_triggered: { fromCount: 0, toCount: 1, legacyPointsGained: 1, totalLegacyPoints: 1 },
   prestige_upgrade_purchased: { upgradeId: 'sample', upgradeName: 'sample' },
   conversion_tick: { tick: 1 },

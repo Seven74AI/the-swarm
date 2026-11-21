@@ -1,6 +1,6 @@
 import { Phase } from '../phases/phases';
-import type { UIRoot } from './UIRoot';
-import { panelsForPhase } from '../data/content/tabs';
+import type { PanelReveal } from './shell/panelReveal';
+import { panelsForPhase, type PanelId } from '../data/content/tabs';
 
 export class PhaseContent {
   /**
@@ -25,48 +25,24 @@ export class PhaseContent {
   /**
    * Returns the list of panel IDs active for a given phase.
    */
-  getActivePanels(phase: Phase): string[] {
+  getActivePanels(phase: Phase): PanelId[] {
     // The tab registry (data/content/tabs.ts, Story 1.15) is the one source of panel unlocks.
     return panelsForPhase(phase);
   }
 
   /**
-   * Called when entering a new phase. Creates lazy panels on demand, reveals
-   * all active panels, and sets the body class for phase theme shifting.
-   * For Phase 1 panels that were mounted at boot, createPanel()
-   * is idempotent (returns the existing element). For Phase 2+ panels, createPanel()
-   * instantiates them lazily — making reveals feel like genuine new features.
+   * Called when entering a phase (at boot and on every commit): sets the body
+   * class for phase theme shifting and reveals the phase's panels (Story 1.36:
+   * a panel is absent until then, and stays for the session). Each one is
+   * announced as `panel_revealed`, in registry order, and the new ones on
+   * screen cascade in (under the phase reveal on a commit, Story 1.20).
    */
-  onPhaseEnter(phase: Phase, uiRoot: UIRoot): void {
-    // ── Set body class for phase theme shifting ──
+  onPhaseEnter(phase: Phase, panels: PanelReveal): void {
     // Remove any existing phase-* class (safe: collect then remove)
-    const phaseClasses = Array.from(document.body.classList).filter(
-      (cls) => cls.startsWith('phase-'),
-    );
-    for (const cls of phaseClasses) {
-      document.body.classList.remove(cls);
-    }
+    const phaseClasses = Array.from(document.body.classList).filter((cls) => cls.startsWith('phase-'));
+    for (const cls of phaseClasses) document.body.classList.remove(cls);
     const bodyClass = PhaseContent.PHASE_CLASS_MAP[phase];
-    if (bodyClass) {
-      document.body.classList.add(bodyClass);
-    }
-
-    const panels = this.getActivePanels(phase);
-    // Stagger panel reveals — each panel gets an incremental animation-delay
-    // so they cascade in one-by-one (150ms per panel) under the phase reveal (Story 1.20).
-    const STAGGER_MS = 150;
-    for (let i = 0; i < panels.length; i++) {
-      const panelId = panels[i];
-      // createPanel() ensures the panel exists (lazy creation for Phase 4+).
-      // Gracefully skip panels not yet in the registry (e.g. cosmic_panel).
-      try {
-        uiRoot.createPanel(panelId);
-      } catch {
-        // Panel not yet implemented — skip creation, continue to reveal existing
-      }
-      // showPanel() reveals it (sets display, adds unlocked class, emits event)
-      // Pass staggered delay so panels cascade rather than appearing at once
-      uiRoot.showPanel(panelId, i * STAGGER_MS);
-    }
+    if (bodyClass) document.body.classList.add(bodyClass);
+    panels.reveal(this.getActivePanels(phase));
   }
 }

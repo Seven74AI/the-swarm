@@ -1,10 +1,8 @@
-import { effect } from '@preact/signals-core';
 import { getDecision, timeoutLine, type DecisionId } from '../../data/content/decisions';
 import type { EventBus } from '../../engine/EventBus';
 import type { PanelId } from '../../data/content/tabs';
 import { COLONY_LINES, colonyLine } from '../../data/content/colonyLines';
 import { createChronicle, type Chronicle, type ChronicleEntry } from '../../state/chronicle';
-import type { LineJump } from '../log/jump';
 
 /** One event line (kept in the chronicle, Story 1.26). */
 export type LogEntry = ChronicleEntry;
@@ -17,8 +15,6 @@ export const PRESTIGE_LINE = COLONY_LINES.prestige.text;
 export interface EventLogOptions {
   /** Where the lines go (main passes the saved one); default: a new chronicle. */
   chronicle?: Chronicle;
-  /** Tapping a line that points at something jumps to it (Story 1.26). */
-  jump?: LineJump;
 }
 
 /** "Now available" lines, written once per run when a panel is first revealed. */
@@ -37,9 +33,6 @@ function partyOf(scouts: number, warriors: number): string {
   return party.length > 0 ? party.join(' and ') : 'no one';
 }
 
-/** NEST shows this many newest lines; CSS keeps only the newest below 560 px viewport height (UX-DR30). */
-export const NEST_LINES = 3;
-
 /**
  * The colony's event lines. Listens for game events and writes
  * milestone-based narrative messages, newest first, into the chronicle
@@ -47,41 +40,18 @@ export const NEST_LINES = 3;
  * with the game. One-time lines are chronicle milestones, so a reload never
  * repeats them; a prestige starts a new chronicle.
  *
- * On NEST (Story 1.22, UX-DR30) it shows only the newest `NEST_LINES`: the
- * newest prefixed `> ` in accent, older ones `· ` in dim. The full log is
- * the LOG tab's. Hooks kept: `#activity-log` (set by UIRoot), `.log-entry`
- * per line, `[data-newest]`, `[data-line-prefix]`; a line that points at
- * something holds a `[data-jump=<panelId>]` button.
+ * It draws nothing (Story 1.36): NEST's newest lines are `ui/nest/EventLines`
+ * and the full log is LOG's `ChronicleLog`, both views of the chronicle.
  */
 export class EventLog {
-  private container: HTMLDivElement;
-  private logEl: HTMLOListElement;
   private chronicle: Chronicle;
-  private jump?: LineJump;
 
   /** Stored callback references for unsubscribe. */
   private unsubscribeHandles: Array<() => void> = [];
   constructor(private bus: EventBus, options: EventLogOptions = {}) {
     this.chronicle = options.chronicle ?? createChronicle();
-    this.jump = options.jump;
-    this.container = document.createElement('div');
-    this.container.className = 'event-log event-lines';
-
-    // A `role="log"` region holding a real list (UX-DR40); it reads each new line once
-    // (render keeps the old nodes).
-    const region = document.createElement('div');
-    region.className = 'event-lines__region';
-    region.setAttribute('role', 'log');
-    region.setAttribute('aria-label', 'Latest events');
-    this.logEl = document.createElement('ol');
-    this.logEl.className = 'event-lines__list';
-    region.appendChild(this.logEl);
-    this.container.appendChild(region);
-
     // A new chronicle opens with one line; a saved one already has its lines.
     if (this.chronicle.entries.peek().length === 0) this.addEntry(OPENING_LINE);
-    // NEST redraws whenever the chronicle changes (a line, a load, a prestige).
-    this.unsubscribeHandles.push(effect(() => this.render(this.chronicle.entries.value)));
 
     // A prestige starts a new run, and with it a new chronicle (GDD: a prestige wipes the run).
     const onPrestigeCb = () => {
@@ -96,7 +66,10 @@ export class EventLog {
     bus.subscribe('egg_clicked', onClickCb);
     this.unsubscribeHandles.push(() => bus.unsubscribe('egg_clicked', onClickCb));
 
-    const onWorkersCb = () => this.onWorkersChanged();
+    const onWorkersCb = ({ workers }: { workers: number }) => {
+      this.onWorkersChanged();
+      this.notifyWorkerCount(workers);
+    };
     bus.subscribe('workers_changed', onWorkersCb);
     this.unsubscribeHandles.push(() => bus.unsubscribe('workers_changed', onWorkersCb));
 
@@ -291,56 +264,6 @@ export class EventLog {
     this.addEntry(message, options);
   }
 
-  /**
-   * Draw the newest `NEST_LINES` entries, newest first. A line already drawn
-   * keeps its node (only its prefix and `data-newest` change), so the log
-   * region announces a new line once and never re-reads the old ones (Story 1.32).
-   */
-  private render(all: readonly LogEntry[]): void {
-    const shown = all.slice(0, NEST_LINES);
-    const kept = new Map<LogEntry, HTMLElement>();
-    for (const el of [...this.logEl.children] as HTMLElement[]) {
-      const entry = this.drawn.get(el);
-      if (entry && shown.includes(entry) && !kept.has(entry)) kept.set(entry, el);
-      else el.remove();
-    }
-    shown.forEach((entry, i) => {
-      const line = kept.get(entry) ?? this.drawLine(entry);
-      line.dataset.newest = i === 0 ? 'true' : 'false';
-      const prefix = line.querySelector<HTMLElement>('[data-line-prefix]');
-      if (prefix) prefix.textContent = i === 0 ? '> ' : '· ';
-      // Already in place: leave it (moving a node would read it again).
-      if (this.logEl.children[i] !== line) this.logEl.insertBefore(line, this.logEl.children[i] ?? null);
-    });
-  }
-
-  /** Lines on screen and the entry each one draws. */
-  private drawn = new WeakMap<HTMLElement, LogEntry>();
-
-  private drawLine(entry: LogEntry): HTMLElement {
-    const line = document.createElement('li');
-    line.className = 'log-entry event-line';
-    this.drawn.set(line, entry);
-    const prefix = document.createElement('span');
-    prefix.className = 'event-line__prefix';
-    prefix.setAttribute('data-line-prefix', '');
-    prefix.setAttribute('aria-hidden', 'true');
-    line.appendChild(prefix);
-    const target = entry.target;
-    if (target && this.jump?.canJump(target)) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'event-line__jump';
-      btn.dataset.jump = target;
-      btn.textContent = entry.message;
-      btn.addEventListener('click', () => this.jump?.jump(target));
-      line.appendChild(btn);
-    } else {
-      line.appendChild(document.createTextNode(entry.message));
-    }
-    return line;
-  }
-
   private onClick(): void {
     this.once('first_egg', colonyLine('first_egg'));
   }
@@ -411,9 +334,5 @@ export class EventLog {
     // One line per panel and run: a reload reveals the panels again, and must not repeat it.
     const line = PANEL_LINES[panelId];
     if (line) this.once(`panel_${panelId}`, line, { under: true, target: panelId as PanelId });
-  }
-
-  getElement(): HTMLDivElement {
-    return this.container;
   }
 }

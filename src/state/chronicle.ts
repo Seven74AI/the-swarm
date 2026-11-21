@@ -5,7 +5,7 @@ import { placementOf, type PanelId } from '../data/content/tabs';
  * The chronicle (Story 1.26, UX-DR30, ADR 0018): the colony's event lines,
  * newest first, kept with the save (last `CHRONICLE_MAX_LINES`).
  *
- * Event lines are narrative written from events (`ui/panels/EventLog`), and
+ * Event lines are narrative written from events (`ui/log/EventLog`), and
  * no listener may write the game state (AR18). So the chronicle lives beside
  * the game state, not in it: its own signal, saved in the save envelope
  * (`SaveData.chronicle`, arch D4 "inside the save: … the event log"). A

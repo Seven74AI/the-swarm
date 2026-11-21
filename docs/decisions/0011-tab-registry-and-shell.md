@@ -1,6 +1,6 @@
 # 0011. A tab registry in data and one portrait shell host every panel
 
-- **Status:** accepted (2026-11-21)
+- **Status:** accepted (2026-11-21); its mounting (UIRoot, `ShellHosts`) is superseded by ADR 0025 (Story 1.36)
 - **Source:** [Game architecture](../../_bmad-output/planning-artifacts/architecture/architecture-the-swarm-2026-11-20/game-architecture.md)
   D7 (UI shell) · Story 1.15 (#245) · FR45, AR10, UX-DR5, UX-DR9 · EXPERIENCE.md (Information Architecture)
 

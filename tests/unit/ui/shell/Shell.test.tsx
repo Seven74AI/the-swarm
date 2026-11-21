@@ -5,8 +5,7 @@ import { signal } from '@preact/signals-core';
 import { Phase } from '../../../../src/phases/phases';
 import { createTabShell } from '../../../../src/ui/shell/tabShell';
 import { Shell } from '../../../../src/ui/shell/Shell';
-import type { ShellHosts } from '../../../../src/ui/shell/hosts';
-import { PANEL_PLACEMENT, TABS } from '../../../../src/data/content/tabs';
+import { SEGMENTS, TABS } from '../../../../src/data/content/tabs';
 import { MAX_TABS } from '../../../../src/data/constants';
 import { visibleText } from '../../helpers/a11y';
 
@@ -14,29 +13,40 @@ function setup(phase: Phase = Phase.COLONY) {
   const ph = signal(phase);
   const aff = signal('');
   const shell = createTabShell({ phase: ph, affordable: aff });
-  let hosts: ShellHosts | undefined;
-  const legacy = { mount: vi.fn((h: ShellHosts) => { hosts = h; }) };
-  const view = render(<Shell shell={shell} legacy={legacy} />);
+  const views = {
+    strip: <span data-probe="strip" />,
+    tabs: Object.fromEntries(TABS.map((t) => [t.id, <span data-probe={`tab-${t.id}`} />])),
+    segments: Object.fromEntries(SEGMENTS.map((s) => [s.id, <span data-probe={`segment-${s.id}`} />])),
+    primary: Object.fromEntries(TABS.map((t) => [t.id, <span data-probe={`primary-${t.id}`} />])),
+  };
+  const view = render(<Shell shell={shell} views={views} />);
   const bar = () => view.container.querySelector<HTMLElement>('[data-tab-bar]')!;
   const tab = (id: string) => view.container.querySelector<HTMLButtonElement>(`[data-tab="${id}"]`);
   const panel = (id: string) => view.container.querySelector<HTMLElement>(`[data-tab-panel="${id}"]`)!;
-  return { ph, aff, shell, legacy, view, bar, tab, panel, hosts: () => hosts! };
+  return { ph, aff, shell, view, bar, tab, panel };
 }
 
 describe('Shell (Story 1.15)', () => {
   afterEach(() => cleanup());
 
-  it('mounts the legacy UI once, synchronously, with a host for every placement', () => {
-    const { legacy, hosts, view } = setup();
-    expect(legacy.mount).toHaveBeenCalledTimes(1);
-    for (const [id, p] of Object.entries(PANEL_PLACEMENT)) {
-      const host = hosts().host(p);
-      expect(view.container.contains(host), id).toBe(true);
+  it('renders each view into its container: strip, tab, FRONT segment and primary zone (Story 1.36)', () => {
+    const { view } = setup();
+    const probe = (id: string) => view.container.querySelector(`[data-probe="${id}"]`);
+    expect(probe('strip')?.closest('[data-shell-strip]')).not.toBeNull();
+    for (const t of TABS) {
+      if (t.id !== 'front') expect(probe(`tab-${t.id}`)?.closest('[data-tab-content]')?.getAttribute('data-tab-content'), t.id).toBe(t.id);
+      expect(probe(`primary-${t.id}`)?.closest('[data-primary-for]')?.getAttribute('data-primary-for'), t.id).toBe(t.id);
     }
-    expect(hosts().host(PANEL_PLACEMENT.worker_assignment).closest('[data-tab-panel]')?.getAttribute('data-tab-panel')).toBe('wrkr');
-    expect(hosts().host(PANEL_PLACEMENT.map_panel).closest('[data-segment-panel]')?.getAttribute('data-segment-panel')).toBe('map');
-    expect(hosts().host(PANEL_PLACEMENT.click_button).closest('[data-primary-zone]')).not.toBeNull();
-    expect(hosts().strip.matches('[data-shell-strip]')).toBe(true);
+    for (const s of SEGMENTS) {
+      expect(probe(`segment-${s.id}`)?.closest('[data-segment-panel]')?.getAttribute('data-segment-panel'), s.id).toBe(s.id);
+    }
+  });
+
+  it('keeps the views in place when it re-renders', () => {
+    const { view, shell } = setup();
+    const before = view.container.querySelector('[data-probe="tab-wrkr"]');
+    act(() => void shell.select('wrkr'));
+    expect(view.container.querySelector('[data-probe="tab-wrkr"]')).toBe(before);
   });
 
   it('Phase 1 shows no tab bar', () => {
@@ -148,7 +158,7 @@ describe('Shell: CONTINUE (Story 1.19)', () => {
     const goalMet = signal(met);
     const shell = createTabShell({ phase: signal(Phase.COLONY), affordable: signal(''), goalMet });
     const onContinue = vi.fn(() => ({ ok: true as const }));
-    const view = render(<Shell shell={shell} legacy={{ mount: vi.fn() }} onContinue={onContinue} />);
+    const view = render(<Shell shell={shell} onContinue={onContinue} />);
     const cont = () => view.container.querySelector<HTMLButtonElement>('[data-action="continue"]');
     const nestSlot = () => view.container.querySelector<HTMLElement>('[data-primary-for="nest"]')!;
     return { goalMet, shell, onContinue, view, cont, nestSlot };
@@ -194,7 +204,7 @@ describe('Shell: desktop columns (Story 1.29)', () => {
     const shell = createTabShell({ phase: ph, affordable: signal(''), goalMet, wide });
     const keys = opts.tabKeys ? signal(opts.tabKeys) : undefined;
     const view = render(
-      <Shell shell={shell} legacy={{ mount: vi.fn() }} onContinue={() => ({ ok: true })} tabKeys={keys} />,
+      <Shell shell={shell} onContinue={() => ({ ok: true })} tabKeys={keys} />,
     );
     const q = <T extends HTMLElement = HTMLElement>(sel: string) => view.container.querySelector<T>(sel);
     const root = () => q('[data-shell]')!;

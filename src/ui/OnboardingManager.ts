@@ -1,4 +1,4 @@
-import { OnboardingTooltip, type TooltipConfig } from './components/OnboardingTooltip';
+import { OnboardingTooltip, type TooltipConfig } from './OnboardingTooltip';
 
 /**
  * OnboardingManager — Controls the onboarding tooltip sequence.

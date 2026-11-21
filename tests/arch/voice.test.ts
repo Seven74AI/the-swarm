@@ -173,7 +173,7 @@ describe('no copy names a phase the player has not entered', () => {
    * Copy that can show in any phase, Phase 1 included: the shell, the sheets,
    * the overlays, the NEST tab and the shared primitives.
    */
-  const EVERY_PHASE = /^ui\/(shell|sheets|overlays|nest|primitives|components)\/|^ui\/(OnboardingManager|App)\.tsx?$/;
+  const EVERY_PHASE = /^ui\/(shell|sheets|overlays|nest|primitives)\/|^ui\/(OnboardingManager|OnboardingTooltip|App)\.tsx?$/;
 
   it('copy shown from Phase 1 names no later phase', () => {
     const titles = new Set(Object.values(PHASE_TITLES));

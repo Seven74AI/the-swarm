@@ -4,11 +4,12 @@ import type { EventBus } from '../../src/engine/EventBus';
 import type { SwarmEvents } from '../../src/engine/events';
 import { log } from '../../src/utils/log';
 import { EVENT_NAMES, EVENT_SAMPLES } from './helpers/eventSamples';
+import { PANEL_PLACEMENT } from '../../src/data/content/tabs';
 
 type Swarm = {
   bus: EventBus;
   loop: { stop(): void };
-  ui: { createPanel(id: string): HTMLElement };
+  panels: { reveal(ids: readonly string[]): void };
 };
 
 /**
@@ -17,7 +18,7 @@ type Swarm = {
  *
  * Runtime half of the check: the boundary test (tests/arch, Story 1.4) scans
  * inline listeners statically but can't follow named ones. Boot the game,
- * create every lazily-mounted panel so its listeners are subscribed, then emit
+ * reveal every panel so every view (legacy FRONT panels included) is mounted, then emit
  * every SwarmEvents event and assert the state signal was never reassigned.
  */
 describe('event listeners never write gameState', () => {
@@ -27,8 +28,9 @@ describe('event listeners never write gameState', () => {
     await import('../../src/main');
     swarm = (window as unknown as { __swarm: Swarm }).__swarm;
     swarm.loop.stop();
-    const registry = (swarm.ui as unknown as { panelRegistry: Map<string, unknown> }).panelRegistry;
-    for (const id of registry.keys()) swarm.ui.createPanel(id);
+    swarm.panels.reveal(Object.keys(PANEL_PLACEMENT));
+    // Let Preact draw the revealed panels (renders are batched).
+    await new Promise((r) => setTimeout(r, 0));
   });
 
   it.each(EVENT_NAMES)('%s listeners leave gameState.value untouched', (name) => {

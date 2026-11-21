@@ -117,7 +117,6 @@ export interface SwarmEvents {
   conversion_tick: { tick: number };
 
   // ── Prestige ──
-  open_prestige_tree: NoPayload;
   prestige_triggered: {
     fromCount: number;
     toCount: number;

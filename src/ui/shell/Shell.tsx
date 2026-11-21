@@ -1,8 +1,8 @@
+import type { ComponentChildren } from 'preact';
 import { useLayoutEffect, useRef } from 'preact/hooks';
 import type { ReadonlySignal } from '@preact/signals-core';
-import { SEGMENTS, TABS, type TabId } from '../../data/content/tabs';
+import { SEGMENTS, TABS, type SegmentId, type TabId } from '../../data/content/tabs';
 import type { TabShell } from './tabShell';
-import { hostsFromRoot, type ShellHosts } from './hosts';
 import { TabBar } from './TabBar';
 import { SegmentRow } from './SegmentRow';
 import { CondensedGoalMeter } from './GoalMeter';
@@ -12,9 +12,17 @@ import { bindColumnFocus } from './focusOrder';
 import './shell.css';
 import './reflow.css';
 
-/** The part of the legacy `UIRoot` the shell needs: mount its panels into the shell's hosts. */
-export interface LegacyUi {
-  mount(hosts: ShellHosts): void;
+/**
+ * What the shell draws where (Story 1.36): the strip, each tab's content,
+ * each FRONT segment and each tab's primary zone. main builds them from the
+ * tab registry's placements (`data/content/tabs.ts`); a panel inside one is a
+ * `Panel`, which appears once its phase reveals it.
+ */
+export interface ShellViews {
+  readonly strip?: ComponentChildren;
+  readonly tabs?: Partial<Record<TabId, ComponentChildren>>;
+  readonly segments?: Partial<Record<SegmentId, ComponentChildren>>;
+  readonly primary?: Partial<Record<TabId, ComponentChildren>>;
 }
 
 /**
@@ -28,12 +36,12 @@ export interface LegacyUi {
  * fills columns 2–3, each column scrolling on its own above its own primary
  * zone. Picking NEST in the rail focuses column 1. Same panels, same game.
  *
- * Legacy panels mount into the empty host containers (they have no Preact
- * children, so re-renders never touch the legacy DOM). Only `hidden` changes.
+ * Every tab's content is always rendered (only `hidden` changes), so a
+ * panel keeps its DOM, and its scroll position, while its tab is closed.
  */
 export interface ShellProps {
   shell: TabShell;
-  legacy: LegacyUi;
+  views?: ShellViews;
   /** CONTINUE: commit the latched phase goal (`actions.continuePhase`, Story 1.19). */
   onContinue?: () => { readonly ok: boolean } | void;
   /** The keys of tabs 1–5 for the rail's hints (settings → key bindings); none when shortcuts are off. Default 1–5. */
@@ -44,7 +52,7 @@ export interface ShellProps {
 
 const DEFAULT_TAB_KEYS: readonly string[] = ['1', '2', '3', '4', '5'];
 
-export function Shell({ shell, legacy, onContinue, tabKeys, grid }: ShellProps) {
+export function Shell({ shell, views = {}, onContinue, tabKeys, grid }: ShellProps) {
   const root = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLElement>(null);
   const active = shell.active.value;
@@ -55,11 +63,6 @@ export function Shell({ shell, legacy, onContinue, tabKeys, grid }: ShellProps) 
   const shown = useRef<readonly TabId[]>([]);
   // A met goal makes CONTINUE NEST's primary action (Story 1.19, UX-DR14).
   const goalMet = shell.goalMet.value && onContinue !== undefined;
-
-  useLayoutEffect(() => {
-    if (root.current) legacy.mount(hostsFromRoot(root.current));
-    // Mount once per legacy UI; UIRoot has no unmount.
-  }, [legacy]);
 
   useLayoutEffect(() => (grid && root.current ? grid.attach(root.current) : undefined), [grid]);
 
@@ -129,13 +132,14 @@ export function Shell({ shell, legacy, onContinue, tabKeys, grid }: ShellProps) 
     <div
       ref={root}
       class="shell"
-      data-legacy-ui=""
       data-shell=""
       data-active-tab={active}
       data-tab-bar-shown={showBar ? 'true' : 'false'}
       data-layout={columns ? 'columns' : 'single'}
     >
-      <header class="shell-strip" data-shell-strip="" />
+      <header class="shell-strip" data-shell-strip="">
+        {views.strip}
+      </header>
       {/* Story 1.18: NEST shows the full goal meter on its phase line; every other tab, this one line. */}
       {/* On desktop NEST, with its full meter, never leaves column 1. */}
       <div class="shell-goal-line" data-goal-line="" role="region" aria-label="Phase goal" hidden={active === 'nest' || columns}>
@@ -167,11 +171,15 @@ export function Shell({ shell, legacy, onContinue, tabKeys, grid }: ShellProps) 
                     aria-labelledby={`segment-${s.id}`}
                     data-segment-panel={s.id}
                     hidden={segment !== s.id}
-                  />
+                  >
+                    {views.segments?.[s.id]}
+                  </div>
                 ))}
               </>
             ) : (
-              <div class="shell-tab-content" data-tab-content={t.id} data-empty={t.empty} />
+              <div class="shell-tab-content" data-tab-content={t.id} data-empty={t.empty}>
+                {views.tabs?.[t.id]}
+              </div>
             )}
           </section>
         ))}
@@ -183,7 +191,9 @@ export function Shell({ shell, legacy, onContinue, tabKeys, grid }: ShellProps) 
             class="shell-primary-slot"
             data-primary-for={t.id}
             hidden={!visible.includes(t.id) || (t.id === 'nest' && goalMet)}
-          />
+          >
+            {views.primary?.[t.id]}
+          </div>
         ))}
         {goalMet && (
           <div class="shell-primary-slot" data-primary-continue="" hidden={!visible.includes('nest')}>
