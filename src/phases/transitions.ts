@@ -61,6 +61,8 @@ export const EGG_TO_COLONY: Transition = transition({
  * COLONY → COMBAT transition.
  * Fires when the colony has 50+ workers and at least 1 guard assigned.
  * (Pacing nerf: was 15, now 50.)
+ * Its story beat is the Combat entry beat (`data/content/narrative.ts`), which the reveal types and
+ * the log writes (Story 4.9), so it emits no narrative of its own.
  */
 export const COLONY_TO_COMBAT: Transition = transition({
   from: Phase.COLONY,
@@ -69,12 +71,6 @@ export const COLONY_TO_COMBAT: Transition = transition({
     workers(50),
     { id: 'guard', label: 'guards', one: 'guard', current: (s) => s.workersAssigned.guard, target: () => 1 },
   ],
-  onEnter: (state, eventBus) => {
-    eventBus.emit('narrative', {
-      message: colonyLine('enter_combat'),
-    });
-    return state;
-  },
 });
 
 /**

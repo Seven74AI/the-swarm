@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { openTab } from './helpers/tabs';
 import { REVEAL, tapContinue, waitOutReveal } from './helpers/phase';
+import { NARRATIVE_BEATS } from '../../src/data/content/narrative';
 
 /**
  * E2E: the phase reveal (Story 1.20, UX-DR27).
@@ -135,9 +136,14 @@ test.describe('Phase reveal (fake clock)', () => {
     await page.clock.runFor(2500);
     await expect(reveal.locator('[data-reveal-line]')).not.toBeEmpty();
 
+    // The typed line is Colony's entry beat (Story 4.9), and the log keeps it.
+    const beat = NARRATIVE_BEATS.colony.entry.text;
+    await expect(reveal.locator('[data-reveal-typed]')).toHaveText(beat);
+
     await page.clock.runFor(1100);
     await expect(reveal).toHaveCount(0);
     expect((await state(page)).lifetime.revealsSeen).toContain('colony');
+    await expect(page.locator('#activity-log')).toContainText(beat);
   });
 
   test('the reveal blocks input, and a first reveal cannot be skipped', async ({ page }) => {

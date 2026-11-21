@@ -13,6 +13,7 @@ import { canChoose } from '../systems/DecisionSystem';
 import { getEnemyDef, scaleEnemy } from '../systems/EnemySystem';
 import { assessMatchup, type Matchup } from '../systems/CombatRounds';
 import { getDecision } from '../data/content/decisions';
+import { narrativeBalance } from '../data/balance/narrative';
 import { canPurchaseMutation, isMutationUnlocked } from '../systems/MutationSystem';
 import {
   canBuildAuto,
@@ -298,6 +299,14 @@ export const selectGoalPercent = computed(() => {
   if (!goal) return 0;
   return selectGoalMet.value ? 100 : goalPercent(goal, gameState.value);
 });
+
+/**
+ * The phase whose near-goal story beat is due (Story 4.9): the current phase once its goal's
+ * progress reaches `narrativeBalance.nearGoalPercent`, else null (and null without a goal).
+ */
+export const selectNearGoalPhase = computed<string | null>(() =>
+  selectGoal.value !== null && selectGoalPercent.value >= narrativeBalance.nearGoalPercent ? selectPhase.value : null,
+);
 
 const conditionCurrents = new Map<GoalCondition, ReadonlySignal<number>>();
 const conditionTargets = new Map<GoalCondition, ReadonlySignal<number>>();

@@ -4,6 +4,8 @@ import type { PanelId } from '../../data/content/tabs';
 import { COLONY_LINES, colonyLine } from '../../data/content/colonyLines';
 import { ENEMIES, isEnemyType } from '../../data/content/enemies';
 import { createChronicle, type Chronicle, type ChronicleEntry } from '../../state/chronicle';
+import { effect, type ReadonlySignal } from '@preact/signals-core';
+import { beatsFor, entryBeatMilestone, nearGoalMilestone } from '../../data/content/narrative';
 
 /** One event line (kept in the chronicle, Story 1.26). */
 export type LogEntry = ChronicleEntry;
@@ -16,6 +18,11 @@ export const PRESTIGE_LINE = COLONY_LINES.prestige.text;
 export interface EventLogOptions {
   /** Where the lines go (main passes the saved one); default: a new chronicle. */
   chronicle?: Chronicle;
+  /**
+   * The phase whose goal is near (`selectNearGoalPhase`), or null: its near-goal beat is written
+   * once per run (Story 4.9). Without it, no near-goal beat is written.
+   */
+  nearGoal?: ReadonlySignal<string | null>;
 }
 
 /** "Now available" lines, written once per run when a panel is first revealed. */
@@ -24,6 +31,12 @@ const PANEL_LINES: Readonly<Record<string, string>> = {
   building_panel: colonyLine('panel_building'),
   expedition_panel: colonyLine('panel_expedition'),
   spaceship_panel: colonyLine('panel_spaceship'),
+};
+
+/** Where a phase's entry line jumps to: the panel of the phase's new verb. */
+const ENTRY_TARGETS: Readonly<Record<string, PanelId>> = {
+  colony: 'worker_assignment',
+  combat: 'soldier_panel',
 };
 
 /** `2 SCOUTS AND 1 WARRIOR`, or `NO ONE`. */
@@ -229,6 +242,19 @@ export class EventLog {
     };
     bus.subscribe('planet_clicked', onPlanetClickCb);
     this.unsubscribeHandles.push(() => bus.unsubscribe('planet_clicked', onPlanetClickCb));
+
+    // The near-goal beat (Story 4.9): once per run, remembered as a chronicle milestone, so a
+    // reload never repeats it. It writes the chronicle, never the game state.
+    const nearGoal = options.nearGoal;
+    if (nearGoal) {
+      this.unsubscribeHandles.push(
+        effect(() => {
+          const phase = nearGoal.value;
+          const beat = phase === null ? undefined : beatsFor(phase);
+          if (phase !== null && beat) this.once(nearGoalMilestone(phase), beat.nearGoal.text);
+        }),
+      );
+    }
   }
 
   /** Unsubscribe from all events. Call before discarding this EventLog. */
@@ -304,16 +330,9 @@ export class EventLog {
 
   private onPhaseChanged(phase: string): void {
     const before = this.added;
-    if (phase === 'colony') {
-      this.once('phase_colony', colonyLine('phase_colony'), {
-        target: 'worker_assignment',
-      });
-    }
-    if (phase === 'combat') {
-      this.once('phase_combat', colonyLine('phase_combat'), {
-        target: 'soldier_panel',
-      });
-    }
+    // An MVP phase writes its entry beat, the line its reveal types (Story 4.9).
+    const beats = beatsFor(phase);
+    if (beats) this.once(entryBeatMilestone(phase), beats.entry.text, { target: ENTRY_TARGETS[phase] });
     if (phase === 'expansion') {
       this.once('phase_expansion', colonyLine('phase_expansion'), {
         target: 'map_panel',
