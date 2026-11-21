@@ -1,9 +1,11 @@
 import type { ReadonlySignal } from '@preact/signals-core';
 import type { Actions } from '../../actions';
 import { PRESTIGE_UPGRADES, type PrestigeUpgrade } from '../../data/prestigeTree';
-import { HOUR_MS } from '../../data/constants';
+import { HOUR_MS, PERCENT } from '../../data/constants';
+import { progressionBalance } from '../../data/balance/progression';
 import {
   selectCanPurchasePrestigeUpgrade,
+  selectLegacyProductionBonusPercent,
   selectOfflineAwayLimitMs,
   selectOfflineEfficiency,
   selectPrestige,
@@ -27,8 +29,8 @@ import { HoldToConfirm, type ConfirmSettings } from '../primitives/HoldToConfirm
  * Epic 5's; the copy is unchanged.
  */
 
-const PRESTIGE_TIP =
-  'Legacy Prestige: Reset your colony to earn Legacy Points. Each Legacy Point gives +2% production. Buildings, phases, and food produced determine your legacy.';
+const PER_LP_PERCENT = Math.round(progressionBalance.productionPerLegacyPoint * PERCENT);
+const PRESTIGE_TIP = `Legacy Prestige: Reset your colony to earn Legacy Points. Each Legacy Point ever earned gives +${PER_LP_PERCENT}% production, spent or not. Buildings, phases, and food produced determine your legacy.`;
 
 function Stat({ label, value, class: className }: { label: string; value: string; class?: string }) {
   return (
@@ -43,7 +45,8 @@ const percent = (efficiency: number): number => Math.round(efficiency * 100);
 
 /** Hook: `#prestige-panel`; PRESTIGE is a HoldToConfirm (`.btn-prestige`, `data-action="prestige"`, Story 1.13). */
 export function PrestigeCard({ actions, confirmSettings }: { actions: Actions; confirmSettings: ReadonlySignal<ConfirmSettings> }) {
-  const { count, legacyPoints } = selectPrestige.value;
+  const { count, legacyPoints, lifetimeLpEarned } = selectPrestige.value;
+  const bonusPercent = selectLegacyProductionBonusPercent.value;
   const efficiency = selectOfflineEfficiency.value;
   const available = selectPrestigeAvailable.value;
   const capHours = Math.floor(selectOfflineAwayLimitMs.value / HOUR_MS);
@@ -60,7 +63,7 @@ export function PrestigeCard({ actions, confirmSettings }: { actions: Actions; c
         >
           🌳 Prestige Tree
         </button>
-        {legacyPoints > 0 && <Stat label="⚡ Production Bonus" value={`+${legacyPoints * 2}%`} />}
+        {lifetimeLpEarned > 0 && <Stat label="⚡ Production Bonus" value={`+${bonusPercent}%`} />}
         <Stat label="⏳ Offline Efficiency" value={`${percent(efficiency)}%`} />
         <Stat label="⌛ Offline Cap" value={`${capHours} h`} />
         <Stat class="projected" label="📊 Next Reset" value={available ? `+${selectProjectedLegacyPoints.value} LP` : '—'} />

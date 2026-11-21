@@ -75,6 +75,10 @@ function expectValidState(gs: GameState, where: string, { integers = true } = {}
     expect(p.count, `${where}: ${key}.count >= 0`).toBeGreaterThanOrEqual(0);
     expect(p.progress, `${where}: ${key}.progress >= 0`).toBeGreaterThanOrEqual(0);
   }
+  // Story 5.2: lifetime LP counts the LP held and the LP spent, so it is never below the LP held.
+  const { legacyPoints, lifetimeLpEarned } = gs.prestige;
+  expect(Number.isInteger(lifetimeLpEarned), `${where}: prestige.lifetimeLpEarned is an integer`).toBe(true);
+  expect(lifetimeLpEarned, `${where}: prestige.lifetimeLpEarned >= legacyPoints`).toBeGreaterThanOrEqual(legacyPoints);
 }
 
 function tickOnce(state: GameState): GameState {
