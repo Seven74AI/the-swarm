@@ -15,7 +15,8 @@ type Swarm = {
  * AR18: no listener writes game state. A listener that needs a state change
  * calls an action, which writes between ticks.
  *
- * Interim check until the boundary test (Story 1.4) covers it: boot the game,
+ * Runtime half of the check: the boundary test (tests/arch, Story 1.4) scans
+ * inline listeners statically but can't follow named ones. Boot the game,
  * create every lazily-mounted panel so its listeners are subscribed, then emit
  * every SwarmEvents event and assert the state signal was never reassigned.
  */

@@ -316,3 +316,34 @@ export function resolveInSrc(fromRel: string, specifier: string): string | null 
   if (target !== root && !target.startsWith(root + sep)) return null;
   return relative(root, target).split(sep).join('/');
 }
+
+export interface CallArgs {
+  /** Line of the call's opening parenthesis. */
+  line: number;
+  /** Source text (comments blanked, strings kept) between the call's parentheses. */
+  args: string;
+}
+
+/**
+ * Argument text of every call matched by `callee` (needs the `g` flag and
+ * must end at the opening parenthesis), found by balancing parentheses in
+ * code with comments and strings blanked.
+ */
+export function findCallArguments(src: string, callee: RegExp): CallArgs[] {
+  const { code, noComments } = strip(src);
+  const out: CallArgs[] = [];
+  let m: RegExpExecArray | null;
+  callee.lastIndex = 0;
+  while ((m = callee.exec(code)) !== null) {
+    const open = m.index + m[0].length - 1;
+    if (code[open] !== '(') continue;
+    let depth = 0;
+    let end = open;
+    for (; end < code.length; end++) {
+      if (code[end] === '(') depth++;
+      else if (code[end] === ')' && --depth === 0) break;
+    }
+    out.push({ line: lineAt(code, open), args: noComments.slice(open + 1, end) });
+  }
+  return out;
+}

@@ -19,6 +19,7 @@ import {
   GAME_STATE_READ_PATTERN,
   GAME_STATE_WRITE_PATTERN,
   MATH_RANDOM_PATTERN,
+  findCallArguments,
   findImports,
   findInCode,
   layerOf,
@@ -154,6 +155,24 @@ function uiGameStateReaders(files: SourceFile[]): string[] {
     .map((f) => f.rel);
 }
 
+/**
+ * AR18: no event listener writes game state; a listener that needs a change
+ * calls an action. Checks every inline listener passed to `subscribe(`. Named
+ * listeners can't be followed statically; tests/unit/listenerStateWrites.test.ts
+ * covers those at runtime.
+ */
+function listenerGameStateWrites(files: SourceFile[]): Violation[] {
+  const out: Violation[] = [];
+  for (const f of files) {
+    for (const call of findCallArguments(f.text, /(?<![\w$])subscribe\s*(?:<[^>()]*>\s*)?\(/g)) {
+      if (findInCode(call.args, GAME_STATE_WRITE_PATTERN).length > 0) {
+        out.push(`${f.rel}:${call.line} has an event listener that writes gameState.value; call an action instead`);
+      }
+    }
+  }
+  return out;
+}
+
 const fake = (rel: string, text: string): SourceFile => ({ rel, text });
 
 describe('architecture boundaries (AR21)', () => {
@@ -195,6 +214,10 @@ describe('architecture boundaries (AR21)', () => {
       );
     expect(stale).toEqual([]);
     expect(Object.keys(KNOWN_MATH_RANDOM).every((rel) => layerOf(rel) === 'systems')).toBe(true);
+  });
+
+  it('no event listener writes gameState.value', () => {
+    expect(listenerGameStateWrites(files)).toEqual([]);
   });
 
   it('no file under ui/ writes gameState.value', () => {
@@ -311,6 +334,24 @@ describe('architecture boundaries (AR21)', () => {
         fake('actions/g.ts', 'gameState.value = next;'),
       ]);
       expect(v.map((x) => x.split(':')[0])).toEqual(['ui/a.ts', 'ui/b.ts', 'ui/c.ts', 'ui/d.ts', 'ui/e.ts']);
+    });
+
+    it('flags inline event listeners that write gameState.value, anywhere in src/', () => {
+      const v = listenerGameStateWrites([
+        fake('main.ts', "bus.subscribe('decision_chosen', ({ choice }) => {\n  gameState.value = apply(gameState.value, choice);\n});"),
+        fake('ui/a.ts', "this.bus.subscribe('battle_completed', function () { gameState.value.paused = true; });"),
+        fake('engine/b.ts', "bus.subscribe<'x'>('x', () => Object.assign(gameState.value, { paused: true }));"),
+        fake(
+          'main2.ts',
+          [
+            "bus.subscribe('battle_completed', () => { save(gameState.value); });",
+            "bus.subscribe('prestige_triggered', actionSave);",
+            "bus.subscribe('egg_clicked', () => { chooseDecision(type, choice); });",
+            "const s = (() => { gameState.value = next; })();",
+          ].join('\n'),
+        ),
+      ]);
+      expect(v.map((x) => x.split(' ')[0])).toEqual(['main.ts:1', 'ui/a.ts:1', 'engine/b.ts:1']);
     });
 
     it('finds gameState.value readers under ui/ only', () => {
