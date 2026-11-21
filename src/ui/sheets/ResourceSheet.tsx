@@ -14,7 +14,7 @@ import { decorate } from '../primitives/Deco';
  * Opened by a tap on the resource strip, through the SheetController as an
  * ordinary modal. Every unlocked resource: 30 px glyph, full name, the exact
  * integer (`formatFull`), its rate per second (the unit is stated once, in the
- * header), its cap and its source. `[ SETTINGS ⚙ ]` sits at the bottom, so
+ * header), its cap and its source. `[ SETTINGS gear ]` sits at the bottom, so
  * settings are reachable from Phase 1. main passes `onOpenSettings`, which
  * opens the settings screen (Story 1.27); without it the button is shown
  * disabled with its reason.
@@ -39,7 +39,11 @@ function ResourceSheet({ feed, close, onOpenSettings }: { feed: ResourceFeed; cl
 
   const settings = (
     <Button
-      verb={`[ SETTINGS ${GEAR_GLYPH} ]`}
+      verb={
+        <>
+          [ SETTINGS <GEAR_GLYPH /> ]
+        </>
+      }
       label="Settings"
       data-action="settings"
       disabled={onOpenSettings ? false : SETTINGS_NOT_READY}
@@ -61,7 +65,7 @@ function ResourceSheet({ feed, close, onOpenSettings }: { feed: ResourceFeed; cl
           return (
             <li key={row.id} class="resource-row" data-resource-row={row.id} data-capped={String(row.capped)}>
               <span class="resource-row__glyph" data-glyph="" aria-hidden="true">
-                {def.glyph}
+                <def.glyph />
               </span>
               <span class="resource-row__name" data-col="name">
                 {def.name}

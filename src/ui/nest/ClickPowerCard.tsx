@@ -5,7 +5,8 @@ import { selectBuildAction, selectPhase, selectResources, selectUpgrades } from 
 import { formatFull } from '../../utils/format';
 import { Button } from '../primitives/Button';
 import { Card } from '../primitives/Card';
-import { RESOURCE_BY_ID } from '../shell/resourceCatalog';
+import { Sep } from '../primitives/Deco';
+import { ResourceGlyph } from '../build/cost';
 
 const UPGRADE = 'click_power';
 
@@ -35,7 +36,7 @@ export function ClickPowerCard({ buy, place = 'nest' }: { buy: () => { readonly 
   const shown = place === 'nest' ? phase1 && seen.current : !phase1;
   if (!shown) return null;
 
-  const glyph = RESOURCE_BY_ID.food.glyph;
+  const glyph = <ResourceGlyph id="food" />;
   const gain = eggsPerTap(level + 1) - eggsPerTap(level);
   return (
     <Card
@@ -43,7 +44,13 @@ export function ClickPowerCard({ buy, place = 'nest' }: { buy: () => { readonly 
       title="CLICK POWER"
       level={`LV.${level} → ${level + 1}`}
       effect={`+${formatFull(gain)} EGG PER TAP`}
-      cost={`${formatFull(cost)} ${glyph} · you have ${formatFull(Math.floor(food))}`}
+      cost={
+        <>
+          {formatFull(cost)} {glyph}
+          <Sep />
+          you have {formatFull(Math.floor(food))}
+        </>
+      }
       affordable={affordable}
       selected={place === 'build' && pick.kind === 'act' && pick.key === `upgrade:${UPGRADE}`}
       shortfall={{ amount: cost - food, glyph }}

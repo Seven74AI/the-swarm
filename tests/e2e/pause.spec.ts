@@ -92,7 +92,7 @@ test('the pause button shows PAUSED, stops the simulation, and a tap resumes', a
   await expect(page.locator(OVERLAY)).toBeVisible();
   await expect(page.locator('[data-paused-line]')).toHaveText('PAUSED');
   await expect(page.locator('body')).toHaveClass(/game-paused/);
-  await expect(page.locator(PAUSE_BUTTON)).toHaveText('▶');
+  await expect(page.locator(PAUSE_BUTTON)).toHaveText('\u25B7');
 
   // While paused, food must not grow at all, however much time passes.
   const foodBefore = await settledFood(page);
@@ -103,7 +103,7 @@ test('the pause button shows PAUSED, stops the simulation, and a tap resumes', a
   await page.locator(OVERLAY).click({ position: { x: 10, y: 10 } });
   await expect(page.locator(OVERLAY)).toHaveCount(0);
   await expect(page.locator('body')).not.toHaveClass(/game-paused/);
-  await expect(page.locator(PAUSE_BUTTON)).toHaveText('⏸');
+  await expect(page.locator(PAUSE_BUTTON)).toHaveText('\u2016');
   await expect.poll(() => getFoodValue(page)).toBeGreaterThan(foodBefore);
 });
 

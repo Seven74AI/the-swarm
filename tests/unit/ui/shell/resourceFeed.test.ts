@@ -48,7 +48,7 @@ describe('resource catalog', () => {
       expect(r.label).toMatch(/^[A-Z]{1,4}$/);
       expect(r.name.length).toBeGreaterThan(r.label.length - 1);
       expect(r.source.trim()).not.toBe('');
-      expect(r.glyph.trim()).not.toBe('');
+      expect(typeof r.glyph).toBe('function');
     }
   });
 

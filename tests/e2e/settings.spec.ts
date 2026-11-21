@@ -44,7 +44,7 @@ test('stored settings load at boot and never enter the save', async ({ page }) =
 
 /**
  * Story 1.27: the settings screen, reached in Phase 1 from the resource sheet's
- * [ SETTINGS ⚙ ]. Every change is in the store, and under its key, at once.
+ * [ SETTINGS gear ]. Every change is in the store, and under its key, at once.
  */
 async function openSettingsScreen(page: Page): Promise<void> {
   await page.locator('[data-resource-strip]').click();

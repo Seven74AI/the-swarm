@@ -18,7 +18,7 @@ export function Transcendence() {
   return (
     <>
       <h2 class="panel-title">
-        <span aria-hidden="true">🌌 </span>Transcendence
+        Transcendence
       </h2>
       <div class="transcendence-status">
         <div class="transcendence-status-label">{victory ? 'THE SWARM TRANSCENDS.' : 'THE STARS ARE STILL OUT OF REACH.'}</div>

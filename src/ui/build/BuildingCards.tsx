@@ -57,7 +57,7 @@ function BuildingCard({ def, selected, buy }: { def: BuildingCardDef; selected: 
     <div class="build-item" data-building={def.id}>
       <Card
         id={def.id}
-        glyph={def.glyph}
+        glyph={<def.glyph />}
         title={def.name}
         level={maxed ? `LV.${level} · MAX` : `LV.${level} → ${level + 1}`}
         effect={effectLine(def.id, level)}

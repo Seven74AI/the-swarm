@@ -61,7 +61,7 @@ export class StarmapPanel {
     // Header
     const header = document.createElement('div');
     header.className = 'panel-header';
-    header.innerHTML = '<span class="panel-title">🌟 Star Map</span>';
+    header.innerHTML = '<span class="panel-title">Star Map</span>';
     this.container.appendChild(header);
 
     // --- Planet Star Map ---
@@ -127,7 +127,6 @@ export class StarmapPanel {
         const row = document.createElement('div');
         row.className = 'expedition-row';
         const typeLabel = ship.type.replace('_', ' ');
-        const statusIcon = ship.status === 'exploring' ? '⏳' : '🔄';
         const timeLabel = ship.status === 'exploring'
           ? `Arriving in ${ship.missionTicksRemaining}`
           : `Returning — ${ship.missionTicksRemaining} left`;
@@ -136,7 +135,7 @@ export class StarmapPanel {
           <strong>${ship.destinationName || 'Deep Space'}</strong>
           <span class="text-muted">${typeLabel} Lv.${ship.level}</span>
         </div>
-        <div class="expedition-row-status">${statusIcon} ${timeLabel}</div>`;
+        <div class="expedition-row-status">${timeLabel}</div>`;
         shipSection.appendChild(row);
       }
       this.container.appendChild(shipSection);
@@ -163,7 +162,7 @@ export class StarmapPanel {
           <strong>${probe.destination}</strong>
           <span class="text-muted">${probe.scouts} scouts</span>
         </div>
-        <div class="expedition-row-status">⏳ ${Math.max(0, Math.ceil(probe.remainingMs / 1000))}s</div>`;
+        <div class="expedition-row-status">${Math.max(0, Math.ceil(probe.remainingMs / 1000))}s left</div>`;
         probeSection.appendChild(row);
       }
       this.container.appendChild(probeSection);
