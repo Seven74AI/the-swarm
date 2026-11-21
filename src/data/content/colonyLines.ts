@@ -68,6 +68,11 @@ const lines = {
   offline_starved: { text: 'UPKEEP OUTRAN FOOD FOR {time}.', from: Phase.EGG_LAYING },
   offline_cap: { text: 'THE NEST STOPPED GROWING AFTER {cap}.', from: Phase.EGG_LAYING },
 
+  // LOG → LEGACY: what prestige still needs (Story 5.1, FR28). Lifetime totals count every run.
+  prestige_waits: { text: 'THE NEXT QUEEN WAITS ON THE SWARM.', from: Phase.COLONY },
+  prestige_needs_building: { text: '{building} AT LEVEL {level}. LEVEL {target} IS NEEDED.', from: Phase.COLONY },
+  prestige_needs_produced: { text: '{current} OF {target} {resource} GATHERED ACROSS ALL QUEENS.', from: Phase.COLONY },
+
   // Expeditions, buildings, the stars.
   expedition_launch: { text: 'AN EXPEDITION LEAVES FOR {destination}: {party}.', from: Phase.EXPANSION },
   expedition_success: { text: 'THE EXPEDITION RETURNS FROM {destination} WITH {loot}. BACK: {party}.', from: Phase.EXPANSION },

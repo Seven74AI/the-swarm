@@ -10,6 +10,11 @@ import { PHASE_ORDER } from '../../../../src/phases/phases';
 import { calculateLegacyPoints, getPhaseScore } from '../../../../src/state/queries';
 import { PRESTIGE_UPGRADES } from '../../../../src/data/prestigeTree';
 import { PrestigeCard, PrestigeTree } from '../../../../src/ui/log/Prestige';
+import { getUnmetRequirements } from '../../../../src/state/queries';
+import { prestigeBalance } from '../../../../src/data/balance/prestige';
+import { formatFull } from '../../../../src/utils/format';
+import { colonyVoiceProblem } from '../../../arch/voice';
+import { visibleText } from '../../helpers/a11y';
 
 /**
  * Story 1.36: LOG → LEGACY's prestige card and Legacy tree are Preact views,
@@ -72,10 +77,42 @@ describe('PrestigeCard', () => {
   it('PRESTIGE is disabled with the unmet requirements until they are met', () => {
     const { btn } = card();
     expect(btn().getAttribute('aria-disabled')).toBe('true');
-    expect(btn().getAttribute('title')).toContain('barracks');
     set(ready());
     expect(btn().getAttribute('aria-disabled')).toBeNull();
     expect(btn().classList.contains('prestige-ready')).toBe(true);
+  });
+
+  describe('lists what prestige still needs, in the colony voice (Story 5.1)', () => {
+    const needs = (panel: HTMLElement) => panel.querySelector<HTMLElement>('[data-prestige-needs]');
+    const lines = (panel: HTMLElement) => [...panel.querySelectorAll<HTMLElement>('li[data-requirement]')];
+
+    it('shows one line per unmet requirement, each with where it stands and what it needs', () => {
+      const s = createInitialState();
+      gameState.value = s;
+      const { panel } = card();
+      const unmet = getUnmetRequirements(s);
+      expect(unmet.length).toBeGreaterThan(0);
+      expect(lines(panel()).map((l) => l.dataset.requirement)).toEqual(unmet.map((u) => u.id));
+      for (const [i, li] of lines(panel()).entries()) {
+        const text = visibleText(li);
+        expect(colonyVoiceProblem(text), text).toBeNull();
+        expect(text).toContain(formatFull(unmet[i].target));
+        expect(text).toContain(formatFull(unmet[i].current));
+      }
+      const lead = visibleText(needs(panel())!.querySelector<HTMLElement>('[data-prestige-needs-lead]')!);
+      expect(colonyVoiceProblem(lead), lead).toBeNull();
+    });
+
+    it('drops a line the moment its requirement is met, and the list once all are', () => {
+      const { buildingLevels } = prestigeBalance.unlock;
+      const short = ready();
+      const partly = { ...short, buildings: { ...short.buildings, walls: { level: buildingLevels.walls - 1 } } };
+      gameState.value = partly;
+      const { panel } = card();
+      expect(lines(panel()).map((l) => l.dataset.requirement)).toEqual(['walls']);
+      set(ready());
+      expect(needs(panel())).toBeNull();
+    });
   });
 
   for (const phase of PHASE_ORDER) {

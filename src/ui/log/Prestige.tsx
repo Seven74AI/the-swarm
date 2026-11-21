@@ -8,10 +8,16 @@ import {
   selectOfflineEfficiency,
   selectPrestige,
   selectPrestigeAvailable,
-  selectPrestigeShortfall,
+  selectPrestigeRequirementCurrent,
+  selectPrestigeRequirementMet,
   selectPrestigeTree,
   selectProjectedLegacyPoints,
 } from '../../state/selectors';
+import { PRESTIGE_REQUIREMENTS, type PrestigeRequirement } from '../../state/queries';
+import { colonyLine } from '../../data/content/colonyLines';
+import { formatFull } from '../../utils/format';
+import { BUILDING_CARDS } from '../build/buildCatalog';
+import { RESOURCES } from '../shell/resourceCatalog';
 import { HoldToConfirm, type ConfirmSettings } from '../primitives/HoldToConfirm';
 
 /*
@@ -40,14 +46,7 @@ export function PrestigeCard({ actions, confirmSettings }: { actions: Actions; c
   const { count, legacyPoints } = selectPrestige.value;
   const efficiency = selectOfflineEfficiency.value;
   const available = selectPrestigeAvailable.value;
-  const shortfall = selectPrestigeShortfall.value;
   const capHours = Math.floor(selectOfflineAwayLimitMs.value / HOUR_MS);
-  const tooltip = available
-    ? undefined
-    : `Prestige needs:\n${shortfall
-        .split('\n')
-        .map((u) => `  ✗ ${u}`)
-        .join('\n')}`;
   return (
     <div id="prestige-panel" class="panel prestige-panel" data-panel="prestige_panel" data-tooltip={PRESTIGE_TIP}>
       <div>
@@ -73,10 +72,52 @@ export function PrestigeCard({ actions, confirmSettings }: { actions: Actions; c
           settings={confirmSettings}
           disabled={available ? false : 'requirements not met'}
           class={available ? 'btn-prestige prestige-ready' : 'btn-prestige'}
-          title={tooltip}
           data-action="prestige"
         />
       </div>
+      {!available && <PrestigeNeeds />}
+    </div>
+  );
+}
+
+/** The name a requirement goes by in its line: the building's card name, or the resource's. */
+function requirementName(r: PrestigeRequirement): string {
+  if (r.kind === 'building') return BUILDING_CARDS.find((b) => b.id === r.id)?.name ?? r.id;
+  return RESOURCES.find((x) => x.id === r.id)?.name ?? r.id;
+}
+
+/** One unmet requirement, in the colony's voice; nothing once it is met. */
+function RequirementLine({ requirement: r }: { requirement: PrestigeRequirement }) {
+  const met = selectPrestigeRequirementMet(r.id).value;
+  const current = selectPrestigeRequirementCurrent(r.id).value;
+  if (met) return null;
+  const line =
+    r.kind === 'building'
+      ? colonyLine('prestige_needs_building', { building: requirementName(r), level: current, target: r.target })
+      : colonyLine('prestige_needs_produced', { resource: requirementName(r), current: formatFull(current), target: formatFull(r.target) });
+  return (
+    <li data-requirement={r.id} data-met="false">
+      {line}
+    </li>
+  );
+}
+
+/**
+ * What prestige still needs (Story 5.1, FR28): one line per unmet requirement,
+ * in `PRESTIGE_REQUIREMENTS` order. Hooks: `[data-prestige-needs]`,
+ * `[data-prestige-needs-lead]`, `li[data-requirement=<id>]`.
+ */
+function PrestigeNeeds() {
+  return (
+    <div class="prestige-needs" data-prestige-needs="">
+      <p class="prestige-needs-lead" data-prestige-needs-lead="">
+        {colonyLine('prestige_waits')}
+      </p>
+      <ul class="prestige-needs-list">
+        {PRESTIGE_REQUIREMENTS.map((r) => (
+          <RequirementLine key={r.id} requirement={r} />
+        ))}
+      </ul>
     </div>
   );
 }

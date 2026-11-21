@@ -55,8 +55,13 @@ export {
   calculateLegacyPoints,
   getPhaseScore,
   getUnmetRequirements,
+  isLegacyRevealed,
   isPrestigeAvailable,
   isPrestigeUpgradePurchased,
+  PRESTIGE_REQUIREMENTS,
+  type PrestigeRequirement,
+  type PrestigeRequirementId,
+  type UnmetRequirement,
 } from '../systems/PrestigeSystem';
 export { MAX_PROBES, PROBE_SWARM_THRESHOLD } from '../systems/ExplorationSystem';
 export { entropyMeter } from '../systems/EntropySystem';

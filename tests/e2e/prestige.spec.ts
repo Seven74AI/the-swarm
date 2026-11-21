@@ -143,10 +143,9 @@ test.describe('Prestige System — Legacy Layer', () => {
     const disabled = await btn.isDisabled();
     expect(disabled).toBe(true);
 
-    // Should have a tooltip with unmet requirements
-    const title = await btn.getAttribute('title');
-    expect(title).toBeTruthy();
-    expect(title).toContain('barracks');
-    expect(title).toContain('100K');
+    // The card lists every unmet requirement, one line each (Story 5.1).
+    const needs = page.locator('#prestige-panel [data-prestige-needs] li[data-requirement]');
+    const ids = await needs.evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.requirement));
+    expect(ids).toEqual(expect.arrayContaining(['barracks', 'walls', 'warehouse', 'food']));
   });
 });

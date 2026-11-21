@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { prestigeBalance } from '../../src/data/balance/prestige';
 import { openTab } from './helpers/tabs';
 
 /**
@@ -126,6 +127,29 @@ test.describe('LOG tab', () => {
     await expect(legacy.locator('#prestige-panel')).toBeVisible();
     await expect(legacy.locator('#prestige-panel [data-action="prestige"]')).toBeVisible();
     await expect(legacy.locator('#prestige-tree-panel')).toBeAttached();
+  });
+
+  test('LEGACY lists nothing to do once the condition is met (Story 5.1)', async ({ page }) => {
+    await seed(page, LEGACY_MET);
+    await openTab(page, 'log');
+    await expect(page.locator('[data-log-section="legacy"] #prestige-panel')).toBeVisible();
+    await expect(page.locator('[data-prestige-needs]')).toHaveCount(0);
+  });
+
+  test('after a prestige LEGACY stays, and lists what the next prestige needs in the colony voice (Story 5.1)', async ({ page }) => {
+    // A new run: the lifetime totals are kept, the buildings start over.
+    await seed(page, { ...LEGACY_MET, phase: 'colony', buildings: {}, prestige: { ...LEGACY_MET.prestige, count: 1 } });
+    await openTab(page, 'log');
+    await expect(page.locator('[data-log-section="legacy"]')).toBeVisible();
+    const needs = page.locator('[data-prestige-needs]');
+    await expect(needs).toBeVisible();
+    const lines = needs.locator('li[data-requirement]');
+    const ids = await lines.evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.requirement));
+    expect(ids).toEqual(Object.keys(prestigeBalance.unlock.buildingLevels));
+    for (const text of await lines.allTextContents()) {
+      expect(text).toBe(text.toUpperCase());
+      expect(text.endsWith('.')).toBe(true);
+    }
   });
 
   test('a prestige starts a new chronicle, and the save keeps the new one', async ({ page }) => {

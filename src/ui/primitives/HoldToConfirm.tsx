@@ -214,6 +214,7 @@ export function HoldToConfirm(props: HoldToConfirmProps) {
 
   const showArmed = armed && !holdMode && !isDisabled;
   const label = target ? `${verb} ${target}` : verb;
+  const action = showArmed ? `Tap again to ${label}` : holdMode ? `Hold to ${label}` : label;
 
   return (
     <button
@@ -226,8 +227,8 @@ export function HoldToConfirm(props: HoldToConfirmProps) {
       data-armed={showArmed ? 'true' : undefined}
       data-progress={holdMode ? String(cells) : undefined}
       aria-disabled={isDisabled ? 'true' : undefined}
-      aria-label={showArmed ? `Tap again to ${label}` : holdMode ? `Hold to ${label}` : label}
-      aria-describedby={costLine != null ? costId : undefined}
+      // The name holds every word on the face, the cost line too (WCAG 2.5.3, label in name).
+      aria-label={costLine != null ? `${action} ${costLine}` : action}
       title={title}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerEnd}
@@ -275,6 +276,8 @@ export function HoldToConfirm(props: HoldToConfirmProps) {
           </span>
         )}
       </span>
+      {/* A space between the label and the cost line keeps their words apart in the name. */}
+      {costLine != null && ' '}
       {costLine != null && (
         <span class="swarm-btn__cost" data-cost="" id={costId}>
           {costLine}
