@@ -39,9 +39,10 @@ If `pnpm install` cannot reach the registry (network access off), no tests can r
   Implement only `ready-for-agent` issues unattended. Stop on the other labels.
 - **PR flow:** branch → PR → it merges itself (squash) once CI is green. `.github/workflows/auto-merge.yml` arms
   auto-merge on every non-draft, non-fork PR, so don't arm it by hand; it needs the `AUTOMERGE_TOKEN`
-  secret (also saved as a Dependabot secret). Dependabot PRs (`.github/dependabot.yml`, daily) are armed only for
+  secret (also saved as a Dependabot secret). Dependabot PRs (`.github/dependabot.yml`: npm weekly, actions daily) are armed only for
   patch/minor updates. Dependabot raises no security alerts for pnpm 11 lockfiles, so
-  `.github/workflows/audit-fix.yml` runs `pnpm audit` daily and opens a fix PR (`scripts/audit-fix.mjs`).
+  `.github/workflows/audit-fix.yml` runs `pnpm audit` daily and opens a fix PR (`scripts/audit-fix.mjs`), and the
+  `vitest` CI job fails on any high-severity production advisory (`pnpm audit --prod --audit-level=high`).
   The nightly sweep lands what auto-merge couldn't: it folds every stuck Dependabot PR (and audit leftovers) into one
   `claude/deps-consolidation-*` PR, and fixes up to 3 other stuck PRs (red CI, conflicts). It then adds the
   `automerge` label, which `auto-merge.yml` turns into armed auto-merge: see `docs/agents/pr-sweep.md`. Never merge through the REST merge endpoint; it can bypass the required checks.
