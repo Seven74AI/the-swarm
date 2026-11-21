@@ -1,7 +1,7 @@
 import { effect } from '@preact/signals-core';
 import { selectResources, selectWorkersAssigned } from '../../state/selectors';
 import type { GameState } from '../../state/GameState';
-import { formatNumber } from '../../utils/format';
+import { formatFull } from '../../utils/format';
 
 const FOOD_PER_GATHER = 2;
 const FOOD_PER_UNASSIGNED = 1;
@@ -92,7 +92,7 @@ export class FoodDisplay {
     const consumed = Math.floor(w / 2) * FOOD_CONSUMED_PER_2_WORKERS;
     const net = produced - consumed;
 
-    this.foodCountEl.textContent = formatNumber(resources.food);
+    this.foodCountEl.textContent = formatFull(resources.food);
     this.productionEl.textContent = produced > 0 ? `+${produced}/tick` : `${produced}/tick`;
     this.consumptionEl.textContent = consumed > 0 ? `-${consumed}/tick` : `0/tick`;
     this.netEl.textContent = net >= 0 ? `+${net}/tick` : `${net}/tick`;

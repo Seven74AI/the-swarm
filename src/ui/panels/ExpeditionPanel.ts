@@ -8,7 +8,7 @@ import type { Expedition, GameState } from '../../state/GameState';
 import { MAX_ACTIVE_EXPEDITIONS } from '../../state/queries';
 import type { Actions } from '../../actions';
 import { explain } from '../components/refusal';
-import { formatNumber } from '../../utils/format';
+import { formatFull } from '../../utils/format';
 
 /** Whole seconds of game time left on a timer. */
 function secondsLeft(remainingMs: number): number {
@@ -72,7 +72,7 @@ export class ExpeditionPanel {
     const header = document.createElement('div');
     header.className = 'panel-header';
     header.innerHTML = `<span class="panel-title">🗺️ Expeditions</span>
-      <span class="panel-sub">Scouts: ${formatNumber(state.soldiers.scouts)} · Warriors: ${formatNumber(state.soldiers.warriors)}</span>`;
+      <span class="panel-sub">Scouts: ${formatFull(state.soldiers.scouts)} · Warriors: ${formatFull(state.soldiers.warriors)}</span>`;
     this.container.appendChild(header);
 
     // Destination cards

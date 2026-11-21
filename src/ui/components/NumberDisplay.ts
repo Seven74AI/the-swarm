@@ -1,6 +1,6 @@
 import { effect } from '@preact/signals-core';
 import { selectByPath } from '../../state/selectors';
-import { formatNumber } from '../../utils/format';
+import { formatFull } from '../../utils/format';
 
 /** Maximum particles spawned per update to maintain 60 FPS */
 const MAX_PARTICLES = 8;
@@ -115,7 +115,7 @@ export class NumberDisplay {
       this.textEl,
       this.prevValue,
       value,
-      (n: number) => `${this.label}: ${formatNumber(n)}`,
+      (n: number) => `${this.label}: ${formatFull(n)}`,
     );
   }
 

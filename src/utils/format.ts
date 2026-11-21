@@ -1,37 +1,131 @@
 /**
- * Format cache: avoids repeated formatting of the same number value.
- * Map<number, string> for O(1) lookup on repeated values.
- * All values >= 1000 are cached (thousands commas, M/B suffixes, scientific).
- * #22: Added format cache for performance.
+ * Number formatting (Story 1.9, UX-DR3 / FR35).
+ *
+ * Every formatter floors: the shown value is never greater than
+ * `Math.floor(input)` at the shown precision, so a player never sees
+ * more than they can spend.
+ *
+ * - `formatInt`: the floored integer, every digit, no grouping.
+ * - `formatStrip`: resource strip cells. Full digits up to 9 999, then
+ *   short-scale suffixes, never more than 5 characters (`12.4K`, `124K`, `1.24M`).
+ * - `formatFull`: everywhere else. Full digits with space grouping up to
+ *   999 999, then the same suffixes.
+ *
+ * Neither uses scientific notation in the suffix range (up to 999 Dc, ~1e36);
+ * only values beyond it, which belong to Transcendence and later, fall back
+ * to a floored `1e36`-style exponent.
  */
-const formatCache = new Map<number, string>();
+
+/** Short-scale suffixes, one per power of 1 000. */
+const SUFFIXES = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'] as const;
+
+/** Thousands separator: a no-break space, so grouped numbers never wrap and keep monospace width. */
+const GROUP_SEPARATOR = ' ';
+
+const STRIP_MAX_CHARS = 5;
+const STRIP_FULL_DIGITS_MAX = 9_999;
+const FULL_DIGITS_MAX = 999_999;
+
+/**
+ * Format caches keyed by the floored integer value.
+ * #22: avoids re-formatting the same value every tick.
+ */
 const FORMAT_CACHE_MAX_SIZE = 1000;
+const stripCache = new Map<number, string>();
+const fullCache = new Map<number, string>();
 
-function cachedFormat(n: number, formatter: (n: number) => string): string {
-  // Use Math.floor for integer cache keys
-  const key = Number.isInteger(n) ? n : Math.floor(n);
-  const cached = formatCache.get(key);
-  if (cached !== undefined) return cached;
-
-  const result = formatter(n);
-  formatCache.set(key, result);
-
-  // Evict oldest entries if cache grows too large
-  if (formatCache.size > FORMAT_CACHE_MAX_SIZE) {
-    const keys = formatCache.keys();
+function cached(cache: Map<number, string>, key: number, formatter: (n: number) => string): string {
+  const hit = cache.get(key);
+  if (hit !== undefined) return hit;
+  const result = formatter(key);
+  cache.set(key, result);
+  if (cache.size > FORMAT_CACHE_MAX_SIZE) {
+    const keys = cache.keys();
     for (let i = 0; i < 100; i++) {
       const k = keys.next();
       if (k.done) break;
-      formatCache.delete(k.value);
+      cache.delete(k.value);
     }
   }
-
   return result;
 }
 
-/** Clear the format cache (useful for testing) */
+/** Clear the format caches (useful for testing) */
 export function clearFormatCache(): void {
-  formatCache.clear();
+  stripCache.clear();
+  fullCache.clear();
+}
+
+/** Split a value into its sign and floored magnitude; non-finite values become 0 or Infinity. */
+function signAndFloor(n: number): { sign: string; abs: number } {
+  if (Number.isNaN(n)) return { sign: '', abs: 0 };
+  // Floor the value itself (not its magnitude), so a negative never reads as less owed.
+  const floored = Math.floor(n);
+  if (floored < 0) return { sign: '-', abs: -floored };
+  return { sign: '', abs: floored };
+}
+
+/** Every digit of a non-negative integer, without exponent notation (`toFixed` stays positional below 1e21). */
+function digits(abs: number): string {
+  if (abs < 1e21) return abs.toFixed(0);
+  return BigInt(abs).toString();
+}
+
+function group(abs: number): string {
+  return digits(abs).replace(/\B(?=(\d{3})+(?!\d))/g, GROUP_SEPARATOR);
+}
+
+/**
+ * Suffix form of a non-negative integer ≥ 1 000, at most 5 characters, floored
+ * at the shown precision. Exact integer arithmetic via BigInt, so a float
+ * division can never round the mantissa up.
+ */
+function suffixed(abs: number): string {
+  if (!Number.isFinite(abs)) return '∞';
+  const value = BigInt(abs);
+  const text = value.toString();
+  const tier = Math.floor((text.length - 1) / 3);
+
+  if (tier >= SUFFIXES.length) {
+    // Beyond the suffix range: floored mantissa digit + exponent, e.g. "1e36".
+    return `${text[0]}e${text.length - 1}`;
+  }
+
+  const suffix = SUFFIXES[tier];
+  const intDigits = text.length - tier * 3; // 1..3 digits before the point
+  const room = STRIP_MAX_CHARS - suffix.length; // characters left for the number
+  const decimals = Math.max(0, room - intDigits - 1); // -1 for the point
+  const shown = text.slice(0, intDigits + decimals); // truncation = floor
+  const int = shown.slice(0, intDigits);
+  const frac = shown.slice(intDigits);
+  return (frac ? `${int}.${frac}` : int) + suffix;
+}
+
+/** The floored integer, every digit, no grouping. */
+export function formatInt(n: number): string {
+  const { sign, abs } = signAndFloor(n);
+  if (!Number.isFinite(abs)) return sign + '∞';
+  return sign + digits(abs);
+}
+
+/**
+ * Resource strip format: full digits up to 9 999, then 5-character suffixes
+ * (`12.4K`, `124K`, `1.24M`). Never rounds up.
+ */
+export function formatStrip(n: number): string {
+  const { sign, abs } = signAndFloor(n);
+  if (abs <= STRIP_FULL_DIGITS_MAX) return sign + digits(abs);
+  return sign + cached(stripCache, abs, suffixed);
+}
+
+/**
+ * Cards, sheets and panels: full digits with space grouping up to 999 999,
+ * then suffixes (`1.24M`). Never rounds up.
+ */
+export function formatFull(n: number): string {
+  const { sign, abs } = signAndFloor(n);
+  if (abs < 1000) return sign + digits(abs);
+  return sign + cached(fullCache, abs, (v) => (v <= FULL_DIGITS_MAX ? group(v) : suffixed(v)));
 }
 
 /**
@@ -44,49 +138,6 @@ export function formatRate(n: number): string {
   if (n < 1) return n.toFixed(1);
   if (n < 10) return n.toFixed(1);
   return Math.round(n).toLocaleString('en-US');
-}
-
-/**
- * Format a number for display with abbreviations (#24).
- * - < 1000: exact integer
- * - 1000-999,999: with commas (e.g., 1,234)
- * - 1M+: abbreviated (e.g., 1.23M, 456.7M, 1.2B)
- *
- * Uses a format cache to avoid redundant work on repeated values.
- */
-export function formatNumber(n: number): string {
-  const sign = n < 0 ? '-' : '';
-  const abs = Math.round(Math.abs(n));
-
-  if (abs < 1000) {
-    return sign + String(abs);
-  }
-
-  // Cache all formatted positive values, then prepend sign.
-  // (avoids cache poisoning: -1000 and 1000 share the same abs=1000 cache key)
-  const formatted = cachedFormat(abs, (val) => {
-    if (val < 1_000_000) {
-      return val.toLocaleString('en-US');
-    }
-    if (val < 1_000_000_000) {
-      const v = val / 1_000_000;
-      if (v >= 100) return Math.round(v) + 'M';
-      if (Number.isInteger(v)) return v.toFixed(2) + 'M';
-      if (Number.isInteger(v * 10)) return v.toFixed(1) + 'M';
-      return v.toFixed(2) + 'M';
-    }
-    if (val < 1_000_000_000_000) {
-      const v = val / 1_000_000_000;
-      if (v >= 100) return Math.round(v) + 'B';
-      if (Number.isInteger(v)) return v.toFixed(2) + 'B';
-      if (Number.isInteger(v * 10)) return v.toFixed(1) + 'B';
-      return v.toFixed(2) + 'B';
-    }
-    const exp = Math.floor(Math.log10(val));
-    const mantissa = val / Math.pow(10, exp);
-    return mantissa.toFixed(2) + 'e' + exp;
-  });
-  return sign + formatted;
 }
 
 /**

@@ -5,7 +5,7 @@ import {
 } from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
-import { formatNumber } from '../../utils/format';
+import { formatFull } from '../../utils/format';
 
 /**
  * TranscendencePanel — Endgame / victory screen.
@@ -91,8 +91,8 @@ export class TranscendencePanel {
 
     const statEntries: Array<[string, string]> = [
       ['Prestige Count', String(count)],
-      ['Legacy Points', formatNumber(legacyPoints)],
-      ['Lifetime Food', formatNumber(totalFoodProduced)],
+      ['Legacy Points', formatFull(legacyPoints)],
+      ['Lifetime Food', formatFull(totalFoodProduced)],
     ];
 
     for (const [label, value] of statEntries) {

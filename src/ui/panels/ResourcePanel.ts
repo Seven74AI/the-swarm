@@ -16,7 +16,7 @@ import {
 } from '../../state/selectors';
 import { Phase, PHASE_ORDER } from '../../phases/phases';
 import { EGG_HATCH_TIME, LARVA_MATURE_TIME, getConversionDefs, type ConversionId } from '../../state/queries';
-import { formatNumber, formatRate } from '../../utils/format';
+import { formatFull, formatRate } from '../../utils/format';
 import { ProgressBar } from '../components/ProgressBar';
 
 const TEND_MULTIPLIER = 0.25;
@@ -159,7 +159,7 @@ export class ResourcePanel {
       const r = selectResources.value;
 
       // Update critical bar values with dirty-checking + flash animations
-      const eggsFormatted = formatNumber(r.eggs);
+      const eggsFormatted = formatFull(r.eggs);
       if (eggsFormatted !== this.lastEggsValue) {
         this.eggValEl.textContent = eggsFormatted;
         this.lastEggsValue = eggsFormatted;
@@ -167,7 +167,7 @@ export class ResourcePanel {
       this.triggerFlashIfChanged(this.eggValEl, r.eggs, prevEggs);
       prevEggs = r.eggs;
 
-      const larvaeFormatted = formatNumber(r.larvae);
+      const larvaeFormatted = formatFull(r.larvae);
       if (larvaeFormatted !== this.lastLarvaeValue) {
         this.larvaValEl.textContent = larvaeFormatted;
         this.lastLarvaeValue = larvaeFormatted;
@@ -175,7 +175,7 @@ export class ResourcePanel {
       this.triggerFlashIfChanged(this.larvaValEl, r.larvae, prevLarvae);
       prevLarvae = r.larvae;
 
-      const foodFormatted = formatNumber(r.food);
+      const foodFormatted = formatFull(r.food);
       if (foodFormatted !== this.lastFoodValue) {
         this.foodValEl.textContent = foodFormatted;
         this.lastFoodValue = foodFormatted;
@@ -185,7 +185,7 @@ export class ResourcePanel {
 
       const soldiers = selectSoldiers.value;
       const soldierTotal = soldiers.scouts + soldiers.warriors;
-      const soldiersFormatted = formatNumber(soldierTotal);
+      const soldiersFormatted = formatFull(soldierTotal);
       if (soldiersFormatted !== this.lastSoldiersValue) {
         this.soldierValEl.textContent = soldiersFormatted;
         this.lastSoldiersValue = soldiersFormatted;
@@ -349,7 +349,7 @@ export class ResourcePanel {
     // Effect to update workers with dirty-checking
     let lastWorkersValue = '';
     effect(() => {
-      const formatted = formatNumber(selectWorkers.value);
+      const formatted = formatFull(selectWorkers.value);
       if (formatted !== lastWorkersValue) {
         workerVal.textContent = formatted;
         lastWorkersValue = formatted;
@@ -375,7 +375,7 @@ export class ResourcePanel {
     // Effect to update larvae count with dirty-checking
     let lastLarvaeCountValue = '';
     effect(() => {
-      const formatted = formatNumber(selectLarvae.value);
+      const formatted = formatFull(selectLarvae.value);
       if (formatted !== lastLarvaeCountValue) {
         larvaVal.textContent = formatted;
         lastLarvaeCountValue = formatted;
@@ -409,7 +409,7 @@ export class ResourcePanel {
       // Effect to update space resource with dirty-checking
       let lastSpaceValue = '';
       effect(() => {
-        const formatted = formatNumber(selectByPath(`resources.${r.path}`).value as number);
+        const formatted = formatFull(selectByPath(`resources.${r.path}`).value as number);
         if (formatted !== lastSpaceValue) {
           val.textContent = formatted;
           lastSpaceValue = formatted;
