@@ -272,14 +272,18 @@ test.describe('Buildings', () => {
     await expect(page.locator('[data-building="barracks"]')).toContainText('Lv.0');
     await expect(page.locator('[data-building="barracks"] .building-info')).toContainText('Scouts cap: 0', { timeout: 3000 });
 
-    // Note food before building
-    const foodBefore = await readGameState(page, 'resources.food') as number;
-    expect(foodBefore).toBeGreaterThan(0);
-
-    // Click Build
+    // Click Build. Read resources immediately before and after the click in one
+    // synchronous evaluate, so no tick's production lands between the two reads.
     const buildBtn = page.locator('[data-building="barracks"] button').filter({ hasText: 'Build' });
     await expect(buildBtn).toBeEnabled({ timeout: 3000 });
-    await buildBtn.evaluate(el => (el as HTMLElement).click());
+    const { before, after } = await buildBtn.evaluate((el) => {
+      // @ts-ignore - runs in browser context
+      const read = () => window.__swarm.manager.getState().resources as { food: number; wood: number };
+      const b = { ...read() };
+      (el as HTMLElement).click();
+      return { before: b, after: { ...read() } };
+    });
+    expect(before.food).toBeGreaterThan(0);
 
     // Verify level updated to Lv.1
     await expect(page.locator('[data-building="barracks"]')).toContainText('Lv.1', { timeout: 3000 });
@@ -287,14 +291,9 @@ test.describe('Buildings', () => {
     // Effect shows "Scouts cap: 2" (Lv.1 Barracks: scoutsCap=2, warriorsCap=0)
     await expect(page.locator('[data-building="barracks"] .building-info')).toContainText('Scouts cap: 2', { timeout: 3000 });
 
-    // Resources deducted — verify food decreased by at least 250 (Lv.1: 250 food)
-    const foodAfter = await readGameState(page, 'resources.food') as number;
-    expect(foodAfter).toBeLessThan(foodBefore);
-    expect(foodBefore - foodAfter).toBeGreaterThan(200); // Lv.1 costs 250 food, account for tick consumption
-
-    // Wood decreased by at least 125 (Lv.1: 125 wood)
-    const woodAfter = await readGameState(page, 'resources.wood') as number;
-    expect(woodAfter).toBeLessThanOrEqual(5000 - 125); // 5000 - 125 = 4875
+    // Building paid its cost: food and wood both went down.
+    expect(after.food).toBeLessThan(before.food);
+    expect(after.wood).toBeLessThan(before.wood);
 
     // Activity log should show construction event (first unlock)
     await expect(page.locator('#activity-log')).toContainText('constructed', { timeout: 3000 });

@@ -212,3 +212,32 @@ describe('PrestigePanel LP preview matches PrestigeSystem scoring (#188)', () =>
     });
   }
 });
+
+describe('PrestigePanel render stability (#186)', () => {
+  let panel: PrestigePanel;
+  let currentState: GameState;
+
+  beforeEach(() => {
+    currentState = createInitialState();
+    panel = new PrestigePanel(new EventBus(), () => currentState, (s: GameState) => { currentState = s; });
+  });
+
+  it('keeps the same button nodes when a tick changes nothing the panel shows (#186)', () => {
+    const btnBefore = panel.getElement().querySelector('.btn-prestige');
+    expect(btnBefore).not.toBeNull();
+    // A tick that only changes food: the effect re-runs, but nothing displayed changed.
+    gameState.value = {
+      ...gameState.value,
+      resources: { ...gameState.value.resources, food: gameState.value.resources.food + 1 },
+    };
+    expect(panel.getElement().querySelector('.btn-prestige')).toBe(btnBefore);
+  });
+
+  it('re-renders when a displayed value changes', () => {
+    const btnBefore = panel.getElement().querySelector('.btn-prestige');
+    currentState = { ...currentState, prestige: { ...currentState.prestige, legacyPoints: currentState.prestige.legacyPoints + 1 } };
+    panel.refresh();
+    expect(panel.getElement().querySelector('.btn-prestige')).not.toBe(btnBefore);
+    expect(panel.getElement().textContent).toContain(String(currentState.prestige.legacyPoints));
+  });
+});
