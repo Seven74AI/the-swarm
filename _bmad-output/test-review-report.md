@@ -2,7 +2,9 @@
 
 **Review Date**: 2026-11-21
 **Reviewer**: Claude (gds-test-review, Game QA Lead), for Seven74
-**Period Covered**: Snapshot of `main` at `8d3b2de` (2026-11-21 13:43 UTC). CI run history could not be read from this session (no GitHub API access), so trends are not available.
+**Period Covered**: Snapshot of `main` at `8d3b2de` (2026-11-21 13:43 UTC). CI run history could not be read from this session (no GitHub API access), so trends are not available. Findings re-checked against `a6ca67b` before filing.
+
+**Tracked as:** #368 (rule violations), #369 (hard waits), #370 (mobile/touch + map tile E2E), #371 (balance pins). The fractional antimatter cost is already Story 3.3 (#283); a note about its test pin was added there.
 **Scope**: full
 
 ---
@@ -194,26 +196,26 @@ On PRs, `retries: 2` lets a flaky E2E test pass on retry. Playwright marks it "f
 
 | Action                                                                                                         | Effort | Impact | Owner |
 | -------------------------------------------------------------------------------------------------------------- | ------ | ------ | ----- |
-| Replace the conditional skip in `tab-shell.spec.ts:116` with seeded content + assertion                        | 1 h    | High   | agent |
-| Remove the presence guards in `accessibility.spec.ts:314,328` and `text-reflow.spec.ts:252`                    | 1–2 h  | High   | agent |
-| Open an issue: `darkMatterDetection` costs `0.1` antimatter (integer rule). Add an "every cost is an integer" data invariant | 2 h | High | human triage → agent |
-| Rename or fix the "strong equipment favors victory" test                                                       | 15 min | Low    | agent |
+| Replace the conditional skip in `tab-shell.spec.ts:116` with seeded content + assertion (#368)                        | 1 h    | High   | agent |
+| Remove the presence guards in `accessibility.spec.ts:314,328` and `text-reflow.spec.ts:252` (#368)                    | 1–2 h  | High   | agent |
+| `darkMatterDetection` costs `0.1` antimatter: already Story 3.3 (#283), which also adds the integer-cost invariant | 2 h | High | story run |
+| Rename or fix the "strong equipment favors victory" test (#368)                                                       | 15 min | Low    | agent |
 
 ### Short-term (This Milestone)
 
 | Action                                                                                                           | Effort | Impact | Owner |
 | ---------------------------------------------------------------------------------------------------------------- | ------ | ------ | ----- |
-| Remove `waitForTimeout`, starting with `prestige-integration` (20), `combat-edges` (9), `pause` (8), `narrative-events` (6) | 2–3 d | High | agent |
-| Add a lint/arch check that only lets the `waitForTimeout` count shrink (same ratchet as `KNOWN_MATH_RANDOM`)     | 2 h    | Medium | agent |
-| Add a mobile Playwright project (`hasTouch`, phone device) running a smoke subset: golden path, tab shell, nest tap/hold | 1 d | High | agent |
-| Add an E2E test for tapping a map tile to claim it in expansion                                                  | 2 h    | Medium | agent |
-| Convert `ResearchSystem` / `EntropySystem` balance pins into invariants                                          | 1 d    | Medium | agent |
+| Remove `waitForTimeout`, starting with `prestige-integration` (20), `combat-edges` (9), `pause` (8), `narrative-events` (6) (#369) | 2–3 d | High | agent |
+| Add a lint/arch check that only lets the `waitForTimeout` count shrink (same ratchet as `KNOWN_MATH_RANDOM`) (#369)     | 2 h    | Medium | agent |
+| Add a mobile Playwright project (`hasTouch`, phone device) running a smoke subset: golden path, tab shell, nest tap/hold (#370) | 1 d | High | agent |
+| Add an E2E test for tapping a map tile to claim it in expansion (#370)                                                  | 2 h    | Medium | agent |
+| Convert `ResearchSystem` / `EntropySystem` balance pins into invariants (#371)                                          | 1 d    | Medium | agent |
 
 ### Long-term (Ongoing)
 
 | Action                                                                                             | Effort | Impact | Notes                                                       |
 | -------------------------------------------------------------------------------------------------- | ------ | ------ | ----------------------------------------------------------- |
-| Tick-budget test: a late-game seeded state must tick in < N ms (measured, with headroom)           | 2–3 d  | Medium | Use `debug/timings`; a nightly job, not a PR gate           |
+| Tick-budget test: a late-game seeded state must tick in < N ms (measured, with headroom)           | 2–3 d  | Medium | Use `debug/timings`; a nightly job, not a PR gate. Story 8.6 (#314) covers nest frame rate, not tick time           |
 | Have flake-hunt open a `needs-triage` issue automatically on failure                               | 0.5 d  | Medium | The workflow comment already asks for this                  |
 | Run coverage in CI and add a ratchet threshold (never lower than current)                          | 0.5 d  | Medium | Start from 94% lines / 86% branches                         |
 | Shared E2E seed factory (`seedPhase('combat', overrides)`) to replace inline seeds                 | 1–2 d  | Medium | Keeps seeds in line with `transitions.ts` guards            |
