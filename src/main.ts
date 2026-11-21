@@ -1,3 +1,4 @@
+import { log } from './utils/log';
 import { EventBus } from './engine/EventBus';
 import { Ticker } from './engine/Ticker';
 import { GameLoop } from './engine/GameLoop';
@@ -75,12 +76,12 @@ export function bootstrap(): {
 
   if (saved) {
     gameState.value = saved.gameState;
-    console.log('[Offline] Save loaded. offline:', saved.offline ? `ticks=${saved.offline.offlineTicks}` : 'null');
+    log.info('offline', `Save loaded. offline: ${saved.offline ? `ticks=${saved.offline.offlineTicks}` : 'null'}`);
 
     // GM-8 Offline progression: compute catch-up from save timestamp + efficiency
     if (saved.offline && saved.offline.offlineTicks > 0) {
       const offlineData: OfflineLoadInfo = saved.offline;
-      console.log('[Offline] Ticks to simulate:', offlineData.offlineTicks, 'Elapsed:', offlineData.elapsedMs, 'Efficiency:', offlineData.efficiency);
+      log.info('offline', `Ticks to simulate: ${offlineData.offlineTicks} Elapsed: ${offlineData.elapsedMs} Efficiency: ${offlineData.efficiency}`);
 
       // Capture before-state for resource delta calculation
       const beforeState = gameState.value;
@@ -132,7 +133,7 @@ export function bootstrap(): {
         offlinePopup = new OfflineSummaryPopup(offlineData, () => {
           // Dismiss: game continues normally — UI is already mounted
         });
-        console.log('[Offline] Popup created:', !!offlinePopup);
+        log.debug('offline', `Popup created: ${!!offlinePopup}`);
 
         // Emit event for resource delta tracking
         bus.emit('offline_progress', {
@@ -404,13 +405,13 @@ export function bootstrap(): {
     audio.play('discovery');
   });
 
-  console.log('[Offline] Before mount check. offlinePopup is:', !!offlinePopup);
+  log.debug('offline', `Before mount check. offlinePopup is: ${!!offlinePopup}`);
 
   // If we have an offline popup, mount it after UI is mounted
   if (offlinePopup) {
-    console.log('[Offline] Mounting popup...');
+    log.debug('offline', 'Mounting popup...');
     offlinePopup.mount(document.body);
-    console.log('[Offline] Popup mounted. Body has overlay:', !!document.querySelector('.offline-overlay'));
+    log.debug('offline', `Popup mounted. Body has overlay: ${!!document.querySelector('.offline-overlay')}`);
   }
 
   // Start autosave

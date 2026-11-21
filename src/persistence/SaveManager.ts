@@ -1,3 +1,4 @@
+import { log } from '../utils/log';
 import type { GameState } from '../state/GameState';
 import { createInitialState } from '../state/GameState';
 import { calculateOfflineTicks } from '../systems/OfflineProgression';
@@ -106,7 +107,7 @@ export class SaveManager {
       localStorage.setItem(SaveManager.SAVE_KEY, json);
       return true;
     } catch (e) {
-      console.warn('SaveManager: Failed to save.', e);
+      log.warn('save', 'failed to save', e);
       return false;
     }
   }
@@ -121,14 +122,14 @@ export class SaveManager {
     // Try backup 1
     const bak1 = this.tryLoadKey(SaveManager.BACKUP1_KEY);
     if (bak1) {
-      console.warn('SaveManager: Primary save corrupted, loaded from backup 1.');
+      log.warn('save', 'primary save corrupted, loaded from backup 1');
       return this.applyDefaults(bak1);
     }
 
     // Try backup 2
     const bak2 = this.tryLoadKey(SaveManager.BACKUP2_KEY);
     if (bak2) {
-      console.warn('SaveManager: Primary and backup 1 corrupted, loaded from backup 2.');
+      log.warn('save', 'primary and backup 1 corrupted, loaded from backup 2');
       return this.applyDefaults(bak2);
     }
 

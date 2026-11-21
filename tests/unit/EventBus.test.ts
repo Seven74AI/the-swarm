@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { EventBus } from '../../src/engine/EventBus';
+import { log } from '../../src/utils/log';
 
 describe('EventBus', () => {
   it('delivers an emitted event to a subscribed callback', () => {
@@ -78,4 +79,40 @@ describe('EventBus', () => {
     expect(bad).toHaveBeenCalledTimes(1);
   });
 
+  it('routes a throwing listener to log.error and still runs the others', () => {
+    const errorSpy = vi.spyOn(log, 'error').mockImplementation(() => {});
+    const bus = new EventBus();
+    const before = vi.fn();
+    const after = vi.fn();
+    const boom = new Error('listener boom');
+
+    bus.subscribe('test:logged', before);
+    bus.subscribe('test:logged', () => {
+      throw boom;
+    });
+    bus.subscribe('test:logged', after);
+    bus.emit('test:logged', { value: 1 });
+
+    expect(before).toHaveBeenCalledTimes(1);
+    expect(after).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy.mock.calls[0]).toContain(boom);
+    errorSpy.mockRestore();
+  });
+
+  it('logs listener errors without relying on process.env (production builds)', () => {
+    const errorSpy = vi.spyOn(log, 'error').mockImplementation(() => {});
+    vi.stubEnv('NODE_ENV', 'production');
+    try {
+      const bus = new EventBus();
+      bus.subscribe('test:prod', () => {
+        throw new Error('prod boom');
+      });
+      bus.emit('test:prod', {});
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllEnvs();
+      errorSpy.mockRestore();
+    }
+  });
 });
