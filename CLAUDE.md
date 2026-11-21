@@ -42,9 +42,9 @@ If `pnpm install` cannot reach the registry (network access off), no tests can r
   secret (also saved as a Dependabot secret). Dependabot PRs (`.github/dependabot.yml`, daily) are armed only for
   patch/minor updates. Dependabot raises no security alerts for pnpm 11 lockfiles, so
   `.github/workflows/audit-fix.yml` runs `pnpm audit` daily and opens a fix PR (`scripts/audit-fix.mjs`).
-  The nightly sweep lands what auto-merge couldn't (red CI, conflicts, Dependabot majors, audit leftovers) by fixing
-  the PR and adding the `automerge` label, which `auto-merge.yml` turns into armed auto-merge: see
-  `docs/agents/pr-sweep.md`. Never merge through the REST merge endpoint; it can bypass the required checks.
+  The nightly sweep lands what auto-merge couldn't: it folds every stuck Dependabot PR (and audit leftovers) into one
+  `claude/deps-consolidation-*` PR, and fixes up to 3 other stuck PRs (red CI, conflicts). It then adds the
+  `automerge` label, which `auto-merge.yml` turns into armed auto-merge: see `docs/agents/pr-sweep.md`. Never merge through the REST merge endpoint; it can bypass the required checks.
   No approving review is required (owner decision, 2026-11-20), so CI is the only gate: never weaken a check
   to get a PR through. CI runs on every PR, docs-only included, because its checks are required.
   No direct pushes to `main`. If CI fails, fix the cause; don't retry-until-green.
