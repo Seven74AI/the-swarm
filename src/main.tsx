@@ -1,3 +1,4 @@
+import './ui/styles/tokens.css';
 import { log } from './utils/log';
 import { EventBus } from './engine/EventBus';
 import { EventQueue, type EventSink } from './engine/events';
@@ -37,6 +38,7 @@ import { PhaseContent } from './ui/PhaseContent';
 import { TRANSITIONS } from './phases/transitions';
 import type { GameState } from './state/GameState';
 import { OnboardingManager } from './ui/OnboardingManager';
+import { bindPhaseTheme } from './ui/theme/phaseTheme';
 
 /**
  * THE SWARM — Bootstrap
@@ -358,6 +360,9 @@ export function bootstrap(): {
 
   // Mount UI
   const app = document.getElementById('app');
+
+  // Phase palette (Story 1.8): one attribute on <html> rebinds the color aliases.
+  bindPhaseTheme(document.documentElement);
 
   // Every player intent goes through an action (Story 1.6): the UI never
   // writes state or touches a system. Decision choices are an action too,
