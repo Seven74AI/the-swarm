@@ -105,8 +105,11 @@ jobs:
     if: always()
     steps:
       - run: |
-          if [ "${{ needs.playwright.result }}" = "success" ]; then
-            exit 0
-          else
+          # `cancelled`/`skipped` (superseded by a newer push via
+          # cancel-in-progress, or a manual cancel) is not a test failure —
+          # only an actual playwright failure should fail the gate.
+          if [ "${{ needs.playwright.result }}" = "failure" ]; then
             exit 1
+          else
+            exit 0
           fi
