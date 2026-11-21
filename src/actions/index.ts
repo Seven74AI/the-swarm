@@ -24,13 +24,15 @@ import * as space from './space';
 import * as prestige from './prestige';
 import { chooseDecision } from './decisions';
 import { continuePhase, markRevealSeen } from './phase';
+import { performIntent } from './intent';
+import type { ActionIntent } from '../systems/NextAction';
 
 export type { ActionDeps } from './context';
 export type { ActionResult, RefusalReason, Refused, StateStore } from './result';
 export { REFUSAL_REASONS } from './result';
 
 export function createActions(deps: ActionDeps) {
-  return {
+  const actions = {
     // Nest
     layEgg: () => nest.layEgg(deps),
     assignWorker: (role: WorkerRole) => nest.assignWorker(deps, role),
@@ -74,6 +76,11 @@ export function createActions(deps: ActionDeps) {
     markRevealSeen: (phase: Phase) => markRevealSeen(deps, phase),
     // Decisions
     chooseDecision: (type: DecisionEvent['type'], choice: string) => chooseDecision(deps, type, choice),
+  };
+  return {
+    ...actions,
+    /** Run a next-action suggestion (Story 1.21) through the action it names. */
+    perform: (intent: ActionIntent) => performIntent(actions, intent),
   };
 }
 
