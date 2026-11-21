@@ -1,6 +1,6 @@
 # Run all stories
 
-The spec for a long, unattended session that builds every MVP story (issues #231–#318) one after another until none is left. The owner starts it; nightly sweeps keep following their own prompt.
+The spec for a long, unattended session that builds every MVP story (issues #231–#318) one after another until none is left. The owner starts it. Nightly sweeps skip every issue whose title starts with `Story ` and leave the stories to this run.
 
 ## Starting a run
 
