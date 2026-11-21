@@ -8,6 +8,7 @@ import {
   selectCombatResources,
   selectCombatSoldiers,
   selectEquipment,
+  selectArmyUpkeepPerSec,
   selectFreeWorkers,
   selectLastBattle,
   selectMatchup,
@@ -18,6 +19,7 @@ import {
   selectSoldierPipeline,
   selectSoldierSpeed,
   selectSoldierStrength,
+  selectStarving,
 } from '../../state/selectors';
 import { soldierBalance } from '../../data/balance/soldiers';
 import { TRAITS } from '../../data/content/enemies';
@@ -94,6 +96,21 @@ function shortOf(cost: MutationCost, have: MutationCost): { amount: number; name
 
 // --- Soldiers and training, equipment -------------------------------------------------------
 
+/** A food rate, floored to hundredths below 10 (`0.75`, `5.25`) and to whole units above (Story 4.4). */
+function formatUpkeep(perSec: number): string {
+  if (perSec >= 10) return formatFull(Math.floor(perSec));
+  return String(Math.floor(perSec * 100) / 100);
+}
+
+/** `5.25 FOOD/S`, read "5.25 food a second". */
+function FoodRate({ perSec }: { perSec: number }) {
+  return (
+    <>
+      {formatUpkeep(perSec)} <Abbr shown="FOOD/S" full="food a second" />
+    </>
+  );
+}
+
 function TrainingLine() {
   const pipe = selectSoldierPipeline.value;
   const training = pipe.count;
@@ -102,6 +119,11 @@ function TrainingLine() {
     <>
       <p class="war-line">
         <span data-soldiers="">SOLDIERS {formatFull(selectCombatSoldiers.value)}</span>
+        <Sep />
+        {/* What the army eats, trainees included (Story 4.4, FR12). */}
+        <span data-army-upkeep="">
+          UPKEEP <FoodRate perSec={selectArmyUpkeepPerSec.value} />
+        </span>
         <Sep />
         <span data-training="">TRAINING {formatFull(training)}</span>
       </p>
@@ -135,8 +157,16 @@ function StatsLine() {
 function TrainButton({ actions }: { actions: WarActions }) {
   const free = selectFreeWorkers.value;
   const food = selectResources.value.food;
+  const workers = combatBalance.army.workersPerSoldier;
+  // The action's order (actions/combat.ts): workers, starving (Story 4.4), then food.
   const reason =
-    free < 1 ? 'no free workers' : food < soldierBalance.costFood ? `needs ${formatFull(soldierBalance.costFood - food)} more food` : false;
+    free < workers
+      ? 'no free workers'
+      : selectStarving.value
+        ? 'the colony is starving'
+        : food < soldierBalance.costFood
+          ? `needs ${formatFull(soldierBalance.costFood - food)} more food`
+          : false;
   return (
     <Button
       verb="TRAIN"
@@ -144,7 +174,15 @@ function TrainButton({ actions }: { actions: WarActions }) {
       repeat
       onPress={actions.trainSoldier}
       disabled={reason}
-      cost={`${formatFull(soldierBalance.costFood)} FOOD · 1 WORKER`}
+      cost={
+        <>
+          {formatFull(soldierBalance.costFood)} FOOD
+          <Sep />
+          {formatFull(workers)} WORKER{workers === 1 ? '' : 'S'}
+          <Sep />
+          UPKEEP <FoodRate perSec={combatBalance.army.upkeepFoodPerSec} />
+        </>
+      }
       data-action="train-soldier"
     />
   );

@@ -17,6 +17,17 @@ export interface CounterMarks {
  */
 export const combatBalance = {
   /**
+   * What an army costs the colony (Story 4.4, FR12). Each combat soldier
+   * takes `workersPerSoldier` workers to train (the food to start training is
+   * `soldierBalance.costFood`) and eats `upkeepFoodPerSec` while it lives, in
+   * training too, on top of the workers' own upkeep. A soldier eats more
+   * than the idle worker it was made from, so a bigger army is a choice.
+   */
+  army: {
+    workersPerSoldier: 1,
+    upkeepFoodPerSec: 0.75,
+  },
+  /**
    * Enemy strength and hit points grow with `battlesWon ^ enemyScalingExponent`:
    * below 1, so the growth slows and equipment (max Lv.5) keeps up (Story 4.1).
    */

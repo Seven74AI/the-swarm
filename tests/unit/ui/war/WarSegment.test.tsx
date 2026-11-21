@@ -94,6 +94,39 @@ describe('WAR segment (Story 1.25)', () => {
     expect(c.querySelector('#soldier-panel')!.textContent).toMatch(/needs \d+ more food/i);
   });
 
+  it('shows what the army eats next to the soldier count, growing with the army (Story 4.4)', () => {
+    const upkeep = (c: ParentNode) => {
+      const el = c.querySelector('[data-army-upkeep]');
+      expect(el, 'an upkeep readout next to the soldiers').not.toBeNull();
+      expect(el!.closest('.war-line')).toBe(c.querySelector('[data-soldiers]')!.closest('.war-line'));
+      return Number((el!.textContent ?? '').replace(/[^\d.]/g, ''));
+    };
+    seed({ combatSoldiers: 4, soldierPipeline: { count: 0, progress: 0 } });
+    let c = mount();
+    const small = upkeep(c);
+    expect(small).toBeGreaterThan(0);
+    expect(c.querySelector('[data-army-upkeep]')!.textContent).toMatch(/FOOD/);
+    cleanup();
+    seed({ combatSoldiers: 40, soldierPipeline: { count: 2, progress: 0 } });
+    c = mount();
+    expect(upkeep(c)).toBeGreaterThan(small);
+  });
+
+  it('TRAIN names its ongoing cost: a worker and food upkeep (Story 4.4)', () => {
+    const c = mount();
+    const cost = c.querySelector('[data-action="train-soldier"]')!.closest('[data-button]') ?? c.querySelector('#soldier-panel')!;
+    expect(cost.textContent).toMatch(/1 WORKER/);
+    expect(cost.textContent).toMatch(/UPKEEP/);
+  });
+
+  it('TRAIN is disabled while the colony starves, and says so (Story 4.4)', () => {
+    // An empty store and an army that eats more than ten workers make.
+    seed({ resources: { workers: 10, food: 0, nestCapacity: 1000 }, combatSoldiers: 1_000 });
+    const c = mount();
+    expect(c.querySelector('[data-action="train-soldier"]')!.getAttribute('aria-disabled')).toBe('true');
+    expect(c.querySelector('#soldier-panel')!.textContent).toMatch(/starving/i);
+  });
+
   it('shows weapons and armour as cards, locked behind their buildings', () => {
     const c = mount();
     for (const id of ['weapon', 'armor']) {

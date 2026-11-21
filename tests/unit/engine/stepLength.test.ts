@@ -253,7 +253,9 @@ describe('Story 2.5: systems give the same result for any step length', { timeou
         const nectar: number[] = [];
         const sample = (s: GameState) => {
           const r = computeResourceRates(s, bonuses.getBonuses(s));
-          net.push(s.resources.workers > 0 ? r.foodProducedPerSec - r.foodConsumedPerSec : 0);
+          // The tick credits food while anyone eats: workers, or soldiers (Story 4.4).
+          const eats = s.resources.workers > 0 || s.combatSoldiers + s.soldierPipeline.count > 0;
+          net.push(eats ? r.foodProducedPerSec - r.foodConsumedPerSec : 0);
           wood.push(r.woodPerSec);
           stone.push(r.stonePerSec);
           nectar.push(r.nectarPerSec);

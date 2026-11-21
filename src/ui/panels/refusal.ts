@@ -18,6 +18,7 @@ export const REFUSAL_TEXT: Record<RefusalReason, string> = {
   not_adjacent: 'NOT NEXT TO YOUR TERRITORY',
   unknown_id: 'UNKNOWN',
   unavailable: 'NOT AVAILABLE',
+  starving: 'THE COLONY IS STARVING',
 };
 
 const REFUSED_CLASS = 'action-refused';

@@ -38,6 +38,7 @@ export const REFUSAL_REASONS = [
   'not_adjacent',
   'unknown_id',
   'unavailable',
+  'starving',
 ] as const;
 
 export type RefusalReason = (typeof REFUSAL_REASONS)[number];

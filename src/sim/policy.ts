@@ -1,13 +1,15 @@
 import type { GameState } from '../state/GameState';
 import { Phase } from '../phases/phases';
 import { conditionMet, goalFor } from '../state/queries';
-import { getNextAction, isFoodCritical, type ActionIntent } from '../systems/NextAction';
-import { freeWorkers, getReallocation, roleCount, type MoveSource } from '../systems/Workforce';
+import { getNextAction, isCapacityCritical, isFoodCritical, type ActionIntent } from '../systems/NextAction';
+import { freeWorkers, getReallocation, moveWorkers, netFoodPerSec, roleCount, type MoveSource } from '../systems/Workforce';
 import { getEnemyDef, scaleEnemy, type EnemyDef } from '../systems/EnemySystem';
 import { assessMatchup } from '../systems/CombatRounds';
 import { soldierBalance } from '../data/balance/soldiers';
+import { combatBalance } from '../data/balance/combat';
+import { isStarving, type WorkerRole } from '../systems/ResourceSystem';
+import { TerritorySystem } from '../systems/TerritorySystem';
 import type { RoleId } from '../data/content/roles';
-import type { WorkerRole } from '../systems/ResourceSystem';
 
 /**
  * One move of the simulated player (Story 3.7, AR15). Each names the action
@@ -106,6 +108,33 @@ function combatMoves(s: GameState): SimMove[] {
 }
 
 /**
+ * A full nest that WRKR's reallocation cannot help (it takes only free and
+ * TEND workers to DIG): move one gatherer to DIG while the food income stays
+ * at or above zero without it (Story 4.4). The max-army player's army eats
+ * every digger into GATHER; once fed, it digs again, as a player would,
+ * instead of waiting on a full nest forever. The default player keeps its
+ * Story 3.11 moves (its pacing is tuned on them).
+ */
+function digWhenFed(s: GameState): SimMove[] {
+  if (getReallocation(s) || !isCapacityCritical(s) || roleCount(s, 'gather') < 1) return [];
+  const moved = moveWorkers(s, 'gather', 'dig', 1);
+  if (moved === s || netFoodPerSec(moved) < 0) return [];
+  return [{ kind: 'moveWorkers', from: 'gather', to: 'dig', count: 1 }];
+}
+
+/** Every move but Combat's: the same for each player below, so they differ only in how they fight. */
+function baseMoves(s: GameState, turn: PolicyTurn): SimMove[] {
+  const moves: SimMove[] = [];
+  if (turn.taps > 0 && needsWorkers(s)) moves.push({ kind: 'layEgg', taps: turn.taps });
+  const next = getNextAction(s);
+  if (next.kind === 'act') moves.push({ kind: 'intent', intent: next.intent });
+  const realloc = getReallocation(s);
+  if (realloc) moves.push({ kind: 'moveWorkers', from: realloc.from, to: realloc.to, count: realloc.count });
+  moves.push(...goalRoleMoves(s));
+  return moves;
+}
+
+/**
  * The default player (Story 3.7, architecture N2): follow `getNextAction`
  * (which also taps CONTINUE once the goal has latched), rebalance roles with
  * WRKR's reallocation, and do the goal's verbs that are not purchases: lay
@@ -115,13 +144,35 @@ function combatMoves(s: GameState): SimMove[] {
  * Combat. It never prestiges and never answers a decision event (none fire
  * in the harness).
  */
-export const defaultPolicy: PlayerPolicy = (s, turn) => {
-  const moves: SimMove[] = [];
-  if (turn.taps > 0 && needsWorkers(s)) moves.push({ kind: 'layEgg', taps: turn.taps });
-  const next = getNextAction(s);
-  if (next.kind === 'act') moves.push({ kind: 'intent', intent: next.intent });
-  const realloc = getReallocation(s);
-  if (realloc) moves.push({ kind: 'moveWorkers', from: realloc.from, to: realloc.to, count: realloc.count });
-  moves.push(...goalRoleMoves(s), ...combatMoves(s));
-  return moves;
-};
+export const defaultPolicy: PlayerPolicy = (s, turn) => [...baseMoves(s, turn), ...combatMoves(s)];
+
+/** Whether TRAIN SOLDIER would be accepted now: a free worker per soldier, the food to start, and no starving (Story 4.4). */
+function canTrainNow(s: GameState): boolean {
+  return freeWorkers(s) >= combatBalance.army.workersPerSoldier
+    && s.resources.food >= soldierBalance.costFood
+    && !isStarving(s, new TerritorySystem().getBonuses(s));
+}
+
+/**
+ * Combat for the max-army player (Story 4.4): train a soldier from every free
+ * worker the colony can pay for, whatever the enemy and whatever the food,
+ * and fight only once nothing more can be trained and the last trainee has
+ * joined the army.
+ */
+function maxArmyCombatMoves(s: GameState): SimMove[] {
+  if (s.phase !== Phase.COMBAT) return [];
+  if (canTrainNow(s)) return [{ kind: 'trainSoldier' }];
+  if (s.combatSoldiers > 0 && s.soldierPipeline.count === 0) return [{ kind: 'fight', enemyType: s.nextEnemy }];
+  return [];
+}
+
+/**
+ * The max-army player (Story 4.4, FR12): plays like the default player
+ * everywhere but Combat, where it follows "train the maximum, then fight":
+ * training comes before any other move, so every free worker it can pay for
+ * becomes a soldier before WRKR's reallocation can give it a job.
+ * The pacing report sets it against the default player from the same seed:
+ * its bigger army eats the colony into food-critical moments the default
+ * player never meets.
+ */
+export const maxArmyPolicy: PlayerPolicy = (s, turn) => [...maxArmyCombatMoves(s), ...baseMoves(s, turn), ...(s.phase === Phase.COMBAT ? digWhenFed(s) : [])];
