@@ -41,7 +41,6 @@ export function createActions(deps: ActionDeps) {
     stepRole: (role: RoleId, delta: number) => nest.stepRole(deps, role, delta),
     moveWorkers: (from: MoveSource, to: RoleId, count: number) => nest.moveWorkers(deps, from, to, count),
     buyUpgrade: (upgradeId: string) => nest.buyUpgrade(deps, upgradeId),
-    togglePause: () => nest.togglePause(deps),
     // Buildings and automation
     buyBuilding: (type: BuildingType) => buildings.buyBuilding(deps, type),
     researchAutomation: (id: ResearchType) => buildings.researchAutomation(deps, id),

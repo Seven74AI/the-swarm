@@ -643,3 +643,27 @@ describe('v20 → v21: whole rate-credited resources with carried fractions (Sto
     expect(Object.values(out.gameState.conversions.remainder).every((v) => v === 0)).toBe(true);
   });
 });
+
+describe('v22 → v23: no pause in the save (Story 2.10, FR25)', () => {
+  const v22 = (gs: Record<string, unknown>): SaveData => ({
+    version: 22,
+    timestamp: 1_700_000_000_000,
+    playTimeMs: 0,
+    gameState: gs as unknown as GameState,
+  });
+
+  it('drops the paused flag, paused or not', () => {
+    for (const paused of [true, false]) {
+      const gs = { ...createInitialState(), paused } as unknown as Record<string, unknown>;
+      const out = migrateSave(v22(gs), 22, 23);
+      expect(out.version).toBe(23);
+      expect('paused' in (out.gameState as unknown as Record<string, unknown>)).toBe(false);
+    }
+  });
+
+  it('keeps the rest of the save as it was', () => {
+    const gs = createInitialState();
+    const out = migrateSave(v22({ ...gs, paused: true } as unknown as Record<string, unknown>), 22, 23);
+    expect(out.gameState).toEqual(gs);
+  });
+});

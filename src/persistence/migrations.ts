@@ -595,6 +595,16 @@ function migrateV21toV22(data: SaveData): SaveData {
   };
 }
 
+/**
+ * v22 → v23 (Story 2.10, FR25, D1, ADR 0002): pause is in-session only, so the
+ * save holds no `paused` flag. The flag is dropped; a game that was saved
+ * paused reopens running, as every game does.
+ */
+function migrateV22toV23(data: SaveData): SaveData {
+  const { paused: _paused, ...gs } = data.gameState as unknown as Record<string, unknown>;
+  return { ...data, version: 23, gameState: gs as unknown as GameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -618,6 +628,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   19: migrateV19toV20,
   20: migrateV20toV21,
   21: migrateV21toV22,
+  22: migrateV22toV23,
 };
 
 /**

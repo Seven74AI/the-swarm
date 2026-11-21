@@ -86,6 +86,8 @@ export interface ResumePathDeps {
   halted?: () => boolean;
   /** After each resume, with the state before it (main opens the summary for `offline`). */
   onResumed?: (result: ResumeResult, before: GameState) => void;
+  /** Each time the pause starts or ends (Story 2.10): main shows the PAUSED overlay from it. */
+  onPausedChange?: (paused: boolean) => void;
 }
 
 export interface ResumePath {
@@ -100,6 +102,14 @@ export interface ResumePath {
   /** Wall-clock time the game state was last simulated to: the hide moment while hidden, else now. */
   seenAt(): number;
   isHidden(): boolean;
+  /**
+   * Pause while watched (Story 2.10): stop the ticker. Does nothing while
+   * hidden, halted or not running (a game waiting behind a sheet).
+   */
+  pause(): void;
+  /** End the pause: restart the ticker. The paused time is never simulated. */
+  unpause(): void;
+  isPaused(): boolean;
 }
 
 /**
@@ -113,12 +123,24 @@ export interface ResumePath {
  * stall without a hide reaches `frameGap` from the ticker instead.
  *
  * Time hidden is simulated only if the game was running when it hid: a game
- * waiting behind the unreadable-save sheet, or paused, stays as it was (Story
- * 2.10 makes hiding end the pause).
+ * waiting behind the unreadable-save sheet stays as it was.
+ *
+ * Pause is in-session only (Story 2.10, FR25, D1, ADR 0002). It lives here,
+ * never in the save, so every new session starts unpaused. A pause stops the
+ * ticker, and that time is never simulated. Hiding (or closing) a paused game
+ * ends the pause first, so the game counts as running when it hid: the time
+ * away comes back through `apply` like any other absence (full efficiency
+ * under 60 s, the offline path and its summary from 60 s on).
  */
 export function createResumePath(deps: ResumePathDeps): ResumePath {
   let hiddenAt: number | null = null;
   let wasRunning = false;
+  let paused = false;
+
+  const setPaused = (next: boolean): void => {
+    paused = next;
+    deps.onPausedChange?.(next);
+  };
 
   const apply = (elapsedMs: number): void => {
     if (deps.halted?.()) return;
@@ -140,8 +162,10 @@ export function createResumePath(deps: ResumePathDeps): ResumePath {
     hide() {
       if (hiddenAt !== null) return;
       hiddenAt = deps.now();
-      wasRunning = deps.ticker.isRunning();
-      if (wasRunning) deps.ticker.stop();
+      // Hiding ends a pause: the time away is then resumed as normal offline time.
+      wasRunning = paused || deps.ticker.isRunning();
+      if (paused) setPaused(false);
+      if (deps.ticker.isRunning()) deps.ticker.stop();
       deps.save();
     },
     show() {
@@ -161,6 +185,19 @@ export function createResumePath(deps: ResumePathDeps): ResumePath {
     },
     isHidden() {
       return hiddenAt !== null;
+    },
+    pause() {
+      if (paused || hiddenAt !== null || deps.halted?.() || !deps.ticker.isRunning()) return;
+      deps.ticker.stop();
+      setPaused(true);
+    },
+    unpause() {
+      if (!paused) return;
+      setPaused(false);
+      deps.ticker.start();
+    },
+    isPaused() {
+      return paused;
     },
   };
 }

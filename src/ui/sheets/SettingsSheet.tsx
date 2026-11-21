@@ -1,8 +1,8 @@
-import { useLayoutEffect, useState } from 'preact/hooks';
+import { useContext, useLayoutEffect, useState } from 'preact/hooks';
 import type { Capabilities } from '../../platform/capabilities';
 import type { KeyBindings, Settings, SettingsStore, ShortcutId } from '../../platform/settings';
 import { Button } from '../primitives/Button';
-import { ModalSheet } from '../shell/Sheet';
+import { ModalSheet, SheetContext } from '../shell/Sheet';
 import type { SheetController } from '../shell/SheetController';
 import './SettingsSheet.css';
 
@@ -16,14 +16,15 @@ import './SettingsSheet.css';
  *
  * Rows: sound, haptics, reduced motion, CRT effects (FULL says it lowers
  * contrast), decision timers, confirm style, hold duration, lay mode, keyboard
- * shortcuts on/off and one remap control per shortcut, then REPLAY INTRO and
+ * shortcuts on/off and one remap control per shortcut, then PAUSE (Story
+ * 2.10: closes the settings and pauses; in-session only), REPLAY INTRO and
  * EXPORT DIAGNOSTICS. The web build has no notifications toggle (owner,
  * 2026-11-21). The settings act where their features live: shortcuts in
  * Story 1.30, timers in Story 1.28, CRT in Epic 8, the intro in Story 8.10.
  *
  * Hooks: `[data-settings-sheet]`, `[data-setting=<field>]` with
  * `[data-option=<value>][aria-pressed]` and `[data-setting-note]`,
- * `[data-shortcut=<id>][data-listening]`, `[data-action="replay-intro"|"export-diagnostics"]`.
+ * `[data-shortcut=<id>][data-listening]`, `[data-action="pause"|"replay-intro"|"export-diagnostics"]`.
  */
 
 export interface SettingsScreenDeps {
@@ -32,6 +33,8 @@ export interface SettingsScreenDeps {
   readonly capabilities: Capabilities;
   /** Download the diagnostics file (main builds it). */
   readonly onExportDiagnostics: () => void;
+  /** Pause the game (Story 2.10: main's pause, the same as P and the top bar's button). */
+  readonly onPause: () => void;
   /** Play the title cinematic again (Story 8.10). Until it exists the button says why it can't. */
   readonly onReplayIntro?: () => void;
 }
@@ -238,7 +241,22 @@ function ShortcutRemap({ store }: { store: SettingsScreenDeps['store'] }) {
   );
 }
 
-export function SettingsSheet({ store, capabilities, onExportDiagnostics, onReplayIntro }: SettingsScreenDeps) {
+/** PAUSE: the settings close first, so the PAUSED line is over the colony itself. */
+function PauseButton({ onPause }: { onPause: () => void }) {
+  const { close } = useContext(SheetContext);
+  return (
+    <Button
+      verb="PAUSE"
+      data-action="pause"
+      onPress={() => {
+        close();
+        onPause();
+      }}
+    />
+  );
+}
+
+export function SettingsSheet({ store, capabilities, onExportDiagnostics, onPause, onReplayIntro }: SettingsScreenDeps) {
   return (
     <ModalSheet headline="SETTINGS" class="settings-sheet" data-settings-sheet="">
       <ul class="settings-list">
@@ -248,6 +266,7 @@ export function SettingsSheet({ store, capabilities, onExportDiagnostics, onRepl
         <ShortcutRemap store={store} />
       </ul>
       <div class="settings-actions">
+        <PauseButton onPause={onPause} />
         <Button
           verb="REPLAY INTRO"
           data-action="replay-intro"

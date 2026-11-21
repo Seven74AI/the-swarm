@@ -41,7 +41,7 @@ let store: SettingsStore;
 function open(over: Partial<SettingsScreenDeps> = {}, capabilities = caps()) {
   storage = memoryStore();
   store = createSettingsStore({ storage, capabilities });
-  act(() => void openSettings(sheets, { store, capabilities, onExportDiagnostics: () => {}, ...over }));
+  act(() => void openSettings(sheets, { store, capabilities, onExportDiagnostics: () => {}, onPause: () => {}, ...over }));
 }
 
 const sheet = () => document.querySelector<HTMLElement>('[data-settings-sheet]')!;
@@ -204,5 +204,15 @@ describe('settings screen', () => {
     expect(replay().getAttribute('aria-disabled')).not.toBe('true');
     act(() => replay().click());
     expect(onReplayIntro).toHaveBeenCalledTimes(1);
+  });
+
+  it('PAUSE (Story 2.10) closes the settings and pauses through the handler main passes in', () => {
+    const onPause = vi.fn();
+    open({ onPause });
+    const pause = sheet().querySelector<HTMLButtonElement>('[data-action="pause"]')!;
+    expect(pause.textContent).toContain('PAUSE');
+    act(() => pause.click());
+    expect(onPause).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('[data-settings-sheet]')).toBeNull();
   });
 });

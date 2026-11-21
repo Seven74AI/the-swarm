@@ -229,7 +229,7 @@ describe('createResumePath (the one way back)', () => {
     expect(h.writes).toHaveLength(1);
   });
 
-  it('simulates nothing on return when the game was not running when hidden (waiting or paused)', () => {
+  it('simulates nothing on return when the game was not running when hidden (waiting behind a sheet)', () => {
     const h = harness();
     h.deps.ticker.stop();
     h.path.hide();
@@ -245,5 +245,120 @@ describe('createResumePath (the one way back)', () => {
     h.path.frameGap(5_000);
     expect(h.resumeSpy).not.toHaveBeenCalled();
     expect(h.writes).toHaveLength(0);
+  });
+});
+
+/**
+ * Story 2.10 (FR25, D1, ADR 0002): pause is in-session only. The resume path
+ * owns it, beside hide and show: a pause stops the ticker while the page is
+ * watched, and hiding or closing the page ends it, so the time away is resumed
+ * like any other absence.
+ */
+describe('createResumePath: pause lasts only while the page is watched', () => {
+  it('a pause stops the ticker and says so; unpausing restarts it', () => {
+    const changes: boolean[] = [];
+    const h = harness({ onPausedChange: (p) => void changes.push(p) });
+    h.path.pause();
+    expect(h.path.isPaused()).toBe(true);
+    expect(h.running()).toBe(false);
+    h.path.unpause();
+    expect(h.path.isPaused()).toBe(false);
+    expect(h.running()).toBe(true);
+    expect(changes).toEqual([true, false]);
+  });
+
+  it('time paused while watched is never simulated', () => {
+    const h = harness();
+    const before = h.state();
+    h.path.pause();
+    h.advance(5 * 60_000);
+    h.path.unpause();
+    expect(h.resumeSpy).not.toHaveBeenCalled();
+    expect(h.state()).toBe(before);
+  });
+
+  it('hiding a paused game ends the pause and saves', () => {
+    const changes: boolean[] = [];
+    const h = harness({ onPausedChange: (p) => void changes.push(p) });
+    h.path.pause();
+    const hiddenAt = h.now();
+    h.path.hide();
+    expect(h.path.isPaused()).toBe(false);
+    expect(changes).toEqual([true, false]);
+    expect(h.saves).toEqual([hiddenAt]);
+    expect(h.running()).toBe(false);
+  });
+
+  it('a short return after hiding a paused game resumes the time away at full efficiency and runs again', () => {
+    const h = harness();
+    h.path.pause();
+    h.path.hide();
+    h.advance(30_000);
+    h.path.show();
+    expect(h.resumeSpy).toHaveBeenCalledTimes(1);
+    expect(h.resumeSpy.mock.calls[0][1]).toBe(30_000);
+    const [result] = h.resumed.mock.calls[0];
+    expect(result.offline).toBeNull();
+    expect(h.running()).toBe(true);
+    expect(h.path.isPaused()).toBe(false);
+  });
+
+  it('a long return after hiding a paused game takes the offline path (its summary)', () => {
+    const h = harness();
+    h.path.pause();
+    h.path.hide();
+    h.advance(RESUME_FULL_EFFICIENCY_MS + 60_000);
+    h.path.show();
+    const [result] = h.resumed.mock.calls[0];
+    expect(result.offline).not.toBeNull();
+    expect(h.running()).toBe(true);
+  });
+
+  it('only the hidden time is resumed, not the paused time before it', () => {
+    const h = harness();
+    h.path.pause();
+    h.advance(10 * 60_000);
+    h.path.hide();
+    h.advance(20_000);
+    h.path.show();
+    expect(h.resumeSpy).toHaveBeenCalledTimes(1);
+    expect(h.resumeSpy.mock.calls[0][1]).toBe(20_000);
+  });
+
+  it('cannot pause while hidden, waiting (ticker not running) or halted', () => {
+    const hidden = harness();
+    hidden.path.hide();
+    hidden.path.pause();
+    expect(hidden.path.isPaused()).toBe(false);
+
+    const waiting = harness();
+    waiting.deps.ticker.stop();
+    waiting.path.pause();
+    expect(waiting.path.isPaused()).toBe(false);
+    waiting.path.unpause();
+    expect(waiting.running()).toBe(false);
+
+    const halted = harness({ halted: () => true });
+    halted.path.pause();
+    expect(halted.path.isPaused()).toBe(false);
+  });
+
+  it('pause and unpause are idempotent', () => {
+    const changes: boolean[] = [];
+    const h = harness({ onPausedChange: (p) => void changes.push(p) });
+    h.path.unpause();
+    h.path.pause();
+    h.path.pause();
+    h.path.unpause();
+    h.path.unpause();
+    expect(changes).toEqual([true, false]);
+    expect(h.deps.ticker.start).toHaveBeenCalledTimes(1);
+  });
+
+  it('a new session (cold start) is never paused', () => {
+    const h = harness();
+    h.path.coldStart(h.now() - 20_000);
+    expect(h.path.isPaused()).toBe(false);
+    expect(h.running()).toBe(true);
   });
 });

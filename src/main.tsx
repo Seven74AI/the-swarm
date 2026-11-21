@@ -25,7 +25,7 @@ import { gameViews } from './ui/gameViews';
 import { EventLog } from './ui/log/EventLog';
 import { createPanelReveal, type PanelReveal } from './ui/shell/panelReveal';
 import { createTabShell } from './ui/shell/tabShell';
-import { selectAffordableKeys, selectCanChoose, selectCapacityReached, selectGoalMet, selectStarving, selectLifetime, selectOpenDecision, selectPaused, selectPhase } from './state/selectors';
+import { selectAffordableKeys, selectCanChoose, selectCapacityReached, selectGoalMet, selectStarving, selectLifetime, selectOpenDecision, selectPhase } from './state/selectors';
 import { AudioSystem } from './ui/AudioSystem';
 import { SaveManager } from './persistence/SaveManager';
 import { openOfflineSummary, type OfflineSummary } from './ui/sheets/OfflineSummarySheet';
@@ -44,6 +44,7 @@ import { bindShortcuts } from './ui/shell/shortcuts';
 import { bindTips } from './ui/shell/tips';
 import { createResourceFeed } from './ui/shell/resourceFeed';
 import { createOverlayController, type OverlayController } from './ui/shell/OverlayController';
+import { bindPausedOverlay } from './ui/overlays/PausedOverlay';
 import { bindPhaseReveal } from './ui/overlays/PhaseReveal';
 import { createWarSession } from './ui/war/warSession';
 import { openBattleSummary } from './ui/sheets/BattleSummarySheet';
@@ -141,8 +142,8 @@ export function bootstrap(): {
     gameState.value = { ...gameState.value, seed: randomSeed(Math.random) };
   }
   if (saved) {
-    // Pause is in-session only (ADR 0002): the game always reopens running.
-    gameState.value = { ...saved.gameState, paused: false };
+    // Pause is in-session only (Story 2.10, ADR 0002): it is never in the save, so the game always reopens running.
+    gameState.value = saved.gameState;
     log.info('offline', `Save loaded. lastSeenAt: ${saved.lastSeenAt ?? 'null'}`);
   }
 
@@ -151,6 +152,8 @@ export function bootstrap(): {
   // call resume(elapsedMs) through this path. Under 60 s: full efficiency, no sheet.
   // 60 s or more: the offline path and its summary.
   let uiReady = false;
+  // The pause (Story 2.10): session state the resume path owns; hiding the page ends it.
+  const paused = signal(false);
   const resumePath = createResumePath({
     now: () => Date.now(),
     read: () => gameState.value,
@@ -198,6 +201,9 @@ export function bootstrap(): {
       if (uiReady) showOfflineSummary(summary);
       else offlineSummary = summary;
     },
+    onPausedChange: (p) => {
+      paused.value = p;
+    },
   });
   // Every save says when its state was last simulated to: the hide moment while hidden.
   saveManager.setSeenAtSource(() => resumePath.seenAt());
@@ -219,9 +225,6 @@ export function bootstrap(): {
   // to the bus only after the tick's single state write (AR18), so listeners
   // always read the state the event describes.
   const step = (state: GameState, ctx: TickContext): GameState => {
-    // ── Pause guard: skip all tick processing when paused ──
-    if (state.paused) return state;
-
     const { dtSec, events } = ctx;
     sessionMs += Math.round(dtSec * 1000);
 
@@ -381,6 +384,7 @@ export function bootstrap(): {
       store: platform.settings,
       capabilities: platform.capabilities,
       onExportDiagnostics: exportDiagnostics,
+      onPause: () => resumePath.pause(),
     });
   };
 
@@ -427,15 +431,17 @@ export function bootstrap(): {
   // nothing: NEST and LOG are views of the chronicle (Story 1.36).
   new EventLog(bus, { chronicle });
 
-  // Pause (the top bar's button and the P shortcut, Story 1.30): the loop and the state flag together.
+  // Pause (the top bar's button, the P shortcut and PAUSE in settings; Story 2.10): in-session
+  // only, owned by the resume path, which stops the ticker and ends the pause when the page hides.
   const togglePause = (): void => {
-    if (gameState.value.paused) loop.resume();
-    else loop.pause();
-    actions.togglePause();
+    if (resumePath.isPaused()) resumePath.unpause();
+    else resumePath.pause();
   };
-  // The paused look (main.css `.game-paused`) follows the state.
+  // The PAUSED overlay line while paused; the next tap or key resumes.
+  bindPausedOverlay({ paused, overlays, unpause: () => resumePath.unpause() });
+  // The paused look (main.css `.game-paused`) follows the pause.
   effect(() => {
-    document.body.classList.toggle('game-paused', selectPaused.value);
+    document.body.classList.toggle('game-paused', paused.value);
   });
 
   // Panels appear as their phase reveals them and stay for the session (Story 1.36, replacing
@@ -456,6 +462,7 @@ export function bootstrap(): {
     sheets,
     onOpenSettings: openSettingsScreen,
     onTogglePause: togglePause,
+    paused,
     layMode,
     war,
     segment: shell.segment,

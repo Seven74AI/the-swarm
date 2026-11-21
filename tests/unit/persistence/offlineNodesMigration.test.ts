@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { migrateSave } from '../../../src/persistence/migrations';
-import { SaveManager, type SaveData } from '../../../src/persistence/SaveManager';
+import type { SaveData } from '../../../src/persistence/SaveManager';
 import { createInitialState, type GameState } from '../../../src/state/GameState';
 import { PRESTIGE_UPGRADES } from '../../../src/data/prestigeTree';
 import { getOfflineCapMs, getOfflineEfficiency } from '../../../src/systems/OfflineProgression';
@@ -14,9 +14,9 @@ import { prestige } from '../../../src/systems/PrestigeSystem';
  * save keeps its efficiency and nothing bought is lost.
  */
 
-/** The step that adds the Legacy offline nodes: the last one. */
-const TO = SaveManager.SAVE_VERSION;
-const FROM = TO - 1;
+/** The step that adds the Legacy offline nodes: v21 → v22 (later steps follow it). */
+const FROM = 21;
+const TO = 22;
 
 const efficiencyNode = PRESTIGE_UPGRADES.find((u) => (u.offlineEfficiencyPoints ?? 0) > 0)!;
 const firstCapNode = PRESTIGE_UPGRADES.find((u) => (u.offlineCapRaiseMs ?? 0) > 0)!;

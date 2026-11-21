@@ -52,6 +52,8 @@ export interface GameViewDeps {
   sheets: SheetController;
   onOpenSettings: () => void;
   onTogglePause: () => void;
+  /** Whether the game is paused (Story 2.10: session state, from the resume path). */
+  paused: ReadonlySignal<boolean>;
   /** NEST's lay mode (hold / toggle, Story 1.22). */
   layMode: ReadonlySignal<LayMode>;
   /** FRONT → WAR's battle session and the open FRONT segment (Story 1.25). */
@@ -85,7 +87,7 @@ export function gameViews(d: GameViewDeps): ShellViews {
   return {
     strip: (
       <>
-        <TopBar onTogglePause={d.onTogglePause} />
+        <TopBar paused={d.paused} onTogglePause={d.onTogglePause} />
         {/* The resource strip and resource sheet (Story 1.16); the `.resource-panel` hook stays. */}
         <Panel id="resource_panel" class="resource-panel" attrs={{ 'data-resource-panel': '' }}>
           <ResourceStrip feed={d.feed} sheets={d.sheets} onOpenSettings={d.onOpenSettings} />

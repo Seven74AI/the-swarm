@@ -42,6 +42,7 @@ function setup(saveFailing = signal(false)) {
     sheets: createSheetController(),
     onOpenSettings: () => {},
     onTogglePause: () => {},
+    paused: signal(false),
     layMode: signal('hold'),
     war: createWarSession({ actions, onBattleDone: () => {} }),
     segment: shell.segment,
