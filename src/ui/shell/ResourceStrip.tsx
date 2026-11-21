@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { formatDelta, formatStrip } from '../../utils/format';
 import { RESOURCE_BY_ID } from './resourceCatalog';
+import { Abbr } from '../primitives/Deco';
 import { stripCells, STRIP_CELLS, type ResourceFeed, type ResourceRow } from './resourceFeed';
 import type { SheetController } from './SheetController';
 import { openResourceSheet } from '../sheets/ResourceSheet';
@@ -85,8 +86,8 @@ function Cell({ row }: { row: ResourceRow }) {
           {formatStrip(row.amount)}
         </span>
         {row.capped && (
-          <span class="strip-cell__cap" aria-label="capped">
-            {'▲'}
+          <span class="strip-cell__cap">
+            <Abbr shown="▲" full="capped" />
           </span>
         )}
       </span>

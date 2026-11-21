@@ -80,7 +80,7 @@ function Timer({ def, open, timers }: { def: DecisionDef; open: OpenDecision; ti
   const text = `${formatTime(left).toUpperCase()} LEFT`;
   return (
     <div class="decision-timer" data-decision-timer="">
-      <Meter value={open.remainingMs} max={def.timerMs} valueText={text} />
+      <Meter label="Time left" value={open.remainingMs} max={def.timerMs} valueText={text} />
       <span aria-hidden="true">{text}</span>
     </div>
   );

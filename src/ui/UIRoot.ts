@@ -327,7 +327,8 @@ export class UIRoot {
     topBar.id = 'top-bar';
     topBar.className = 'top-bar';
     topBar.innerHTML =
-      '<span class="game-title">🐜 THE SWARM</span>';
+      // The page's one h1 (Story 1.32); the ant is decoration.
+      '<h1 class="game-title"><span aria-hidden="true">🐜 </span>THE SWARM</h1>';
 
     // Pause button between title and phase label
     const pauseBtn = document.createElement('button');

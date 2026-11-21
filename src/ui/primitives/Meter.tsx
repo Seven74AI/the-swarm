@@ -23,6 +23,8 @@ export function meterCells(value: number, max: number, cells: number = METER_CEL
 }
 
 export interface MeterProps {
+  /** What the meter measures, its accessible name ("Phase goal", "Time left"). Required: an unnamed progressbar fails axe. */
+  readonly label: string;
   readonly value: number;
   readonly max: number;
   /** The words a screen reader says, e.g. "Workers 37 of 50". */
@@ -35,7 +37,7 @@ export interface MeterProps {
   readonly class?: string;
 }
 
-export function Meter({ value, max, valueText, cells = METER_CELLS, warn = false, brackets = true, class: cls }: MeterProps) {
+export function Meter({ label, value, max, valueText, cells = METER_CELLS, warn = false, brackets = true, class: cls }: MeterProps) {
   const cols = useGridCols();
   const short = gridClass(cols) === 'narrow';
   const top = Math.max(0, Math.floor(max));
@@ -52,6 +54,7 @@ export function Meter({ value, max, valueText, cells = METER_CELLS, warn = false
     <div
       class={cls ? `meter ${cls}` : 'meter'}
       role="progressbar"
+      aria-label={label}
       aria-valuemin={0}
       aria-valuemax={top}
       aria-valuenow={now}

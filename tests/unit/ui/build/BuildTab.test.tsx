@@ -16,6 +16,7 @@ import { ClickPowerCard } from '../../../../src/ui/nest/ClickPowerCard';
 import { testActions } from '../../helpers/actions';
 import { confirmSettings, holdFor } from '../../helpers/confirm';
 import { makeState } from '../../helpers/makeState';
+import { visibleText } from '../../helpers/a11y';
 
 /**
  * Story 1.24 (UX-DR17, UX-DR18, UX-DR19): BUILD shows buildings, research and
@@ -48,7 +49,7 @@ describe('Building cards (Story 1.24)', () => {
       expect(el, id).not.toBeNull();
       expect(el.querySelector('[data-card]'), id).not.toBeNull();
       expect(el.querySelector('.card__glyph'), id).not.toBeNull();
-      expect(el.querySelector('.card__level')!.textContent, id).toMatch(/LV\.0 → 1/);
+      expect(visibleText(el.querySelector('.card__level')!), id).toMatch(/LV\.0 → 1/);
       expect(el.querySelector('.card__effect')!.textContent, id).not.toBe('');
       expect(el.querySelector('.card__cost')!.textContent, id).not.toBe('');
     }
@@ -78,7 +79,7 @@ describe('Building cards (Story 1.24)', () => {
     act(() => building(container, 'walls')!.querySelector('button')!.click());
     expect(gameState.value.buildings.walls.level).toBeGreaterThan(0);
     expect(gameState.value.resources.stone).toBeLessThan(before);
-    expect(building(container, 'walls')!.querySelector('.card__level')!.textContent).toMatch(/LV\.1 → 2/);
+    expect(visibleText(building(container, 'walls')!.querySelector('.card__level')!)).toMatch(/LV\.1 → 2/);
   });
 
   it('highlights exactly the card getBuildAction picks', () => {

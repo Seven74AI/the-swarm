@@ -8,6 +8,7 @@ import { bindDecisionSheets, TIMER_HINT, TIMER_HINT_CONCEPT, type DecisionSheets
 import { DECISIONS, type DecisionDef } from '../../../../src/data/content/decisions';
 import type { OpenDecision } from '../../../../src/state/GameState';
 import type { DecisionTimerMode } from '../../../../src/state/queries';
+import { visibleText } from '../../helpers/a11y';
 
 /**
  * Story 1.28 (UX-DR23): the decision sheet renders `state.decision.open`. It
@@ -67,7 +68,7 @@ describe('decision sheet', () => {
     expect(popup()!.querySelector('.decision-popup-desc')?.textContent).toBe(def.situation);
     const buttons = [...popup()!.querySelectorAll<HTMLButtonElement>('button[data-choice]')];
     expect(buttons.map((b) => b.dataset.choice)).toEqual(def.choices.map((c) => c.id));
-    for (const c of def.choices) expect(popup()!.textContent).toContain(c.costLine);
+    for (const c of def.choices) expect(visibleText(popup()!)).toContain(c.costLine);
     expect(popup()!.querySelector('[data-sheet-close]')).toBeNull();
   });
 

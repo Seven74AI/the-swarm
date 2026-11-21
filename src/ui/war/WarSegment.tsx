@@ -31,6 +31,8 @@ import {
   type MutationDef,
 } from '../../state/queries';
 import { formatFull } from '../../utils/format';
+import type { ComponentChildren } from 'preact';
+import { Abbr, Sep } from '../primitives/Deco';
 import { Button } from '../primitives/Button';
 import { Card } from '../primitives/Card';
 import { Meter } from '../primitives/Meter';
@@ -54,10 +56,29 @@ const DROPS = [
   { id: 'venom', label: 'VNOM', name: 'venom' },
 ] as const;
 
-function costLine(cost: MutationCost): string {
-  return DROPS.filter((d) => cost[d.id] > 0)
-    .map((d) => `${formatFull(cost[d.id])} ${d.label}`)
-    .join(' · ');
+/** `5 CHTN · 5 SILK`, read "5 chitin, 5 silk" (UX-DR40). */
+function costLine(cost: MutationCost): ComponentChildren {
+  return DROPS.filter((d) => cost[d.id] > 0).map((d, i) => (
+    <span key={d.id}>
+      {i > 0 && <Sep />}
+      {formatFull(cost[d.id])} <Abbr shown={d.label} full={d.name} />
+    </span>
+  ));
+}
+
+/** Soldier and enemy stats with their full names for assistive tech: `STR 3 · DEF 1 · HP 15`. */
+const STAT_NAMES = { STR: 'strength', DEF: 'defense', SPD: 'speed', HP: 'hit points' } as const;
+function Stats({ values }: { values: readonly (readonly [keyof typeof STAT_NAMES, number])[] }) {
+  return (
+    <>
+      {values.map(([stat, v], i) => (
+        <span key={stat}>
+          {i > 0 && <Sep />}
+          <Abbr shown={stat} full={STAT_NAMES[stat]} /> {formatFull(v)}
+        </span>
+      ))}
+    </>
+  );
 }
 
 /** The first drop the player is short of, as `needs 3 more chitin`, or null. */
@@ -77,11 +98,12 @@ function TrainingLine() {
   return (
     <>
       <p class="war-line">
-        <span data-soldiers="">SOLDIERS {formatFull(selectCombatSoldiers.value)}</span> ·{' '}
+        <span data-soldiers="">SOLDIERS {formatFull(selectCombatSoldiers.value)}</span>
+        <Sep />
         <span data-training="">TRAINING {formatFull(training)}</span>
       </p>
       {training > 0 && (
-        <Meter
+        <Meter label="Training"
           value={pct}
           max={100}
           valueText={`Training ${training} soldier${training === 1 ? '' : 's'}, next ${pct}% done`}
@@ -95,8 +117,14 @@ function TrainingLine() {
 function StatsLine() {
   return (
     <p class="war-line war-dim" data-soldier-stats="">
-      STR {formatFull(selectSoldierStrength.value)} · DEF {formatFull(selectSoldierDefense.value)} · SPD{' '}
-      {formatFull(selectSoldierSpeed.value)} · HP {formatFull(selectSoldierMaxHp.value)}
+      <Stats
+        values={[
+          ['STR', selectSoldierStrength.value],
+          ['DEF', selectSoldierDefense.value],
+          ['SPD', selectSoldierSpeed.value],
+          ['HP', selectSoldierMaxHp.value],
+        ]}
+      />
     </p>
   );
 }
@@ -144,7 +172,15 @@ function EquipmentCard({ item, actions }: { item: (typeof EQUIPMENT)[number]; ac
       title={item.title}
       level={max ? `LV ${level} · MAX` : `LV ${level} → ${level + 1}`}
       effect={item.effect}
-      cost={max ? undefined : `${formatFull(cost)} ${item.label} · you have ${formatFull(have)}`}
+      cost={
+        max ? undefined : (
+          <>
+            {formatFull(cost)} <Abbr shown={item.label} full={item.pool} />
+            <Sep />
+            you have {formatFull(have)}
+          </>
+        )
+      }
       affordable={affordable}
       shortfall={built && !max && have < cost ? { amount: cost - have } : null}
       action={
@@ -164,7 +200,7 @@ function EquipmentCard({ item, actions }: { item: (typeof EQUIPMENT)[number]; ac
 export function SoldiersSection({ actions }: { actions: WarActions }) {
   return (
     <div class="war-section" data-war="soldiers">
-      <div class="panel-title">SOLDIERS</div>
+      <h2 class="panel-title">SOLDIERS</h2>
       <TrainingLine />
       <StatsLine />
       <TrainButton actions={actions} />
@@ -229,7 +265,7 @@ function MutationCard({ def, actions }: { def: MutationDef; actions: WarActions 
 export function MutationsSection({ actions }: { actions: WarActions }) {
   return (
     <div class="war-section" data-war="mutations">
-      <div class="panel-title">MUTATIONS</div>
+      <h2 class="panel-title">MUTATIONS</h2>
       <div class="mutation-grid" id="mutation-grid">
         {MUTATIONS.map((m) => (
           <MutationCard key={m.id} def={m} actions={actions} />
@@ -258,7 +294,7 @@ export function EnemyCard({ session }: { session: WarSession }) {
   const matchup = assessMatchup({ combatSoldiers: selectCombatSoldiers.value, equipment: selectEquipment.value }, enemy);
   return (
     <div class="war-section" data-war="enemy" data-enemy={enemy.type}>
-      <div class="panel-title">ENEMY</div>
+      <h2 class="panel-title">ENEMY</h2>
       <Card
         id="enemy"
         title={<span id="enemy-name">{upper(enemy.name)}</span>}
@@ -267,18 +303,29 @@ export function EnemyCard({ session }: { session: WarSession }) {
             {MATCHUP_LINE[matchup]}
           </span>
         }
-        cost={`STR ${formatFull(enemy.strength)} · DEF ${formatFull(enemy.defense)} · HP ${formatFull(enemy.hp)}`}
+        cost={
+          <Stats
+            values={[
+              ['STR', enemy.strength],
+              ['DEF', enemy.defense],
+              ['HP', enemy.hp],
+            ]}
+          />
+        }
         affordable
         action={null}
       >
         {battle.status === 'running' && (
-          <p class="war-round" data-round={battle.round} role="status">
+          // Not a live region: rounds tick fast; the result is announced once (Story 1.32).
+          <p class="war-round" data-round={battle.round}>
             ROUND {battle.round}
           </p>
         )}
       </Card>
       <p class="war-line war-dim" data-record="">
-        WON {formatFull(selectBattlesWon.value)} · LOST {formatFull(selectBattlesLost.value)}
+        WON {formatFull(selectBattlesWon.value)}
+        <Sep />
+        LOST {formatFull(selectBattlesLost.value)}
       </p>
     </div>
   );
@@ -293,9 +340,16 @@ const enemyName = (type: string) => upper(getEnemyDefs().find((e) => e.type === 
 function BattleLine(props: { outcome: BattleOutcome; enemy: string; lost: number; food: number; newest: boolean }) {
   return (
     <li class="war-log-line" data-battle-line={props.outcome} data-newest={props.newest ? '' : undefined}>
-      {props.newest ? '> ' : '· '}
-      {OUTCOME[props.outcome]} · {props.enemy} · −{formatFull(props.lost)} SOLDIERS
-      {props.food > 0 ? ` · +${formatFull(props.food)} FOOD` : ''}
+      <span aria-hidden="true">{props.newest ? '> ' : '· '}</span>
+      {OUTCOME[props.outcome]}
+      <Sep />
+      {props.enemy}
+      <Sep />−{formatFull(props.lost)} SOLDIERS
+      {props.food > 0 && (
+        <>
+          <Sep />+{formatFull(props.food)} FOOD
+        </>
+      )}
     </li>
   );
 }
@@ -309,7 +363,7 @@ export function CombatLog({ session }: { session: WarSession }) {
   const last = selectLastBattle.value;
   return (
     <div class="war-section" data-war="log">
-      <div class="panel-title">COMBAT LOG</div>
+      <h2 class="panel-title">COMBAT LOG</h2>
       {history.length > 0 ? (
         <ul class="war-log">
           {history.map((b, i) => (

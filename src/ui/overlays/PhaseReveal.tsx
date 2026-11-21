@@ -117,8 +117,12 @@ export function PhaseReveal({ phase, skippable, reducedMotion, done }: PhaseReve
       <h1 id={nameId} class="phase-reveal__name" data-reveal-name="" data-display="">
         {(PHASE_TITLES[phase] ?? '').toUpperCase()}
       </h1>
-      <p id={`${nameId}-line`} class="phase-reveal__line" data-reveal-line="" aria-label={line}>
-        {line.slice(0, typed)}
+      {/* Typing is visual only (UX-DR40): assistive tech gets the whole line from the start. */}
+      <p id={`${nameId}-line`} class="phase-reveal__line" data-reveal-line="">
+        <span aria-hidden="true" data-reveal-typed="">
+          {line.slice(0, typed)}
+        </span>
+        <span class="visually-hidden">{line}</span>
       </p>
       {skippable && (
         <p class="phase-reveal__skip" data-reveal-skip="" aria-hidden="true">

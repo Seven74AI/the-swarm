@@ -15,6 +15,7 @@ import { Meter } from '../primitives/Meter';
 import { highlightedKey } from './BuildingCards';
 import { RESEARCH_EFFECT, RESEARCH_GLYPH } from './buildCatalog';
 import { PriceText, shortfallOf, type Price } from './cost';
+import { decorate } from '../primitives/Deco';
 
 type Act = (id: ResearchProjectId) => { readonly ok: boolean };
 
@@ -53,9 +54,9 @@ function ResearchCard({ def, step, steps, selected, props }: { def: ResearchProj
     const pct = lifecycle.durationMs > 0 ? Math.floor((lifecycle.progressMs / lifecycle.durationMs) * 100) : 0;
     progress = (
       <div class="build-progress">
-        <Meter value={lifecycle.progressMs} max={lifecycle.durationMs} valueText={`${def.name} ${pct} %`} />
+        <Meter label="Research progress" value={lifecycle.progressMs} max={lifecycle.durationMs} valueText={`${def.name} ${pct} %`} />
         <p class="build-progress__left" data-time-left="" data-stalled={staffed ? undefined : ''}>
-          {staffed ? `${formatTime(left).toUpperCase()} LEFT` : `PAUSED · NEEDS ${crew}`}
+          {staffed ? `${formatTime(left).toUpperCase()} LEFT` : decorate(`PAUSED · NEEDS ${crew}`)}
         </p>
       </div>
     );

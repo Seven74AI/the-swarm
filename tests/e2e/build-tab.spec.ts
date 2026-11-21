@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { openTab } from './helpers/tabs';
+import { visibleText } from './helpers/text';
 
 /**
  * Story 1.24 (UX-DR17, UX-DR18): BUILD. Cards with a level change, an effect
@@ -84,7 +85,7 @@ test.describe('BUILD tab', () => {
     });
     await openTab(page, 'build');
     const walls = page.locator('[data-building="walls"]');
-    await expect(walls.locator('.card__level')).toHaveText('LV.0 → 1');
+    await expect.poll(() => visibleText(walls.locator('.card__level'))).toBe('LV.0 → 1');
     await expect(walls.locator('.card__effect')).toContainText('DEFENSE');
     await expect(walls.locator('.card__cost')).not.toHaveText('');
     // Stone only: Walls is the one affordable building, so it is highlighted.
@@ -95,6 +96,6 @@ test.describe('BUILD tab', () => {
     await expect(primary).toContainText('WALLS');
     await primary.click();
     await expect.poll(async () => (await state(page)).walls).toBeGreaterThan(0);
-    await expect(walls.locator('.card__level')).toHaveText('LV.1 → 2');
+    await expect.poll(() => visibleText(walls.locator('.card__level'))).toBe('LV.1 → 2');
   });
 });

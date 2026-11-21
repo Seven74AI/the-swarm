@@ -14,3 +14,15 @@ export function bindReducedMotion(root: HTMLElement, reducedMotion: ReadonlySign
     if (root.dataset.reducedMotion !== value) root.dataset.reducedMotion = value;
   });
 }
+
+/**
+ * CRT binding (Story 1.32): the CRT mode in effect (`settings.crt`, OFF under
+ * reduced motion) as `<html data-crt="scene|full|off">`, the hook Story 8.4's
+ * scanlines and glow key off. Returns a disposer.
+ */
+export function bindCrt(root: HTMLElement, crt: ReadonlySignal<string>): () => void {
+  return effect(() => {
+    const value = crt.value;
+    if (root.dataset.crt !== value) root.dataset.crt = value;
+  });
+}

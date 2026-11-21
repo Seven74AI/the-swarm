@@ -25,6 +25,7 @@ import { MultiplierRow, Stepper, type Multiplier } from '../primitives/Stepper';
 import { lockedTarget, type TargetLock } from '../shell/targetLock';
 import { roleBar } from './roleBar';
 import './wrkr.css';
+import { Sep } from '../primitives/Deco';
 
 /** The actions WRKR uses (a subset of `Actions`). */
 export interface WorkersActions {
@@ -49,7 +50,7 @@ function UpkeepReadout() {
       UPKEEP <span data-upkeep-value="">{formatFull(upkeep)}</span> / PRODUCTION{' '}
       <span data-production-value="">{formatFull(production)}</span>{' '}
       <span class="wrkr-upkeep__net worker-summary-value" data-net="" data-trend={trend}>
-        {trend === 'down' ? '▼ ' : ''}NET {formatDelta(net)}/S
+        {trend === 'down' && <span aria-hidden="true">▼ </span>}NET {formatDelta(net)}/S
       </span>
     </p>
   );
@@ -59,7 +60,8 @@ function UpkeepReadout() {
 function AssignedLine() {
   return (
     <p class="wrkr-line" data-assigned="">
-      ASSIGNED {formatFull(selectAssignedTotal.value)} / {formatFull(selectWorkforceTotal.value)} ·{' '}
+      ASSIGNED {formatFull(selectAssignedTotal.value)} / {formatFull(selectWorkforceTotal.value)}
+      <Sep />
       <span data-free="">FREE {formatFull(selectFreeWorkers.value)}</span>
     </p>
   );
@@ -129,7 +131,7 @@ export function WorkersTab({ actions }: { actions: WorkersActions }) {
   const roles = rolesForPhase(selectPhase.value as Phase);
   return (
     <div class="wrkr" data-wrkr="">
-      <div class="panel-title">WORKERS</div>
+      <h2 class="panel-title">WORKERS</h2>
       <UpkeepReadout />
       <AssignedLine />
       <CapacityLine />

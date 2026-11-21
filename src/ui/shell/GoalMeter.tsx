@@ -11,6 +11,7 @@ import {
   type GoalCondition,
 } from '../../state/selectors';
 import { formatFull, formatTime } from '../../utils/format';
+import { Sep } from '../primitives/Deco';
 import { Meter } from '../primitives/Meter';
 import './GoalMeter.css';
 
@@ -88,11 +89,17 @@ export function GoalMeter() {
   if (!goal) return null;
   return (
     <div class="goal-meter" data-goal-meter="full" data-goal-met={met ? '' : undefined}>
-      <p class="goal-meter__next" data-goal-next="" aria-live="polite">
-        {met && <b class="goal-meter__met">GOAL MET · </b>}
+      {/* Goal met is announced by the live region (Story 1.32), not by this line. */}
+      <p class="goal-meter__next" data-goal-next="">
+        {met && (
+          <b class="goal-meter__met">
+            GOAL MET
+            <Sep />
+          </b>
+        )}
         NEXT: {goal.conditions.map(goalPart).join(' + ')}
       </p>
-      <Meter value={pct} max={100} valueText={valueText(pct)} />
+      <Meter label="Phase goal" value={pct} max={100} valueText={valueText(pct)} />
       <ul class="goal-meter__conditions" data-goal-conditions="">
         {goal.conditions.map((c) => (
           <ConditionRow key={c.id} c={c} />
@@ -112,7 +119,7 @@ export function CondensedGoalMeter() {
       <span class="goal-line__next" aria-hidden="true">
         NEXT
       </span>{' '}
-      <Meter value={pct} max={100} valueText={valueText(pct)} brackets={false} />
+      <Meter label="Phase goal" value={pct} max={100} valueText={valueText(pct)} brackets={false} />
     </div>
   );
 }
