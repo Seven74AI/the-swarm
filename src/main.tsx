@@ -3,7 +3,7 @@ import './ui/styles/base.css';
 import { log } from './utils/log';
 import { EventBus } from './engine/EventBus';
 import { EventQueue, type EventSink } from './engine/events';
-import { createTickContext } from './engine/TickContext';
+import type { TickContext } from './engine/TickContext';
 import { createActions, type Actions } from './actions';
 import { Ticker } from './engine/Ticker';
 import { GameLoop } from './engine/GameLoop';
@@ -24,6 +24,7 @@ import {
   resolveMission,
 } from './systems/SpaceshipSystem';
 import { tickAutoProduction } from './engine/AutoProductionLoop';
+import { processTick } from './engine/processTick';
 import { getPrestigeBonuses } from './systems/PrestigeBonusSystem';
 import { render } from 'preact';
 import { UIRoot } from './ui/UIRoot';
@@ -36,6 +37,7 @@ import type { OfflineLoadInfo } from './persistence/SaveManager';
 import { computeOfflineResourceDeltas } from './systems/OfflineProgression';
 import { openOfflineSummary } from './ui/sheets/OfflineSummarySheet';
 import { bindDecisionSheets } from './ui/sheets/DecisionSheet';
+import { openTickFailure } from './ui/sheets/TickFailureSheet';
 import { createSheetController, type SheetController } from './ui/shell/SheetController';
 import { createResourceFeed } from './ui/shell/resourceFeed';
 import { ResourceStrip } from './ui/shell/ResourceStrip';
@@ -181,13 +183,11 @@ export function bootstrap(): {
   // Events raised during the tick are queued on the tick context and flushed
   // to the bus only after the tick's single state write (AR18), so listeners
   // always read the state the event describes.
-  const tick = (dtSec: number): void => {
+  const step = (state: GameState, ctx: TickContext): GameState => {
     // ── Pause guard: skip all tick processing when paused ──
-    if (gameState.value.paused) return;
+    if (state.paused) return state;
 
-    const ctx = createTickContext(dtSec);
-    const events = ctx.events;
-    const state = gameState.value;
+    const { dtSec, events } = ctx;
 
     // Generate map if tiles are all empty (first tick)
     let workingState = state;
@@ -363,12 +363,22 @@ export function bootstrap(): {
       };
     }
 
-    // The tick's one state write — triggers all UI effects…
-    gameState.value = newState;
-    // …and only then the tick's events, so listeners see the new state.
-    events.flushTo(bus);
+    return newState;
   };
-  ticker.onTick(tick);
+  // The tick boundary (Story 1.17, AR16): GameLoop runs `step`, makes the
+  // tick's one state write (which triggers all UI effects), and only then
+  // flushes the tick's events. A tick that throws writes nothing and raises
+  // nothing; 3 in a row stop the simulation and call onTickHalt (below).
+  let haltedSnapshot: GameState | null = null;
+  const tick = loop.bindTick({
+    read: () => gameState.value,
+    step,
+    write: (next) => {
+      gameState.value = next;
+    },
+    flush: (events) => events.flushTo(bus),
+    onHalt: () => onTickHalt(),
+  });
 
   // Mount UI
   const app = document.getElementById('app');
@@ -387,6 +397,23 @@ export function bootstrap(): {
   const sheets = createSheetController();
   bindDecisionSheets({ bus, sheets, choose: (type, choice) => actions.chooseDecision(type, choice) });
   const resourceFeed = createResourceFeed();
+
+  // After 3 failed ticks (Story 1.17): keep the last good snapshot as THE save
+  // (stop autosave, write it now, and every later save writes it too), then
+  // offer EXPORT SAVE and RELOAD.
+  const onTickHalt = (): void => {
+    const snapshot = gameState.value;
+    haltedSnapshot = snapshot;
+    saveManager.stopAutosave();
+    saveManager.save(snapshot, snapshot.stats.playTimeMs, true);
+    openTickFailure(sheets, {
+      onExport: () => {
+        const text = saveManager.serialize(snapshot, snapshot.stats.playTimeMs);
+        if (!platform.browser.download('the-swarm-save.json', text)) log.warn('save', 'export download failed');
+      },
+      onReload: () => platform.browser.reload(),
+    });
+  };
 
   const ui = new UIRoot({
     bus,
@@ -467,14 +494,15 @@ export function bootstrap(): {
   // Save on beforeunload (forced — always saves regardless of rate limit)
   if (typeof window !== 'undefined') {
     window.addEventListener('beforeunload', () => {
-      const state = gameState.value;
+      // Once the simulation has halted, only the last good snapshot is ever saved.
+      const state = haltedSnapshot ?? gameState.value;
       saveManager.save(state, state.stats.playTimeMs, true);
     });
   }
 
   // Save on meaningful user actions (rate-limited to max 1 per 5s via SaveManager)
   const actionSave = () => {
-    const state = gameState.value;
+    const state = haltedSnapshot ?? gameState.value;
     saveManager.save(state, state.stats.playTimeMs);
   };
 
@@ -496,119 +524,8 @@ export function bootstrap(): {
   return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, ui, decisionSystem, audio, actions, platform, sheets };
 }
 
-/**
- * Process a single tick for offline catch-up simulation.
- * Extracted so it can be reused by the main tick loop and offline processing.
- */
-export function processTick(
-  state: GameState,
-  resourceSystem: ResourceSystem,
-  soldierSystem: SoldierSystem,
-  mapSystem: MapSystem,
-  territorySystem: TerritorySystem,
-  events: EventSink,
-  dtSec: number,
-  skipDeterministicResources: boolean = false,
-): GameState {
-  let workingState = state;
-
-  // Generate map if tiles are all empty
-  if (state.mapTiles.length > 0 && state.mapTiles.every((t) => t.type === 'empty' && !t.discovered)) {
-    workingState = mapSystem.generateMap(workingState);
-  }
-
-  const bonuses = territorySystem.getBonuses(workingState);
-  let newState = resourceSystem.tick(workingState, bonuses, dtSec, skipDeterministicResources, events);
-
-  // Track gross food produced for prestige system
-  // Skip when using closed-form offline computation (already counted above)
-  if (!skipDeterministicResources) {
-    const pWorkers = workingState.resources.workers;
-    const pAssigned = workingState.workersAssigned;
-    const pGatherCount = pAssigned.gather;
-    const pUnassignedCount = pWorkers - pGatherCount - pAssigned.tend - pAssigned.dig - pAssigned.guard;
-    const pBaseFoodProduced = pGatherCount * 2 + Math.max(0, pUnassignedCount) * 1;
-    const pTerritoryFood = Math.floor(pWorkers * (bonuses.food ?? 0));
-    const pGrossFoodProduced = (pBaseFoodProduced + pTerritoryFood) * dtSec;
-    newState = {
-      ...newState,
-      prestige: {
-        ...newState.prestige,
-        totalFoodProduced: newState.prestige.totalFoodProduced + pGrossFoodProduced,
-      },
-    };
-  }
-
-  newState = soldierSystem.tick(newState, dtSec, events);
-  newState = tickAutoProduction(newState, dtSec);
-
-  // Auto-egg-layer from prestige tree (1 egg/sec)
-  const pBonuses = getPrestigeBonuses(newState);
-  if (pBonuses.autoEggLayer) {
-    newState = {
-      ...newState,
-      resources: {
-        ...newState.resources,
-        eggs: newState.resources.eggs + dtSec,
-      },
-      stats: {
-        ...newState.stats,
-        totalEggsLaid: newState.stats.totalEggsLaid + dtSec,
-      },
-      eggPipeline: {
-        ...newState.eggPipeline,
-        count: newState.eggPipeline.count + dtSec,
-      },
-    };
-  }
-
-  // Tick expedition timers
-  newState = tickExpeditions(newState, dtSec);
-  for (const exp of newState.expeditions) {
-    if (exp.remainingMs <= 0) {
-      newState = resolveExpedition(newState, exp);
-    }
-  }
-
-  // Tick space exploration timers
-  newState = tickExplorations(newState, dtSec);
-  for (const exp of newState.spaceExplorations) {
-    if (exp.remainingMs <= 0) {
-      newState = resolveExploration(newState, exp);
-    }
-  }
-
-  // Probe Swarm: auto-launch explorations when enough surveyData accumulated
-  newState = tickProbeSwarm(newState);
-
-  // Tick spaceship missions
-  newState = tickMissions(newState);
-  for (const ship of newState.spaceships) {
-    if (ship.status === 'returning') {
-      newState = resolveMission(ship.id, newState);
-    }
-  }
-
-  // Tick research progress
-  newState = tickResearch(newState, dtSec);
-
-  // Resource conversions
-  newState = tickConversions(newState, dtSec);
-
-  // Entropy accumulation (GM-10)
-  newState = tickEntropy(newState, dtSec);
-
-  // Advance playTimeMs
-  newState = {
-    ...newState,
-    stats: {
-      ...newState.stats,
-      playTimeMs: newState.stats.playTimeMs + (dtSec * 1000),
-    },
-  };
-
-  return newState;
-}
+// processTick lives in engine/processTick.ts; re-exported for existing callers.
+export { processTick };
 
 // Auto-bootstrap when loaded in browser.
 if (typeof window !== 'undefined') {

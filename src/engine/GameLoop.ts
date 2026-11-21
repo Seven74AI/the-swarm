@@ -1,6 +1,27 @@
 import type { Ticker } from './Ticker';
 import type { GameState } from '../state/GameState';
 import { productionMultiplier, workerEfficiency } from './ProgressionCurve';
+import { createTickContext, type TickContext } from './TickContext';
+import type { EventQueue } from './events';
+import { log } from '../utils/log';
+
+/** Consecutive failed ticks after which the simulation stops (Story 1.17, AR16). */
+export const MAX_FAILED_TICKS = 3;
+
+/**
+ * How one tick reads, computes, writes and flushes (Story 1.17).
+ * `step` computes the next state from the current one and may raise events on
+ * `ctx.events`; it must not write state itself. The boundary writes the result
+ * once, then flushes the queued events.
+ */
+export interface TickBinding {
+  read: () => GameState;
+  step: (state: GameState, ctx: TickContext) => GameState;
+  write: (state: GameState) => void;
+  flush: (events: EventQueue) => void;
+  /** Called once, after MAX_FAILED_TICKS consecutive failures stop the simulation. */
+  onHalt: (error: unknown) => void;
+}
 
 /**
  * Coordinates: Ticker lifecycle.
@@ -12,12 +33,15 @@ import { productionMultiplier, workerEfficiency } from './ProgressionCurve';
  */
 export class GameLoop {
   private ticker: Ticker;
+  private failures = 0;
+  private halted = false;
 
   constructor(ticker: Ticker) {
     this.ticker = ticker;
   }
 
   start(): void {
+    if (this.halted) return;
     this.ticker.start();
   }
 
@@ -30,7 +54,53 @@ export class GameLoop {
   }
 
   resume(): void {
+    if (this.halted) return;
     this.ticker.resume();
+  }
+
+  /** True once MAX_FAILED_TICKS consecutive ticks have failed; start/resume do nothing then. */
+  isHalted(): boolean {
+    return this.halted;
+  }
+
+  /**
+   * The tick boundary (Story 1.17, AR16). Registers a guarded tick on the
+   * ticker and returns it (tests and bootstrap() call it directly).
+   *
+   * A tick that throws is discarded whole: nothing is written (the state
+   * reference stays the last good snapshot), its queued events are dropped, and
+   * the error goes to `log.error`. The next tick runs normally. After
+   * MAX_FAILED_TICKS failures in a row the ticker stops and `onHalt` runs once.
+   * A tick that returns the state it was given writes nothing.
+   */
+  bindTick(binding: TickBinding): (dtSec: number) => void {
+    const tick = (dtSec: number): void => {
+      if (this.halted) return;
+      const ctx = createTickContext(dtSec);
+      const prev = binding.read();
+      let next: GameState;
+      try {
+        next = binding.step(prev, ctx);
+      } catch (error) {
+        ctx.events.clear();
+        this.failures += 1;
+        log.error('tick', `tick failed; state kept (${this.failures}/${MAX_FAILED_TICKS})`, error);
+        if (this.failures >= MAX_FAILED_TICKS) this.halt(error, binding);
+        return;
+      }
+      this.failures = 0;
+      if (next !== prev) binding.write(next);
+      binding.flush(ctx.events);
+    };
+    this.ticker.onTick(tick);
+    return tick;
+  }
+
+  private halt(error: unknown, binding: TickBinding): void {
+    this.halted = true;
+    this.ticker.stop();
+    log.error('tick', `${MAX_FAILED_TICKS} ticks failed in a row; simulation stopped`);
+    binding.onHalt(error);
   }
 
   isPaused(): boolean {

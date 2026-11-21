@@ -58,6 +58,8 @@ interface DismissibleModal extends ModalBase {
 interface DecisionModal extends ModalBase {
   dismissible: false;
   actions?: readonly [ComponentChildren] | readonly [ComponentChildren, ComponentChildren];
+  /** Let taps through the scrim to the colony (default). `false` blocks them: the game can't go on underneath. */
+  passthrough?: boolean;
 }
 
 export type ModalSheetProps = DismissibleModal | DecisionModal;
@@ -170,7 +172,7 @@ export function ModalSheet(props: ModalSheetProps) {
       <div
         class={['sheet-scrim', scrimClass].filter(Boolean).join(' ')}
         data-sheet-scrim=""
-        data-passthrough={dismissible ? undefined : ''}
+        data-passthrough={dismissible || props.passthrough === false ? undefined : ''}
         onClick={dismissible ? close : undefined}
         aria-hidden="true"
       />
