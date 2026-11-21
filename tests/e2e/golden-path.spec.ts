@@ -229,9 +229,12 @@ test.describe('Golden Path — Full Progression', () => {
     // The Colony's nectar buildings (Story 4.7)
     for (const id of ['fungus_garden', 'tunnels']) await expect(buildingPanel.locator(`[data-building="${id}"]`)).toBeVisible();
 
+    // The Midden, where the fallen leave chitin (Story 4.8)
+    await expect(buildingPanel.locator('[data-building="midden"]')).toBeVisible();
+
     // Each card has its own BUY button (Story 1.24)
     const buildBtns = buildingPanel.locator('[data-action="buy-building"]');
-    await expect(buildBtns).toHaveCount(8);
+    await expect(buildBtns).toHaveCount(await buildingPanel.locator('[data-building]').count());
   });
 
   test('expedition panel shows launch form', async ({ page }) => {
