@@ -1376,7 +1376,8 @@ body.phase-space .progress-fill {
 }
 
 /* Greyed-out disabled state */
-.btn-prestige:disabled {
+.btn-prestige:disabled,
+.btn-prestige[aria-disabled="true"] {
   border-color: #444;
   background: rgba(40, 40, 40, 0.4);
   color: #555;

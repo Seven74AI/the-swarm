@@ -15,6 +15,7 @@ import { createInitialState } from '../../src/state/GameState';
 import type { GameState } from '../../src/state/GameState';
 import { Ticker } from '../../src/engine/Ticker';
 import { GameLoop } from '../../src/engine/GameLoop';
+import { confirmSettings } from './helpers/confirm';
 
 describe('UIRoot — Phase-Based Panel Reveal', () => {
   let bus: EventBus;
@@ -39,6 +40,7 @@ describe('UIRoot — Phase-Based Panel Reveal', () => {
       saveManager,
       getState: () => state,
       loop,
+      confirmSettings: confirmSettings(),
     });
   });
 

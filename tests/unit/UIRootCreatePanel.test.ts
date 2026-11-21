@@ -11,6 +11,7 @@ import { createInitialState } from '../../src/state/GameState';
 import type { GameState } from '../../src/state/GameState';
 import { Ticker } from '../../src/engine/Ticker';
 import { GameLoop } from '../../src/engine/GameLoop';
+import { confirmSettings } from './helpers/confirm';
 
 describe('UIRoot — createPanel lazy loading', () => {
   let bus: EventBus;
@@ -35,6 +36,7 @@ describe('UIRoot — createPanel lazy loading', () => {
       saveManager,
       getState: () => state,
       loop,
+      confirmSettings: confirmSettings(),
     });
   });
 

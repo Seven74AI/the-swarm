@@ -31,6 +31,8 @@ import { DecisionPopup } from './components/DecisionPopup';
 import type { AudioSystem } from './AudioSystem';
 import type { Actions } from '../actions';
 import { explain } from './components/refusal';
+import type { ReadonlySignal } from '@preact/signals-core';
+import type { ConfirmSettings } from './primitives/HoldToConfirm';
 
 /**
  * Root UI controller. Mounts all panels into #app.
@@ -58,6 +60,8 @@ export class UIRoot {
 
   /** Game loop for pause/resume control */
   private loop: GameLoop;
+  /** Confirm style and hold duration for irreversible actions (platform settings, from main). */
+  private confirmSettings: ReadonlySignal<ConfirmSettings>;
 
   /** Container div (#panels) where all panels are appended. */
   private panelsContainer: HTMLElement | null = null;
@@ -75,6 +79,8 @@ export class UIRoot {
     getState: () => GameState;
     audio?: AudioSystem;
     loop: GameLoop;
+    /** The platform settings signal (or its confirm slice), passed in by main (Story 1.13). */
+    confirmSettings: ReadonlySignal<ConfirmSettings>;
   }) {
     this.bus = deps.bus;
     this.actions = deps.actions;
@@ -84,6 +90,7 @@ export class UIRoot {
     this.decisionPopup = new DecisionPopup(this.bus, (type, choice) => { this.actions.chooseDecision(type, choice); });
     this.audio = deps.audio;
     this.loop = deps.loop;
+    this.confirmSettings = deps.confirmSettings;
 
     // ── Populate panel registry with factory functions ──
     // Phase 1 panels (mounted at boot for always-visible UI)
@@ -172,7 +179,7 @@ export class UIRoot {
       this.bus, this.getState, this.actions,
     ).getElement());
     this.panelRegistry.set('prestige_panel', () => new PrestigePanel(
-      this.bus, this.getState, this.actions,
+      this.bus, this.getState, this.actions, this.confirmSettings,
     ).getElement());
     this.panelRegistry.set('prestige_tree_panel', () => new PrestigeTreePanel(
       this.bus, this.getState, this.actions,
@@ -183,7 +190,7 @@ export class UIRoot {
 
     // Phase 4+ research panel (lazy — created on demand)
     this.panelRegistry.set('research_panel', () => new ResearchPanel(
-      this.bus, this.getState, this.actions,
+      this.bus, this.getState, this.actions, this.confirmSettings,
     ).getElement());
   }
 

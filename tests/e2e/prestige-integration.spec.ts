@@ -4,7 +4,8 @@ import { test, expect } from '@playwright/test';
  * E2E: Prestige Integration — Slice 5.
  *
  * Tests the complete prestige flow. Clicks are done via page.evaluate()
- * to bypass Preact signal reactivity DOM detachment issues.
+ * to bypass Preact signal reactivity DOM detachment issues. The prestige
+ * button itself is held (hold-to-confirm, Story 1.13).
  *
  * KEY MECHANIC: eggPipeline.count represents eggs waiting to hatch.
  * Hatching consumes resources.eggs to produce larvae. The auto-egg-layer
@@ -107,6 +108,18 @@ async function evalClick(page: any, selector: string) {
   }, selector);
 }
 
+/**
+ * Prestige is irreversible, so it is a hold-to-confirm (Story 1.13): press,
+ * hold past the hold duration (1 s by default), release.
+ */
+async function holdPrestige(page: any) {
+  const btn = page.locator('#prestige-panel .btn-prestige');
+  await expect(btn).toBeAttached({ timeout: 10000 });
+  await btn.dispatchEvent('pointerdown', { pointerId: 1, button: 0, isPrimary: true });
+  await page.waitForTimeout(1500);
+  await btn.dispatchEvent('pointerup', { pointerId: 1, button: 0, isPrimary: true });
+}
+
 async function openPrestigeTree(page: any) {
   await expect(page.locator('#prestige-panel')).toBeAttached({ timeout: 15000 });
   await page.waitForTimeout(500);
@@ -155,10 +168,7 @@ test.describe('Prestige Integration — Slice 5', () => {
     expect(beforeText).toMatch(/Legacy[\s\S]*?0/);
 
     // Execute prestige
-    await page.evaluate(() => {
-      const btn = document.querySelector('#prestige-panel .btn-prestige') as HTMLButtonElement | null;
-      if (btn) btn.click();
-    });
+    await holdPrestige(page);
     await page.waitForTimeout(2000);
 
     // ── Full Wipe: resources reset ──
@@ -189,10 +199,7 @@ test.describe('Prestige Integration — Slice 5', () => {
     ).toHaveText('12', { timeout: 5000 });
 
     // Prestige
-    await page.evaluate(() => {
-      const btn = document.querySelector('#prestige-panel .btn-prestige') as HTMLButtonElement | null;
-      if (btn) btn.click();
-    });
+    await holdPrestige(page);
     await page.waitForTimeout(2000);
 
     // Bonus persists
@@ -223,10 +230,7 @@ test.describe('Prestige Integration — Slice 5', () => {
     ).toHaveText('10', { timeout: 5000 });
 
     // Prestige
-    await page.evaluate(() => {
-      const btn = document.querySelector('#prestige-panel .btn-prestige') as HTMLButtonElement | null;
-      if (btn) btn.click();
-    });
+    await holdPrestige(page);
     await page.waitForTimeout(2000);
 
     // Verify prestige executed
@@ -264,10 +268,7 @@ test.describe('Prestige Integration — Slice 5', () => {
     ).toHaveText('0', { timeout: 5000 });
 
     // Prestige
-    await page.evaluate(() => {
-      const btn = document.querySelector('#prestige-panel .btn-prestige') as HTMLButtonElement | null;
-      if (btn) btn.click();
-    });
+    await holdPrestige(page);
     await page.waitForTimeout(2000);
 
     // ── Starting resources: food = 25 ──
@@ -300,10 +301,7 @@ test.describe('Prestige Integration — Slice 5', () => {
     await purchaseUpgrade(page, 'Fertile Queen');
 
     // First prestige
-    await page.evaluate(() => {
-      const btn = document.querySelector('#prestige-panel .btn-prestige') as HTMLButtonElement | null;
-      if (btn) btn.click();
-    });
+    await holdPrestige(page);
     await page.waitForTimeout(2000);
 
     const text1 = await page.locator('#prestige-panel').textContent();
@@ -331,10 +329,7 @@ test.describe('Prestige Integration — Slice 5', () => {
     await purchaseUpgrade(page, 'Efficient Foragers');
 
     // Second prestige
-    await page.evaluate(() => {
-      const btn = document.querySelector('#prestige-panel .btn-prestige') as HTMLButtonElement | null;
-      if (btn) btn.click();
-    });
+    await holdPrestige(page);
     await page.waitForTimeout(2000);
 
     const text2 = await page.locator('#prestige-panel').textContent();
@@ -357,5 +352,38 @@ test.describe('Prestige Integration — Slice 5', () => {
     await page.waitForTimeout(500);
     const eggText = await page.locator('[data-stat="resources.eggs"] .critical-value').textContent();
     expect(parseInt(eggText || '0', 10)).toBeGreaterThan(0);
+  });
+
+  /** ─── Story 1.13: prestige needs a deliberate confirm ─── */
+  test('a click alone does not prestige; a hold does', async ({ page }) => {
+    await seedAndGo(page, makeBaseState());
+    const btn = page.locator('#prestige-panel .btn-prestige');
+    await expect(btn).toBeAttached({ timeout: 10000 });
+    await evalClick(page, '#prestige-panel .btn-prestige');
+    await btn.dispatchEvent('pointerdown', { pointerId: 1, button: 0, isPrimary: true });
+    await btn.dispatchEvent('pointerup', { pointerId: 1, button: 0, isPrimary: true });
+    await page.waitForTimeout(1500);
+    expect(await page.locator('#prestige-panel').textContent()).toMatch(/Legacy[\s\S]*?0/);
+    await expect(page.locator('[data-stat="resources.food"] .critical-value')).not.toHaveText('0');
+
+    await holdPrestige(page);
+    await expect(page.locator('[data-stat="resources.food"] .critical-value')).toHaveText('0', { timeout: 10000 });
+  });
+
+  test('two-tap setting: the first tap arms, the second prestiges', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('the_swarm_settings', JSON.stringify({ version: 1, settings: { confirmStyle: 'twoTaps' } }));
+    });
+    await seedAndGo(page, makeBaseState());
+    const btn = page.locator('#prestige-panel .btn-prestige');
+    await expect(btn).toBeAttached({ timeout: 10000 });
+
+    await evalClick(page, '#prestige-panel .btn-prestige');
+    await expect(btn).toHaveAttribute('data-armed', 'true');
+    await expect(btn).toContainText('> TAP AGAIN TO TRANSCEND');
+    await expect(page.locator('[data-stat="resources.food"] .critical-value')).not.toHaveText('0');
+
+    await evalClick(page, '#prestige-panel .btn-prestige');
+    await expect(page.locator('[data-stat="resources.food"] .critical-value')).toHaveText('0', { timeout: 10000 });
   });
 });

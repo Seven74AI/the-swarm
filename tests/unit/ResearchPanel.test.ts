@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { confirmSettings, holdFor } from './helpers/confirm';
+import { fireEvent } from '@testing-library/preact';
 import { testActions } from './helpers/actions';
 import { gameState } from '../../src/state/gameSignal';
 import { ResearchPanel } from '../../src/ui/panels/ResearchPanel';
@@ -7,6 +9,7 @@ import { createInitialState, type GameState } from '../../src/state/GameState';
 import {
   assignResearcher,
   startProject,
+  tickResearch,
 } from '../../src/systems/ResearchSystem';
 
 describe('ResearchPanel', () => {
@@ -24,7 +27,7 @@ describe('ResearchPanel', () => {
     currentState.resources.antimatter = 1;
     currentState.resources.workers = 100;
 
-    panel = new ResearchPanel(bus, () => currentState, testActions(bus, () => currentState, (s: GameState) => { currentState = s; gameState.value = s; }));
+    panel = new ResearchPanel(bus, () => currentState, testActions(bus, () => currentState, (s: GameState) => { currentState = s; gameState.value = s; }), confirmSettings());
   });
 
   it('creates a panel element', () => {
@@ -177,7 +180,7 @@ describe('ResearchPanel', () => {
     expect(cancelBtn).toBeTruthy();
   });
 
-  it('clicking Cancel stops the project and refunds 50%', () => {
+  it('holding Cancel stops the project and refunds 50%', () => {
     for (let i = 0; i < 50; i++) {
       currentState = assignResearcher(currentState);
     }
@@ -191,7 +194,13 @@ describe('ResearchPanel', () => {
       (btn) => btn.textContent?.includes('Cancel'),
     ) as HTMLButtonElement;
 
-    cancelBtn.click();
+    // Irreversible: a hold, not a click (Story 1.13).
+    vi.useFakeTimers();
+    try {
+      holdFor(cancelBtn, 1000);
+    } finally {
+      vi.useRealTimers();
+    }
 
     // Should have refunded 50% (250 stone back)
     expect(currentState.resources.stone).toBeGreaterThan(stoneAfterStart);
@@ -234,5 +243,65 @@ describe('ResearchPanel', () => {
     const el = panel.getElement();
     const text = el.textContent || '';
     expect(text).toContain('30s'); // game-time length of VCS (600 ticks)
+  });
+});
+
+describe('ResearchPanel: cancel needs a deliberate confirm (Story 1.13)', () => {
+  let bus: EventBus;
+  let panel: ResearchPanel;
+  let currentState: GameState;
+
+  function cancelButton(): HTMLButtonElement {
+    const card = panel.getElement().querySelector('[data-research-project="voidCrystalSynthesis"]');
+    const btn = Array.from(card!.querySelectorAll('button')).find((b) => b.textContent?.includes('Cancel'));
+    if (!btn) throw new Error('no cancel button');
+    return btn;
+  }
+
+  function setup(settings = confirmSettings()) {
+    bus = new EventBus();
+    currentState = createInitialState();
+    currentState = {
+      ...currentState,
+      resources: { ...currentState.resources, stone: 1000, nectar: 500, voidCrystals: 10, antimatter: 1, workers: 100 },
+    };
+    for (let i = 0; i < 50; i++) currentState = assignResearcher(currentState);
+    currentState = startProject(currentState, 'voidCrystalSynthesis');
+    panel = new ResearchPanel(bus, () => currentState, testActions(bus, () => currentState, (s: GameState) => { currentState = s; }), settings);
+    panel.refresh();
+  }
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('a plain click does not cancel', () => {
+    setup();
+    cancelButton().click();
+    vi.advanceTimersByTime(5000);
+    expect(currentState.research.projects.voidCrystalSynthesis.status).toBe('running');
+  });
+
+  it('a hold survives research progress re-renders and then cancels', () => {
+    const settings = confirmSettings();
+    setup(settings);
+    const holdMs = settings.value.confirmHoldMs;
+    const el = cancelButton();
+    fireEvent.pointerDown(el, { pointerId: 9, button: 0 });
+    // Research keeps progressing (and the panel re-rendering) while the hold runs.
+    for (let t = 0; t < holdMs; t += 250) {
+      currentState = tickResearch(currentState, 0.25);
+      panel.refresh();
+      expect(cancelButton()).toBe(el);
+      vi.advanceTimersByTime(250);
+    }
+    expect(currentState.research.projects.voidCrystalSynthesis.status).toBe('idle');
+  });
+
+  it('two-tap mode: the first tap arms, the second cancels', () => {
+    setup(confirmSettings({ confirmStyle: 'twoTaps' }));
+    cancelButton().click();
+    expect(currentState.research.projects.voidCrystalSynthesis.status).toBe('running');
+    cancelButton().click();
+    expect(currentState.research.projects.voidCrystalSynthesis.status).toBe('idle');
   });
 });

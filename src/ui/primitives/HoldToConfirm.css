@@ -1,0 +1,43 @@
+/*
+ * ui/primitives/HoldToConfirm (Story 1.13, UX-DR21). Built on the Button
+ * styles (Button.css); colors only through the --color-* aliases of
+ * ui/styles/tokens.css.
+ */
+
+.swarm-confirm .swarm-btn__line {
+  align-items: center;
+  column-gap: 1ch;
+}
+
+/* A square ring of block cells: a 3×3 grid without its centre, filled clockwise. */
+.swarm-confirm__ring {
+  flex: none;
+  display: inline-grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  font-size: 7px;
+  line-height: 1;
+}
+
+.swarm-confirm__cell {
+  color: var(--color-edge);
+}
+
+.swarm-confirm__cell[data-filled="true"] {
+  color: inherit;
+}
+
+/* Two-tap mode, armed: inverse video until the second tap or the timeout. */
+.swarm-confirm[data-armed="true"] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.swarm-confirm[data-pressed="true"] .swarm-confirm__cell {
+  color: var(--color-dim);
+}
+
+.swarm-confirm[data-pressed="true"] .swarm-confirm__cell[data-filled="true"] {
+  color: var(--color-on-accent);
+}

@@ -386,6 +386,8 @@ export function bootstrap(): {
     getState: () => gameState.value,
     audio,
     loop,
+    // Irreversible actions read the confirm style and hold duration from the settings (Story 1.13).
+    confirmSettings: platform.settings.settings,
   });
   if (app) {
     // The Preact root hosts the legacy UIRoot (Story 1.7). render() mounts it synchronously,

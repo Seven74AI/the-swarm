@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { confirmSettings, holdFor } from './helpers/confirm';
 import { testActions } from './helpers/actions';
 import { gameState } from '../../src/state/gameSignal';
 import { PrestigePanel } from '../../src/ui/panels/PrestigePanel';
@@ -15,7 +16,7 @@ describe('PrestigePanel', () => {
   beforeEach(() => {
     bus = new EventBus();
     currentState = createInitialState();
-    panel = new PrestigePanel(bus, () => currentState, testActions(bus, () => currentState, (s: GameState) => { currentState = s; }));
+    panel = new PrestigePanel(bus, () => currentState, testActions(bus, () => currentState, (s: GameState) => { currentState = s; }), confirmSettings());
   });
 
   it('creates a panel element', () => {
@@ -77,7 +78,7 @@ describe('PrestigePanel', () => {
     const el = panel.getElement();
     const btn = el.querySelector('.btn-prestige') as HTMLButtonElement;
     expect(btn).toBeTruthy();
-    expect(btn.disabled).toBe(true);
+    expect(btn.getAttribute('aria-disabled')).toBe('true');
   });
 
   it('enables button when requirements are met', () => {
@@ -97,7 +98,7 @@ describe('PrestigePanel', () => {
     const el = panel.getElement();
     const btn = el.querySelector('.btn-prestige') as HTMLButtonElement;
     expect(btn).toBeTruthy();
-    expect(btn.disabled).toBe(false);
+    expect(btn.getAttribute('aria-disabled')).toBeNull();
   });
 
   it('shows tooltip with unmet requirements when button is disabled', () => {
@@ -150,7 +151,12 @@ describe('PrestigePanel', () => {
     let prestigeEvent: unknown = null;
     bus.subscribe('prestige_triggered', (p) => { prestigeEvent = p; });
 
-    btn.click();
+    vi.useFakeTimers();
+    try {
+      holdFor(btn, 1000);
+    } finally {
+      vi.useRealTimers();
+    }
 
     expect(prestigeEvent).not.toBeNull();
   });
@@ -162,8 +168,14 @@ describe('PrestigePanel', () => {
     let prestigeEvent: unknown = null;
     bus.subscribe('prestige_triggered', (p) => { prestigeEvent = p; });
 
-    // Button is disabled — click should not fire
+    // Button is disabled — neither a click nor a full hold fires
     btn.click();
+    vi.useFakeTimers();
+    try {
+      holdFor(btn, 5000);
+    } finally {
+      vi.useRealTimers();
+    }
 
     expect(prestigeEvent).toBeNull();
   });
@@ -201,7 +213,7 @@ describe('PrestigePanel LP preview matches PrestigeSystem scoring (#188)', () =>
           totalNectarProduced: 25_000,
         },
       };
-      const panel = new PrestigePanel(new EventBus(), () => state, testActions(new EventBus(), () => state, (s) => { state = s; }));
+      const panel = new PrestigePanel(new EventBus(), () => state, testActions(new EventBus(), () => state, (s) => { state = s; }), confirmSettings());
       panel.refresh();
       const value = panel.getElement().querySelector('.stat-row.projected .stat-value')?.textContent;
       const expected = calculateLegacyPoints(totalFoodProduced, getPhaseScore(phase));
@@ -216,7 +228,7 @@ describe('PrestigePanel render stability (#186)', () => {
 
   beforeEach(() => {
     currentState = createInitialState();
-    panel = new PrestigePanel(new EventBus(), () => currentState, testActions(new EventBus(), () => currentState, (s: GameState) => { currentState = s; }));
+    panel = new PrestigePanel(new EventBus(), () => currentState, testActions(new EventBus(), () => currentState, (s: GameState) => { currentState = s; }), confirmSettings());
   });
 
   it('keeps the same button nodes when a tick changes nothing the panel shows (#186)', () => {
@@ -233,8 +245,69 @@ describe('PrestigePanel render stability (#186)', () => {
   it('re-renders when a displayed value changes', () => {
     const btnBefore = panel.getElement().querySelector('.btn-prestige');
     currentState = { ...currentState, prestige: { ...currentState.prestige, legacyPoints: currentState.prestige.legacyPoints + 1 } };
+    const statBefore = panel.getElement().querySelector('.stat-row');
     panel.refresh();
-    expect(panel.getElement().querySelector('.btn-prestige')).not.toBe(btnBefore);
+    expect(panel.getElement().querySelector('.stat-row')).not.toBe(statBefore);
     expect(panel.getElement().textContent).toContain(String(currentState.prestige.legacyPoints));
+    // The confirm control is its own Preact root: a re-render never replaces it (or drops a hold).
+    expect(panel.getElement().querySelector('.btn-prestige')).toBe(btnBefore);
+  });
+});
+
+describe('PrestigePanel: prestige needs a deliberate confirm (Story 1.13)', () => {
+  const readyBuildings = {
+    barracks: { level: 5, count: 0 },
+    walls: { level: 5 },
+    warehouse: { level: 5 },
+    silk_weaving: { level: 0 },
+    chitin_armory: { level: 0 },
+    venom_lab: { level: 0 },
+  };
+  let bus: EventBus;
+  let currentState: GameState;
+  let fired: number;
+
+  function makePanel(settings = confirmSettings()) {
+    currentState = {
+      ...createInitialState(),
+      buildings: readyBuildings,
+      prestige: { count: 0, legacyPoints: 0, totalFoodProduced: 100_000, totalWoodProduced: 50_000, totalStoneProduced: 50_000, totalNectarProduced: 25_000 },
+    };
+    bus = new EventBus();
+    fired = 0;
+    bus.subscribe('prestige_triggered', () => { fired++; });
+    const panel = new PrestigePanel(bus, () => currentState, testActions(bus, () => currentState, (s: GameState) => { currentState = s; }), settings);
+    panel.refresh();
+    return panel.getElement().querySelector('.btn-prestige') as HTMLButtonElement;
+  }
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('a plain click does not prestige', () => {
+    const btn = makePanel();
+    btn.click();
+    vi.advanceTimersByTime(5000);
+    expect(fired).toBe(0);
+    expect(currentState.prestige.count).toBe(0);
+  });
+
+  it('a hold shorter than the setting does not prestige; a full hold does, once', () => {
+    const settings = confirmSettings({ confirmHoldMs: 2000 });
+    const btn = makePanel(settings);
+    holdFor(btn, settings.value.confirmHoldMs - 1);
+    vi.advanceTimersByTime(5000);
+    expect(fired).toBe(0);
+    holdFor(btn, settings.value.confirmHoldMs, 2);
+    expect(fired).toBe(1);
+    expect(currentState.prestige.count).toBeGreaterThan(0);
+  });
+
+  it('two-tap mode: the first tap arms, the second prestiges', () => {
+    const btn = makePanel(confirmSettings({ confirmStyle: 'twoTaps' }));
+    btn.click();
+    expect(fired).toBe(0);
+    btn.click();
+    expect(fired).toBe(1);
   });
 });

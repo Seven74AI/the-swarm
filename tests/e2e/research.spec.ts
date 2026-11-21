@@ -195,7 +195,7 @@ test.describe('Research System', () => {
     await expect(vcsCard).toContainText('voidCrystal');
   });
 
-  test('cancel project shows Cancel button and clicking it works', async ({ page }) => {
+  test('cancel project shows Cancel button and holding it works', async ({ page }) => {
     await seedSpaceAndWait(page, {
       workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 50 },
       research: {
@@ -214,9 +214,11 @@ test.describe('Research System', () => {
 
     await expect(vcsCard).toContainText('Cancel');
 
-    const cancelBtn = vcsCard.locator('button');
-    await cancelBtn.dispatchEvent('click');
-    await page.clock.runFor(100);
+    // Cancel is irreversible: hold it past the hold duration (Story 1.13).
+    const cancelBtn = vcsCard.locator('button', { hasText: 'Cancel' });
+    await cancelBtn.dispatchEvent('pointerdown', { pointerId: 1, button: 0, isPrimary: true });
+    // The hold completes and fires while still pressed; the control then leaves the card.
+    await page.clock.runFor(1500);
 
     await expect(vcsCard).toContainText('Available');
   });
