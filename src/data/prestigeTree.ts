@@ -151,7 +151,7 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
   {
     id: 'phase_skip',
     name: 'Ancestral Memory',
-    description: 'Start at Phase 2 (colony)',
+    description: 'Start at Phase 2 (colony) once Phase 1 is completed',
     cost: 12,
     effect: 'phase_skip',
     type: 'unlock',

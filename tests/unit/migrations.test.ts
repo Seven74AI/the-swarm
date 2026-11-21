@@ -461,7 +461,7 @@ describe('v15 → v16: seen phase reveals (Story 1.20)', () => {
       version: 15,
       timestamp: 0,
       playTimeMs: 0,
-      gameState: { ...createInitialState(), lifetime: { revealsSeen: ['colony'] } },
+      gameState: { ...createInitialState(), lifetime: { revealsSeen: ['colony'] } as GameState['lifetime'] },
     };
     expect(migrateSave(data, 15, 16).gameState.lifetime.revealsSeen).toEqual(['colony']);
   });

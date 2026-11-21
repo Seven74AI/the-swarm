@@ -636,7 +636,7 @@ describe('phase reveal (Story 1.20: lifetime.revealsSeen)', () => {
     const before = given({
       ...base,
       phase: 'transcendence',
-      lifetime: { revealsSeen: ['colony', 'combat'] },
+      lifetime: { ...base.lifetime, revealsSeen: ['colony', 'combat'] },
       buildings: {
         ...base.buildings,
         barracks: { level: 99, count: 1 },

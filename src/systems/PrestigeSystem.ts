@@ -1,5 +1,5 @@
 import { createInitialState, type GameState } from '../state/GameState';
-import { Phase } from '../phases/phases';
+import { PHASE_ORDER, Phase } from '../phases/phases';
 import { peekEnemy } from './EnemySystem';
 import { getPhaseNumber } from '../engine/ProgressionCurve';
 import { calculateEntropyPrestigeBonus } from './EntropySystem';
@@ -127,6 +127,23 @@ export function legacyPointsAward(state: GameState): number {
   );
 }
 
+/** Where Phase Skip starts a run when every phase before it has been completed. */
+const PHASE_SKIP_TARGET = Phase.COLONY;
+
+/**
+ * The phase the next run starts in (Story 5.6, FR32): Egg Laying, or with
+ * Phase Skip owned its target, but never later than the first phase the
+ * player hasn't completed (`lifetime.phasesCompleted`): every phase is played
+ * at least once.
+ */
+export function startPhaseFor(state: GameState): Phase {
+  if (!getPrestigeBonuses(state).phaseSkip) return PHASE_ORDER[0];
+  const done = state.lifetime.phasesCompleted;
+  const firstOpen = PHASE_ORDER.findIndex((p) => !done.includes(p));
+  const cap = firstOpen < 0 ? PHASE_ORDER.length - 1 : firstOpen;
+  return PHASE_ORDER[Math.min(PHASE_ORDER.indexOf(PHASE_SKIP_TARGET), cap)];
+}
+
 /**
  * What survives a prestige (Story 5.3, FR30), by top-level field. Everything
  * else is back at its `createInitialState()` value, except what an owned
@@ -158,7 +175,7 @@ export const PRESTIGE_KEEPS = [
  * goal latch and any open decision event go back to their initial values.
  * `PRESTIGE_KEEPS` survive, with LP and lifetime LP raised by the award.
  * Legacy upgrades grant the rest: the royal cache's eggs (in the pipeline, so
- * they hatch, Story 2.5) and food, and Phase Skip's start in Colony. The next
+ * they hatch, Story 2.5) and food, and Phase Skip's start (`startPhaseFor`). The next
  * enemy is the first the kept generator draws for a run with no battles won.
  */
 export function prestige(state: GameState): GameState {
@@ -172,7 +189,7 @@ export function prestige(state: GameState): GameState {
   return {
     ...fresh,
     ...kept,
-    phase: bonuses.phaseSkip ? Phase.COLONY : Phase.EGG_LAYING,
+    phase: startPhaseFor(state),
     resources: {
       ...fresh.resources,
       eggs,

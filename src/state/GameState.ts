@@ -245,6 +245,12 @@ export interface GameState {
    */
   lifetime: {
     revealsSeen: string[];
+    /**
+     * The phases a run has moved out of (Story 5.6, FR32, save v34): `commit`
+     * adds each one, prestige keeps the list. Phase Skip never starts a run
+     * past the first phase not in it.
+     */
+    phasesCompleted: string[];
   };
   /** Spaceship state (SPACE phase). */
   spaceship: {
@@ -509,7 +515,7 @@ export function createInitialState(): GameState {
     victoryAchieved: false,
     phaseGoal: null,
     decision: { open: null, nextSpawnSessionMs: null },
-    lifetime: { revealsSeen: [] },
+    lifetime: { revealsSeen: [], phasesCompleted: [] },
     spaceship: {
       level: 0,
       fuel: 0,
