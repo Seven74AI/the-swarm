@@ -55,4 +55,17 @@ describe('createLineJump', () => {
     const { jump } = setup('egg_laying');
     expect(jump.canJump('event_log')).toBe(false);
   });
+
+  it('can jump to one card inside the panel (Story 4.3: > CHANGE → <card>)', () => {
+    const { jump, el, calls } = setup('combat');
+    const card = document.createElement('article');
+    card.setAttribute('data-card', 'mutation-tough_shells');
+    card.scrollIntoView = vi.fn();
+    el.append(card);
+    jump.jump('mutation_panel', '[data-card="mutation-tough_shells"]');
+    expect(calls).toEqual([['tab', 'front'], ['segment', 'war']]);
+    expect(card.scrollIntoView).toHaveBeenCalled();
+    expect(card.hasAttribute('data-jumped')).toBe(true);
+    expect(el.hasAttribute('data-jumped')).toBe(false);
+  });
 });

@@ -101,6 +101,36 @@ test.describe('FRONT · WAR', () => {
     await expect(war(page).locator('#combat-log-panel [data-battle-line]').first()).toHaveText(/VICTORY|DEFEAT|DRAW/);
   });
 
+  test('the summary names one cause, and > CHANGE opens the counter card on WAR (Story 4.3)', async ({ page }) => {
+    // One soldier against an armored beetle cannot win, whatever the rolls: a defeat or a draw.
+    // Both workshops stand, so counter cards are open; no chitin or silk, so the counter shows its shortfall.
+    await seed(
+      page,
+      combat({
+        combatSoldiers: 1,
+        nextEnemy: 'beetle',
+        buildings: { chitin_armory: { level: 1 }, silk_weaving: { level: 1 } },
+        combatResources: { chitin: 0, silk: 0, venom: 0 },
+      }),
+    );
+    await openTab(page, 'front', 'war');
+    await fight(page).click();
+    const sheet = page.locator('[data-battle-summary]');
+    await expect(sheet).toBeVisible({ timeout: 5000 });
+    await expect(sheet).toHaveAttribute('data-outcome', /defeat|draw/);
+    await expect(sheet.locator('[data-sheet-headline]')).toHaveText(/DEFEAT|DRAW · THEY RETREATED\./);
+    await expect(sheet.locator('[data-cause]')).toHaveCount(1);
+    await expect(sheet.locator('[data-cause]')).toHaveText(/^[A-Z ]+\.$/);
+    const change = sheet.locator('button[data-action="change"]');
+    await expect(change).toBeVisible();
+    await expect(change).toContainText('CHANGE');
+    await expect(change.locator('[data-cost]')).toContainText(/needs \d+ more/);
+    const key = (await change.getAttribute('data-counter'))!;
+    await change.click();
+    await expect(sheet).toBeHidden();
+    await expect(war(page).locator(`[data-card="${key.replace(':', '-')}"]`)).toHaveAttribute('data-jumped', '');
+  });
+
   test('two battles in a row both reach the summary and the log', async ({ page }) => {
     await seed(page, combat({ combatSoldiers: 200, equipment: { weapon: 5, armor: 5 } }));
     await openTab(page, 'front', 'war');

@@ -56,6 +56,12 @@ const lines = {
   battle_salvage: { text: 'THE SWARM SALVAGES {loot} FROM THE {enemy}.', from: Phase.COMBAT },
   battle_defeat: { text: 'THE {enemy} KILLS ALL {soldiers} SOLDIERS.', from: Phase.COMBAT },
   battle_draw: { text: 'THE {enemy} RETREATS. {lost} SOLDIERS FALL.', from: Phase.COMBAT },
+  // The battle summary's cause line (Story 4.3, UX-DR25); words in `battleCauses.ts`.
+  cause_trait_beat: { text: '{their} {beat} YOUR {upgrade}.', from: Phase.COMBAT },
+  cause_equipment_gap: { text: 'YOUR {upgrade} FELL SHORT.', from: Phase.COMBAT },
+  cause_outnumbered: { text: 'TOO FEW SOLDIERS TO FINISH THEM.', from: Phase.COMBAT },
+  cause_trait_countered: { text: 'YOUR {upgrade} BROKE {their}.', from: Phase.COMBAT },
+  cause_outfought: { text: 'THE ARMY OUTFOUGHT THEM.', from: Phase.COMBAT },
 
   // The offline summary's warn lines (Story 2.9, UX-DR24); shown in any phase.
   offline_starved: { text: 'UPKEEP OUTRAN FOOD FOR {time}.', from: Phase.EGG_LAYING },

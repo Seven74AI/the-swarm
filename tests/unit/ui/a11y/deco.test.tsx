@@ -23,6 +23,13 @@ describe('decorate', () => {
     expect(said).toContain('40 FOOD');
   });
 
+  it('an arrow that starts a target reads too (Story 4.3: > CHANGE → WEAPONS)', () => {
+    const { container } = render(<p>{decorate('→ WEAPONS LV.2')}</p>);
+    const said = spoken(container.querySelector('p')!);
+    expect(said).not.toMatch(DECORATION);
+    expect(said).toMatch(/to WEAPONS/);
+  });
+
   it('passes plain strings and non-strings through', () => {
     expect(decorate('NO DECORATION')).toBe('NO DECORATION');
     expect(decorate(3)).toBe(3);

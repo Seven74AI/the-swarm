@@ -19,7 +19,8 @@ export const JUMP_HIGHLIGHT_MS = 2000;
 export interface LineJump {
   /** True when the line's panel can be reached in the current phase. */
   canJump(target: PanelId): boolean;
-  jump(target: PanelId): void;
+  /** `within`: a selector inside the panel to scroll to and mark instead (a card, Story 4.3). */
+  jump(target: PanelId, within?: string): void;
 }
 
 export interface LineJumpDeps {
@@ -45,14 +46,15 @@ export function createLineJump(deps: LineJumpDeps): LineJump {
   };
   return {
     canJump,
-    jump(target) {
+    jump(target, within) {
       if (!canJump(target)) return;
       const p = placementOf(target)!;
       deps.select(p.tab as TabId);
       if (p.segment) deps.selectSegment(p.segment);
       schedule(() => {
-        const el = deps.element(target);
-        if (!el) return;
+        const panel = deps.element(target);
+        if (!panel) return;
+        const el = (within ? panel.querySelector<HTMLElement>(within) : null) ?? panel;
         el.scrollIntoView?.({ block: 'start' });
         el.setAttribute('data-jumped', '');
         const prev = timers.get(el);

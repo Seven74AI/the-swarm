@@ -32,18 +32,21 @@ export function Sep() {
 }
 
 /** ` → ` on screen; " to " for a screen reader ("LV.2 → 3" reads "LV.2 to 3"). */
-export function Arrow() {
+export function Arrow({ spaced = true }: { spaced?: boolean } = {}) {
   return (
     <>
-      {' '}
+      {spaced && ' '}
       <span aria-hidden="true">→</span>
       <span class="visually-hidden">to</span>{' '}
     </>
   );
 }
 
-/** A separator, an arrow, or a registered short form (`LV.`, `STR`, `CHTN`; Story 1.33). */
-const TOKEN = new RegExp(` · | → |${ABBREVIATION_PATTERN.source}`);
+/**
+ * A separator, an arrow (also one that starts the text: `→ WEAPONS`, Story 4.3),
+ * or a registered short form (`LV.`, `STR`, `CHTN`; Story 1.33).
+ */
+const TOKEN = new RegExp(` · | → |^→ |${ABBREVIATION_PATTERN.source}`);
 
 /**
  * A typed line with its decoration made visual only: `'LV.2 → 3 · 5 CHTN'`
@@ -60,7 +63,7 @@ export function decorate(text: ComponentChildren): ComponentChildren {
   for (let m = TOKEN.exec(rest); m; m = TOKEN.exec(rest)) {
     if (m.index > 0) out.push(rest.slice(0, m.index));
     if (m[0] === ' · ') out.push(<Sep key={key++} />);
-    else if (m[0] === ' → ') out.push(<Arrow key={key++} />);
+    else if (m[0] === ' → ' || m[0] === '→ ') out.push(<Arrow key={key++} spaced={m[0] === ' → '} />);
     else {
       // `LV.2` reads "level 2": a short form glued to a number keeps a space before it.
       const glued = /^[0-9]/.test(rest.slice(m.index + m[0].length));

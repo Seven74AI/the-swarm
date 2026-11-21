@@ -3,6 +3,8 @@ import type { EventBus } from '../engine/EventBus';
 import type { GameState } from '../state/GameState';
 import { getEnemyDef, getRandomEnemy, scaleEnemy } from './EnemySystem';
 import { armyOf, fightRounds, type BattleOutcome } from './CombatRounds';
+import { battleCause } from './BattleCauses';
+import type { BattleCause } from './Counters';
 import { consumeVenom } from './VenomSystem';
 import { between, intBetween, rngStream, type RngStream } from '../utils/rng';
 import { combatBalance } from '../data/balance/combat';
@@ -16,6 +18,8 @@ export interface BattleResult {
   outcome: BattleOutcome;
   /** Rounds fought (1 to `MAX_BATTLE_ROUNDS`), for the enemy card's round counter (Story 1.25). */
   rounds: number;
+  /** Why it went this way (Story 4.3): the summary's cause line and `> CHANGE → <card>` read it. */
+  cause: BattleCause;
   soldiersLost: number;
   enemyType: string;
   foodGained: number;
@@ -50,12 +54,14 @@ export class BattleSystem {
   } {
     // Cannot fight without soldiers
     if (state.combatSoldiers <= 0) {
+      const facing = scaleEnemy(getEnemyDef(enemyType ?? state.nextEnemy), state.battlesWon);
       return {
         newState: state,
         result: {
           victory: false,
           outcome: 'defeat',
           rounds: 0,
+          cause: battleCause(state, facing, 'defeat'),
           soldiersLost: 0,
           enemyType: 'none',
           foodGained: 0,
@@ -142,6 +148,7 @@ export class BattleSystem {
       victory,
       outcome,
       rounds,
+      cause: battleCause(state, enemy, outcome),
       soldiersLost,
       enemyType: enemy.type,
       foodGained,

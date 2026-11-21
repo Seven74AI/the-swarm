@@ -1,6 +1,8 @@
-import type { BattleOutcome, BattleResult } from '../../state/queries';
+import { useContext } from 'preact/hooks';
+import { causeLine, type BattleAdvice, type BattleOutcome, type BattleResult, type CounterCard } from '../../state/queries';
 import type { SheetController } from '../shell/SheetController';
-import { ModalSheet } from '../shell/Sheet';
+import { ModalSheet, SheetContext } from '../shell/Sheet';
+import { Button } from '../primitives/Button';
 import { formatFull } from '../../utils/format';
 import { Abbr, decorate } from '../primitives/Deco';
 import { RESOURCE_BY_ID } from '../shell/resourceCatalog';
@@ -9,10 +11,21 @@ import '../war/war.css';
 /**
  * The battle summary sheet (Story 1.25, UX-DR25 in part), opened at the
  * `battle` priority of the SheetController (Story 1.14) when a battle's
- * replay ends. Headline, losses, drops and the enemy. Story 4.3 adds the
- * cause line and `> CHANGE → <card>`. Hooks: `#battle-result`,
+ * replay ends. Headline, losses, drops and the enemy, then one cause line
+ * (Story 4.3, `[data-cause=<kind>]`) and, after a defeat or a draw,
+ * `> CHANGE → <card>` (`button[data-action="change"][data-counter=<key>]`):
+ * the card `counterFor(cause)` returns, with its shortfall on the cost line
+ * when the colony cannot pay for it, and a cheaper counter it can pay for
+ * (`[data-counter-alt=<key>]`) when one exists. Hooks: `#battle-result`,
  * `[data-battle-summary][data-outcome]`, `[data-losses]`, `[data-drop=<id>]`.
  */
+
+export interface BattleSummaryOptions {
+  /** What the summary points at (`battleAdvice(result.cause, state)`), read when the sheet opens. */
+  readonly advice?: BattleAdvice;
+  /** `> CHANGE` was pressed (the sheet is closed first): open that card. */
+  readonly onChange?: (card: CounterCard) => void;
+}
 
 const HEADLINE: Record<BattleOutcome, string> = {
   victory: 'VICTORY',
@@ -29,9 +42,37 @@ const DROPS = [
   { id: 'venom', label: 'VNOM' },
 ] as const;
 
-export function BattleSummarySheet({ result, enemyName }: { result: BattleResult; enemyName: string }) {
+function Change({ advice, onChange }: { advice: BattleAdvice; onChange: (card: CounterCard) => void }) {
+  const { close } = useContext(SheetContext);
+  const counter = advice.counter!;
+  const short = advice.shortfall;
+  return (
+    <Button
+      variant="primary"
+      verb="CHANGE"
+      target={`→ ${counter.target}`}
+      cost={short ? `needs ${formatFull(short.amount)} more ${nameOf(short.resource).toLowerCase()}` : undefined}
+      onPress={() => {
+        close();
+        onChange(counter);
+      }}
+      data-action="change"
+      data-counter={counter.key}
+    />
+  );
+}
+
+export function BattleSummarySheet({
+  result,
+  enemyName,
+  advice,
+  onChange,
+}: { result: BattleResult; enemyName: string } & BattleSummaryOptions) {
+  const change = result.outcome !== 'victory' && advice?.counter && onChange ? advice : null;
+  const alt = change?.alternative ?? null;
   return (
     <ModalSheet
+      action={change && onChange ? <Change advice={change} onChange={onChange} /> : undefined}
       headline={decorate(HEADLINE[result.outcome])}
       id="battle-result"
       class="battle-result"
@@ -50,11 +91,24 @@ export function BattleSummarySheet({ result, enemyName }: { result: BattleResult
         ))}
         <li data-enemy="">ENEMY {enemyName.toUpperCase()}</li>
       </ul>
+      <p class="battle-summary__cause" data-cause={result.cause.kind}>
+        {causeLine(result.cause)}
+      </p>
+      {alt && (
+        <p class="battle-summary__alt war-dim" data-counter-alt={alt.key}>
+          {decorate(`CHEAPER NOW → ${alt.target}`)}
+        </p>
+      )}
     </ModalSheet>
   );
 }
 
 /** Request the battle summary sheet; returns its sheet id. */
-export function openBattleSummary(sheets: SheetController, result: BattleResult, enemyName: string): number {
-  return sheets.open({ priority: 'battle', render: () => <BattleSummarySheet result={result} enemyName={enemyName} /> });
+export function openBattleSummary(
+  sheets: SheetController,
+  result: BattleResult,
+  enemyName: string,
+  options: BattleSummaryOptions = {},
+): number {
+  return sheets.open({ priority: 'battle', render: () => <BattleSummarySheet result={result} enemyName={enemyName} {...options} /> });
 }

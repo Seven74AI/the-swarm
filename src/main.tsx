@@ -29,7 +29,8 @@ import { selectAffordableKeys, selectCanChoose, selectCapacityReached, selectGoa
 import { AudioSystem } from './ui/AudioSystem';
 import { SaveManager } from './persistence/SaveManager';
 import { openOfflineSummary, type OfflineSummary } from './ui/sheets/OfflineSummarySheet';
-import { decisionsAvailable, getReturnMove } from './systems/NextAction';
+import { decisionsAvailable, getReturnMove, itemPanel } from './systems/NextAction';
+import { battleAdvice } from './systems/Counters';
 import { createTelemetry, TELEMETRY_FILENAME, type Telemetry } from './state/telemetry';
 import { bindDecisionSheets, type DecisionSheets } from './ui/sheets/DecisionSheet';
 import { createToasts, type Toasts } from './ui/primitives/Toast';
@@ -471,7 +472,11 @@ export function bootstrap(): {
     actions,
     onBattleDone: (result, enemy) => {
       announcer.announce(battleLine(result, enemy.name));
-      openBattleSummary(sheets, result, enemy.name);
+      // Story 4.3: the cause's counter card, read from the state after the battle; CHANGE opens it on WAR.
+      openBattleSummary(sheets, result, enemy.name, {
+        advice: battleAdvice(result.cause, gameState.peek()),
+        onChange: (card) => jump.jump(itemPanel(card.ref), `[data-card="${card.ref.kind}-${'id' in card.ref ? card.ref.id : ''}"]`),
+      });
     },
   });
   // Tapping an event line that points at something opens its tab and scrolls to it (Story 1.26).
