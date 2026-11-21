@@ -1,3 +1,4 @@
+import { DEFAULT_SEED } from './seed';
 import type { DecisionId } from '../data/content/decisions';
 export enum TileType {
   EMPTY = 'empty',
@@ -61,6 +62,12 @@ export interface PhaseGoal {
 
 export interface GameState {
   phase: string;
+  /**
+   * The seed this game runs with (Story 1.34, D6): an unsigned 32-bit integer,
+   * shown in the debug overlay and exported with diagnostics. Story 3.1 seeds
+   * the generator from it.
+   */
+  seed: number;
   /** Whether the game is paused. Paused games stop all systems but save normally. */
   paused: boolean;
   resources: {
@@ -336,6 +343,7 @@ export function createEmptyMap(): Tile[] {
 export function createInitialState(): GameState {
   return {
     phase: 'egg_laying',
+    seed: DEFAULT_SEED,
     paused: false,
     resources: {
       eggs: 0,

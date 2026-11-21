@@ -3,6 +3,7 @@ import type { GameState, OpenDecision, PhaseGoal } from '../state/GameState';
 import { isDecisionId } from '../data/content/decisions';
 import { PhaseStateMachine, reachedValues } from '../phases/PhaseStateMachine';
 import { normalizeChronicle, type ChronicleSave } from '../state/chronicle';
+import { isSeed, seedFrom } from '../state/seed';
 
 /**
  * Migration system for save data version upgrades.
@@ -497,6 +498,17 @@ function migrateV17toV18(data: SaveData): SaveData {
   return { ...data, version: 18, gameState: { ...gs, decision } as unknown as GameState };
 }
 
+/**
+ * v18 → v19 (Story 1.34, D6): the save holds the game's seed. A save without a
+ * valid one gets a seed derived from its own timestamp: stable for that save,
+ * different between saves. Story 3.1 seeds the generator from it.
+ */
+function migrateV18toV19(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  const seed = isSeed(gs.seed) ? gs.seed : seedFrom(typeof data.timestamp === 'number' ? data.timestamp : 0);
+  return { ...data, version: 19, gameState: { ...gs, seed } as unknown as GameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -516,6 +528,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   15: migrateV15toV16,
   16: migrateV16toV17,
   17: migrateV17toV18,
+  18: migrateV18toV19,
 };
 
 /**

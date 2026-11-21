@@ -38,6 +38,12 @@ describe('diagnostics export', () => {
     expect(parsed.log.map((l: LogEntry) => l.message)).toEqual(logs.map((l) => l.message));
   });
 
+  it('names the seed the state ran with (Story 1.34)', () => {
+    const parsed = JSON.parse(buildDiagnostics({ ...base, seed: 4242, log: [] }));
+    expect(parsed.seed).toBe(4242);
+    expect(JSON.parse(buildDiagnostics({ ...base, log: [] })).seed).toBeNull();
+  });
+
   it('keeps the message of an Error in a log detail', () => {
     const parsed = JSON.parse(buildDiagnostics({ ...base, log: [entry({ detail: [new Error('boom')] })] }));
     expect(JSON.stringify(parsed.log[0].detail)).toContain('boom');

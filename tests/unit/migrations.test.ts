@@ -546,3 +546,35 @@ describe('v17 → v18: the open decision event is saved (Story 1.28)', () => {
     expect(out.gameState.decision).toEqual({ open: null, nextSpawnSessionMs: null });
   });
 });
+
+describe('v18 → v19: the save holds a seed (Story 1.34)', () => {
+  const v18 = (gs: Record<string, unknown>, timestamp = 1_700_000_000_000): SaveData => ({
+    version: 18,
+    timestamp,
+    playTimeMs: 0,
+    gameState: gs as unknown as GameState,
+  });
+
+  it('gives a save without a seed an unsigned 32-bit integer seed', () => {
+    const { seed: _drop, ...old } = createInitialState();
+    const out = migrateSave(v18(old), 18, 19);
+    expect(out.version).toBe(19);
+    expect(Number.isInteger(out.gameState.seed)).toBe(true);
+    expect(out.gameState.seed).toBeGreaterThanOrEqual(0);
+    expect(out.gameState.seed).toBeLessThan(2 ** 32);
+  });
+
+  it('is deterministic for the same save, and different saves get different seeds', () => {
+    const a = migrateSave(v18({ phase: 'colony' }, 1), 18, 19).gameState.seed;
+    expect(migrateSave(v18({ phase: 'colony' }, 1), 18, 19).gameState.seed).toBe(a);
+    expect(migrateSave(v18({ phase: 'colony' }, 2), 18, 19).gameState.seed).not.toBe(a);
+  });
+
+  it('keeps a valid seed that is already there and replaces a malformed one', () => {
+    expect(migrateSave(v18({ ...createInitialState(), seed: 1234 }), 18, 19).gameState.seed).toBe(1234);
+    for (const bad of [-1, 1.5, 'x', null, 2 ** 32]) {
+      const seed = migrateSave(v18({ ...createInitialState(), seed: bad }), 18, 19).gameState.seed;
+      expect(Number.isInteger(seed) && seed >= 0 && seed < 2 ** 32).toBe(true);
+    }
+  });
+});
