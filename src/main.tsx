@@ -39,6 +39,8 @@ import { TRANSITIONS } from './phases/transitions';
 import type { GameState } from './state/GameState';
 import { OnboardingManager } from './ui/OnboardingManager';
 import { bindPhaseTheme } from './ui/theme/phaseTheme';
+import { createWebPlatform, type Platform } from './platform';
+import { bindHapticFeedback, bindSoundSetting } from './platform/feedback';
 
 /**
  * THE SWARM — Bootstrap
@@ -65,7 +67,11 @@ export function bootstrap(): {
   decisionSystem: DecisionSystem;
   audio: AudioSystem;
   actions: Actions;
+  platform: Platform;
 } {
+  // Platform services, built once and passed on (Story 1.10, D9). Only main
+  // imports platform/ values; settings live under their own key, outside the save.
+  const platform = createWebPlatform();
   const bus = new EventBus();
   const ticker = new Ticker();
   const resourceSystem = new ResourceSystem(bus);
@@ -405,6 +411,10 @@ export function bootstrap(): {
     phaseContent.triggerTransition(phase, bus, ui, prestigeCount);
   });
 
+  // ── Haptics and the sound setting (Story 1.10) ──
+  bindHapticFeedback(bus, platform.haptics);
+  bindSoundSetting(audio, platform.settings.settings);
+
   // ── Audio: wire sound effects to game events ──
   bus.subscribe('prestige_triggered', () => {
     audio.play('prestige');
@@ -469,7 +479,7 @@ export function bootstrap(): {
 
   loop.start();
 
-  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, ui, decisionSystem, audio, actions };
+  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, ui, decisionSystem, audio, actions, platform };
 }
 
 /**

@@ -37,6 +37,12 @@ const FORBIDDEN_FOR_GAME_LAYERS = ['ui', 'platform', 'debug'];
 const SEEDED_LAYERS = ['systems', 'sim'];
 /** The only importer of `debug/` (behind `import.meta.env.DEV` or `?debug=1`). */
 const DEBUG_IMPORTERS = ['main'];
+/**
+ * The only layer that may import values from `platform/` (Story 1.10): main
+ * builds the platform services once at boot and passes them in. Everyone else
+ * may import platform types, to declare what they receive.
+ */
+const PLATFORM_VALUE_IMPORTERS = ['main', 'platform'];
 
 /**
  * Legacy UI files that still read `gameState.value` directly. UI reads state
@@ -105,6 +111,24 @@ function platformViolations(files: SourceFile[]): Violation[] {
     for (const t of importTargets(f)) {
       if (GAME_LAYERS.includes(t.layer) && !t.typeOnly) {
         out.push(`${f.rel}:${t.line} imports values from ${t.layer}/ ('${t.specifier}'); platform/ may import only types`);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Rule 4, second half (Story 1.10): game layers reach platform services only
+ * through what main passes in, so nothing but main (and platform/ itself)
+ * imports a value from platform/. Game layers may not even import its types
+ * (rule 1).
+ */
+function platformValueImports(files: SourceFile[]): Violation[] {
+  const out: Violation[] = [];
+  for (const f of files.filter((x) => !PLATFORM_VALUE_IMPORTERS.includes(layerOf(x.rel)))) {
+    for (const t of importTargets(f)) {
+      if (t.layer === 'platform' && !t.typeOnly) {
+        out.push(`${f.rel}:${t.line} imports values from platform/ ('${t.specifier}'); receive the service from main instead`);
       }
     }
   }
@@ -184,6 +208,10 @@ describe('architecture boundaries (AR21)', () => {
 
   it('platform/ imports only types from the game layers', () => {
     expect(platformViolations(files)).toEqual([]);
+  });
+
+  it('only main imports values from platform/', () => {
+    expect(platformValueImports(files)).toEqual([]);
   });
 
   it('no Math.random in systems/ or sim/ beyond the known exceptions', () => {
@@ -298,6 +326,19 @@ describe('architecture boundaries (AR21)', () => {
         fake('platform/f.ts', "import { bus } from '../engine/EventBus';"),
       ]);
       expect(v.map((x) => x.split(':')[0])).toEqual(['platform/c.ts', 'platform/d.ts', 'platform/e.ts']);
+    });
+
+    it('flags platform/ value imports outside main, allows type imports', () => {
+      const v = platformValueImports([
+        fake('main.tsx', "import { createWebPlatform } from './platform';"),
+        fake('platform/a.ts', "import { createWebHaptics } from './haptics';"),
+        fake('ui/b.ts', "import type { Haptics } from '../platform/haptics';"),
+        fake('actions/c.ts', "import { type Settings } from '../platform/settings';"),
+        fake('ui/d.ts', "import { createWebHaptics } from '../platform/haptics';"),
+        fake('engine/e.ts', "import { detectCapabilities } from '../platform/capabilities';"),
+        fake('actions/f.ts', "const m = await import('../platform/settings');"),
+      ]);
+      expect(v.map((x) => x.split(':')[0])).toEqual(['ui/d.ts', 'engine/e.ts', 'actions/f.ts']);
     });
 
     it('counts Math.random in systems/ and sim/ only, ignoring comments and strings', () => {

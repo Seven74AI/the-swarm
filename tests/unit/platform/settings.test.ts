@@ -1,0 +1,142 @@
+import { describe, expect, it } from 'vitest';
+import type { Capabilities } from '../../../src/platform/capabilities';
+import {
+  SETTINGS_KEY,
+  SETTINGS_VERSION,
+  createSettingsStore,
+  defaultSettings,
+  type KeyValueStore,
+} from '../../../src/platform/settings';
+
+const caps = (over: Partial<Capabilities> = {}): Capabilities => ({
+  vibrate: true,
+  standalone: false,
+  reducedMotion: false,
+  moreContrast: false,
+  ...over,
+});
+
+function memoryStore(initial: Record<string, string> = {}): KeyValueStore & { data: Record<string, string> } {
+  const data = { ...initial };
+  return {
+    data,
+    getItem: (k) => (k in data ? data[k] : null),
+    setItem: (k, v) => {
+      data[k] = v;
+    },
+  };
+}
+
+describe('settings store (Story 1.10)', () => {
+  it('uses its own key and version, apart from the save', () => {
+    expect(SETTINGS_KEY).toBe('the_swarm_settings');
+    expect(Number.isInteger(SETTINGS_VERSION)).toBe(true);
+    expect(SETTINGS_VERSION).toBeGreaterThan(0);
+  });
+
+  it('applies the documented defaults when no settings key exists', () => {
+    const store = createSettingsStore({ storage: memoryStore(), capabilities: caps() });
+    expect(store.settings.value).toEqual({
+      sound: false,
+      haptics: true,
+      reducedMotion: 'os',
+      crt: 'scene',
+      decisionTimers: 'normal',
+      confirmStyle: 'hold',
+      confirmHoldMs: 1000,
+      layMode: 'hold',
+      keyboardShortcuts: true,
+    });
+  });
+
+  it('turns haptics on only where the device can vibrate', () => {
+    expect(defaultSettings(caps({ vibrate: true })).haptics).toBe(true);
+    expect(defaultSettings(caps({ vibrate: false })).haptics).toBe(false);
+  });
+
+  it('follows the OS for reduced motion until the player overrides it', () => {
+    const osOn = createSettingsStore({ storage: memoryStore(), capabilities: caps({ reducedMotion: true }) });
+    const osOff = createSettingsStore({ storage: memoryStore(), capabilities: caps({ reducedMotion: false }) });
+    expect(osOn.reducedMotion.value).toBe(true);
+    expect(osOff.reducedMotion.value).toBe(false);
+    osOn.update({ reducedMotion: 'off' });
+    osOff.update({ reducedMotion: 'on' });
+    expect(osOn.reducedMotion.value).toBe(false);
+    expect(osOff.reducedMotion.value).toBe(true);
+  });
+
+  it('writes every change to its key at once, with its version', () => {
+    const storage = memoryStore();
+    const store = createSettingsStore({ storage, capabilities: caps() });
+    store.update({ sound: true, crt: 'off' });
+    const saved = JSON.parse(storage.data[SETTINGS_KEY]);
+    expect(saved.version).toBe(SETTINGS_VERSION);
+    expect(saved.settings).toMatchObject({ sound: true, crt: 'off' });
+    expect(Object.keys(storage.data)).toEqual([SETTINGS_KEY]);
+  });
+
+  it('reads back what an earlier session wrote', () => {
+    const storage = memoryStore();
+    createSettingsStore({ storage, capabilities: caps() }).update({ layMode: 'toggle', keyboardShortcuts: false });
+    const again = createSettingsStore({ storage, capabilities: caps() });
+    expect(again.settings.value).toMatchObject({ layMode: 'toggle', keyboardShortcuts: false });
+  });
+
+  it('is one signal: an update replaces the value and leaves the old one untouched', () => {
+    const store = createSettingsStore({ storage: memoryStore(), capabilities: caps() });
+    const before = store.settings.value;
+    store.update({ decisionTimers: 'double' });
+    expect(store.settings.value).not.toBe(before);
+    expect(before.decisionTimers).toBe('normal');
+    expect(Object.isFrozen(store.settings.value)).toBe(true);
+  });
+
+  it('falls back to defaults for corrupt JSON, a wrong shape or a newer version', () => {
+    const defaults = defaultSettings(caps());
+    for (const raw of ['{not json', '"text"', 'null', JSON.stringify({ version: SETTINGS_VERSION + 1, settings: { sound: true } })]) {
+      const store = createSettingsStore({ storage: memoryStore({ [SETTINGS_KEY]: raw }), capabilities: caps() });
+      expect(store.settings.value).toEqual(defaults);
+    }
+  });
+
+  it('keeps valid stored fields and replaces invalid ones with defaults', () => {
+    const raw = JSON.stringify({
+      version: SETTINGS_VERSION,
+      settings: { sound: true, crt: 'neon', confirmHoldMs: -5, layMode: 'toggle', extra: 1 },
+    });
+    const store = createSettingsStore({ storage: memoryStore({ [SETTINGS_KEY]: raw }), capabilities: caps() });
+    const defaults = defaultSettings(caps());
+    expect(store.settings.value).toEqual({ ...defaults, sound: true, layMode: 'toggle' });
+  });
+
+  it('keeps the hold duration a whole number of milliseconds', () => {
+    const store = createSettingsStore({ storage: memoryStore(), capabilities: caps() });
+    store.update({ confirmHoldMs: 1234.9 });
+    expect(Number.isInteger(store.settings.value.confirmHoldMs)).toBe(true);
+    expect(store.settings.value.confirmHoldMs).toBeLessThanOrEqual(1234.9);
+  });
+
+  it('ignores an invalid update instead of storing it', () => {
+    const store = createSettingsStore({ storage: memoryStore(), capabilities: caps() });
+    const before = store.settings.value;
+    store.update({ crt: 'neon' as never, confirmHoldMs: Number.NaN });
+    expect(store.settings.value).toEqual(before);
+  });
+
+  it('works, in memory, when storage is unavailable or throws', () => {
+    const throwing: KeyValueStore = {
+      getItem: () => {
+        throw new Error('denied');
+      },
+      setItem: () => {
+        throw new Error('quota');
+      },
+    };
+    for (const storage of [null, throwing]) {
+      const store = createSettingsStore({ storage, capabilities: caps() });
+      expect(store.settings.value).toEqual(defaultSettings(caps()));
+      expect(() => store.update({ sound: true })).not.toThrow();
+      expect(store.settings.value.sound).toBe(true);
+    }
+  });
+});

@@ -1,0 +1,50 @@
+import { describe, expect, it } from 'vitest';
+import { detectCapabilities, type CapabilityEnv } from '../../../src/platform/capabilities';
+
+const media = (matching: string[]) => (q: string) => ({ matches: matching.includes(q) });
+
+describe('detectCapabilities (Story 1.10)', () => {
+  it('reports nothing on an environment without navigator or matchMedia', () => {
+    const caps = detectCapabilities({});
+    expect(caps).toEqual({ vibrate: false, standalone: false, reducedMotion: false, moreContrast: false });
+  });
+
+  it('detects vibrate only when navigator.vibrate is a function', () => {
+    expect(detectCapabilities({ navigator: { vibrate: () => true } }).vibrate).toBe(true);
+    expect(detectCapabilities({ navigator: { vibrate: 'yes' } }).vibrate).toBe(false);
+  });
+
+  it('reads standalone, reduced motion and more contrast from media queries', () => {
+    const caps = detectCapabilities({
+      matchMedia: media(['(display-mode: standalone)', '(prefers-reduced-motion: reduce)', '(prefers-contrast: more)']),
+    });
+    expect(caps).toMatchObject({ standalone: true, reducedMotion: true, moreContrast: true });
+  });
+
+  it("treats iOS's navigator.standalone as standalone", () => {
+    expect(detectCapabilities({ navigator: { standalone: true }, matchMedia: media([]) }).standalone).toBe(true);
+  });
+
+  it('degrades to false and never throws when a probe throws', () => {
+    const env: CapabilityEnv = {
+      navigator: {
+        get vibrate(): unknown {
+          throw new Error('blocked');
+        },
+      },
+      matchMedia: () => {
+        throw new Error('no media');
+      },
+    };
+    expect(() => detectCapabilities(env)).not.toThrow();
+    expect(detectCapabilities(env)).toEqual({ vibrate: false, standalone: false, reducedMotion: false, moreContrast: false });
+  });
+
+  it('is a snapshot taken once: later environment changes do not alter it', () => {
+    const matching = ['(prefers-reduced-motion: reduce)'];
+    const caps = detectCapabilities({ matchMedia: media(matching) });
+    matching.length = 0;
+    expect(caps.reducedMotion).toBe(true);
+    expect(Object.isFrozen(caps)).toBe(true);
+  });
+});
