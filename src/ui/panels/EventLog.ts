@@ -159,10 +159,10 @@ export class EventLog {
       const party = partyOf(scouts, warriors);
 
       const loot: string[] = [];
-      if (food > 0) loot.push(`${food} food`);
-      if (stone > 0) loot.push(`${stone} stone`);
-      if (nectar > 0) loot.push(`${nectar} nectar`);
-      if (wood > 0) loot.push(`${wood} wood`);
+      if (food >= 1) loot.push(`${Math.floor(food)} food`);
+      if (stone >= 1) loot.push(`${Math.floor(stone)} stone`);
+      if (nectar >= 1) loot.push(`${Math.floor(nectar)} nectar`);
+      if (wood >= 1) loot.push(`${Math.floor(wood)} wood`);
       const lootStr = loot.length > 0 ? loot.join(', ') : 'nothing';
 
       if (result === 'success' || result === 'partial') {

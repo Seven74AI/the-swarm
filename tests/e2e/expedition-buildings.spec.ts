@@ -171,7 +171,7 @@ test.describe('Expeditions', () => {
 
     // Expedition should have returned — check activity log for return event
     const logEntry = page.locator('.log-entry').first();
-    await expect(logEntry).toContainText('returns', { timeout: 5000 });
+    await expect(logEntry).toContainText('RETURNS', { timeout: 5000 });
 
     // Verify scouts returned (at least some on success/partial)
     const scoutCount = await readGameState(page, 'soldiers.scouts') as number;
@@ -206,7 +206,7 @@ test.describe('Expeditions', () => {
         // Page may be temporarily unstable; continue
       }
     }
-    await expect(page.locator('.log-entry').first()).toContainText('returns', { timeout: 5000 });
+    await expect(page.locator('.log-entry').first()).toContainText('RETURNS', { timeout: 5000 });
 
     // Launch another expedition — risk still shown
     const meadowCard2 = page.locator('.expedition-card').filter({ hasText: 'MEADOW' });
