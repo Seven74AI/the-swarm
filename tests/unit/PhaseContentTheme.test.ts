@@ -4,7 +4,7 @@
  * and that the phase transition integration works.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { PhaseContent } from '../../src/phases/PhaseContent';
+import { PhaseContent } from '../../src/ui/PhaseContent';
 import { Phase } from '../../src/phases/phases';
 import { EventBus } from '../../src/engine/EventBus';
 

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { Phase, PHASE_ORDER } from '../../src/phases/phases';
 import { COLONY_TO_COMBAT, TRANSITIONS } from '../../src/phases/transitions';
 import { PhaseStateMachine } from '../../src/phases/PhaseStateMachine';
-import { PhaseContent } from '../../src/phases/PhaseContent';
+import { PhaseContent } from '../../src/ui/PhaseContent';
 import { EventBus } from '../../src/engine/EventBus';
 import { createInitialState } from '../../src/state/GameState';
 import type { GameState } from '../../src/state/GameState';

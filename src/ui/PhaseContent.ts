@@ -1,5 +1,5 @@
-import { Phase } from './phases';
-import type { UIRoot } from '../ui/UIRoot';
+import { Phase } from '../phases/phases';
+import type { UIRoot } from './UIRoot';
 import type { EventBus } from '../engine/EventBus';
 
 /** Delay before revealing new panels after the transition overlay appears (ms). */
