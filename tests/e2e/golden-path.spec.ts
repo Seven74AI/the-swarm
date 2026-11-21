@@ -3,7 +3,8 @@ import { test, expect } from '@playwright/test';
 /**
  * Golden Path E2E: Full progression seed → all panels unlock → save/load.
  *
- * Seeds a rich colony state on the verge of EXPANSION, verifies every panel
+ * Seeds a rich COMBAT-phase state on the verge of EXPANSION (it satisfies
+ * COMBAT → EXPANSION in src/phases/transitions.ts), verifies every panel
  * becomes visible after the phase transition, tests core interactions
  * (egg click, scout, build), and validates save/load fidelity.
  */
@@ -13,11 +14,11 @@ const SEED = {
   timestamp: Date.now(),
   playTimeMs: 0,
   gameState: {
-    phase: 'colony',
+    phase: 'combat',
     resources: {
       eggs: 5,
       larvae: 3,
-      workers: 40,
+      workers: 60,
       food: 5000,
       nestCapacity: 100,
       wood: 400,
@@ -54,7 +55,7 @@ const SEED = {
     equipment: { weapon: 2, armor: 2 },
     lastBattle: null,
     combatResources: { chitin: 5, silk: 3, venom: 1 },
-    battlesWon: 3,
+    battlesWon: 5,
     battlesLost: 1,
     soldierPipeline: { count: 0, progress: 0 },
     spaceExplorations: [],
@@ -106,7 +107,7 @@ test.describe('Golden Path — Full Progression', () => {
     // Wait for panels container to render
     await page.waitForSelector('#panels', { timeout: 10000 });
 
-    // Wait for phase transition: COLONY → EXPANSION (40 workers + 1000 food)
+    // Wait for phase transition: COMBAT → EXPANSION (the seed satisfies its guard)
     const indicator = page.locator('#phase-indicator');
     await expect(indicator).toContainText('The Expansion', { timeout: 15000 });
   });
