@@ -20,9 +20,9 @@ import {
 } from '../../state/selectors';
 import type { Phase } from '../../phases/phases';
 import { formatDelta, formatFull } from '../../utils/format';
-import { Button } from '../../primitives/Button';
-import { MultiplierRow, Stepper, type Multiplier } from '../../primitives/Stepper';
-import { lockedTarget, type TargetLock } from '../../shell/targetLock';
+import { Button } from '../primitives/Button';
+import { MultiplierRow, Stepper, type Multiplier } from '../primitives/Stepper';
+import { lockedTarget, type TargetLock } from '../shell/targetLock';
 import { roleBar } from './roleBar';
 import './wrkr.css';
 

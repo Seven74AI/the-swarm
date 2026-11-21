@@ -9,9 +9,9 @@ import {
 } from '../../state/queries';
 import { selectAutoEggRate, selectAutoProduction, selectCanBuildAuto, selectCanResearch } from '../../state/selectors';
 import { formatFull, formatRate } from '../../utils/format';
-import { Button } from '../../primitives/Button';
-import { Card } from '../../primitives/Card';
-import { RESOURCES } from '../../shell/resourceCatalog';
+import { Button } from '../primitives/Button';
+import { Card } from '../primitives/Card';
+import { RESOURCES } from '../shell/resourceCatalog';
 
 /** The actions the automation section uses (a subset of `Actions`). */
 export interface AutomationActions {
