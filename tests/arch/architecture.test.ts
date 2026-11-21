@@ -234,6 +234,41 @@ function phaseWriteViolations(files: SourceFile[]): Violation[] {
     .flatMap((f) => findPhaseWrites(f.text).map((h) => `${f.rel}:${h.line} writes phase; only PhaseStateMachine.commit or prestige may`));
 }
 
+/**
+ * Story 2.14 (FR26, D9): the web build has no notifications. Nothing in src/
+ * names the browser's notification APIs (no permission request, no
+ * `showNotification`, no push), and the `Notifications` seam reaches no further
+ * than main: no other layer imports it, even as a type, or reads it off the
+ * platform. A store build adds its implementation in platform/ and lifts the
+ * first rule for that one file.
+ */
+const NOTIFICATION_API_PATTERN =
+  /(?<![\w$])(?:Notification|PushManager|ServiceWorkerRegistration)\b|(?<![\w$])(?:requestPermission|showNotification|getNotifications|pushManager)\b/g;
+const NOTIFICATIONS_SEAM = 'platform/notifications.ts';
+const NOTIFICATIONS_READ_PATTERN = /(?:\?\.|\.)\s*notifications\b/g;
+
+function notificationApiUses(files: SourceFile[]): Violation[] {
+  return files.flatMap((f) =>
+    findInCode(f.text, NOTIFICATION_API_PATTERN).map((h) => `${f.rel}:${h.line} uses the notification API '${h.text}'; the web build has none`),
+  );
+}
+
+function notificationsSeamReach(files: SourceFile[]): Violation[] {
+  const out: Violation[] = [];
+  for (const f of files.filter((x) => !PLATFORM_VALUE_IMPORTERS.includes(layerOf(x.rel)))) {
+    for (const ref of findImports(f.text)) {
+      const target = resolveInSrc(f.rel, ref.specifier);
+      if (target !== null && NOTIFICATIONS_SEAM.replace(/\.ts$/, '') === target.replace(/\.tsx?$/, '')) {
+        out.push(`${f.rel}:${ref.line} imports the Notifications seam; only main and platform/ may`);
+      }
+    }
+    for (const h of findInCode(f.text, NOTIFICATIONS_READ_PATTERN)) {
+      out.push(`${f.rel}:${h.line} reads platform notifications; only main may`);
+    }
+  }
+  return out;
+}
+
 const fake = (rel: string, text: string): SourceFile => ({ rel, text });
 
 describe('architecture boundaries (AR21)', () => {
@@ -258,6 +293,18 @@ describe('architecture boundaries (AR21)', () => {
 
   it('only main imports values from platform/', () => {
     expect(platformValueImports(files)).toEqual([]);
+  });
+
+  it('nothing in src/ names a browser notification API (Story 2.14)', () => {
+    expect(notificationApiUses(files)).toEqual([]);
+  });
+
+  it('only main and platform/ reach the Notifications seam (Story 2.14)', () => {
+    expect(notificationsSeamReach(files)).toEqual([]);
+    // The seam exists and main wires it, or the rule guards nothing.
+    expect(files.some((f) => f.rel === NOTIFICATIONS_SEAM)).toBe(true);
+    const main = files.find((f) => f.rel === 'main.tsx');
+    expect(main && findInCode(main.text, NOTIFICATIONS_READ_PATTERN).length).toBeGreaterThan(0);
   });
 
   it('only platform/ touches localStorage (Story 2.2)', () => {
@@ -395,6 +442,38 @@ describe('architecture boundaries (AR21)', () => {
         fake('engine/GameLoop.ts', "if (dev) { await import('../debug/overlay'); }"),
       ]);
       expect(v.map((x) => x.split(':')[0])).toEqual(['ui/App.ts', 'engine/GameLoop.ts']);
+    });
+
+    it('flags browser notification APIs anywhere, but not look-alikes', () => {
+      const v = notificationApiUses([
+        fake('platform/a.ts', 'void Notification.requestPermission();'),
+        fake('ui/b.ts', "navigator.serviceWorker.ready.then((r) => r.showNotification('x'));"),
+        fake('systems/c.ts', 'new Notification(title);'),
+        fake('main.tsx', 'reg.pushManager.subscribe(opts);'),
+        fake('ui/d.ts', 'const ok = window.Notification?.permission;'),
+        fake(
+          'platform/e.ts',
+          [
+            '// Notification.requestPermission is never called',
+            "const s = 'showNotification';",
+            'export interface Notifications { schedule(n: ScheduledNotification): void }',
+            'const notificationsSeen = state.requestPermissionCount;',
+          ].join('\n'),
+        ),
+      ]);
+      expect([...new Set(v.map((x) => x.split(':')[0]))]).toEqual(['platform/a.ts', 'ui/b.ts', 'systems/c.ts', 'main.tsx', 'ui/d.ts']);
+    });
+
+    it('flags the Notifications seam outside main and platform/, types included', () => {
+      const v = notificationsSeamReach([
+        fake('main.tsx', "import type { Notifications } from './platform/notifications';\nplatform.notifications.cancelAll();"),
+        fake('platform/index.ts', "import { createWebNotifications } from './notifications';"),
+        fake('ui/a.ts', "import type { Notifications } from '../platform/notifications';"),
+        fake('actions/b.ts', 'deps.platform.notifications.schedule(n);'),
+        fake('engine/c.ts', 'const n = platform?.notifications;'),
+        fake('ui/d.ts', "import type { Haptics } from '../platform/haptics';\nconst notifications = 1;"),
+      ]);
+      expect(v.map((x) => x.split(':')[0])).toEqual(['ui/a.ts', 'actions/b.ts', 'engine/c.ts']);
     });
 
     it('flags value imports from game layers in platform/, allows type imports', () => {
