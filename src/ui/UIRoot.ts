@@ -32,6 +32,8 @@ import type { Actions } from '../actions';
 import { explain } from './components/refusal';
 import type { ReadonlySignal } from '@preact/signals-core';
 import type { ConfirmSettings } from './primitives/HoldToConfirm';
+import type { ShellHosts } from './shell/hosts';
+import { PANEL_PLACEMENT, placementOf } from '../data/content/tabs';
 
 /**
  * Root UI controller. Mounts all panels into #app.
@@ -61,8 +63,10 @@ export class UIRoot {
   /** Confirm style and hold duration for irreversible actions (platform settings, from main). */
   private confirmSettings: ReadonlySignal<ConfirmSettings>;
 
-  /** Container div (#panels) where all panels are appended. */
+  /** Container div (#panels) where panels without a shell host are appended. */
   private panelsContainer: HTMLElement | null = null;
+  /** The tab shell's host containers (Story 1.15); each panel mounts in its tab's host. */
+  private hosts: ShellHosts | null = null;
 
   /** Pause button reference for icon update on keyboard toggle. */
   private pauseBtnEl: HTMLButtonElement | null = null;
@@ -211,8 +215,12 @@ export class UIRoot {
     }
   }
 
-  mount(container: HTMLElement): void {
-    container.innerHTML = '';
+  /**
+   * Mount the legacy panels into the tab shell (Story 1.15). Each panel goes
+   * into the host of its placement in the tab registry (data/content/tabs.ts).
+   */
+  mount(hosts: ShellHosts): void {
+    this.hosts = hosts;
 
     // Top bar
     const topBar = document.createElement('div');
@@ -245,14 +253,14 @@ export class UIRoot {
     phaseLabel.className = 'game-phase';
     phaseLabel.textContent = "Queen's Chamber";
     topBar.appendChild(phaseLabel);
-    container.appendChild(topBar);
+    hosts.strip.appendChild(topBar);
 
-    // Phase indicator (always visible) — boot panel (Phase 1)
+    // Phase indicator (always visible) — boot panel (Phase 1), NEST
     const phaseIndicator = new PhaseIndicator(this.bus, this.getState().phase as Phase);
-    container.appendChild(phaseIndicator.getElement());
+    hosts.host(PANEL_PLACEMENT.phase_indicator).appendChild(phaseIndicator.getElement());
     this.panelElements.set('phase_indicator', phaseIndicator.getElement());
 
-    // Click button (always visible) — boot panel (Phase 1)
+    // Click button — NEST's primary action, pinned in the primary zone
     const clickBtn = new ClickButton(
       this.bus,
       this.actions,
@@ -260,23 +268,21 @@ export class UIRoot {
       this.getState,
       this.audio,
     );
-    container.appendChild(clickBtn.getElement());
+    hosts.host(PANEL_PLACEMENT.click_button).appendChild(clickBtn.getElement());
     this.panelElements.set('click_button', clickBtn.getElement());
 
-    // Activity log — boot panel (Phase 1)
+    // Activity log — boot panel (Phase 1), NEST
     const logEl = this.eventLog.getElement();
     logEl.id = 'activity-log';
-    container.appendChild(logEl);
+    hosts.host(PANEL_PLACEMENT.event_log).appendChild(logEl);
     this.panelElements.set('event_log', logEl);
 
-    // Panels section
-    const panels = document.createElement('div');
-    panels.id = 'panels';
-    this.panelsContainer = panels;
+    // The shell's scroll area is #panels.
+    this.panelsContainer = hosts.scroll;
 
-    // ── Phase 1 panels: mount at boot (always visible) ──
+    // ── Phase 1 panels: mount at boot (always visible) — resources sit in the strip ──
     const resourcePanel = new ResourcePanel();
-    panels.appendChild(resourcePanel.getElement());
+    hosts.host(PANEL_PLACEMENT.resource_panel).appendChild(resourcePanel.getElement());
     this.panelElements.set('resource_panel', resourcePanel.getElement());
 
     // ── Phase 2+ panels are NOT mounted at boot ──
@@ -285,8 +291,6 @@ export class UIRoot {
     // cluttering the DOM with disabled buttons from the first second.
 
     // Decision events open a decision sheet through the SheetController (main.tsx, Story 1.14).
-
-    container.appendChild(panels);
 
     // ── Phase transition overlay ──
     this.transitionOverlay = document.createElement('div');
@@ -365,9 +369,11 @@ export class UIRoot {
       this.panelsContainer = panelsEl;
     }
 
-    // Create and mount
+    // Create and mount, in the panel's tab host when the shell is mounted
     const element = factory();
-    panelsEl.appendChild(element);
+    const placement = placementOf(panelId);
+    const host = this.hosts && placement ? this.hosts.host(placement) : panelsEl;
+    host.appendChild(element);
     this.panelElements.set(panelId, element);
 
     return element;

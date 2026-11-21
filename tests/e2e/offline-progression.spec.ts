@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openTab } from './helpers/tabs';
 
 /**
  * Offline Progression E2E tests (GM-8).
@@ -102,6 +103,15 @@ function makeOfflineSave(saveTimestamp: number, overrides: Record<string, unknow
 }
 
 /** Inject save + navigate + wait for bootstrap. Standard offline test setup. */
+/** Close the offline-summary sheet, then open FRONT → WAR, where the battle panel lives (Story 1.15). */
+async function dismissAndOpenWar(page: import('@playwright/test').Page) {
+  const popup = page.locator('.offline-summary-popup');
+  await expect(popup).toBeVisible({ timeout: 5000 });
+  await popup.locator('button').first().click();
+  await expect(popup).toHaveCount(0);
+  await openTab(page, 'front', 'war');
+}
+
 async function setupOfflineTest(page: import('@playwright/test').Page, saveTimestamp: number, overrides?: Record<string, unknown>, waitMs = 3500) {
   const saveData = makeOfflineSave(saveTimestamp, overrides);
   await page.addInitScript((s: string) => {
@@ -331,6 +341,7 @@ test.describe('Offline Progression — Combat Phase', () => {
     });
 
     // Battle panel visible in combat phase after offline catch-up
+    await dismissAndOpenWar(page);
     await expect(page.locator('#battle-panel')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#scout-enemy')).toBeVisible({ timeout: 3000 });
     await expect(page.locator('#scout-enemy')).toBeEnabled({ timeout: 3000 });
@@ -372,6 +383,7 @@ test.describe('Offline Progression — Combat Phase', () => {
     expect(pageErrors).toHaveLength(0);
 
     // Combat phase UI should be functional
+    await dismissAndOpenWar(page);
     await expect(page.locator('#battle-panel')).toBeVisible({ timeout: 5000 });
   });
 
@@ -408,6 +420,7 @@ test.describe('Offline Progression — Expeditions Mid-Flight', () => {
 
     // Game should load without errors — expedition resolved during catch-up
     expect(pageErrors).toHaveLength(0);
+    await dismissAndOpenWar(page);
     await expect(page.locator('#battle-panel')).toBeVisible({ timeout: 5000 });
 
     // Expedition should be gone (resolved during offline catch-up)

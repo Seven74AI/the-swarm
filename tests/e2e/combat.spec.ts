@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openTab } from './helpers/tabs';
 
 // ─── Helpers ───────────────────────────────────────────────────
 
@@ -89,6 +90,8 @@ async function setupCombatPhase(page: Page, overrides?: Record<string, unknown>)
 
   await page.goto('/');
   await page.waitForTimeout(2000);
+  // Soldiers and battles live in FRONT → WAR (Story 1.15).
+  await openTab(page, 'front', 'war');
 }
 
 test.describe('Combat', () => {

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openTab } from './helpers/tabs';
 
 /**
  * E2E: Phase Transition Visual Spectacle.
@@ -124,7 +125,8 @@ test.describe('Phase Transition — Visual Spectacle', () => {
     const phaseIndicator = page.locator('#phase-indicator');
     await expect(phaseIndicator).toContainText('Colony', { timeout: 5000 });
 
-    // Worker assignment panel should now be visible (unlocked in colony phase)
+    // Worker assignment panel should now be visible in WRKR (unlocked in colony phase)
+    await openTab(page, 'wrkr');
     await expect(page.locator('#worker-assignment')).toBeVisible({ timeout: 5000 });
   });
 

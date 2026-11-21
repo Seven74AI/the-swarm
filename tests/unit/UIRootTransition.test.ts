@@ -2,6 +2,7 @@
  * UIRoot phase transition tests — overlay lifecycle and panel dimming.
  * Tests the DOM changes triggered by transition_start / transition_complete events.
  */
+import { shellHosts } from './helpers/shellHosts';
 import { testActions } from './helpers/actions';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { EventBus } from '../../src/engine/EventBus';
@@ -48,7 +49,7 @@ describe('UIRoot — phase transition overlay', () => {
   describe('overlay lifecycle', () => {
     it('creates overlay element on transition_start event', () => {
       const ui = createUIRoot();
-      ui.mount(container);
+      ui.mount(shellHosts(container));
 
       bus.emit('transition_start', { phase: Phase.COLONY, quote: 'Test quote.' });
 
@@ -59,7 +60,7 @@ describe('UIRoot — phase transition overlay', () => {
 
     it('overlay contains the lore quote text', () => {
       const ui = createUIRoot();
-      ui.mount(container);
+      ui.mount(shellHosts(container));
 
       bus.emit('transition_start', { phase: Phase.COLONY, quote: 'The colony awakens.' });
 
@@ -69,7 +70,7 @@ describe('UIRoot — phase transition overlay', () => {
 
     it('removes overlay active class on transition_complete event', () => {
       const ui = createUIRoot();
-      ui.mount(container);
+      ui.mount(shellHosts(container));
 
       bus.emit('transition_start', { phase: Phase.COLONY, quote: 'Test.' });
       expect(document.getElementById('phase-transition-overlay')).not.toBeNull();
@@ -82,7 +83,7 @@ describe('UIRoot — phase transition overlay', () => {
 
     it('dims existing panels during transition', () => {
       const ui = createUIRoot();
-      ui.mount(container);
+      ui.mount(shellHosts(container));
 
       // Show some panels first
       ui.showPanel('resource_panel');
@@ -97,7 +98,7 @@ describe('UIRoot — phase transition overlay', () => {
 
     it('removes dim class from panels on transition_complete', () => {
       const ui = createUIRoot();
-      ui.mount(container);
+      ui.mount(shellHosts(container));
 
       ui.showPanel('resource_panel');
       ui.showPanel('event_log');
@@ -112,7 +113,7 @@ describe('UIRoot — phase transition overlay', () => {
 
     it('adds transitioning class to phase indicator on transition_start', () => {
       const ui = createUIRoot();
-      ui.mount(container);
+      ui.mount(shellHosts(container));
 
       bus.emit('transition_start', { phase: Phase.COLONY, quote: 'The colony awakens.' });
 
@@ -123,7 +124,7 @@ describe('UIRoot — phase transition overlay', () => {
 
     it('removes transitioning class from phase indicator on transition_complete', () => {
       const ui = createUIRoot();
-      ui.mount(container);
+      ui.mount(shellHosts(container));
 
       bus.emit('transition_start', { phase: Phase.COLONY, quote: 'Test.' });
       bus.emit('transition_complete', { phase: Phase.COLONY });
@@ -135,7 +136,7 @@ describe('UIRoot — phase transition overlay', () => {
 
     it('overlay displays the phase name alongside the lore quote', () => {
       const ui = createUIRoot();
-      ui.mount(container);
+      ui.mount(shellHosts(container));
 
       bus.emit('transition_start', { phase: Phase.SPACE, quote: 'Gravity is a chain.' });
 

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openTab } from './helpers/tabs';
 
 /**
  * E2E: Space Phase UI — Neon Theme, Spaceship & Exploration Panels.
@@ -96,6 +97,8 @@ async function readGameState(page: Page, path: string): Promise<unknown> {
  */
 async function waitForSpacePanels(page: Page) {
   await expect(page.locator('#phase-indicator')).toContainText('Space', { timeout: 10000 });
+  // Space panels live in FRONT → STARS (Story 1.15).
+  await openTab(page, 'front', 'stars');
   await expect(page.locator('#spaceship-panel')).toBeVisible({ timeout: 10000 });
 }
 
@@ -117,23 +120,28 @@ test.describe('Space Phase — Neon Theme & Panels', () => {
   test('all expansion panels + space panels are visible in SPACE phase', async ({ page }) => {
     await seedAndWaitForSpace(page);
 
-    // Core panels always visible
+    // New SPACE panels (FRONT → STARS, opened by the helper)
+    await expect(page.locator('#spaceship-panel')).toBeVisible();
+    await expect(page.locator('#exploration-panel')).toBeVisible();
+
+    // Core panels: NEST and the strip
+    await openTab(page, 'nest');
     await expect(page.locator('#click-egg')).toBeVisible();
     await expect(page.locator('#activity-log')).toBeVisible();
     await expect(page.locator('#phase-indicator')).toBeVisible();
     await expect(page.locator('.resource-panel')).toBeVisible();
 
-    // Expansion panels still visible
+    // Expansion panels still there, each in its tab
+    await openTab(page, 'wrkr');
     await expect(page.locator('#worker-assignment')).toBeVisible();
+    await openTab(page, 'front', 'war');
     await expect(page.locator('#soldier-panel')).toBeVisible();
     await expect(page.locator('#battle-panel')).toBeVisible();
+    await openTab(page, 'build');
     await expect(page.locator('#building-panel')).toBeVisible();
+    await openTab(page, 'front', 'map');
     await expect(page.locator('#expedition-panel')).toBeVisible();
     await expect(page.locator('.map-panel')).toBeVisible();
-
-    // New SPACE panels
-    await expect(page.locator('#spaceship-panel')).toBeVisible();
-    await expect(page.locator('#exploration-panel')).toBeVisible();
   });
 
   test('space phase indicator shows "Space"', async ({ page }) => {

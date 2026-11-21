@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openTab } from './helpers/tabs';
 
 /**
  * E2E test: Automation System (GM-3)
@@ -97,6 +98,8 @@ async function seedAndLoad(page: import('@playwright/test').Page, saveObj: Recor
   }, JSON.stringify(saveObj));
   await page.goto('/');
   await page.waitForSelector('#panels', { timeout: 10000 });
+  // The automation panel lives in WRKR (Story 1.15).
+  await openTab(page, 'wrkr');
 }
 
 test.describe('Automation System (GM-3)', () => {

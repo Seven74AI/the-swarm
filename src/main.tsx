@@ -28,6 +28,8 @@ import { getPrestigeBonuses } from './systems/PrestigeBonusSystem';
 import { render } from 'preact';
 import { UIRoot } from './ui/UIRoot';
 import { App } from './ui/App';
+import { createTabShell } from './ui/shell/tabShell';
+import { selectAffordableKeys, selectPhase } from './state/selectors';
 import { AudioSystem } from './ui/AudioSystem';
 import { SaveManager } from './persistence/SaveManager';
 import type { OfflineLoadInfo } from './persistence/SaveManager';
@@ -396,7 +398,9 @@ export function bootstrap(): {
   if (app) {
     // The Preact root hosts the legacy UIRoot (Story 1.7). render() mounts it synchronously,
     // so the panels exist before the phase's panels are revealed below.
-    render(<App legacy={ui} sheets={sheets} />, app);
+    // The tab shell (Story 1.15): tabs revealed by phase, `•` from what became affordable.
+    const shell = createTabShell({ phase: selectPhase, affordable: selectAffordableKeys });
+    render(<App legacy={ui} shell={shell} sheets={sheets} />, app);
   }
 
   // Start onboarding tutorial for new players (persisted via localStorage)

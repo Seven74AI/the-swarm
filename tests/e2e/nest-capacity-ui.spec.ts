@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openTab } from './helpers/tabs';
 
 /**
  * Nest Capacity UI E2E Tests
@@ -175,6 +176,7 @@ test.describe('Nest Capacity UI', () => {
       larvaPipeline: { count: 0, progress: 0 },
     });
 
+    await openTab(page, 'wrkr');
     const digRow = page.locator('[data-role="dig"]');
     await expect(digRow).toBeVisible();
 
@@ -193,6 +195,7 @@ test.describe('Nest Capacity UI', () => {
     });
 
     // The capacity line should be visible
+    await openTab(page, 'wrkr');
     const capacityLine = page.locator('.capacity-line');
     await expect(capacityLine).toBeVisible();
 
@@ -212,6 +215,7 @@ test.describe('Nest Capacity UI', () => {
     });
 
     // With warehouse level 1 (+25 capacity), capacity display should show +Warehouse
+    await openTab(page, 'wrkr');
     const capacityLine = page.locator('.capacity-line');
     await expect(capacityLine).toBeVisible();
 

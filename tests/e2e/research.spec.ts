@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openTab } from './helpers/tabs';
 
 /**
  * Research System E2E Tests
@@ -80,6 +81,8 @@ async function seedSpaceAndWait(page: any, overrides?: Record<string, unknown>) 
   // The seed is already in SPACE, so the research panel is revealed on boot.
   // Wait for it instead of fast-forwarding a fixed span: every fake timer that
   // runFor() fires costs a real macrotask, which is slow under CI load.
+  // Research lives in BUILD (Story 1.15).
+  await openTab(page, 'build');
   await expect(page.locator('#research-panel')).toBeVisible({ timeout: 10000 });
 }
 

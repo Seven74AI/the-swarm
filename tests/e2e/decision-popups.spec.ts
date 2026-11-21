@@ -168,12 +168,19 @@ test.describe('Decision Popups (GM-2)', () => {
     const popup = page.locator('#decision-popup');
     await expect(popup).toBeVisible({ timeout: 10_000 });
 
-    // Verify the popup is non-blocking: the click button is visible and clickable
-    // while the popup is shown (proves popup doesn't block game input)
+    // Verify the popup is non-blocking: the simulation keeps running while it is shown.
+    const playTime = () => page.evaluate(() => {
+      const swarm = (window as unknown as { __swarm: { manager: { getState(): { stats: { playTimeMs: number } } } } }).__swarm;
+      return swarm.manager.getState().stats.playTimeMs;
+    });
+    const before = await playTime();
+    await expect.poll(playTime, { timeout: 5_000 }).toBeGreaterThan(before);
+
+    // The lay-egg button still works. Since Story 1.15 it is pinned in the bottom
+    // primary zone, under the sheet, so it is pressed programmatically here.
     const clickBtn = page.locator('#click-egg');
-    await expect(clickBtn).toBeVisible({ timeout: 5_000 });
     await expect(clickBtn).toBeEnabled({ timeout: 5_000 });
-    await clickBtn.click();
+    await clickBtn.evaluate((el) => (el as HTMLElement).click());
     // Verify clicks incremented
     const clickCounter = page.locator('.click-counter');
     await expect(clickCounter).toContainText(/Clicks: (?!0)/, { timeout: 5_000 });
