@@ -62,13 +62,13 @@ test.describe('BUILD tab', () => {
     await expect(card.locator('[data-shortfall]')).toContainText('needs');
     await expect(card.locator('[data-action="buy-click-power"]')).toHaveAttribute('aria-disabled', 'true');
     await expect(page.locator('[data-primary-for="build"] [data-action="buy-highlighted"]')).toHaveCount(0);
-    // The colony's buildings are listed, none buyable (Story 3.5).
-    for (const id of ['barracks', 'walls', 'warehouse']) {
+    // The colony's buildings are listed, none buyable (Story 3.5); the nectar ones too (Story 4.7).
+    for (const id of ['barracks', 'walls', 'warehouse', 'fungus_garden', 'tunnels']) {
       await expect(build.locator(`[data-building="${id}"] [data-action="buy-building"]`)).toHaveAttribute('aria-disabled', 'true');
     }
   });
 
-  test('in Colony BUILD lists Barracks, Walls and Warehouse, not the workshops, and BUY levels one up (Story 3.5)', async ({ page }) => {
+  test('in Colony BUILD lists the colony\'s buildings, not the workshops, and BUY levels one up (Story 3.5, 4.7)', async ({ page }) => {
     await seed(page, {
       ...colony(0),
       resources: { ...colony(0).resources, stone: 1_000_000 },
@@ -77,7 +77,7 @@ test.describe('BUILD tab', () => {
     });
     await openTab(page, 'build');
     const build = page.locator('[data-tab-panel="build"]');
-    for (const id of ['barracks', 'walls', 'warehouse']) await expect(build.locator(`[data-building="${id}"]`)).toBeVisible();
+    for (const id of ['barracks', 'walls', 'warehouse', 'fungus_garden', 'tunnels']) await expect(build.locator(`[data-building="${id}"]`)).toBeVisible();
     for (const id of ['silk_weaving', 'chitin_armory', 'venom_lab']) await expect(build.locator(`[data-building="${id}"]`)).toHaveCount(0);
     const buy = build.locator('[data-building="walls"] [data-action="buy-building"]');
     await expect(buy).not.toHaveAttribute('aria-disabled', 'true');
@@ -88,7 +88,8 @@ test.describe('BUILD tab', () => {
   });
 
   test('the highlighted card is the one > BUY buys', async ({ page }) => {
-    await seed(page, colony(1_000_000));
+    // The offline research is done, so Click Power is the critical path's first affordable item.
+    await seed(page, { ...colony(1_000_000), research: { projects: { dormantForaging: { status: 'done' } } } });
     await openTab(page, 'build');
     const build = page.locator('[data-tab-panel="build"]');
     await expect(build.locator('[data-build-header]')).toHaveText('BUILD');

@@ -87,6 +87,10 @@ for (const [name, vp] of [['phone', PHONE], ['desktop', DESKTOP]] as const) {
     test('every tab passes axe and reads no typed decoration', async ({ page }) => {
       for (const [tab, segment] of TABS) {
         await openTab(page, tab, segment);
+        // The Colony's nectar buildings (Story 4.7) are checked with the rest of BUILD.
+        if (tab === 'build') {
+          for (const id of ['fungus_garden', 'tunnels']) await expect(page.locator(`[data-building="${id}"]`)).toBeVisible();
+        }
         expect(await axe(page), tab).toEqual([]);
         const tree = await spokenTree(page);
         const leaks = tree.split('\n').filter((l) => DECORATION.test(l));

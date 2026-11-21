@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { Phase } from '../../../src/phases/phases';
-import { createInitialState, type GameState } from '../../../src/state/GameState';
-import { itemCost, itemEffects, itemKey, itemPanel, listItems, type ItemRef } from '../../../src/systems/NextAction';
+import type { GameState } from '../../../src/state/GameState';
+import { itemCost, itemEffects, itemKey, type ItemRef } from '../../../src/systems/NextAction';
 import { CRITICAL_PATH } from '../../../src/data/content/criticalPath';
 import { FIRST_PRODUCED_IN, type ProducedResource } from '../../../src/data/content/producers';
-import { PANEL_PLACEMENT, isUnlocked } from '../../../src/data/content/tabs';
+import { dominates as dominatesIn, freshIn, purchasablesIn } from '../helpers/choices';
 
 /**
  * Story 4.6 (FR19): Egg Laying has choices worth making. Phase 1's
@@ -14,32 +14,14 @@ import { PANEL_PLACEMENT, isUnlocked } from '../../../src/data/content/tabs';
  * amount is restated here.
  */
 
-/** A fresh Phase 1 colony with enough food to see every price. */
-const fresh = (): GameState => ({ ...createInitialState(), phase: Phase.EGG_LAYING });
+/** A fresh Phase 1 colony. */
+const fresh = (): GameState => freshIn(Phase.EGG_LAYING);
 
-function phase1Items(): ItemRef[] {
-  const s = fresh();
-  return listItems().filter((ref) => itemCost(s, ref) !== null && sellerOpenInPhase1(ref));
-}
-
-/** Items sold only from a later tab are not Phase 1's, even if their own rules would allow them. */
-function sellerOpenInPhase1(ref: ItemRef): boolean {
-  return isUnlocked(PANEL_PLACEMENT[itemPanel(ref)].unlockPhase, Phase.EGG_LAYING);
-}
+/** Items sold only from a later tab are not Phase 1's, even if their own rules would allow them (helpers/choices.ts). */
+const phase1Items = (): ItemRef[] => purchasablesIn(Phase.EGG_LAYING);
 
 /** a costs the same or less on every stock b costs, and gives at least as much of every effect b gives. */
-function dominates(a: ItemRef, b: ItemRef): boolean {
-  const s = fresh();
-  const costA = itemCost(s, a)!;
-  const costB = itemCost(s, b)!;
-  const stocks = new Set([...Object.keys(costA), ...Object.keys(costB)]) as Set<keyof typeof costA>;
-  const cheaper = [...stocks].every((k) => (costA[k] ?? 0) <= (costB[k] ?? 0));
-  const effA = itemEffects(a)!;
-  const effB = itemEffects(b)!;
-  const kinds = new Set([...Object.keys(effA), ...Object.keys(effB)]) as Set<keyof typeof effA>;
-  const better = [...kinds].every((k) => (effA[k] ?? 0) >= (effB[k] ?? 0));
-  return cheaper && better;
-}
+const dominates = (a: ItemRef, b: ItemRef): boolean => dominatesIn(fresh(), a, b);
 
 describe('Phase 1 purchasables (Story 4.6)', () => {
   const items = phase1Items();
@@ -66,7 +48,7 @@ describe('Phase 1 purchasables (Story 4.6)', () => {
 
   it('each has its effects as data, every one a gain', () => {
     for (const ref of items) {
-      const effects = itemEffects(ref);
+      const effects = itemEffects(fresh(), ref);
       expect(effects, itemKey(ref)).not.toBeNull();
       const values = Object.values(effects!);
       expect(values.length, itemKey(ref)).toBeGreaterThan(0);
@@ -84,10 +66,10 @@ describe('Phase 1 purchasables (Story 4.6)', () => {
   });
 
   it('Click Power stays the only tap upgrade; the additions improve hatching, upkeep or capacity', () => {
-    const tap = items.filter((ref) => (itemEffects(ref)!.eggsPerTap ?? 0) > 0);
+    const tap = items.filter((ref) => (itemEffects(fresh(), ref)!.eggsPerTap ?? 0) > 0);
     expect(tap.map(itemKey)).toEqual(['upgrade:click_power']);
     for (const ref of items.filter((r) => !tap.includes(r))) {
-      const e = itemEffects(ref)!;
+      const e = itemEffects(fresh(), ref)!;
       expect((e.hatchPercent ?? 0) + (e.upkeepCutPercent ?? 0) + (e.nestCapacity ?? 0), itemKey(ref)).toBeGreaterThan(0);
     }
   });

@@ -27,6 +27,10 @@ function effectLine(id: BuildingType, level: number): string {
       return `DEFENSE +${pct(now.defenseBonus)}% → +${pct(next.defenseBonus)}%`;
     case 'warehouse':
       return `NEST CAPACITY +${whole(now.nestCapacity)} → +${whole(next.nestCapacity)}`;
+    case 'fungus_garden':
+      return `GATHERER FOOD +${pct(now.gatherFoodBonus)}% → +${pct(next.gatherFoodBonus)}%`;
+    case 'tunnels':
+      return `DIGGING SPEED +${pct(now.digSpeedBonus)}% → +${pct(next.digSpeedBonus)}%`;
     case 'silk_weaving':
       return level >= 1 ? 'ARMOR UPGRADES UNLOCKED' : 'UNLOCKS ARMOR UPGRADES';
     case 'chitin_armory':

@@ -4,6 +4,7 @@
  * growth and soft cap are in `progression.ts`. Tests import these. Story 3.11
  * scaled the wood, stone and nectar prices with the slower role yields, and
  * the Warehouse's room so Colony's goal needs it and Combat's needs more.
+ * Story 4.7 added the Fungus Garden and Tunnels, the Colony's nectar buildings.
  */
 export const buildingBalance = {
   /** Base cost of each building; the cost to reach a level is `floor(base × growth^level)`. */
@@ -14,6 +15,9 @@ export const buildingBalance = {
     silk_weaving: { food: 0, wood: 400, stone: 0, nectar: 0, chitin: 0, silk: 4, venom: 0 },
     chitin_armory: { food: 0, wood: 0, stone: 400, nectar: 0, chitin: 4, silk: 0, venom: 0 },
     venom_lab: { food: 0, wood: 0, stone: 0, nectar: 400, chitin: 0, silk: 0, venom: 2 },
+    // Story 4.7: the Colony's nectar buildings. Wood or stone against the Warehouse, nectar against each other.
+    fungus_garden: { food: 0, wood: 800, stone: 0, nectar: 300, chitin: 0, silk: 0, venom: 0 },
+    tunnels: { food: 0, wood: 0, stone: 1200, nectar: 300, chitin: 0, silk: 0, venom: 0 },
   },
   /** From this level on, barracks, walls and warehouse also cost combat resources. */
   advancedFromLevel: 5,
@@ -31,4 +35,8 @@ export const buildingBalance = {
   wallsDefensePerLevel: 0.05,
   /** Warehouse: nest capacity per level. */
   warehouseNestCapacityPerLevel: 20,
+  /** Fungus Garden (Story 4.7): extra share of a gatherer's food per level. */
+  fungusGardenGatherFoodPerLevel: 0.25,
+  /** Tunnels (Story 4.7): extra share of a digger's digging speed per level. */
+  tunnelsDigSpeedPerLevel: 0.5,
 } as const;

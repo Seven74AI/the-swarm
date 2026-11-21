@@ -80,7 +80,7 @@ const arbState: fc.Arbitrary<GameState> = fc
     combatSoldiers: amount(80),
     scouts: amount(20),
     warriors: amount(20),
-    buildingLevels: fc.array(amount(6), { minLength: 6, maxLength: 6 }),
+    buildingLevels: fc.array(amount(6), { minLength: 8, maxLength: 8 }),
     equipment: fc.array(amount(5), { minLength: 2, maxLength: 2 }),
     clickPower: amount(20),
     // Egg-chamber levels (Story 4.6), up to each one's last level.
@@ -131,11 +131,13 @@ const arbState: fc.Arbitrary<GameState> = fc
     s.soldierPipeline = { count: r.training, progress: 0 };
     s.combatSoldiers = r.combatSoldiers;
     s.soldiers = { ...s.soldiers, scouts: r.scouts, warriors: r.warriors };
-    const [barracks, walls, warehouse, silk, chitin, venom] = r.buildingLevels;
+    const [barracks, walls, warehouse, silk, chitin, venom, garden, tunnels] = r.buildingLevels;
     s.buildings = {
       barracks: { level: barracks, count: barracks },
       walls: { level: walls },
       warehouse: { level: warehouse },
+      fungus_garden: { level: garden },
+      tunnels: { level: tunnels },
       silk_weaving: { level: silk },
       chitin_armory: { level: chitin },
       venom_lab: { level: venom },
@@ -203,11 +205,16 @@ const arbAction: fc.Arbitrary<Command> = fc.oneof(
   fc.constantFrom('gather', 'forage', 'tend', 'dig', 'guard', 'research' as const).chain((role) =>
     fc.integer({ min: -50, max: 50 }).map((delta): Command => ({ kind: 'action', name: `stepRole ${role} ${delta}`, run: (a) => a.stepRole(role, delta) })),
   ),
+<<<<<<< HEAD
   // Click Power and the egg-chamber upgrades (Story 4.6).
   fc.constantFrom(...(Object.keys(upgradeBalance) as UpgradeId[])).map(
     (id): Command => ({ kind: 'action', name: `buyUpgrade ${id}`, run: (a) => a.buyUpgrade(id) }),
   ),
   fc.constantFrom('barracks', 'walls', 'warehouse', 'silk_weaving', 'chitin_armory', 'venom_lab' as const).map(
+=======
+  act('buyUpgrade', (a) => a.buyUpgrade('click_power')),
+  fc.constantFrom('barracks', 'walls', 'warehouse', 'fungus_garden', 'tunnels', 'silk_weaving', 'chitin_armory', 'venom_lab' as const).map(
+>>>>>>> a8123f6 (Story 4.7: Colony has choices worth making)
     (b): Command => ({ kind: 'action', name: `buyBuilding ${b}`, run: (a) => a.buyBuilding(b) }),
   ),
   fc.constantFrom('basic_incubation', 'queens_pheromones', 'thermal_regulation', 'genetic_optimization', 'cloning_vats' as const).map(

@@ -62,7 +62,7 @@ describe('BUILD items (Story 1.24)', () => {
   it('lists every building and research project, and nothing sold on another tab', () => {
     const s = makeState({ phase: Phase.SPACE });
     const keys = buildItems(s).map(itemKey);
-    for (const b of ['barracks', 'walls', 'warehouse', 'silk_weaving', 'chitin_armory', 'venom_lab']) {
+    for (const b of ['barracks', 'walls', 'warehouse', 'fungus_garden', 'tunnels', 'silk_weaving', 'chitin_armory', 'venom_lab']) {
       expect(keys).toContain(`building:${b}`);
     }
     for (const p of getProjects()) expect(keys).toContain(`research:${p.id}`);

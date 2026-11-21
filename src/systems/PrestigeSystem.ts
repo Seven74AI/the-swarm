@@ -153,6 +153,8 @@ export function prestige(state: GameState): GameState {
       barracks: { level: 0, count: 0 },
       walls: { level: 0 },
       warehouse: { level: 0 },
+      fungus_garden: { level: 0 },
+      tunnels: { level: 0 },
       silk_weaving: { level: 0 },
       chitin_armory: { level: 0 },
       venom_lab: { level: 0 },

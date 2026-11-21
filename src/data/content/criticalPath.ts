@@ -38,10 +38,18 @@ export const CRITICAL_PATH: Readonly<Record<Phase, readonly ItemRef[]>> = {
     { kind: 'upgrade', id: 'lean_rations' },
     { kind: 'upgrade', id: 'side_chamber' },
   ],
-  // Colony grows workers: tapping stays the lever, then a Warehouse makes room for them (Story 3.5).
+  // Colony grows workers into its rooms (Story 4.7): room first (the Warehouse at once, Tunnels
+  // over time), then food for the bigger colony. Tapping still lays every egg until automation
+  // does (Story 4.10), then time away counts for more. Barracks and Walls pay off only beyond
+  // the nest, so they come last.
   [Phase.COLONY]: [
-    { kind: 'upgrade', id: 'click_power' },
     { kind: 'building', id: 'warehouse' },
+    { kind: 'building', id: 'tunnels' },
+    { kind: 'building', id: 'fungus_garden' },
+    { kind: 'upgrade', id: 'click_power' },
+    { kind: 'research', id: 'dormantForaging' },
+    { kind: 'building', id: 'barracks' },
+    { kind: 'building', id: 'walls' },
   ],
   // Battles won: survive (HP) and hit harder, then feed the colony.
   [Phase.COMBAT]: [

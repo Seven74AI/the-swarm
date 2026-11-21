@@ -708,6 +708,24 @@ function migrateV26toV27(data: SaveData): SaveData {
   return { ...data, version: 27, gameState: { ...gs, nextEnemy } as unknown as GameState };
 }
 
+/**
+ * v27 → v28 (Story 4.7, FR19): the Colony's nectar buildings, the Fungus
+ * Garden and Tunnels, start at level 0. Levels a save already holds are kept;
+ * a save without buildings is left for SaveManager's defaults.
+ */
+function migrateV27toV28(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  const buildings = gs.buildings;
+  if (buildings === null || typeof buildings !== 'object') return { ...data, version: 28 };
+  const b = buildings as Record<string, unknown>;
+  const next = {
+    ...b,
+    fungus_garden: b.fungus_garden ?? { level: 0 },
+    tunnels: b.tunnels ?? { level: 0 },
+  };
+  return { ...data, version: 28, gameState: { ...gs, buildings: next } as unknown as GameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -736,6 +754,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   24: migrateV24toV25,
   25: migrateV25toV26,
   26: migrateV26toV27,
+  27: migrateV27toV28,
 };
 
 /**
