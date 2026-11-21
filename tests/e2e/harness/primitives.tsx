@@ -4,6 +4,7 @@
  * The coach-mark memory is a stand-in for the settings store main passes in.
  */
 import '../../../src/ui/styles/tokens.css';
+import '../../../src/ui/styles/typography.css';
 import '../../../src/ui/styles/base.css';
 import '@preact/signals';
 import { render } from 'preact';

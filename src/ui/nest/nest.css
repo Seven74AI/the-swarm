@@ -37,7 +37,7 @@
 .next-affordable {
   margin: 0;
   color: var(--color-dim);
-  font-size: 0.8125rem;
+  font-size: var(--type-aside);
 }
 
 /* LAY EGG and its +N particles. */
@@ -60,7 +60,7 @@
   right: 12px;
   top: 50%;
   color: var(--color-accent);
-  font-size: 0.875rem;
+  font-size: var(--type-body);
   font-weight: 700;
   pointer-events: none;
   white-space: nowrap;
@@ -93,7 +93,7 @@
 .nest-scene__caption {
   margin: 0;
   color: var(--color-dim);
-  font-size: 0.75rem;
+  font-size: var(--type-meta);
   letter-spacing: 0.08em;
 }
 
@@ -109,7 +109,7 @@
 .event-line {
   margin: 2px 0;
   color: var(--color-dim);
-  font-size: 0.75rem;
+  font-size: var(--type-meta);
   line-height: 1.4;
 }
 

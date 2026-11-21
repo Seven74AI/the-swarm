@@ -1,7 +1,7 @@
 /* Meter primitive (Story 1.12). DESIGN.md → Components; colors only from the phase aliases in ui/styles/tokens.css. */
 /* ── Meter: [████······]  74%, fill accent, empty edge, meta size ─────────── */
 .meter {
-  font-size: 0.75rem;
+  font-size: var(--type-meta);
   font-variant-numeric: tabular-nums;
   color: var(--color-dim);
   white-space: nowrap;

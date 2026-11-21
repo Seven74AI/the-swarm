@@ -23,7 +23,7 @@
 .coach-mark__text {
   flex: 1;
   margin: 0;
-  font-size: 0.875rem;
+  font-size: var(--type-body);
   color: var(--color-accent);
   white-space: nowrap;
   overflow: hidden;
@@ -34,7 +34,7 @@
   min-width: 2.75rem;
   padding: 0 0.5rem;
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: var(--type-aside);
   color: var(--color-dim);
   background: transparent;
   border: 0;

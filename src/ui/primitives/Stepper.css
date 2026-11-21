@@ -20,7 +20,7 @@
   min-height: 2.75rem;
   padding: 0 0.5rem;
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: var(--type-aside);
   color: var(--color-dim);
   background: transparent;
   border: 0;

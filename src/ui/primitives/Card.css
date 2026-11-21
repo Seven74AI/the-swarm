@@ -18,11 +18,11 @@
   gap: 0.5rem;
   align-items: baseline;
   margin: 0;
-  font-size: 0.875rem;
+  font-size: var(--type-body);
   font-weight: 700;
 }
 .card__level { margin-left: auto; font-weight: 400; color: var(--color-dim); }
-.card__effect { margin: 0.25rem 0 0; font-size: 0.75rem; color: var(--color-dim); }
-.card__cost { margin: 0.25rem 0 0; font-size: 0.8125rem; color: var(--color-dim); }
+.card__effect { margin: 0.25rem 0 0; font-size: var(--type-meta); color: var(--color-dim); }
+.card__cost { margin: 0.25rem 0 0; font-size: var(--type-aside); color: var(--color-dim); }
 .card__shortfall { color: var(--color-warn); }
 .card__action { margin-top: 0.5rem; }

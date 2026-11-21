@@ -5,7 +5,7 @@
 
 .resource-sheet__header {
   margin: 0;
-  font-size: 0.75rem;
+  font-size: var(--type-aside);
   color: var(--color-dim);
 }
 
@@ -31,7 +31,7 @@
 }
 .resource-row__glyph {
   grid-area: glyph;
-  font-size: 1.875rem;
+  font-size: var(--type-display);
   line-height: 1;
   align-self: center;
 }
@@ -40,7 +40,7 @@
 .resource-row__rate { grid-area: rate; text-align: right; min-width: 4ch; }
 .resource-row__cap,
 .resource-row__source {
-  font-size: 0.75rem;
+  font-size: var(--type-aside);
   color: var(--color-dim);
 }
 .resource-row__cap { grid-area: cap; }

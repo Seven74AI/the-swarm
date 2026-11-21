@@ -1,0 +1,42 @@
+/*
+ * THE SWARM — typography (Story 8.1, UX-DR2, ADR 0039).
+ *
+ * "Swarm Mono" is a subset of JetBrains Mono NL (OFL, public/fonts/OFL.txt),
+ * shipped as WOFF2 in regular and bold (rebuilt by scripts/swarm-mono.sh). It
+ * draws ASCII, box drawing, block elements and the terminal symbols at one
+ * advance width, so meters and boxes line up on every phone. System monospace
+ * is only the fallback: --font-mono is the one font stack, used everywhere.
+ *
+ * The six type roles of DESIGN.md (24 / 20 / 15 / 14 / 13 / 12 px), in rem so
+ * the player's text size applies. Every font size in the styles is a role
+ * (tests/unit/ui/typeRoles.test.ts). Rules: no text below `meta` (12 px);
+ * sentence-case text at `aside` (13 px) or larger; text glow only at `value`
+ * (15 px) and larger.
+ */
+
+@font-face {
+  font-family: "Swarm Mono";
+  src: url("/fonts/SwarmMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Swarm Mono";
+  src: url("/fonts/SwarmMono-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-mono: "Swarm Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  --type-display: 1.5rem; /* 24 / 700, +0.1em: sheet headlines, the phase name in the reveal */
+  --type-title: 1.25rem; /* 20 / 700, +0.08em: phase name on NEST, tab headings */
+  --type-value: 0.9375rem; /* 15 / 700: changing numbers in the strip, buttons and sheets */
+  --type-body: 0.875rem; /* 14 / 400: card and sheet text */
+  --type-aside: 0.8125rem; /* 13 / 400: cost lines, secondary actions, toasts (sentence case) */
+  --type-meta: 0.75rem; /* 12 / 400: event lines, goal conditions, tab and strip labels (upper case) */
+}

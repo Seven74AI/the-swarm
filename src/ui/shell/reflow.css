@@ -52,7 +52,7 @@
 }
 
 :root[data-grid="narrow"] .shell-strip .game-title {
-  font-size: 0.875rem;
+  font-size: var(--type-body);
 }
 
 :root[data-grid="narrow"] .shell-strip .pause-btn {

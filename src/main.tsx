@@ -1,4 +1,5 @@
 import './ui/styles/tokens.css';
+import './ui/styles/typography.css';
 import './ui/styles/base.css';
 import './ui/styles/motion.css';
 import { log } from './utils/log';
