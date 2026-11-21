@@ -122,6 +122,11 @@ async function layoutProblems(page: Page): Promise<string[]> {
         problems.push(`cut off sideways (${el.scrollWidth} > ${el.clientWidth}): ${name(el)}`);
       }
     }
+    // The strip is capped (34dvh): its content must fit, or anything that scrolls it pushes the top bar out (#383).
+    const strip = document.querySelector<HTMLElement>('[data-shell-strip]');
+    if (strip && shown(strip) && strip.scrollHeight > strip.clientHeight + 1) {
+      problems.push(`strip scrolls: ${strip.scrollHeight} > ${strip.clientHeight}`);
+    }
     for (const sel of ['[data-shell-strip]', '[data-primary-zone] > :not([hidden])', '[data-tab-bar]']) {
       for (const box of document.querySelectorAll(sel)) {
         if (!shown(box)) continue;

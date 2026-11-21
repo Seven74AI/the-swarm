@@ -63,7 +63,9 @@
 }
 
 .shell-strip .resource-panel {
-  margin-bottom: 0.5rem;
+  /* Capped in px: at 200 % text a growing gap alone pushed the strip past its 34dvh cap,
+     so it scrolled and could push the top bar out (#383). 8 px = 0.5rem at 100 %. */
+  margin-bottom: min(0.5rem, 8px);
   max-width: none;
 }
 
