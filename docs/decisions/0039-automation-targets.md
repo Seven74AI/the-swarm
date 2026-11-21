@@ -21,7 +21,7 @@ Recruitment had actions but no screen.
   trains past it.
 - **Unlock**: `automation.performed[verb] >= targets.unlockAfterManual` (each successful manual action counts, in the
   action's own write), or the phase after the verb's `introducedIn`. The row shows only once the verb's own phase is
-  reached. A pre-v28 save counts its `stats.totalClicks` as laying done by hand. Prestige keeps `automation`.
+  reached. A pre-v30 save counts its `stats.totalClicks` as laying done by hand. Prestige keeps `automation`.
 - **One per-step system**, `tickAutomationTargets`, runs in `processTick` after production, so live play and offline
   catch-up run the same targets (no offline-only path). Training and recruiting are instant top-ups paid as the
   manual verb pays (`trainSoldiers`, `recruitMany`), limited by free workers, food (a starving colony trains no one)
@@ -36,7 +36,7 @@ Recruitment had actions but no screen.
 
 ## Consequences
 
-- Save v28 (`automation`); fixture `tests/saves/v27.json`.
+- Save v30 (`automation`); fixture `tests/saves/v29.json`.
 - Rows: NEST's scene under the queen (`lay`), WAR under TRAIN (`train`), and a new RECRUIT section on MAP (`scout`,
   `warrior`, with the manual RECRUIT buttons the verbs needed).
 - `tests/unit/engine/stepLength.test.ts` has automation properties (ants conserved, never past target, same
