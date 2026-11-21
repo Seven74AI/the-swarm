@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildPacingReport,
   formatPacingReport,
+  criticalMoments,
   idleCheckIns,
   judgeSpan,
   median,
@@ -26,6 +27,7 @@ import { Phase, PHASE_ORDER } from '../../src/phases/phases';
 import { pacingTargets } from '../../src/data/balance/pacing';
 import { simBalance } from '../../src/data/balance/sim';
 import { DAY_MS, HOUR_MS } from '../../src/data/constants';
+import { isCapacityCritical, isFoodCritical } from '../../src/systems/NextAction';
 
 beforeEach(() => {
   vi.spyOn(console, 'info').mockImplementation(() => {});
@@ -37,7 +39,7 @@ afterEach(() => {
 const MIN = 60_000;
 
 function checkIn(index: number, over: Partial<CheckInRecord> = {}): CheckInRecord {
-  return { index, startMs: index * HOUR_MS, phase: Phase.COLONY, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, refused: 0, byAction: {}, ...over };
+  return { index, startMs: index * HOUR_MS, phase: Phase.COLONY, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, refused: 0, byAction: {}, foodCritical: false, capacityCritical: false, ...over };
 }
 
 function egg(activeMs: number, phase: Phase, laid: number, tapped: number): EggSample {
@@ -185,6 +187,20 @@ describe('idleCheckIns (Story 3.9)', () => {
   });
 });
 
+describe('criticalMoments (Story 3.11)', () => {
+  it('counts the check-ins of a phase where food, and where capacity, was critical', () => {
+    const list = [
+      checkIn(0, { phase: Phase.EGG_LAYING, foodCritical: true, capacityCritical: true }),
+      checkIn(1, { foodCritical: true }),
+      checkIn(2, { capacityCritical: true }),
+      checkIn(3, { foodCritical: true, capacityCritical: true }),
+      checkIn(4),
+    ];
+    expect(criticalMoments(list, Phase.COLONY)).toEqual({ food: 2, capacity: 2 });
+    expect(criticalMoments(list, Phase.COMBAT)).toEqual({ food: 0, capacity: 0 });
+  });
+});
+
 describe('the pacing report on a real run (Story 3.9)', () => {
   const targets: PacingTargets = pacingTargets;
   const schedule = dailySchedule(1);
@@ -228,6 +244,12 @@ describe('the pacing report on a real run (Story 3.9)', () => {
     expect(text).toMatch(/tapping/i);
     expect(text).toMatch(/median/i);
     expect(text).toContain(`${report.idle.length}`);
+    expect(text).toMatch(/food-critical/i);
+    expect(text).toMatch(/capacity-critical/i);
+  });
+
+  it('counts the critical moments of the target phase from the probes (Story 3.11)', () => {
+    expect(report.critical).toEqual(criticalMoments(result.probes.checkIns, targets.criticalMoments.phase));
   });
 
   it('runPacingReport plays a fresh game over the day schedule it is given', () => {
@@ -275,5 +297,29 @@ describe('Probes for the report (Story 3.9)', () => {
       }
       if (c.decisionsAvailable > 0) expect(c.waitMs).toBe(0);
     }
+  });
+});
+
+describe('critical-moment probes (Story 3.11)', () => {
+  it('flag a check-in whose arrival state is food-critical and capacity-critical', () => {
+    const base = createInitialState();
+    // Colony, nest full, a stock under the upkeep window and no food income.
+    const s = {
+      ...base,
+      phase: Phase.COLONY,
+      resources: { ...base.resources, workers: 20, nestCapacity: 20, food: 0 },
+      workersAssigned: { ...base.workersAssigned, dig: 20 },
+    };
+    expect(isFoodCritical(s)).toBe(true);
+    expect(isCapacityCritical(s)).toBe(true);
+    const run = runSim({ state: s, seed: 1, schedule: repeatCheckIns(1, { awayMs: 0, activeMs: simBalance.activeStepMs }) });
+    expect(run.probes.checkIns[0].foodCritical).toBe(true);
+    expect(run.probes.checkIns[0].capacityCritical).toBe(true);
+  });
+
+  it('leave both flags down in a check-in where neither ever bites', () => {
+    const run = runSim({ state: createInitialState(), seed: 1, schedule: repeatCheckIns(1, { awayMs: 0, activeMs: simBalance.activeStepMs }) });
+    expect(run.probes.checkIns[0].foodCritical).toBe(false);
+    expect(run.probes.checkIns[0].capacityCritical).toBe(false);
   });
 });

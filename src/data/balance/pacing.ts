@@ -22,6 +22,7 @@ export interface PacingTargets {
   readonly tapShareFirstMinPercent: number;
   readonly tapShareAfterColonyMaxPercent: number;
   readonly idleCheckInMaxMs: number;
+  readonly criticalMoments: { readonly phase: Phase; readonly min: number };
 }
 
 /**
@@ -45,6 +46,8 @@ export const pacingTargets: PacingTargets = {
   tapShareAfterColonyMaxPercent: 10,
   /** A check-in where nothing can be done for longer than this (one check-in interval) is a pacing defect. */
   idleCheckInMaxMs: 4 * HOUR_MS,
+  /** Story 3.11: upkeep and capacity still bite. At least `min` check-ins of `phase` where food, and where capacity, is critical. */
+  criticalMoments: { phase: Phase.COLONY, min: 1 },
 };
 
 /** How `pnpm sim` plays by default: a fresh game, one seed, a week of check-ins. */

@@ -21,6 +21,7 @@ import { PRESTIGE_UPGRADES } from '../../../src/data/prestigeTree';
 import { FIRST_PRODUCED_IN, type ProducedResource } from '../../../src/data/content/producers';
 import { PANEL_PLACEMENT, isUnlocked, type PanelId } from '../../../src/data/content/tabs';
 import { soldierBalance } from '../../../src/data/balance/soldiers';
+import { resourceBalance } from '../../../src/data/balance/resources';
 import type { RngStream } from '../../../src/utils/rng';
 import { testActions } from '../helpers/actions';
 import { makeState } from '../helpers/makeState';
@@ -267,7 +268,9 @@ describe('the producer table tells the truth (Story 3.6)', () => {
     for (let i = 0; i < 20; i++) expect(a.layEgg().ok).toBe(true);
     const before = s.resources.workers;
     const systems = [new ResourceSystem(bus), new SoldierSystem(bus), new MapSystem(), new TerritorySystem()] as const;
-    for (let i = 0; i < 2_000; i++) s = processTick(s, ...systems, new EventQueue(), 0.05);
+    // Twice the mean hatch-and-mature time (read from the balance), in 10 s steps.
+    const steps = Math.ceil((2 * (resourceBalance.hatchMs + resourceBalance.matureMs)) / 10_000);
+    for (let i = 0; i < steps; i++) s = processTick(s, ...systems, new EventQueue(), 10);
     expect(s.resources.workers).toBeGreaterThan(before);
   });
 
