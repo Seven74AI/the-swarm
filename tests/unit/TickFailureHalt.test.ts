@@ -25,7 +25,13 @@ const content = (s: GameState) => JSON.stringify({ ...s, lastSaveTimestamp: 0 })
 
 let swarm: Swarm;
 let lastGood: GameState;
+/** What the scenario looked like just before the halting failure. */
+let beforeHalt: { sameState: boolean; halted: boolean; tickErrors: number };
+/** The save written when the loop halted, read before any test touches storage. */
+let savedAtHalt: GameState;
 
+// The scenario runs once, in order, here; each test asserts one recorded fact, so
+// the tests pass in any order (e.g. `vitest --sequence.shuffle`).
 beforeAll(async () => {
   localStorage.clear();
   document.body.innerHTML = '<div id="app"></div>';
@@ -38,6 +44,15 @@ beforeAll(async () => {
     throw new Error('stubbed system bug');
   });
   log.clear();
+
+  for (let i = 0; i < MAX_FAILED_TICKS - 1; i++) swarm.tick(0.05);
+  beforeHalt = {
+    sameState: swarm.manager.getState() === lastGood,
+    halted: swarm.loop.isHalted(),
+    tickErrors: log.entries().filter((e) => e.level === 'error' && e.scope === 'tick').length,
+  };
+  swarm.tick(0.05); // the failure that halts the loop
+  savedAtHalt = saved();
 });
 afterAll(() => {
   vi.restoreAllMocks();
@@ -45,14 +60,12 @@ afterAll(() => {
 
 describe('a run with a throwing system (Story 1.17)', () => {
   it('keeps the last good state through failed ticks and logs each failure', () => {
-    for (let i = 0; i < MAX_FAILED_TICKS - 1; i++) swarm.tick(0.05);
-    expect(swarm.manager.getState()).toBe(lastGood);
-    expect(swarm.loop.isHalted()).toBe(false);
-    expect(log.entries().filter((e) => e.level === 'error' && e.scope === 'tick').length).toBeGreaterThan(0);
+    expect(beforeHalt.sameState).toBe(true);
+    expect(beforeHalt.halted).toBe(false);
+    expect(beforeHalt.tickErrors).toBeGreaterThan(0);
   });
 
   it('the third failure stops the simulation and opens the EXPORT SAVE / RELOAD sheet', async () => {
-    swarm.tick(0.05);
     expect(swarm.loop.isHalted()).toBe(true);
     expect(swarm.manager.getState()).toBe(lastGood);
     expect(swarm.sheets.state.value.open?.priority).toBe('offline');
@@ -67,7 +80,7 @@ describe('a run with a throwing system (Story 1.17)', () => {
   });
 
   it('the save written at the halt is the last good snapshot', () => {
-    expect(content(saved())).toBe(content(lastGood));
+    expect(content(savedAtHalt)).toBe(content(lastGood));
   });
 
   it('the save written on unload is still the last good snapshot', () => {
@@ -76,9 +89,13 @@ describe('a run with a throwing system (Story 1.17)', () => {
     expect(content(saved())).toBe(content(lastGood));
   });
 
-  it('EXPORT SAVE downloads the last good snapshot; RELOAD reloads the page', () => {
+  it('EXPORT SAVE downloads the last good snapshot; RELOAD reloads the page', async () => {
     const download = vi.spyOn(swarm.platform.browser, 'download').mockImplementation(() => {});
     const reload = vi.spyOn(swarm.platform.browser, 'reload').mockImplementation(() => {});
+    // The sheet host renders on the App's next pass; wait for it in case this runs first.
+    await vi.waitFor(() => {
+      if (!document.querySelector('[data-tick-failure]')) throw new Error('sheet not drawn yet');
+    });
     document.querySelector<HTMLButtonElement>('[data-tick-failure] [data-action="export-save"]')!.click();
     expect(download).toHaveBeenCalledTimes(1);
     const text = download.mock.calls[0][1];

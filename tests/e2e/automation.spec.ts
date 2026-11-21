@@ -199,11 +199,8 @@ test.describe('Automation System (GM-3) — stacking', () => {
 
     // Check rate > 20 eggs/s with all researches + buildings
     const rateDisplay = page.locator('#automation-panel .auto-rate');
-    const rateText = await rateDisplay.textContent();
-    const rateMatch = rateText?.match(/([\d.]+)/);
-    if (rateMatch) {
-      const rate = parseFloat(rateMatch[1]);
-      expect(rate).toBeGreaterThan(20);
-    }
+    await expect(rateDisplay).toHaveText(/[\d.]+/);
+    const rateMatch = (await rateDisplay.textContent())!.match(/([\d.]+)/);
+    expect(parseFloat(rateMatch![1])).toBeGreaterThan(20);
   });
 });

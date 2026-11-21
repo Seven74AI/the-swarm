@@ -104,7 +104,10 @@ async function seed(page: Page, overrides?: Record<string, unknown>) {
 test.describe('Phase reveal (fake clock)', () => {
   test.beforeEach(async ({ page }) => {
     await seed(page);
+    // Paused: page time moves only on runFor(), so the 3.5 s reveal can't end on
+    // its own while a slow CI runner is still checking it.
     await page.clock.install();
+    await page.clock.pauseAt(Date.now() + 1000);
     await page.goto('/');
     await page.waitForSelector('#panels', { timeout: 10000 });
     await page.clock.runFor(1000);
@@ -127,12 +130,12 @@ test.describe('Phase reveal (fake clock)', () => {
     expect(box!.width).toBeGreaterThanOrEqual(viewport.width - 1);
     expect(box!.height).toBeGreaterThanOrEqual(viewport.height - 1);
 
-    // The installed fake clock also flows in real time, so a fixed runFor() before
-    // reading the line raced the 3.5 s reveal under CI load. Wait for the typed
-    // line instead, then run the clock past the reveal's end.
+    // The clock is paused (beforeEach): typing ends at TYPE_START_MS + TYPE_MS
+    // (2.4 s), the reveal at REVEAL_MS (3.5 s).
+    await page.clock.runFor(2500);
     await expect(reveal.locator('[data-reveal-line]')).not.toBeEmpty();
 
-    await page.clock.runFor(3600);
+    await page.clock.runFor(1100);
     await expect(reveal).toHaveCount(0);
     expect((await state(page)).lifetime.revealsSeen).toContain('colony');
   });
@@ -145,7 +148,8 @@ test.describe('Phase reveal (fake clock)', () => {
     // A tap where the tab bar sits lands on the overlay, not the tab.
     const tab = page.locator('[data-tab="wrkr"]');
     const box = await tab.boundingBox();
-    if (box) await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    expect(box, 'the WRKR tab is laid out under the overlay').not.toBeNull();
+    await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
     await page.keyboard.press('Escape');
     await page.keyboard.press('Enter');
     await expect(reveal).toBeVisible();

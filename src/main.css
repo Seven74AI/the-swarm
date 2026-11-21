@@ -934,9 +934,11 @@ body.phase-space .progress-fill {
    PHASE-BASED PANEL REVEAL — Panels appear when their phase unlocks
    ═══════════════════════════════════════════════════════════════ */
 
-/* Panel revealed by phase unlock: triggers phaseReveal animation */
+/* Panel revealed by phase unlock: triggers phaseReveal animation.
+   `both`, not `forwards`: during a stagger animation-delay the panel holds the
+   start pose (hidden, offset) instead of showing in place and then jumping 30px down. */
 .panel-revealed {
-  animation: phaseReveal var(--anim-panel-reveal) ease forwards;
+  animation: phaseReveal var(--anim-panel-reveal) ease both;
 }
 
 @keyframes phaseReveal {

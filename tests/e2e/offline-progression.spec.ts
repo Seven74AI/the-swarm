@@ -176,15 +176,11 @@ test.describe('Offline Progression — Closed-Form Deltas', () => {
     await setupOfflineTest(page, tenHoursAgo, {}, 4000);
 
     const tickLog = logs.find(l => l.includes('Ticks to simulate:'));
-    if (tickLog) {
-      const match = tickLog.match(/Ticks to simulate:\s*(\d+)/);
-      if (match) {
-        const ticks = parseInt(match[1], 10);
-        // 8h cap at 50% efficiency: 8 * 3600 * 1000 / 50 * 0.5 = 288000 max ticks
-        expect(ticks).toBeLessThanOrEqual(288000);
-        expect(ticks).toBeGreaterThan(0);
-      }
-    }
+    expect(tickLog, 'the offline tick log line (printed with ?debug=1)').toBeTruthy();
+    const ticks = parseInt(tickLog!.match(/Ticks to simulate:\s*(\d+)/)?.[1] ?? 'NaN', 10);
+    // 8h cap at 50% efficiency: 8 * 3600 * 1000 / 50 * 0.5 = 288000 max ticks
+    expect(ticks).toBeLessThanOrEqual(288000);
+    expect(ticks).toBeGreaterThan(0);
   });
 
 });
@@ -580,7 +576,8 @@ test.describe('Offline Progression — Efficiency', () => {
     await setupOfflineTest(page, fiveMinAgo, { offlineEfficiency: 0.5 }, 3500);
 
     const tickLog50 = logs50.find(l => l.includes('Ticks to simulate:'));
-    const ticks50 = tickLog50 ? parseInt(tickLog50.match(/Ticks to simulate:\s*(\d+)/)?.[1] ?? '0', 10) : 0;
+    expect(tickLog50, 'the 50% run logs its offline ticks').toBeTruthy();
+    const ticks50 = parseInt(tickLog50!.match(/Ticks to simulate:\s*(\d+)/)?.[1] ?? 'NaN', 10);
 
     // Clear localStorage and reload for 100% efficiency run
     await page.evaluate(() => localStorage.clear());
@@ -598,7 +595,8 @@ test.describe('Offline Progression — Efficiency', () => {
     await page2.waitForTimeout(3500);
 
     const tickLog100 = logs100.find(l => l.includes('Ticks to simulate:'));
-    const ticks100 = tickLog100 ? parseInt(tickLog100.match(/Ticks to simulate:\s*(\d+)/)?.[1] ?? '0', 10) : 0;
+    expect(tickLog100, 'the 100% run logs its offline ticks').toBeTruthy();
+    const ticks100 = parseInt(tickLog100!.match(/Ticks to simulate:\s*(\d+)/)?.[1] ?? 'NaN', 10);
 
     // 100% efficiency gives ~2x the ticks of 50%
     expect(ticks100).toBeGreaterThan(ticks50);
@@ -621,10 +619,9 @@ test.describe('Offline Progression — Efficiency', () => {
     await page.waitForTimeout(3500);
 
     const effLog = logs.find(l => l.includes('Efficiency:'));
-    if (effLog) {
-      // Should default to 0.5 (50%)
-      expect(effLog).toMatch(/Efficiency:\s*0\.5/);
-    }
+    expect(effLog, 'the offline log line (printed with ?debug=1)').toBeTruthy();
+    // Should default to 0.5 (50%)
+    expect(effLog).toMatch(/Efficiency:\s*0\.5/);
   });
 
 });

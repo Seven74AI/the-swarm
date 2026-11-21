@@ -118,5 +118,10 @@ module must be pinned (`--pin gds=<tag>`) where the GitHub API is unreachable. T
   Clean up what a test adds to `document.body` / `localStorage` (`afterEach`) so files can't leak into each other.
 - **E2E runs against a production build** (`vite build` + `vite preview`, harness pages added via `E2E_BUILD=1`),
   not the dev server. `log.info` lines only print with `?debug=1` in the URL; `log.debug` never prints there.
-- `page.clock.install()` keeps time flowing in real time too: don't read a short-lived overlay after a fixed
-  `runFor()` — wait for it with a retrying `expect`.
+- **Panels slide in on a stagger** (`.panel-revealed`). Before asserting positions or doing a tap/hold that
+  depends on layout, call `settleReveals(page)` from `tests/e2e/helpers/reveal.ts`.
+- Don't guard assertions with `if (found) { expect(…) }` or a conditional `test.skip`: seed the state so the
+  element must exist, and assert that it does. A guarded test passes when the feature is gone.
+- `page.clock.install()` alone keeps time flowing in real time, so short-lived UI (the 3.5 s phase reveal) can end
+  while a slow runner is still asserting. For deterministic time, also call `page.clock.pauseAt(Date.now() + 1000)`
+  before `goto` and move time only with `runFor()`.
