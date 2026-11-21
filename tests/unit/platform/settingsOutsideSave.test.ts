@@ -6,7 +6,7 @@ import { SETTINGS_KEY, createSettingsStore } from '../../../src/platform/setting
 import { createInitialState, type GameState } from '../../../src/state/GameState';
 import { testActions } from '../helpers/actions';
 
-const caps = { vibrate: true, standalone: false, reducedMotion: false, moreContrast: false, reducedTransparency: false, textScale: 1, mobile: false };
+const caps = { vibrate: true, standalone: false, reducedMotion: false, moreContrast: false, reducedTransparency: false, textScale: 1, mobile: false, audio: false };
 const BIG = 1_000_000_000;
 
 /** A state that clears every prestige requirement by a wide margin. */

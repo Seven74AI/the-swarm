@@ -10,6 +10,7 @@ const NOTHING = {
   reducedTransparency: false,
   textScale: 1,
   mobile: false,
+  audio: false,
 };
 
 describe('detectCapabilities (Story 1.10)', () => {
@@ -53,6 +54,12 @@ describe('detectCapabilities (Story 1.10)', () => {
   it('treats a coarse pointer as a mobile device (Story 2.12)', () => {
     expect(detectCapabilities({ matchMedia: media(['(pointer: coarse)']) }).mobile).toBe(true);
     expect(detectCapabilities({ matchMedia: media(['(pointer: fine)']) }).mobile).toBe(false);
+  });
+
+  it('detects Web Audio, prefixed or not (Story 8.8)', () => {
+    expect(detectCapabilities({ AudioContext: class {} }).audio).toBe(true);
+    expect(detectCapabilities({ webkitAudioContext: class {} }).audio).toBe(true);
+    expect(detectCapabilities({ AudioContext: 'no' }).audio).toBe(false);
   });
 
   it('degrades to false and never throws when a probe throws', () => {
