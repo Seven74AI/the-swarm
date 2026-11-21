@@ -1,0 +1,95 @@
+name: Dependency audit
+
+# Daily `pnpm audit`. When something is vulnerable, refreshes the flagged
+# packages inside their existing ranges (scripts/audit-fix.mjs) and opens a PR,
+# which auto-merge.yml arms like any other of our PRs, so it merges once CI is
+# green. This covers what Dependabot can't: it raises no security alerts or
+# security-update PRs for pnpm 11 lockfiles.
+#
+# The run goes red when advisories remain that need a range bump in
+# package.json; GitHub emails the owner about failed scheduled runs.
+#
+# Uses AUTOMERGE_TOKEN (see auto-merge.yml) to push and open the PR: a PR opened
+# with the built-in GITHUB_TOKEN would never trigger CI, so its required checks
+# would never report.
+
+on:
+  schedule:
+    - cron: '23 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audit-fix
+  cancel-in-progress: false
+
+jobs:
+  audit-fix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: 🔑 Check token
+        env:
+          TOKEN: ${{ secrets.AUTOMERGE_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::AUTOMERGE_TOKEN secret is not set. See the header of .github/workflows/auto-merge.yml."
+            exit 1
+          fi
+
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.AUTOMERGE_TOKEN }}
+      - uses: pnpm/action-setup@v6
+      - name: ⎔ Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - name: 📥 Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: 🛡️ Audit and refresh vulnerable packages
+        id: fix
+        env:
+          AUDIT_SUMMARY: ${{ runner.temp }}/audit-summary.md
+        run: node scripts/audit-fix.mjs
+
+      - name: 📝 Open fix PR
+        if: steps.fix.outputs.remaining != ''
+        env:
+          GH_TOKEN: ${{ secrets.AUTOMERGE_TOKEN }}
+          AUDIT_SUMMARY: ${{ runner.temp }}/audit-summary.md
+        run: |
+          if git diff --quiet -- package.json pnpm-lock.yaml; then
+            echo "Nothing changed in package.json / pnpm-lock.yaml."
+            exit 0
+          fi
+          open=$(gh pr list --state open --json headRefName \
+            --jq '[.[] | select(.headRefName | startswith("chore/audit-fix-"))] | length')
+          if [ "$open" != "0" ]; then
+            echo "::notice::An audit-fix PR is already open; not opening another."
+            exit 0
+          fi
+          branch="chore/audit-fix-$(date -u +%Y%m%d)"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$branch"
+          git add package.json pnpm-lock.yaml
+          git commit -m "chore(deps): refresh vulnerable dependencies (pnpm audit)"
+          git push --no-verify -u origin "$branch"
+          gh pr create --base main --head "$branch" \
+            --title "chore(deps): refresh vulnerable dependencies (pnpm audit)" \
+            --body-file "$AUDIT_SUMMARY"
+
+      - name: 🚨 Report advisories that need a person
+        if: steps.fix.outputs.remaining != '0'
+        env:
+          AUDIT_SUMMARY: ${{ runner.temp }}/audit-summary.md
+        run: |
+          cat "$AUDIT_SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::${{ steps.fix.outputs.remaining }} advisories remain after pnpm update; they need a range bump in package.json."
+          exit 1

@@ -1,0 +1,48 @@
+# Dependabot version updates. Patch and minor PRs merge themselves once CI is
+# green (see the dependabot-auto-merge job in workflows/auto-merge.yml); major
+# bumps wait for the owner.
+#
+# Dependabot does not raise security alerts or security-update PRs for pnpm 11
+# lockfiles, so vulnerable transitive packages are handled by
+# workflows/audit-fix.yml instead.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '04:37'
+      timezone: Etc/UTC
+    # pnpm 11 can refuse versions published in the last day, which would fail
+    # `pnpm install --frozen-lockfile` in CI. Waiting a few days also avoids
+    # picking up a release that gets yanked.
+    cooldown:
+      default-days: 3
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+      prefix-development: chore(deps-dev)
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        update-types: [minor, patch]
+      production-dependencies:
+        dependency-type: production
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '04:37'
+      timezone: Etc/UTC
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: ci(deps)
+    groups:
+      actions:
+        patterns: ['*']
+        update-types: [minor, patch]
