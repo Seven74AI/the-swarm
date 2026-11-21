@@ -213,3 +213,116 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/*
+ * Desktop columns (Story 1.29, UX-DR6, DESIGN.md → Layout & Spacing, mockups/key-desktop.html).
+ * `data-layout="columns"` is set by the shell from ≥ 1024 px once there is more than NEST.
+ * One grid, at most 1280 px wide: the strip across the top, the 160 px rail on the left,
+ * NEST in column 1 and the active tab in columns 2–3. Each column scrolls on its own and
+ * ends in its own primary zone; nothing is pinned over the content.
+ */
+.shell[data-layout="columns"] {
+  --shell-rail: 160px;
+  --shell-nest-column: 400px;
+  --shell-columns-max-width: 1280px;
+  --shell-bottom: 0px;
+  display: grid;
+  grid-template-columns: var(--shell-rail) minmax(0, var(--shell-nest-column)) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) var(--shell-primary-zone);
+  grid-template-areas:
+    "strip strip strip"
+    "rail nest wide"
+    "rail nest-primary wide-primary";
+  max-width: var(--shell-columns-max-width);
+}
+
+.shell[data-layout="columns"] .shell-strip {
+  grid-area: strip;
+  max-height: none;
+}
+
+/* The scroll area and the primary zone give their children to the grid. */
+.shell[data-layout="columns"] .shell-scroll,
+.shell[data-layout="columns"] .shell-primary {
+  display: contents;
+}
+
+.shell[data-layout="columns"] .shell-tab-panel {
+  grid-area: wide;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.75rem var(--shell-margin);
+}
+
+.shell[data-layout="columns"] .shell-tab-panel[data-tab-panel="nest"] {
+  grid-area: nest;
+  border-right: 1px solid var(--color-line);
+}
+
+.shell[data-layout="columns"] .shell-tab-panel:focus {
+  outline: none;
+}
+
+.shell[data-layout="columns"] .shell-tab-panel:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.shell[data-layout="columns"] .shell-primary-slot {
+  grid-area: wide-primary;
+  height: var(--shell-primary-zone);
+  border-top: 1px solid var(--color-line);
+  background: var(--color-bg);
+}
+
+.shell[data-layout="columns"] [data-primary-for="nest"],
+.shell[data-layout="columns"] [data-primary-continue] {
+  grid-area: nest-primary;
+  border-right: 1px solid var(--color-line);
+}
+
+/* The tab bar becomes the left text rail. */
+.shell[data-layout="columns"] .tab-bar {
+  grid-area: rail;
+  position: static;
+  height: auto;
+  max-width: none;
+  margin: 0;
+  padding: 12px 0 0;
+  border-top: 0;
+  border-right: 1px solid var(--color-line);
+}
+
+.shell[data-layout="columns"] .tab-bar-list {
+  flex-direction: column;
+  height: auto;
+}
+
+.shell[data-layout="columns"] .tab-bar-tab {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.shell[data-layout="columns"] .tab-bar-dot {
+  margin-left: 6px;
+  color: var(--color-accent);
+}
+
+.shell[data-layout="columns"] .tab-bar-tab[aria-selected="true"] .tab-bar-dot {
+  color: var(--color-on-accent);
+}
+
+.tab-bar-key {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--color-edge);
+}
+
+.tab-bar-tab[aria-selected="true"] .tab-bar-key {
+  color: var(--color-on-accent);
+}

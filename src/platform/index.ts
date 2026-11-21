@@ -9,6 +9,7 @@ import { detectCapabilities, type Capabilities, type CapabilityEnv } from './cap
 import { createWebHaptics, type Haptics } from './haptics';
 import { createWebBrowser, type Browser, type BrowserEnv } from './browser';
 import { createSettingsStore, type KeyValueStore, type SettingsStore } from './settings';
+import { createViewport, type Viewport, type ViewportEnv } from './viewport';
 
 export interface Platform {
   readonly capabilities: Capabilities;
@@ -16,9 +17,13 @@ export interface Platform {
   readonly haptics: Haptics;
   /** File download and page reload (Story 1.17). */
   readonly browser: Browser;
+  /** Wide (desktop columns) or not (Story 1.29). */
+  readonly viewport: Viewport;
 }
 
 export interface WebPlatformEnv extends CapabilityEnv, BrowserEnv {
+  /** Read by the capability probes and kept by the viewport for its change events. */
+  readonly matchMedia?: ViewportEnv['matchMedia'];
   readonly localStorage?: KeyValueStore;
 }
 
@@ -36,5 +41,6 @@ export function createWebPlatform(env: WebPlatformEnv = typeof window === 'undef
   const settings = createSettingsStore({ storage: storageOf(env), capabilities });
   const haptics = createWebHaptics({ navigator: env.navigator, enabled: () => settings.settings.value.haptics });
   const browser = createWebBrowser(env);
-  return Object.freeze({ capabilities, settings, haptics, browser });
+  const viewport = createViewport(env);
+  return Object.freeze({ capabilities, settings, haptics, browser, viewport });
 }

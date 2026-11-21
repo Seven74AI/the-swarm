@@ -96,3 +96,25 @@
   gap: 0.5rem;
   justify-content: flex-end;
 }
+
+/*
+ * Desktop (Story 1.29, UX-DR6): from 1024 px a sheet is a centered dialog, at
+ * most 480 px wide, with the same top rule. It fades in instead of rising.
+ */
+@media (min-width: 1024px) {
+  .sheet {
+    top: 50%;
+    bottom: auto;
+    width: min(100%, 30rem);
+    max-width: 480px;
+    max-height: 85vh;
+    padding-bottom: 1rem;
+    transform: translate(-50%, calc(-50% + var(--sheet-drag, 0px)));
+    animation: sheet-appear 180ms ease-out;
+  }
+}
+
+@keyframes sheet-appear {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

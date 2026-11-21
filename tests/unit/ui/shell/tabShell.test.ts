@@ -150,3 +150,67 @@ describe('tab shell: the latched goal (Story 1.19)', () => {
     expect(setup().shell.goalMet.value).toBe(false);
   });
 });
+
+describe('tab shell: desktop columns (Story 1.29)', () => {
+  function wideSetup(phase: Phase = Phase.COLONY, isWide = true) {
+    const ph = signal(phase);
+    const aff = signal('');
+    const goalMet = signal(false);
+    const wide = signal(isWide);
+    const shell = createTabShell({ phase: ph, affordable: aff, goalMet, wide });
+    return { ph, aff, goalMet, wide, shell };
+  }
+
+  it('uses columns only on a wide viewport and once there is more than NEST', () => {
+    expect(wideSetup(Phase.COLONY, true).shell.columns.value).toBe(true);
+    expect(wideSetup(Phase.COLONY, false).shell.columns.value).toBe(false);
+    expect(wideSetup(Phase.EGG_LAYING, true).shell.columns.value).toBe(false);
+    expect(setup().shell.columns.value).toBe(false);
+  });
+
+  it('columns 2–3 show BUILD on the first visit, beside NEST', () => {
+    const { shell } = wideSetup();
+    expect(shell.columnTab.value).toBe('build');
+    expect(shell.visible.value).toEqual(['nest', 'build']);
+  });
+
+  it('picking a tab fills columns 2–3 with it; picking NEST leaves them on the last tab', () => {
+    const { shell } = wideSetup();
+    shell.select('wrkr');
+    expect(shell.columnTab.value).toBe('wrkr');
+    expect(shell.select('nest')).toBe('switched');
+    expect(shell.active.value).toBe('nest');
+    expect(shell.columnTab.value).toBe('wrkr');
+    expect(shell.visible.value).toEqual(['nest', 'wrkr']);
+  });
+
+  it('a phone shows only the active tab, and remembers the last tab for a wider window', () => {
+    const { shell, wide } = wideSetup(Phase.COLONY, false);
+    expect(shell.visible.value).toEqual(['nest']);
+    shell.select('log');
+    shell.select('nest');
+    expect(shell.visible.value).toEqual(['nest']);
+    wide.value = true;
+    expect(shell.visible.value).toEqual(['nest', 'log']);
+  });
+
+  it('falls back to BUILD when the column tab disappears', () => {
+    const { shell, ph } = wideSetup(Phase.COMBAT);
+    shell.select('front');
+    ph.value = Phase.COLONY;
+    expect(shell.columnTab.value).toBe('build');
+  });
+
+  it('never marks a tab that is on screen with •', () => {
+    const { shell, aff, goalMet } = wideSetup(Phase.SPACE);
+    shell.select('nest');
+    aff.value = 'building_panel:warehouse|mutation_panel:x';
+    // BUILD is on screen in columns 2–3 even while NEST is picked.
+    expect(shell.dots.value.has('build')).toBe(false);
+    expect(shell.dots.value.has('front')).toBe(true);
+    shell.select('wrkr');
+    goalMet.value = true;
+    // NEST stays in column 1, so a met goal needs no dot there.
+    expect(shell.dots.value.has('nest')).toBe(false);
+  });
+});

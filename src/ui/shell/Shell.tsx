@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef } from 'preact/hooks';
+import type { ReadonlySignal } from '@preact/signals-core';
 import { SEGMENTS, TABS, type TabId } from '../../data/content/tabs';
 import type { TabShell } from './tabShell';
 import { hostsFromRoot, type ShellHosts } from './hosts';
@@ -18,6 +19,12 @@ export interface LegacyUi {
  * the top, one scroll area showing the active tab, and the primary zone and
  * tab bar pinned at the bottom, above the safe-area inset.
  *
+ * Desktop columns (Story 1.29, UX-DR6): with `shell.columns`, the same DOM is
+ * laid out as a grid (`data-layout="columns"`, shell.css): the tab bar becomes
+ * a 160 px rail on the left, NEST stays in column 1 and `shell.columnTab`
+ * fills columns 2–3, each column scrolling on its own above its own primary
+ * zone. Picking NEST in the rail focuses column 1. Same panels, same game.
+ *
  * Legacy panels mount into the empty host containers (they have no Preact
  * children, so re-renders never touch the legacy DOM). Only `hidden` changes.
  */
@@ -26,14 +33,21 @@ export interface ShellProps {
   legacy: LegacyUi;
   /** CONTINUE: commit the latched phase goal (`actions.continuePhase`, Story 1.19). */
   onContinue?: () => { readonly ok: boolean } | void;
+  /** The keys of tabs 1–5 for the rail's hints (settings → key bindings); none when shortcuts are off. Default 1–5. */
+  tabKeys?: ReadonlySignal<readonly string[]>;
 }
 
-export function Shell({ shell, legacy, onContinue }: ShellProps) {
+const DEFAULT_TAB_KEYS: readonly string[] = ['1', '2', '3', '4', '5'];
+
+export function Shell({ shell, legacy, onContinue, tabKeys }: ShellProps) {
   const root = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLElement>(null);
   const active = shell.active.value;
   const segment = shell.segment.value;
   const showBar = shell.showBar.value;
+  const columns = shell.columns.value;
+  const visible = shell.visible.value;
+  const shown = useRef<readonly TabId[]>([]);
   // A met goal makes CONTINUE NEST's primary action (Story 1.19, UX-DR14).
   const goalMet = shell.goalMet.value && onContinue !== undefined;
 
@@ -42,18 +56,35 @@ export function Shell({ shell, legacy, onContinue }: ShellProps) {
     // Mount once per legacy UI; UIRoot has no unmount.
   }, [legacy]);
 
-  // Each tab keeps its scroll position for the session.
+  // The element that scrolls a tab: the one scroll area, or the tab's own column on desktop.
+  const scrollerOf = (tab: TabId): HTMLElement | null =>
+    shell.columns.peek()
+      ? (root.current?.querySelector<HTMLElement>(`[data-tab-panel="${tab}"]`) ?? null)
+      : scroller.current;
+
+  // Each tab keeps its scroll position for the session: a tab that comes on screen gets its own back.
   useLayoutEffect(() => {
-    if (scroller.current) scroller.current.scrollTop = shell.scrollOf(active);
-  }, [active]);
+    for (const tab of visible) {
+      if (shown.current.includes(tab)) continue;
+      const el = scrollerOf(tab);
+      if (el) el.scrollTop = shell.scrollOf(tab);
+    }
+    shown.current = visible;
+  }, [visible, columns]);
 
   const onTab = (tab: TabId) => {
-    const el = scroller.current;
-    const from = shell.active.peek();
-    if (el) shell.rememberScroll(from, el.scrollTop);
-    if (shell.select(tab) === 'top' && el) {
-      el.scrollTop = 0;
+    for (const t of shell.visible.peek()) {
+      const el = scrollerOf(t);
+      if (el) shell.rememberScroll(t, el.scrollTop);
+    }
+    if (shell.select(tab) === 'top') {
+      const el = scrollerOf(tab);
+      if (el) el.scrollTop = 0;
       shell.rememberScroll(tab, 0);
+    }
+    // Desktop: NEST is always in column 1, so picking it moves the focus there (UX-DR6).
+    if (tab === 'nest' && shell.columns.peek()) {
+      root.current?.querySelector<HTMLElement>('[data-tab-panel="nest"]')?.focus({ preventScroll: true });
     }
   };
 
@@ -65,10 +96,12 @@ export function Shell({ shell, legacy, onContinue }: ShellProps) {
       data-shell=""
       data-active-tab={active}
       data-tab-bar-shown={showBar ? 'true' : 'false'}
+      data-layout={columns ? 'columns' : 'single'}
     >
       <header class="shell-strip" data-shell-strip="" />
       {/* Story 1.18: NEST shows the full goal meter on its phase line; every other tab, this one line. */}
-      <div class="shell-goal-line" data-goal-line="" hidden={active === 'nest'}>
+      {/* On desktop NEST, with its full meter, never leaves column 1. */}
+      <div class="shell-goal-line" data-goal-line="" hidden={active === 'nest' || columns}>
         <CondensedGoalMeter />
       </div>
       <main ref={scroller} id="panels" class="shell-scroll" data-shell-scroll="">
@@ -80,7 +113,9 @@ export function Shell({ shell, legacy, onContinue }: ShellProps) {
             aria-labelledby={`tab-${t.id}`}
             class="shell-tab-panel"
             data-tab-panel={t.id}
-            hidden={active !== t.id}
+            data-column={columns ? (t.id === 'nest' ? '1' : '2') : undefined}
+            tabIndex={columns && t.id === 'nest' ? -1 : undefined}
+            hidden={!visible.includes(t.id)}
           >
             {t.id === 'front' ? (
               <>
@@ -108,16 +143,16 @@ export function Shell({ shell, legacy, onContinue }: ShellProps) {
             key={t.id}
             class="shell-primary-slot"
             data-primary-for={t.id}
-            hidden={active !== t.id || (t.id === 'nest' && goalMet)}
+            hidden={!visible.includes(t.id) || (t.id === 'nest' && goalMet)}
           />
         ))}
         {goalMet && (
-          <div class="shell-primary-slot" data-primary-continue="" hidden={active !== 'nest'}>
+          <div class="shell-primary-slot" data-primary-continue="" hidden={!visible.includes('nest')}>
             <Button variant="primary" verb="CONTINUE" data-action="continue" onPress={onContinue} />
           </div>
         )}
       </div>
-      <TabBar shell={shell} onSelect={onTab} />
+      <TabBar shell={shell} onSelect={onTab} keys={columns ? (tabKeys?.value ?? DEFAULT_TAB_KEYS) : null} />
     </div>
   );
 }
