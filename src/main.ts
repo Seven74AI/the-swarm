@@ -31,7 +31,7 @@ import { computeOfflineResourceDeltas } from './systems/OfflineProgression';
 import { OfflineSummaryPopup } from './ui/components/OfflineSummaryPopup';
 import { PhaseStateMachine } from './phases/PhaseStateMachine';
 import { Phase, PHASE_ORDER } from './phases/phases';
-import { PhaseContent } from './phases/PhaseContent';
+import { PhaseContent } from './ui/PhaseContent';
 import { TRANSITIONS } from './phases/transitions';
 import type { GameState } from './state/GameState';
 import { gameStatePool } from './state/GameStatePool';

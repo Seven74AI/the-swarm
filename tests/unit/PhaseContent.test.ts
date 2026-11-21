@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { PhaseContent } from '../../src/phases/PhaseContent';
+import { PhaseContent } from '../../src/ui/PhaseContent';
 import { Phase } from '../../src/phases/phases';
 import { EventBus } from '../../src/engine/EventBus';
 
