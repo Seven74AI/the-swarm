@@ -56,6 +56,10 @@ export interface ResourceFeed {
   sample(): void;
   /** Keep sampling every `REFRESH_MS`; returns the release. Readers share one timer. */
   retain(): () => void;
+  /** Counts `flash()` calls: the strip flashes its deltas once per change (Story 2.9). */
+  readonly flashes: ReadonlySignal<number>;
+  /** A short return (under 60 s, UX-DR43): sample now and flash the strip's deltas once. */
+  flash(): void;
 }
 
 interface Sample {
@@ -125,13 +129,19 @@ export function createResourceFeed(opts: { windowMs?: number; intervalMs?: numbe
   }
 
   const snapshot = signal<ResourceSnapshot>(build());
+  const flashes = signal(0);
   let holders = 0;
   let timer: ReturnType<typeof setInterval> | null = null;
 
   const feed: ResourceFeed = {
     snapshot,
+    flashes,
     sample() {
       snapshot.value = build();
+    },
+    flash() {
+      feed.sample();
+      flashes.value++;
     },
     retain() {
       holders++;

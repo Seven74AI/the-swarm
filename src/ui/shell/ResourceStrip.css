@@ -68,3 +68,21 @@
   font-size: 0.9375rem;
   font-weight: 700;
 }
+
+/*
+ * After a short return (Story 2.9, UX-DR43) the deltas flash once: one
+ * luminance change, well under the 3-a-second flash limit (UX-DR38).
+ */
+.resource-strip[data-flash] .strip-cell__delta {
+  animation: strip-delta-flash 600ms steps(1, end) 1;
+}
+@keyframes strip-delta-flash {
+  0% {
+    color: var(--color-bg);
+    background: var(--color-accent);
+  }
+  100% {
+    color: inherit;
+    background: transparent;
+  }
+}

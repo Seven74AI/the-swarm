@@ -108,7 +108,7 @@ function makeOfflineSave(saveTimestamp: number, overrides: Record<string, unknow
 async function dismissAndOpenWar(page: import('@playwright/test').Page) {
   const popup = page.locator('.offline-summary-popup');
   await expect(popup).toBeVisible({ timeout: 5000 });
-  await popup.locator('button').first().click();
+  await popup.locator('[data-sheet-close]').click();
   await expect(popup).toHaveCount(0);
   await openTab(page, 'front', 'war');
 }
@@ -291,7 +291,7 @@ test.describe('Offline Progression — Popup Lifecycle', () => {
     const popup = page.locator('.offline-summary-popup');
     await expect(popup).toBeVisible({ timeout: 5000 });
 
-    const dismissBtn = popup.locator('button');
+    const dismissBtn = popup.locator('[data-sheet-close]');
     await expect(dismissBtn).toBeVisible();
     await dismissBtn.click();
 
@@ -718,7 +718,7 @@ test.describe('Offline Progression — Edge Cases', () => {
     await expect(popup).toBeVisible({ timeout: 5000 });
 
     // Click dismiss
-    await popup.locator('button').click();
+    await popup.locator('[data-sheet-close]').click();
     await expect(page.locator('.offline-summary-popup')).toHaveCount(0);
 
     // Game should be interactive — click the egg button should work

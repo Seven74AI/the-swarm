@@ -19,7 +19,8 @@ export interface NextActionButtonProps {
   describeNone?: (none: NoAction) => string;
 }
 
-function nextAffordableLine(none: NoAction): string {
+/** `NEXT AFFORDABLE: <item> IN ~<time>` ('' when nothing is reachable); the offline summary uses it too (Story 2.9). */
+export function nextAffordableLine(none: NoAction): string {
   const item = none.nextAffordable;
   return item ? `NEXT AFFORDABLE: ${item.name.toUpperCase()} IN ~${formatTime(item.inSec * 1000).toUpperCase()}` : '';
 }
@@ -33,7 +34,7 @@ function nextAffordableLine(none: NoAction): string {
  *
  * Hooks: `[data-next-action=<rule>|none]`, `[data-next-key]`, the button's
  * `data-action="next-action"`. NEST mounts it in its primary zone after
- * Phase 1 (Story 1.22); the offline summary reuses the selector (Story 2.x).
+ * Phase 1 (Story 1.22); the offline summary shows `getReturnMove` (Story 2.9).
  */
 export function NextActionButton({ next, perform, now = () => Date.now(), hook = 'next-action', describeNone = nextAffordableLine }: NextActionButtonProps) {
   const latest = next.value;

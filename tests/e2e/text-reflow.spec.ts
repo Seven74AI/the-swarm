@@ -199,6 +199,38 @@ for (const setup of SETUPS) {
       expect(found).toEqual([]);
     });
 
+    test('the offline summary fits the screen too (Story 2.9)', async ({ page }) => {
+      // Back past the cap with upkeep outrunning food: every line the summary can show.
+      await page.setViewportSize({ width: setup.width, height: setup.height });
+      const away = Date.now() - 30 * 3_600_000;
+      await page.addInitScript(
+        ({ save, fontPx }) => {
+          if (sessionStorage.getItem('seeded')) return;
+          sessionStorage.setItem('seeded', '1');
+          localStorage.setItem('the_swarm_save', save);
+          localStorage.setItem('the_swarm_onboarding', 'done');
+          if (fontPx) {
+            const apply = () => document.documentElement?.style.setProperty('font-size', `${fontPx}px`);
+            apply();
+            document.addEventListener('readystatechange', apply);
+          }
+        },
+        {
+          save: JSON.stringify({
+            version: 18, timestamp: away, lastSeenAt: away, playTimeMs: 0,
+            gameState: { ...SPACE, resources: { ...SPACE.resources, food: 50 }, workersAssigned: { gather: 0, tend: 78, dig: 0, guard: 2, researchers: 0 } },
+          }),
+          fontPx: setup.fontPx ?? 0,
+        },
+      );
+      await page.goto('/');
+      const sheet = page.locator('.offline-summary-popup');
+      await expect(sheet).toBeVisible();
+      await expect(sheet.locator('[data-offline-cap]')).toBeVisible();
+      await expect(sheet.locator('[data-offline-warn="starved"]')).toBeVisible();
+      expect((await layoutProblems(page)).map((p) => `offline summary: ${p}`)).toEqual([]);
+    });
+
     test('the debug overlay fits the screen too', async ({ page }) => {
       // Story 1.34: dev builds (this server) and ?debug=1; one inspector key open.
       await seed(page, setup);

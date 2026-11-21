@@ -57,6 +57,10 @@ const lines = {
   battle_defeat: { text: 'A {enemy} KILLS ALL {soldiers} SOLDIERS.', from: Phase.COMBAT },
   battle_draw: { text: 'THE {enemy} RETREATS. {lost} SOLDIERS FALL.', from: Phase.COMBAT },
 
+  // The offline summary's warn lines (Story 2.9, UX-DR24); shown in any phase.
+  offline_starved: { text: 'UPKEEP OUTRAN FOOD FOR {time}.', from: Phase.EGG_LAYING },
+  offline_cap: { text: 'THE NEST STOPPED GROWING AFTER {cap}.', from: Phase.EGG_LAYING },
+
   // Expeditions, buildings, the stars.
   expedition_launch: { text: 'AN EXPEDITION LEAVES FOR {destination}: {party}.', from: Phase.EXPANSION },
   expedition_success: { text: 'THE EXPEDITION RETURNS FROM {destination} WITH {loot}. BACK: {party}.', from: Phase.EXPANSION },

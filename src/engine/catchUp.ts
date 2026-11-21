@@ -52,6 +52,38 @@ export function catchUp(
   deps: CatchUpDeps,
   stepMs: number = CATCH_UP_STEP_MS,
 ): GameState {
+  return catchUpWithReport(state, ms, ticks, deps, stepMs).state;
+}
+
+/** What a catch-up measured besides the state (Story 2.9): the offline summary's warn lines. */
+export interface CatchUpReport {
+  /** Whole ms of the simulated absence during which food stood at zero (upkeep outran it). */
+  starvedMs: number;
+}
+
+/**
+ * Ms of the `effectiveMs` absence during which food stood at zero (Story 2.9).
+ * Food is credited in closed form (one net rate over the whole absence), so the
+ * stock runs out at `stock / −net` and stays at zero for the rest of it.
+ */
+function starvedMsOf(stock: number, foodDelta: number, effectiveMs: number): number {
+  if (!(effectiveMs > 0) || !(foodDelta < 0)) return 0;
+  const netPerMs = foodDelta / effectiveMs;
+  const lastsMs = Math.max(0, stock) / -netPerMs;
+  return Math.max(0, Math.floor(effectiveMs - lastsMs));
+}
+
+/**
+ * `catchUp`, plus what it measured on the way (Story 2.9): how long food stood at
+ * zero. The measure lives here, not at the call sites; the state is `catchUp`'s.
+ */
+export function catchUpWithReport(
+  state: GameState,
+  ms: number,
+  ticks: number,
+  deps: CatchUpDeps,
+  stepMs: number = CATCH_UP_STEP_MS,
+): { state: GameState; report: CatchUpReport } {
   const effectiveMs = capOfflineMs(state, ms);
   const tickCount = Math.max(0, Math.min(ticks, Math.floor(effectiveMs / TICK_MS)));
   const simulatedMs = tickCount * TICK_MS;
@@ -102,5 +134,6 @@ export function catchUp(
     done += stepLen;
   }
   log.info('catch-up', `simulated ${simulatedMs} ms in ${steps} steps`, { effectiveMs, simulatedMs, steps, stepMs: step });
-  return s;
+  const starvedMs = starvedMsOf(state.resources.food + rem.food, d.foodDelta, effectiveMs);
+  return { state: s, report: { starvedMs } };
 }

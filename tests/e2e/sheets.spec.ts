@@ -98,7 +98,7 @@ test.describe('Sheets (Story 1.14)', () => {
       );
     expect(await left()).toBe(OPEN_MS);
 
-    await offline(page).locator('button').click();
+    await offline(page).locator('[data-sheet-close]').click();
     await expect(offline(page)).toHaveCount(0);
     await expect(decision(page)).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('[role="dialog"][aria-modal="true"]')).toHaveCount(1);
@@ -123,7 +123,7 @@ test.describe('Sheets (Story 1.14)', () => {
 
   test('a decision sheet ignores Esc and closes only by a choice', async ({ page }) => {
     await seedBoth(page);
-    await offline(page).locator('button').click({ timeout: 10_000 });
+    await offline(page).locator('[data-sheet-close]').click({ timeout: 10_000 });
     await expect(decision(page)).toBeVisible({ timeout: 10_000 });
     await expect(decision(page).locator('[data-sheet-headline]')).toBeFocused();
     await expect(decision(page).locator('[data-sheet-close]')).toHaveCount(0);

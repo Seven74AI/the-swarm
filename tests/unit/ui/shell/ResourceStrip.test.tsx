@@ -7,7 +7,7 @@ import { Phase } from '../../../../src/phases/phases';
 import { selectEffectiveNestCapacity } from '../../../../src/state/selectors';
 import { RESOURCE_BY_ID, STRIP_SETS, type ResourceId } from '../../../../src/ui/shell/resourceCatalog';
 import { createResourceFeed, REFRESH_MS, type ResourceFeed } from '../../../../src/ui/shell/resourceFeed';
-import { ResourceStrip } from '../../../../src/ui/shell/ResourceStrip';
+import { ResourceStrip, STRIP_FLASH_MS } from '../../../../src/ui/shell/ResourceStrip';
 import { createSheetController, type SheetController } from '../../../../src/ui/shell/SheetController';
 import { SheetHost } from '../../../../src/ui/shell/SheetHost';
 import { formatStrip } from '../../../../src/utils/format';
@@ -158,5 +158,35 @@ describe('ResourceStrip', () => {
     });
     expect(updates).toBe(0);
     stop();
+  });
+});
+
+describe('a short return flashes the deltas once (Story 2.9, UX-DR43)', () => {
+  it('feed.flash() marks the strip for one flash, which then clears', () => {
+    mount(Phase.EGG_LAYING);
+    expect(strip().hasAttribute('data-flash')).toBe(false);
+    act(() => feed.flash());
+    expect(strip().hasAttribute('data-flash')).toBe(true);
+    act(() => void vi.advanceTimersByTime(STRIP_FLASH_MS));
+    expect(strip().hasAttribute('data-flash')).toBe(false);
+  });
+
+  it('samples at once, so the deltas that flash already show the time away', () => {
+    mount(Phase.EGG_LAYING);
+    act(() => void vi.advanceTimersByTime(REFRESH_MS));
+    write(res({ eggs: 500 }, 20_000));
+    act(() => feed.flash());
+    expect(value('eggs')).toBe(formatStrip(500));
+  });
+
+  it('a second flash restarts it rather than stacking', () => {
+    mount(Phase.EGG_LAYING);
+    act(() => feed.flash());
+    act(() => void vi.advanceTimersByTime(STRIP_FLASH_MS - 10));
+    act(() => feed.flash());
+    act(() => void vi.advanceTimersByTime(20));
+    expect(strip().hasAttribute('data-flash')).toBe(true);
+    act(() => void vi.advanceTimersByTime(STRIP_FLASH_MS));
+    expect(strip().hasAttribute('data-flash')).toBe(false);
   });
 });
