@@ -9,6 +9,9 @@ import {
   getConversionRate,
   type ConversionId,
 } from '../systems/ResourceConversionSystem';
+import { conditionMet, goalFor, goalPercent, type GoalCondition, type Transition } from '../phases/transitions';
+
+export type { GoalCondition, Transition } from '../phases/transitions';
 
 /**
  * Slice selectors over the single game-state signal (ADR 0001, arch D5, #186).
@@ -146,3 +149,46 @@ export function selectConversionCap(id: ConversionId): ReadonlySignal<number> {
  * A string, so a tick that changes nothing affordable leaves the value equal and stays quiet.
  */
 export const selectAffordableKeys = computed(() => affordableKeys(gameState.value).join('|'));
+
+// --- The phase goal (Story 1.18, AR5) -----------------------------------------------------------
+
+/**
+ * The current phase's goal: its outgoing transition from `phases/transitions.ts` (a module constant, so
+ * the reference only changes with the phase), or `null` after the last phase. The UI reads conditions'
+ * `id`, `label` and `one` from it, and their numbers through the selectors below, never a threshold.
+ */
+export const selectGoal = computed<Transition | null>(() => goalFor(selectPhase.value));
+
+/** How close the goal is, 0..100 (100 only when every condition is met); 0 without a goal. */
+export const selectGoalPercent = computed(() => {
+  const goal = selectGoal.value;
+  return goal ? goalPercent(goal, gameState.value) : 0;
+});
+
+const conditionCurrents = new Map<GoalCondition, ReadonlySignal<number>>();
+const conditionTargets = new Map<GoalCondition, ReadonlySignal<number>>();
+const conditionMets = new Map<GoalCondition, ReadonlySignal<boolean>>();
+
+function cached<T>(map: Map<GoalCondition, ReadonlySignal<T>>, c: GoalCondition, read: () => T): ReadonlySignal<T> {
+  let sel = map.get(c);
+  if (!sel) {
+    sel = computed(read);
+    map.set(c, sel);
+  }
+  return sel;
+}
+
+/** A condition's current value, floored (whole numbers only). */
+export function selectConditionCurrent(c: GoalCondition): ReadonlySignal<number> {
+  return cached(conditionCurrents, c, () => Math.floor(c.current(gameState.value)));
+}
+
+/** A condition's target. */
+export function selectConditionTarget(c: GoalCondition): ReadonlySignal<number> {
+  return cached(conditionTargets, c, () => Math.floor(c.target(gameState.value)));
+}
+
+/** Whether a condition is met, decided by the phase layer (never by comparing numbers in the UI). */
+export function selectConditionMet(c: GoalCondition): ReadonlySignal<boolean> {
+  return cached(conditionMets, c, () => conditionMet(c, gameState.value));
+}

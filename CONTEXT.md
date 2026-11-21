@@ -25,6 +25,9 @@ Unassigned workers produce at half gather rate. Worker efficiency follows a dimi
 ### Phases
 6 sequential phases: EGG_LAYING → COLONY → COMBAT → EXPANSION → SPACE → TRANSCENDENCE. Phase transitions are gated by resource/worker thresholds and battles. Each phase unlocks new panels, mechanics, and resources.
 
+### Goal
+A phase's unlock condition: its outgoing transition in `src/phases/transitions.ts`, made of **conditions** (`{ id, label, current(s), target(s) }`). The guard is derived as "every condition met", so the thresholds exist only there. The goal meter (`ui/shell/GoalMeter.tsx`) reads them through `state/selectors.ts` (`selectGoal`, `selectConditionCurrent/Target/Met`, `selectGoalPercent`) and shows `NEXT: …` without naming the next phase.
+
 ### Pipelines
 Rate-based O(1) processing: `eggPipeline`, `larvaPipeline`, `soldierPipeline`. Each has `count` (rate) and `progress` (accumulated). No per-item timers.
 
