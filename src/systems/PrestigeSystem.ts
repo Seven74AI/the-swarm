@@ -1,9 +1,10 @@
-import { createEmptyMap, createInitialState, type GameState } from '../state/GameState';
+import { createInitialState, type GameState } from '../state/GameState';
+import { Phase } from '../phases/phases';
+import { peekEnemy } from './EnemySystem';
 import { getPhaseNumber } from '../engine/ProgressionCurve';
-import { resetEntropy, calculateEntropyPrestigeBonus } from './EntropySystem';
+import { calculateEntropyPrestigeBonus } from './EntropySystem';
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
 import { PRESTIGE_UPGRADES, type PrestigeUpgradeId } from '../data/prestigeTree';
-import { OFFLINE_RESEARCH_ID } from './ResearchSystem';
 import { prestigeBalance } from '../data/balance/prestige';
 
 /**
@@ -126,120 +127,64 @@ export function legacyPointsAward(state: GameState): number {
 }
 
 /**
- * Execute the prestige reset.
+ * What survives a prestige (Story 5.3, FR30), by top-level field. Everything
+ * else is back at its `createInitialState()` value, except what an owned
+ * Legacy upgrade grants. Kept: the generator and the seed (Story 3.1), LP,
+ * lifetime LP and the lifetime totals (`prestige`, updated by the prestige),
+ * the bought Legacy upgrades, the lifetime statistics (`stats`, `lifetime`,
+ * and the kills tally in `soldiers.totalKilled`), the victory record, the
+ * verbs the player has learned (`automation`, ADR 0039), and bookkeeping that
+ * isn't part of a run (`nextIds` stay monotonic, the save clock).
+ */
+export const PRESTIGE_KEEPS = [
+  'seed',
+  'rng',
+  'prestige',
+  'prestigeTree',
+  'stats',
+  'lifetime',
+  'victoryAchieved',
+  'automation',
+  'nextIds',
+  'lastSaveTimestamp',
+] as const satisfies readonly (keyof GameState)[];
+
+/**
+ * Execute the prestige reset (Story 5.3, FR30): a new run from a fresh state.
  *
- * Returns a new GameState with:
- *   - All Phase 1-4 resources set to starting values
- *   - Phase 5+ resources preserved (voidCrystals, antimatter, darkMatter)
- *   - Buildings, upgrades, workers, soldiers reset to zero
- *   - Prestige count incremented
- *   - Legacy Points added based on formula, to the LP held and to lifetimeLpEarned
- *   - totalFoodProduced preserved (never resets)
- *   - Phase set to egg_laying
- *   - The run's offline research wiped; Legacy nodes (prestigeTree) kept
+ * Every resource (space resources included), building, research project,
+ * mutation, piece of equipment, territory, expedition, ship, exploration, the
+ * goal latch and any open decision event go back to their initial values.
+ * `PRESTIGE_KEEPS` survive, with LP and lifetime LP raised by the award.
+ * Legacy upgrades grant the rest: the royal cache's eggs (in the pipeline, so
+ * they hatch, Story 2.5) and food, and Phase Skip's start in Colony. The next
+ * enemy is the first the kept generator draws for a run with no battles won.
  */
 export function prestige(state: GameState): GameState {
-  const totalNewLegacyPoints = legacyPointsAward(state);
+  const award = legacyPointsAward(state);
   const fresh = createInitialState();
   const cache = prestigeBalance.royalCache;
-
-  // Reset entropy after calculating bonus
-  const afterEntropyReset = resetEntropy(state);
-
-  // Unlock bonuses from prestige tree
   const bonuses = getPrestigeBonuses(state);
-
-  const basePhase = bonuses.phaseSkip ? 'colony' : 'egg_laying';
+  const kept = Object.fromEntries(PRESTIGE_KEEPS.map((k) => [k, state[k]])) as Pick<GameState, (typeof PRESTIGE_KEEPS)[number]>;
+  const eggs = bonuses.startingResources ? cache.eggs : fresh.resources.eggs;
 
   return {
-    ...afterEntropyReset,
-    phase: basePhase,
-    // A new run starts with no met goal (Story 1.19).
-    phaseGoal: null,
+    ...fresh,
+    ...kept,
+    phase: bonuses.phaseSkip ? Phase.COLONY : Phase.EGG_LAYING,
     resources: {
-      // The royal cache's eggs are real eggs in the pipeline, so they hatch (Story 2.5).
-      eggs: bonuses.startingResources ? cache.eggs : 0,
-      larvae: 0,
-      workers: 0,
-      food: bonuses.startingResources ? cache.food : 0,
-      nestCapacity: fresh.resources.nestCapacity,
-      wood: 0,
-      stone: 0,
-      nectar: 0,
-      voidCrystals: state.resources.voidCrystals,
-      antimatter: state.resources.antimatter,
-      darkMatter: state.resources.darkMatter,
-      surveyData: state.resources.surveyData,
+      ...fresh.resources,
+      eggs,
+      food: bonuses.startingResources ? cache.food : fresh.resources.food,
     },
-    eggPipeline: {
-      count: bonuses.startingResources ? cache.eggs : 0,
-      progress: 0,
-    },
-    larvaPipeline: { count: 0, progress: 0 },
-    soldierPipeline: { count: 0, progress: 0 },
-    // The reset stocks carry no fractions (Story 2.5).
-    resourceRemainder: { food: 0, wood: 0, stone: 0, nectar: 0 },
-    workersAssigned: {
-      gather: 0,
-      forage: 0,
-      tend: 0,
-      dig: 0,
-      guard: 0,
-      researchers: 0,
-    },
-    soldiers: {
-      scouts: 0,
-      warriors: 0,
-      totalKilled: state.soldiers.totalKilled,
-    },
-    buildings: {
-      barracks: { level: 0, count: 0 },
-      walls: { level: 0 },
-      warehouse: { level: 0 },
-      fungus_garden: { level: 0 },
-      tunnels: { level: 0 },
-      silk_weaving: { level: 0 },
-      chitin_armory: { level: 0 },
-      venom_lab: { level: 0 },
-      midden: { level: 0 },
-    },
-    territory: {
-      ownedTiles: 0,
-      bonuses: {},
-    },
-    mapTiles: createEmptyMap(),
-    expeditions: [],
-    spaceExplorations: [],
-    discoveredPlanets: [],
-    spaceships: [],
-    upgrades: {},
-    combatSoldiers: 0,
-    lastBattle: { status: 'idle' },
-    combatResources: {
-      chitin: 0,
-      silk: 0,
-      venom: 0,
-    },
-    spaceship: fresh.spaceship,
+    eggPipeline: { ...fresh.eggPipeline, count: eggs },
+    soldiers: { ...fresh.soldiers, totalKilled: state.soldiers.totalKilled },
+    nextEnemy: peekEnemy(state.rng, 0).type as GameState['nextEnemy'],
     prestige: {
+      ...state.prestige,
       count: state.prestige.count + 1,
-      legacyPoints: state.prestige.legacyPoints + totalNewLegacyPoints,
-      lifetimeLpEarned: state.prestige.lifetimeLpEarned + totalNewLegacyPoints,
-      totalFoodProduced: state.prestige.totalFoodProduced,
-      totalWoodProduced: state.prestige.totalWoodProduced,
-      totalStoneProduced: state.prestige.totalStoneProduced,
-      totalNectarProduced: state.prestige.totalNectarProduced,
-    },
-    // The run's offline research is wiped (Story 2.8); the Legacy nodes in prestigeTree stay.
-    research: {
-      ...state.research,
-      projects: { ...state.research.projects, [OFFLINE_RESEARCH_ID]: { status: 'idle' } },
-    },
-    prestigeTree: state.prestigeTree,
-    mutations: state.mutations,
-    equipment: {
-      weapon: 0,
-      armor: 0,
+      legacyPoints: state.prestige.legacyPoints + award,
+      lifetimeLpEarned: state.prestige.lifetimeLpEarned + award,
     },
   };
 }

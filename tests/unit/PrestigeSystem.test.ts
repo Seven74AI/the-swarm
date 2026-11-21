@@ -86,13 +86,15 @@ describe('PrestigeSystem', () => {
       expect(result.resources.nectar).toBe(0);
     });
 
-    it('preserves Phase 5+ resources (voidCrystals, antimatter, darkMatter)', () => {
+    it('resets Phase 5+ resources too (Story 5.3: every run revisits Space)', () => {
       const s = makeRichState();
+      expect(s.resources.voidCrystals).toBeGreaterThan(0);
       const result = prestige(s);
 
-      expect(result.resources.voidCrystals).toBe(10);
-      expect(result.resources.antimatter).toBe(5);
-      expect(result.resources.darkMatter).toBe(2);
+      expect(result.resources.voidCrystals).toBe(0);
+      expect(result.resources.antimatter).toBe(0);
+      expect(result.resources.darkMatter).toBe(0);
+      expect(result.resources.surveyData).toBe(0);
     });
 
     it('resets buildings to level 0', () => {
