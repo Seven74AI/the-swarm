@@ -63,6 +63,16 @@ describe('ci.yml production audit (Story 1.35)', () => {
     expect(auditSteps.length).toBeGreaterThan(0);
   });
 
+  it('runs the audit unconditionally in a required job, after installing deps', () => {
+    const gating = ['typecheck', 'vitest'].filter((key) => {
+      const steps = listItems(jobs[key] ?? '', 6);
+      const audit = steps.findIndex((s) => /pnpm audit --prod --audit-level=high/.test(s));
+      const install = steps.findIndex((s) => /pnpm install --frozen-lockfile/.test(s));
+      return audit > install && install >= 0 && !/^ {8}if:/m.test(steps[audit]);
+    });
+    expect(gating.length).toBeGreaterThan(0);
+  });
+
   it('never masks a failing step', () => {
     expect(ciYml).not.toContain('|| true');
     expect(ciYml).not.toContain('--if-present');
