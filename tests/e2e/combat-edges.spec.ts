@@ -86,12 +86,15 @@ async function setupCombatPhase(page: Page, overrides?: Record<string, unknown>)
   const data = makeCombatSaveData(overrides);
   await page.addInitScript(
     (saveStr: string) => {
+      // Init scripts run again on reload: seed once per tab, so a reload loads what the game saved.
+      if (sessionStorage.getItem('seeded')) return;
+      sessionStorage.setItem('seeded', '1');
       localStorage.setItem('the_swarm_save', saveStr);
     },
     JSON.stringify(data),
   );
   await page.goto('/');
-  await page.waitForTimeout(2000);
+  await expect(page.locator('[data-shell]')).toBeVisible();
   // Soldiers and battles live in FRONT → WAR (Story 1.15).
   await openTab(page, 'front', 'war');
 }
@@ -167,6 +170,9 @@ async function setupExpansionPhase(page: Page, overrides?: Record<string, unknow
   const data = makeExpansionSaveData(overrides);
   await page.addInitScript(
     (saveStr: string) => {
+      // Init scripts run again on reload: seed once per tab, so a reload loads what the game saved.
+      if (sessionStorage.getItem('seeded')) return;
+      sessionStorage.setItem('seeded', '1');
       localStorage.setItem('the_swarm_save', saveStr);
     },
     JSON.stringify(data),
@@ -180,9 +186,10 @@ async function saveGame(page: Page) {
   await page.evaluate(() => {
     const swarm = (window as unknown as Record<string, unknown>).__swarm as Record<string, unknown>;
     if (swarm && swarm.saveManager) {
-      const sm = swarm.saveManager as { save: (s: unknown, t: number) => void };
+      const sm = swarm.saveManager as { save: (s: unknown, t: number, force: boolean) => boolean };
       const state = (swarm.manager as { getState: () => unknown }).getState();
-      sm.save(state, 0);
+      // Forced, like autosave: an explicit save must not be skipped by the action-save rate limit.
+      sm.save(state, 0, true);
     }
   });
 }
@@ -303,10 +310,9 @@ test.describe('Save/Load Robustness', () => {
 
     await expect(page.locator('#enemy-name')).toBeVisible({ timeout: 3000 });
     await saveGame(page);
-    await page.waitForTimeout(500);
 
     await page.reload();
-    await page.waitForTimeout(2000);
+    await expect(page.locator('[data-shell]')).toBeVisible();
     await openTab(page, 'front', 'war');
 
     // The enemy on the card is session state: a reload draws one again, and FIGHT is ready.
@@ -331,7 +337,8 @@ test.describe('Save/Load Robustness', () => {
           scouts: 2,
           warriors: 1,
           destination: 'MEADOW',
-          ticksRemaining: 42,
+          // Long enough to still be out after the reload (offline catch-up included).
+          ticksRemaining: 6_000,
           risk: 0.25,
         },
       ],
@@ -344,7 +351,6 @@ test.describe('Save/Load Robustness', () => {
 
     // Save
     await saveGame(page);
-    await page.waitForTimeout(500);
 
     // Reload
     await page.reload();
@@ -354,7 +360,6 @@ test.describe('Save/Load Robustness', () => {
     const expeditionRow = page.locator('.expedition-row');
     await expect(expeditionRow).toBeAttached({ timeout: 5000 });
     await expect(expeditionRow).toContainText('MEADOW');
-    // ticksRemaining may have ticked down by 1-2
     await expect(expeditionRow).toContainText(/⏳ \d+s/);
   });
 
@@ -375,7 +380,6 @@ test.describe('Save/Load Robustness', () => {
 
     // Save
     await saveGame(page);
-    await page.waitForTimeout(500);
 
     // Reload
     await page.reload();
@@ -419,7 +423,6 @@ test.describe('Save/Load Robustness', () => {
 
     // Click — should not throw
     await eggBtn.click();
-    await page.waitForTimeout(300);
 
     // Game is alive — UI is responsive
     await expect(eggBtn).toBeVisible();
@@ -447,7 +450,6 @@ test.describe('Save/Load Robustness', () => {
     await expect(eggBtn).toBeEnabled({ timeout: 3000 });
 
     await eggBtn.click();
-    await page.waitForTimeout(300);
 
     // Phase indicator shows initial phase (fresh start)
     const indicator = page.locator('#phase-indicator');
@@ -480,12 +482,16 @@ test.describe('Save/Load Robustness', () => {
       );
 
       await saveGame(page);
-      await page.waitForTimeout(200);
     }
 
     // Reload — should have latest state (battlesWon = 3)
     await page.reload();
-    await page.waitForTimeout(2000);
+    await expect(page.locator('[data-shell]')).toBeVisible();
+
+    const won = await page.evaluate(
+      () => ((window as unknown as { __swarm: { manager: { getState: () => { battlesWon: number } } } }).__swarm.manager.getState().battlesWon),
+    );
+    expect(won).toBe(3);
 
     // Verify combat panel is still functional after rapid saves
     await openTab(page, 'front', 'war');

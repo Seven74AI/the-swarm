@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import { settleReveals } from './helpers/reveal';
 
 /**
  * E2E: Prestige Integration — Slice 5.
@@ -98,7 +99,7 @@ async function seedAndGo(page: any, state: Record<string, unknown>) {
   }, JSON.stringify(makeSaveData(state)));
   await page.goto('/');
   await page.waitForSelector('#panels', { timeout: 15000 });
-  await page.waitForTimeout(1500);
+  await settleReveals(page);
 }
 
 async function evalClick(page: any, selector: string) {
@@ -116,15 +117,25 @@ async function holdPrestige(page: any) {
   const btn = page.locator('#prestige-panel .btn-prestige');
   await expect(btn).toBeAttached({ timeout: 10000 });
   await btn.dispatchEvent('pointerdown', { pointerId: 1, button: 0, isPrimary: true });
-  await page.waitForTimeout(1500);
+  await expect(btn).toHaveAttribute('data-pressed', 'true');
+  // A completed hold fires and lets go by itself (`data-pressed` back to false) while the pointer is still down.
+  await expect(btn).toHaveAttribute('data-pressed', 'false', { timeout: 10000 });
   await btn.dispatchEvent('pointerup', { pointerId: 1, button: 0, isPrimary: true });
 }
 
+/** The prestige panel's `Legacy … N` count reads `n`. */
+async function expectPrestigeCount(page: Page, n: number) {
+  await expect(page.locator('#prestige-panel')).toContainText(new RegExp(`Legacy[\\s\\S]*?${n}`), { timeout: 10000 });
+}
+
+/** A critical stat (`resources.eggs`, `resources.food`, …) as a number. */
+async function stat(page: Page, key: string): Promise<number> {
+  return parseInt((await page.locator(`[data-stat="${key}"] .critical-value`).textContent()) || '0', 10);
+}
+
 async function openPrestigeTree(page: any) {
-  await expect(page.locator('#prestige-panel')).toBeAttached({ timeout: 15000 });
-  await page.waitForTimeout(500);
+  await expect(page.locator('#prestige-panel .btn-tree')).toBeAttached({ timeout: 15000 });
   await evalClick(page, '#prestige-panel .btn-tree');
-  await page.waitForTimeout(1000);
   await expect(page.locator('#prestige-tree-panel')).toBeAttached({ timeout: 15000 });
 }
 
@@ -142,15 +153,19 @@ async function purchaseUpgrade(page: any, upgradeName: string) {
       }
     }
   }, upgradeName);
-  await page.waitForTimeout(800);
   const card = page.locator('.prestige-tree-card', { hasText: upgradeName });
   await expect(card.locator('.prestige-tree-purchased-badge')).toBeAttached({ timeout: 10000 });
 }
 
-async function clickTimes(page: any, n: number) {
+const totalClicks = (page: Page): Promise<number> =>
+  page.evaluate(() => (window as any).__swarm.manager.getState().stats.totalClicks as number);
+
+/** Lay `n` eggs by hand, each one counted before the next. */
+async function clickTimes(page: Page, n: number) {
   for (let i = 0; i < n; i++) {
+    const before = await totalClicks(page);
     await evalClick(page, '#click-egg');
-    await page.waitForTimeout(50);
+    await expect.poll(() => totalClicks(page)).toBeGreaterThan(before);
   }
 }
 
@@ -169,15 +184,13 @@ test.describe('Prestige Integration — Slice 5', () => {
 
     // Execute prestige
     await holdPrestige(page);
-    await page.waitForTimeout(2000);
 
     // ── Full Wipe: resources reset ──
     await expect(page.locator('[data-stat="resources.eggs"] .critical-value')).toHaveText('0', { timeout: 10000 });
     await expect(page.locator('[data-stat="resources.food"] .critical-value')).toHaveText('0', { timeout: 10000 });
 
     // ── Prestige count incremented ──
-    const afterText = await page.locator('#prestige-panel').textContent();
-    expect(afterText).toMatch(/Legacy[\s\S]*?1/);
+    await expectPrestigeCount(page, 1);
 
     // ── Legacy points earned ──
     const ptsText = await page.locator('#prestige-panel .stat-row', { hasText: 'Legacy Points' }).locator('.stat-value').textContent();
@@ -200,7 +213,6 @@ test.describe('Prestige Integration — Slice 5', () => {
 
     // Prestige
     await holdPrestige(page);
-    await page.waitForTimeout(2000);
 
     // Bonus persists
     await openPrestigeTree(page);
@@ -210,9 +222,7 @@ test.describe('Prestige Integration — Slice 5', () => {
 
     // Egg production works
     await clickTimes(page, 5);
-    await page.waitForTimeout(1000);
-    const eggText = await page.locator('[data-stat="resources.eggs"] .critical-value').textContent();
-    expect(parseInt(eggText || '0', 10)).toBeGreaterThan(0);
+    await expect.poll(() => stat(page, 'resources.eggs')).toBeGreaterThan(0);
   });
 
   /** ─── Test 3: Auto-egg-layer → Prestige → Auto-eggs sustain production ─── */
@@ -231,20 +241,15 @@ test.describe('Prestige Integration — Slice 5', () => {
 
     // Prestige
     await holdPrestige(page);
-    await page.waitForTimeout(2000);
 
     // Verify prestige executed
-    const panelText = await page.locator('#prestige-panel').textContent();
-    expect(panelText).toMatch(/Legacy[\s\S]*?1/);
+    await expectPrestigeCount(page, 1);
 
     // Seed resources by clicking (pipeline eggs need resources.eggs to hatch)
     await clickTimes(page, 10);
-    await page.waitForTimeout(2000);
 
     // After clicks + auto-egg pipeline, eggs should accumulate
-    await page.waitForTimeout(5000);
-    const eggText = await page.locator('[data-stat="resources.eggs"] .critical-value').textContent();
-    expect(parseInt(eggText || '0', 10)).toBeGreaterThan(0);
+    await expect.poll(() => stat(page, 'resources.eggs'), { timeout: 15000 }).toBeGreaterThan(0);
   });
 
   /** ─── Test 4: Starting resources + Phase skip → Phase 2 with resources ─── */
@@ -269,7 +274,6 @@ test.describe('Prestige Integration — Slice 5', () => {
 
     // Prestige
     await holdPrestige(page);
-    await page.waitForTimeout(2000);
 
     // ── Starting resources: food = 25 ──
     await expect(page.locator('[data-stat="resources.food"] .critical-value')).toHaveText('25', { timeout: 10000 });
@@ -278,16 +282,11 @@ test.describe('Prestige Integration — Slice 5', () => {
     await expect(page.locator('#worker-assignment')).toBeAttached({ timeout: 10000 });
 
     // Verify clicks work and production runs (eggs hatch fast with 50-pipeline from Royal Cache)
+    // clickTimes waits for each click to count (Story 1.22 removed the "Clicks:" counter: it reads state).
     await clickTimes(page, 3);
-    await page.waitForTimeout(500);
-    // Story 1.22 removed the legacy "Clicks:" counter: read the clicks from state.
-    const clicks = await page.evaluate(() => (window as any).__swarm.manager.getState().stats.totalClicks);
-    expect(clicks).toBeGreaterThan(0);
 
-    // Let pipeline produce workers + food (5x pacing nerf needs longer wait)
-    await page.waitForTimeout(8000);
-    const foodText = await page.locator('[data-stat="resources.food"] .critical-value').textContent();
-    expect(parseInt(foodText || '0', 10)).toBeGreaterThan(25);
+    // The pipeline produces workers, then food (5x pacing nerf: allow a while)
+    await expect.poll(() => stat(page, 'resources.food'), { timeout: 30000 }).toBeGreaterThan(25);
   });
 
   /** ─── Test 5: Double prestige — compound bonuses ─── */
@@ -301,10 +300,8 @@ test.describe('Prestige Integration — Slice 5', () => {
 
     // First prestige
     await holdPrestige(page);
-    await page.waitForTimeout(2000);
 
-    const text1 = await page.locator('#prestige-panel').textContent();
-    expect(text1).toMatch(/Legacy[\s\S]*?1/);
+    await expectPrestigeCount(page, 1);
 
     // Reload with count=1 + first bonus purchased
     await page.evaluate(() => localStorage.clear());
@@ -316,7 +313,7 @@ test.describe('Prestige Integration — Slice 5', () => {
     }))));
     await page.goto('/');
     await page.waitForSelector('#panels', { timeout: 15000 });
-    await page.waitForTimeout(1500);
+    await settleReveals(page);
 
     // First bonus still purchased
     await openPrestigeTree(page);
@@ -329,10 +326,8 @@ test.describe('Prestige Integration — Slice 5', () => {
 
     // Second prestige
     await holdPrestige(page);
-    await page.waitForTimeout(2000);
 
-    const text2 = await page.locator('#prestige-panel').textContent();
-    expect(text2).toMatch(/Legacy[\s\S]*?2/);
+    await expectPrestigeCount(page, 2);
 
     // Both bonuses persist
     await openPrestigeTree(page);
@@ -348,21 +343,21 @@ test.describe('Prestige Integration — Slice 5', () => {
 
     // Game functional
     await clickTimes(page, 3);
-    await page.waitForTimeout(500);
-    const eggText = await page.locator('[data-stat="resources.eggs"] .critical-value').textContent();
-    expect(parseInt(eggText || '0', 10)).toBeGreaterThan(0);
+    await expect.poll(() => stat(page, 'resources.eggs')).toBeGreaterThan(0);
   });
 
   /** ─── Story 1.13: prestige needs a deliberate confirm ─── */
   test('a click alone does not prestige; a hold does', async ({ page }) => {
+    // Fast-forward past a full hold deterministically instead of sleeping through it.
+    await page.clock.install();
     await seedAndGo(page, makeBaseState());
     const btn = page.locator('#prestige-panel .btn-prestige');
     await expect(btn).toBeAttached({ timeout: 10000 });
     await evalClick(page, '#prestige-panel .btn-prestige');
     await btn.dispatchEvent('pointerdown', { pointerId: 1, button: 0, isPrimary: true });
     await btn.dispatchEvent('pointerup', { pointerId: 1, button: 0, isPrimary: true });
-    await page.waitForTimeout(1500);
-    expect(await page.locator('#prestige-panel').textContent()).toMatch(/Legacy[\s\S]*?0/);
+    await page.clock.runFor(1500);
+    await expectPrestigeCount(page, 0);
     await expect(page.locator('[data-stat="resources.food"] .critical-value')).not.toHaveText('0');
 
     await holdPrestige(page);
