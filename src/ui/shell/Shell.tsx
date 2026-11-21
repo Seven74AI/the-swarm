@@ -184,7 +184,8 @@ export function Shell({ shell, views = {}, onContinue, tabKeys, grid }: ShellPro
           </section>
         ))}
       </main>
-      <div class="shell-primary" data-primary-zone="">
+      {/* A landmark of its own (it sits outside <main>), so a plain line here (NEXT AFFORDABLE: …) is still in one. */}
+      <div class="shell-primary" data-primary-zone="" role="region" aria-label="Primary action">
         {TABS.map((t) => (
           <div
             key={t.id}
