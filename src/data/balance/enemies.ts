@@ -59,9 +59,9 @@ export const enemyBalance = {
    */
   traits: {
     swarm: { hitCap: 2 },
-    regrowth: { regrowthPerRound: 6 },
-    web: { strikersMax: 6 },
-    thick_shell: { shell: 2, glanceShare: 0.25, poisonShare: 0.25 },
+    regrowth: { regrowthPerRound: 2 },
+    web: { strikersMax: 8 },
+    thick_shell: { shell: 1, glanceShare: 0.5, poisonShare: 0.25 },
     swift: { strikesPerRound: 2, strikesFirst: true },
     venom_resistance: { poisonShare: 0.25 },
   },

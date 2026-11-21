@@ -76,9 +76,9 @@ describe('enemy traits (Story 4.1)', () => {
   });
 
   it('regrowth: an army too weak to outpace the healing never wins, unless venom stops it', () => {
-    // Harmless to the army, so only the healing decides it.
-    const harmless = { strength: 0, hp: 40, defense: 1 };
+    // Harmless to the army, so only the healing decides it; without it the army needs half the rounds.
     const heal = enemyBalance.traits.regrowth.regrowthPerRound;
+    const harmless = { strength: 0, hp: (heal * combatBalance.maxRounds) / 4, defense: 1 };
     const weak = army({ soldiers: 1, strength: heal / 2 });
     const rng = () => fixedRng(0.5);
     expect(fightRounds(weak, withTrait('regrowth', harmless), rng()).outcome).toBe('draw');
