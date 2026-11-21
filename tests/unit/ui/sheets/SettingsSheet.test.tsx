@@ -42,7 +42,7 @@ let store: SettingsStore;
 function open(over: Partial<SettingsScreenDeps> = {}, capabilities = caps()) {
   storage = memoryStore();
   store = createSettingsStore({ storage, capabilities });
-  act(() => void openSettings(sheets, { store, capabilities, onExportDiagnostics: () => {}, onPause: () => {}, onExportSave: () => {}, onImportSave: () => {}, ...over }));
+  act(() => void openSettings(sheets, { store, capabilities, onExportDiagnostics: () => {}, onPause: () => {}, onExportSave: () => {}, onImportSave: () => {}, onExportTelemetry: () => {}, ...over }));
 }
 
 const sheet = () => document.querySelector<HTMLElement>('[data-settings-sheet]')!;
@@ -193,6 +193,16 @@ describe('settings screen', () => {
     open({ onExportDiagnostics });
     act(() => sheet().querySelector<HTMLButtonElement>('[data-action="export-diagnostics"]')!.click());
     expect(onExportDiagnostics).toHaveBeenCalledTimes(1);
+  });
+
+  it('exports telemetry through the handler main passes in (Story 3.10)', () => {
+    const onExportTelemetry = vi.fn();
+    open({ onExportTelemetry });
+    const button = sheet().querySelector<HTMLButtonElement>('[data-action="export-telemetry"]')!;
+    expect(button).not.toBeNull();
+    expect(button.textContent).toMatch(/EXPORT TELEMETRY/);
+    act(() => button.click());
+    expect(onExportTelemetry).toHaveBeenCalledTimes(1);
   });
 
   it('exports and imports the save through the handlers main passes in (Story 2.11)', () => {

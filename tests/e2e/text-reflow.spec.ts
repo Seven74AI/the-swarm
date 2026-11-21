@@ -251,6 +251,8 @@ for (const setup of SETUPS) {
         await (await chooser).setFiles({ name: 'save.json', mimeType: 'application/json', buffer: Buffer.from(text) });
       };
       await openSettings();
+      // EXPORT TELEMETRY (Story 3.10) is one of the controls checked.
+      await expect(page.locator('[data-settings-sheet] [data-action="export-telemetry"]')).toBeVisible();
       const found = (await layoutProblems(page)).map((p) => `settings sheet: ${p}`);
       await page.locator('[data-settings-sheet] [data-sheet-close]').click();
       await pick(JSON.stringify({ version: 999, timestamp: Date.now(), playTimeMs: 0, gameState: { phase: 'egg_laying', resources: {} } }));

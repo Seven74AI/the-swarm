@@ -29,7 +29,8 @@ import { selectAffordableKeys, selectCanChoose, selectCapacityReached, selectGoa
 import { AudioSystem } from './ui/AudioSystem';
 import { SaveManager } from './persistence/SaveManager';
 import { openOfflineSummary, type OfflineSummary } from './ui/sheets/OfflineSummarySheet';
-import { getReturnMove } from './systems/NextAction';
+import { decisionsAvailable, getReturnMove } from './systems/NextAction';
+import { createTelemetry, TELEMETRY_FILENAME, type Telemetry } from './state/telemetry';
 import { bindDecisionSheets, type DecisionSheets } from './ui/sheets/DecisionSheet';
 import { createToasts, type Toasts } from './ui/primitives/Toast';
 import { openTickFailure } from './ui/sheets/TickFailureSheet';
@@ -105,6 +106,8 @@ export function bootstrap(): {
   chronicle: Chronicle;
   /** One-line toasts (Story 1.12 primitive; first used by Story 1.28's costly timeouts). */
   toasts: Toasts;
+  /** Local play telemetry (Story 3.10): beside the game, outside the save, exported only by the player. */
+  telemetry: Telemetry;
   /** Dev builds only (Story 1.34): the cheats, once their chunk has loaded; null in production. */
   cheatsLoaded: Promise<Cheats> | null;
 } {
@@ -152,6 +155,15 @@ export function bootstrap(): {
     gameState.value = saved.gameState;
     log.info('offline', `Save loaded. lastSeenAt: ${saved.lastSeenAt ?? 'null'}`);
   }
+
+  // Play telemetry (Story 3.10, FR38, NFR10, ADR 0035): a ring buffer under its own key, outside
+  // the save. Check-ins follow the lifecycle (arrival → hide), phases follow the committed phase.
+  // It never leaves the device except as the file EXPORT TELEMETRY downloads.
+  const telemetry = createTelemetry({ storage: platform.telemetry, now: () => Date.now(), phase: gameState.value.phase });
+  const arriveForTelemetry = (): void => {
+    const s = gameState.peek();
+    telemetry.beginCheckIn({ phase: s.phase, decisionsAvailable: decisionsAvailable(s) });
+  };
 
   // ── The one way back (Story 2.3, D1, ADR 0002) ──
   // Cold load, tab return, bfcache pageshow, focus after sleep and long frames all
@@ -421,6 +433,10 @@ export function bootstrap(): {
       });
     });
   };
+  // EXPORT TELEMETRY (Story 3.10): the local ring buffer as a file; nothing is ever sent.
+  const exportTelemetry = (): void => {
+    if (!platform.browser.download(TELEMETRY_FILENAME, telemetry.exportText({ build: BUILD_ID }))) log.warn('telemetry', 'export download failed');
+  };
   const openSettingsScreen = (): void => {
     settingsSheetId = openSettings(sheets, {
       store: platform.settings,
@@ -429,6 +445,7 @@ export function bootstrap(): {
       onPause: () => resumePath.pause(),
       onExportSave: exportSave,
       onImportSave: importSave,
+      onExportTelemetry: exportTelemetry,
     });
   };
 
@@ -590,7 +607,10 @@ export function bootstrap(): {
   // A committed phase reveals its panels at once, under the phase reveal (Story 1.20).
   bus.subscribe('phase_committed', ({ to }) => {
     phaseContent.onPhaseEnter(to, panels);
+    telemetry.phase(to);
   });
+  // A prestige starts the run over: telemetry closes the phase it left (Story 3.10).
+  bus.subscribe('prestige_triggered', () => telemetry.phase(gameState.peek().phase));
 
   // ── Haptics and the sound setting (Story 1.10) ──
   bindHapticFeedback(bus, platform.haptics);
@@ -640,6 +660,8 @@ export function bootstrap(): {
   // are bound: a goal the catch-up latches is then seen and announced like any other
   // (Story 1.32). An unreadable save waits behind its sheet with a fresh state: nothing to resume.
   if (opened.status !== 'unreadable') resumePath.coldStart(saved?.lastSeenAt ?? null);
+  // The first check-in starts on arrival, after the cold-start catch-up: its decisions are the ones on screen.
+  arriveForTelemetry();
 
   // Start autosave
   saveManager.startAutosave(() => ({
@@ -655,10 +677,15 @@ export function bootstrap(): {
   // reminders at predicted times on hide. Only main holds the service: no game outcome
   // depends on it.
   platform.lifecycle.bind({
-    hidden: () => resumePath.hide(),
+    hidden: () => {
+      resumePath.hide();
+      telemetry.endCheckIn();
+    },
     returned: () => {
       platform.notifications.cancelAll();
       resumePath.show();
+      // A return burst (visible + pageshow + focus) opens one check-in; telemetry ignores the rest.
+      arriveForTelemetry();
       void platform.serviceWorker.checkForUpdate();
     },
   });
@@ -721,7 +748,7 @@ export function bootstrap(): {
     onError: (error) => log.warn('pwa', 'service worker registration failed; offline play is off', error),
   });
 
-  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, panels, audio, actions, platform, sheets, overlays, chronicle, toasts, cheatsLoaded };
+  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, panels, audio, actions, platform, sheets, overlays, chronicle, toasts, telemetry, cheatsLoaded };
 }
 
 // processTick lives in engine/processTick.ts; re-exported for existing callers.

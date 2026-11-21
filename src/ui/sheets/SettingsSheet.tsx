@@ -19,14 +19,15 @@ import './SettingsSheet.css';
  * shortcuts on/off and one remap control per shortcut, then PAUSE (Story
  * 2.10: closes the settings and pauses; in-session only), EXPORT SAVE and
  * IMPORT SAVE (Story 2.11: the save only, never these settings), REPLAY INTRO
- * and EXPORT DIAGNOSTICS. The web build has no notifications toggle (owner,
+ * EXPORT DIAGNOSTICS and EXPORT TELEMETRY (Story 3.10: the local play
+ * telemetry, as a file; nothing is ever sent). The web build has no notifications toggle (owner,
  * 2026-11-21). The settings act where their features live: shortcuts in
  * Story 1.30, timers in Story 1.28, CRT in Epic 8, the intro in Story 8.10.
  *
  * Hooks: `[data-settings-sheet]`, `[data-setting=<field>]` with
  * `[data-option=<value>][aria-pressed]` and `[data-setting-note]`,
  * `[data-shortcut=<id>][data-listening]`,
- * `[data-action="pause"|"export-save"|"import-save"|"replay-intro"|"export-diagnostics"]`.
+ * `[data-action="pause"|"export-save"|"import-save"|"replay-intro"|"export-diagnostics"|"export-telemetry"]`.
  */
 
 export interface SettingsScreenDeps {
@@ -41,6 +42,8 @@ export interface SettingsScreenDeps {
   readonly onExportSave: () => void;
   /** Pick a save file and import it (Story 2.11; main reads, checks and confirms it). */
   readonly onImportSave: () => void;
+  /** Download the play telemetry as a file (Story 3.10; main builds it). It is never sent anywhere. */
+  readonly onExportTelemetry: () => void;
   /** Play the title cinematic again (Story 8.10). Until it exists the button says why it can't. */
   readonly onReplayIntro?: () => void;
 }
@@ -262,7 +265,7 @@ function PauseButton({ onPause }: { onPause: () => void }) {
   );
 }
 
-export function SettingsSheet({ store, capabilities, onExportDiagnostics, onPause, onExportSave, onImportSave, onReplayIntro }: SettingsScreenDeps) {
+export function SettingsSheet({ store, capabilities, onExportDiagnostics, onPause, onExportSave, onImportSave, onExportTelemetry, onReplayIntro }: SettingsScreenDeps) {
   return (
     <ModalSheet headline="SETTINGS" class="settings-sheet" data-settings-sheet="">
       <ul class="settings-list">
@@ -282,6 +285,7 @@ export function SettingsSheet({ store, capabilities, onExportDiagnostics, onPaus
           onPress={() => onReplayIntro?.()}
         />
         <Button verb="EXPORT DIAGNOSTICS" data-action="export-diagnostics" onPress={onExportDiagnostics} />
+        <Button verb="EXPORT TELEMETRY" data-action="export-telemetry" onPress={onExportTelemetry} />
       </div>
     </ModalSheet>
   );

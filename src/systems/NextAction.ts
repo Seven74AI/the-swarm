@@ -413,6 +413,17 @@ export function getNextAction(state: GameState): NextAction {
 }
 
 /**
+ * The choices a player has right now (Story 3.10, FR38; the same count as the
+ * headless sim's probes, Story 3.7): each item they can buy, plus CONTINUE
+ * when the goal has latched. Decision events are not counted: they are the
+ * game's question, not the player's choice of move.
+ */
+export function decisionsAvailable(state: GameState): number {
+  const items = listItems().filter((ref) => isItemAffordable(state, ref)).length;
+  return items + (goalPending(state) ? 1 : 0);
+}
+
+/**
  * The offline summary's next move (Story 2.9, FR27, UX-DR24): what the button
  * on the return sheet points at. `act` opens the target's tab; `wait` is the
  * `NEXT AFFORDABLE: <item> IN ~<time>` line.

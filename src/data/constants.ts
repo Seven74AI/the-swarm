@@ -83,3 +83,10 @@ export const OFFLINE_WORKER_FLOOR_SHARE = 0.5 as const;
  * reference phone. Reported by `pnpm perf` (tests/perf/), never asserted in CI.
  */
 export const CATCH_UP_BUDGET_MS = 500 as const;
+
+/**
+ * Play telemetry (Story 3.10, FR38): the ring buffer's fixed size, in entries
+ * (check-ins and phase records). The oldest drop first; a full buffer is a few
+ * tens of kB in storage.
+ */
+export const TELEMETRY_MAX_ENTRIES = 500 as const;

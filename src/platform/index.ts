@@ -12,6 +12,7 @@ import { createSettingsStore, type SettingsStore } from './settings';
 import { createViewport, type Viewport, type ViewportEnv } from './viewport';
 import { createLocalSaveStore, type RemovableStore, type SaveStore } from './storage/SaveStore';
 import { createIntroFlag, type IntroFlag } from './storage/introFlag';
+import { createTelemetryStore, type TelemetryStore } from './storage/telemetryStore';
 import { createDurability, type Durability, type StorageManagerLike } from './storage/durability';
 import { createLifecycle, type Lifecycle, type LifecycleEnv } from './lifecycle';
 import { createServiceWorker, type ServiceWorkerControl, type ServiceWorkerEnv } from './serviceWorker';
@@ -29,6 +30,8 @@ export interface Platform {
   readonly saves: SaveStore;
   /** The intro (onboarding) flag, outside the save (Story 2.2, D4). */
   readonly introFlag: IntroFlag;
+  /** The play-telemetry ring buffer's storage, outside the save (Story 3.10, FR38, NFR10). */
+  readonly telemetry: TelemetryStore;
   /** Page hidden / returned signals for the one resume path (Story 2.3, D1). */
   readonly lifecycle: Lifecycle;
   /** Persistent storage and the one-time add-to-home-screen hint (Story 2.12, D4). */
@@ -76,9 +79,10 @@ export function createWebPlatform(env: WebPlatformEnv = typeof window === 'undef
   const viewport = createViewport(env);
   const saves = createLocalSaveStore(storage);
   const introFlag = createIntroFlag(storage);
+  const telemetry = createTelemetryStore(storage);
   const lifecycle = createLifecycle(env as LifecycleEnv);
   const durability = createDurability({ storageManager: storageManagerOf(env), storage, capabilities });
   const serviceWorker = createServiceWorker(env as ServiceWorkerEnv);
   const notifications = createWebNotifications();
-  return Object.freeze({ capabilities, settings, haptics, browser, viewport, saves, introFlag, lifecycle, durability, serviceWorker, notifications });
+  return Object.freeze({ capabilities, settings, haptics, browser, viewport, saves, introFlag, telemetry, lifecycle, durability, serviceWorker, notifications });
 }
