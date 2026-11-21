@@ -224,8 +224,19 @@ export class EventLog {
     return this.entriesList;
   }
 
-  private addEntry(message: string): void {
-    this.entriesList.unshift({ message, timestamp: Date.now() });
+  /**
+   * True from a phase line until the current dispatch ends. A commit reveals
+   * the phase's panels in the same synchronous dispatch, and their lines go
+   * under the phase line, so NEST's newest line is the phase change.
+   */
+  private phaseLineOnTop = false;
+  /** Entries ever added (the list itself stops growing at `MAX_ENTRIES`). */
+  private added = 0;
+
+  private addEntry(message: string, under = false): void {
+    const at = under && this.phaseLineOnTop ? 1 : 0;
+    this.added++;
+    this.entriesList.splice(at, 0, { message, timestamp: Date.now() });
     if (this.entriesList.length > MAX_ENTRIES) {
       this.entriesList.pop();
     }
@@ -293,6 +304,7 @@ export class EventLog {
   }
 
   private onPhaseChanged(phase: string): void {
+    const before = this.added;
     if (phase === 'colony' && !this.colonyUnlockedFired) {
       this.colonyUnlockedFired = true;
       this.addEntry('The colony takes shape. Worker ants now serve a purpose — assign them.');
@@ -309,18 +321,24 @@ export class EventLog {
       this.spaceUnlockedFired = true;
       this.addEntry('🚀 The swarm looks to the stars. New resources await in the void.');
     }
+    if (this.added !== before) {
+      this.phaseLineOnTop = true;
+      queueMicrotask(() => {
+        this.phaseLineOnTop = false;
+      });
+    }
   }
 
   private onPanelRevealed(panelId: string): void {
     if (panelId === 'soldier_panel') {
-      this.addEntry('⚔️ Soldier Command is now available — recruit and equip your army.');
+      this.addEntry('⚔️ Soldier Command is now available — recruit and equip your army.', true);
     } else if (panelId === 'building_panel' && !this.firstBuildingFired) {
       this.firstBuildingFired = true;
-      this.addEntry('🏗️ Construction unlocked — buildings strengthen the colony.');
+      this.addEntry('🏗️ Construction unlocked — buildings strengthen the colony.', true);
     } else if (panelId === 'expedition_panel') {
-      this.addEntry('🗺️ Expeditions are now available — send scouts to gather resources.');
+      this.addEntry('🗺️ Expeditions are now available — send scouts to gather resources.', true);
     } else if (panelId === 'spaceship_panel') {
-      this.addEntry('🚀 Spaceship construction unlocked — build your vessel to the stars.');
+      this.addEntry('🚀 Spaceship construction unlocked — build your vessel to the stars.', true);
     }
   }
 

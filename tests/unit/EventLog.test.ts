@@ -250,6 +250,22 @@ describe('EventLog', () => {
       }
     });
 
+    it('keeps the phase line newest over the panel reveals of the same commit', () => {
+      bus.emit('phase_committed', { from: Phase.EXPANSION, to: Phase.SPACE });
+      bus.emit('panel_revealed', { panelId: 'spaceship_panel' });
+      bus.emit('panel_revealed', { panelId: 'expedition_panel' });
+      bus.emit('panel_revealed', { panelId: 'soldier_panel' });
+      expect(lines()[0].textContent).toContain('looks to the stars');
+      expect(log.entries()).toHaveLength(5);
+    });
+
+    it('a later panel reveal is newest again', async () => {
+      bus.emit('phase_committed', { from: Phase.EXPANSION, to: Phase.SPACE });
+      await Promise.resolve();
+      bus.emit('panel_revealed', { panelId: 'spaceship_panel' });
+      expect(lines()[0].textContent).toContain('Spaceship');
+    });
+
     it('keeps older entries in memory for the LOG tab', () => {
       for (let i = 0; i < 5; i++) {
         bus.emit('building_complete', { building: 'nest', level: i + 2 });
