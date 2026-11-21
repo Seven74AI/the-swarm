@@ -10,7 +10,8 @@ import { getUpgradeCost } from '../../../../src/systems/ResourceSystem';
 import { BuildHeader } from '../../../../src/ui/build/BuildHeader';
 import { BuildingCards } from '../../../../src/ui/build/BuildingCards';
 import { ResearchCards } from '../../../../src/ui/build/ResearchCards';
-import { ConverterCard } from '../../../../src/ui/build/ConverterCard';
+import { ConverterCard, ParticleLabCard } from '../../../../src/ui/build/ConverterCard';
+import { getParticleLabCost } from '../../../../src/systems/ResourceConversionSystem';
 import { BuildPrimary } from '../../../../src/ui/build/BuildPrimary';
 import { ClickPowerCard } from '../../../../src/ui/nest/ClickPowerCard';
 import { testActions } from '../../helpers/actions';
@@ -323,5 +324,33 @@ describe('Converter card (Story 1.24)', () => {
     const before = gameState.value.resources.voidCrystals;
     act(() => container.querySelector('button')!.click());
     expect(gameState.value.resources.voidCrystals).toBeGreaterThan(before);
+  });
+});
+
+describe('Particle Lab card (Story 3.6)', () => {
+  const lab = (root: ParentNode) => root.querySelector<HTMLElement>('[data-particle-lab]');
+  const buy = (root: ParentNode) => lab(root)!.querySelector<HTMLButtonElement>('[data-action="build-particle-lab"]')!;
+
+  it('shows the level change, the price and the shortfall while unaffordable', () => {
+    gameState.value = makeState({ phase: Phase.SPACE, resources: broke });
+    const { container } = render(<ParticleLabCard build={() => ({ ok: true })} />);
+    const el = lab(container)!;
+    expect(el).not.toBeNull();
+    expect(visibleText(el.querySelector('.card__level')!)).toMatch(/LV\.0 → 1/);
+    expect(el.querySelector('.card__cost')!.textContent).not.toBe('');
+    expect(buy(container).getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('BUILD goes through the action: the lab gains a level and the price is paid', () => {
+    const cost = getParticleLabCost(0);
+    gameState.value = makeState({ phase: Phase.SPACE, resources: { stone: cost.stone, voidCrystals: cost.voidCrystals } });
+    const actions = testActions();
+    const { container } = render(<ParticleLabCard build={() => actions.buildParticleLab()} />);
+    expect(buy(container).getAttribute('aria-disabled')).not.toBe('true');
+    const before = gameState.value;
+    act(() => buy(container).click());
+    expect(gameState.value.conversions.particleLab).toBeGreaterThan(before.conversions.particleLab);
+    expect(gameState.value.resources.stone).toBeLessThan(before.resources.stone);
+    expect(visibleText(lab(container)!.querySelector('.card__level')!)).toMatch(/LV\.1 → 2/);
   });
 });

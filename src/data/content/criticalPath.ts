@@ -14,6 +14,7 @@ export type ItemRef =
   | { readonly kind: 'mutation'; readonly id: string }
   | { readonly kind: 'equipment'; readonly id: 'weapon' | 'armor' }
   | { readonly kind: 'ship' }
+  | { readonly kind: 'particle_lab' }
   | { readonly kind: 'research'; readonly id: ResearchProjectId }
   | { readonly kind: 'auto_research'; readonly id: ResearchType }
   | { readonly kind: 'auto_building'; readonly id: AutomationBuildingType };

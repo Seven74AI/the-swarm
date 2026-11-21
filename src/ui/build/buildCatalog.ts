@@ -26,6 +26,8 @@ export const BUILDING_CARDS: readonly BuildingCardDef[] = [
 ];
 
 export const RESEARCH_GLYPH = '⌕';
+/** The Particle Lab's card (Story 3.6). */
+export const PARTICLE_LAB_GLYPH = '⊚';
 
 /** What finishing each step of the research chain does. */
 export const RESEARCH_EFFECT: Readonly<Record<ResearchProjectId, string>> = {

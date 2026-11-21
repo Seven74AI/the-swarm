@@ -187,4 +187,36 @@ test.describe('Research System', () => {
     expect(after.stone).toBeGreaterThan(before.stone);
     expect(after.nectar).toBeGreaterThan(before.nectar);
   });
+
+  test('BUILD sells the Particle Lab, and building one starts the researched antimatter step (Story 3.6)', async ({ page }) => {
+    await seedSpaceAndWait(page, {
+      research: {
+        projects: {
+          voidCrystalSynthesis: { state: 'completed', progress: 600 },
+          antimatterContainment: { state: 'completed', progress: 1500 },
+          darkMatterDetection: { state: 'available', progress: 0 },
+        },
+      },
+    });
+
+    const lab = page.locator('#resource-converter-panel [data-particle-lab]');
+    const step = page.locator('#resource-converter-panel [data-conversion="antimatterContainment"]');
+    await expect(lab).toBeVisible();
+    await expect(step).toHaveAttribute('data-unlocked', 'false');
+
+    const read = () => page.evaluate(() => {
+      // @ts-ignore - runs in browser context
+      const s = window.__swarm.manager.getState();
+      return { stone: s.resources.stone as number, lab: s.conversions.particleLab as number };
+    });
+    const before = await read();
+    const build = lab.locator('[data-action="build-particle-lab"]');
+    await expect(build).not.toHaveAttribute('aria-disabled', 'true');
+    await build.click();
+
+    await expect(step).toHaveAttribute('data-unlocked', 'true');
+    const after = await read();
+    expect(after.lab).toBeGreaterThan(before.lab);
+    expect(after.stone).toBeLessThan(before.stone);
+  });
 });

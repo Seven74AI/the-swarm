@@ -12,6 +12,7 @@ import { getEquipmentUpgradeCost } from './SoldierSystem';
 import { soldierBalance } from '../data/balance/soldiers';
 import { MAX_SHIP_LEVEL, canAffordShipCost, getShipCost } from './SpaceshipSystem';
 import { canStartProject, getAssignedResearchers, getProjectStatus, getProjects } from './ResearchSystem';
+import { canBuildParticleLab, getParticleLabCost, isParticleLabOpen } from './ResourceConversionSystem';
 import {
   AUTOMATION_BUILDINGS,
   RESEARCHES,
@@ -35,7 +36,7 @@ export type ActionIntent =
   | { readonly action: 'buyUpgrade'; readonly id: string }
   | { readonly action: 'buyBuilding'; readonly id: BuildingType }
   | { readonly action: 'buyMutation'; readonly id: string }
-  | { readonly action: 'upgradeWeapon' | 'upgradeArmor' | 'buildShip' | 'upgradeShip' }
+  | { readonly action: 'upgradeWeapon' | 'upgradeArmor' | 'buildShip' | 'upgradeShip' | 'buildParticleLab' }
   | { readonly action: 'startResearch'; readonly id: ResearchProjectId }
   | { readonly action: 'researchAutomation'; readonly id: ResearchType }
   | { readonly action: 'buildAutomation'; readonly id: AutomationBuildingType };
@@ -169,6 +170,19 @@ function defOf(ref: ItemRef): ItemDef {
         intent: (s) => ({ action: s.spaceship.level === 0 ? 'buildShip' : 'upgradeShip' }),
       };
     }
+    case 'particle_lab': {
+      const level = (s: GameState) => s.conversions.particleLab;
+      return {
+        panel: 'resource_converter_panel',
+        name: 'Particle Lab',
+        open: isParticleLabOpen,
+        cost: (s) => nonZero({ ...getParticleLabCost(level(s)) }),
+        affordable: canBuildParticleLab,
+        verb: (s) => (level(s) === 0 ? 'BUILD' : 'UPGRADE'),
+        target: (s) => (level(s) === 0 ? 'PARTICLE LAB' : `PARTICLE LAB LV.${level(s) + 1}`),
+        intent: () => ({ action: 'buildParticleLab' }),
+      };
+    }
     case 'research': {
       const def = getProjects().find((p) => p.id === ref.id);
       return {
@@ -232,6 +246,7 @@ export function listItems(): ItemRef[] {
     { kind: 'equipment', id: 'armor' },
     ...getProjects().map((p): ItemRef => ({ kind: 'research', id: p.id })),
     { kind: 'ship' },
+    { kind: 'particle_lab' },
   ];
 }
 

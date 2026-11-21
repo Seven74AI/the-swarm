@@ -56,6 +56,7 @@ export {
 export {
   getConversionDefs,
   getConversionRate,
+  getParticleLabCost,
   isConversionUnlocked,
   type ConversionDef,
   type ConversionId,
