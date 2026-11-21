@@ -20,8 +20,9 @@ the old pattern alive for new code to copy.
 - **`Panel`** (`ui/shell/Panel.tsx`) is one registry panel: absent until its phase reveals it, then its root element
   keeps the old host's id, classes and `data-*` hooks, plus `[data-panel=<id>]` (where an event line jumps to) and
   `.panel-unlocked .panel-revealed` (the reveal animation). Newly revealed panels cascade in `REVEAL_STAGGER_MS` apart by
-  their place among the phase's panels. As in #360, the delay is only given to a panel on screen at
-  that reveal and is dropped once its reveal animation ends, so reopening a tab never replays the wait.
+  their place among the phase's panels. As in #360/#361, the delay is only given to a panel on screen at
+  that reveal, and `.panel-revealed` and the delay go once the reveal animation ends: it plays once, and reopening a
+  tab never replays it.
 - **`PanelReveal`** (`ui/shell/panelReveal.ts`, provided by `App` through `PanelRevealContext`): the session's set of
   revealed panels. `PhaseContent.onPhaseEnter(phase, panels)` reveals a phase's panels at boot (before the first
   render) and on every commit; each reveal is announced as `panel_revealed`. Like UIRoot's lazy panels, a revealed

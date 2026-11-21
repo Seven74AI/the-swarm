@@ -91,23 +91,37 @@ describe('Panel', () => {
   });
 
   for (const type of ['animationend', 'animationcancel'] as const) {
-    it(`drops the stagger once the reveal is over (${type})`, () => {
+    it(`the reveal plays once: when it is over (${type}), the reveal class and its stagger go`, () => {
       const rects = vi.spyOn(HTMLElement.prototype, 'getClientRects').mockReturnValue([new DOMRect(0, 0, 10, 10)] as unknown as DOMRectList);
       try {
         const { panels, view } = setup();
         act(() => panels.reveal(['worker_assignment', 'food_display']));
         const el = view.container.querySelector<HTMLElement>('[data-panel="food_display"]')!;
         expect(el.style.animationDelay).not.toBe('');
+        expect(el.classList.contains('panel-revealed')).toBe(true);
         // A child's animation bubbling up is not the panel's reveal.
         animationDone(type, el.querySelector('p')!);
-        expect(el.style.animationDelay).not.toBe('');
+        expect(el.classList.contains('panel-revealed')).toBe(true);
         animationDone(type, el);
+        // Showing its tab again later must not replay the slide-in (it moved panels from under the pointer).
+        expect(el.classList.contains('panel-revealed')).toBe(false);
         expect(el.style.animationDelay).toBe('');
+        expect(el.classList.contains('panel-unlocked')).toBe(true);
       } finally {
         rects.mockRestore();
       }
     });
   }
+
+  it('a panel revealed in a closed tab slides in once, unstaggered, when its tab opens', () => {
+    const { panels, view } = setup();
+    act(() => panels.reveal(['worker_assignment', 'food_display']));
+    const el = view.container.querySelector<HTMLElement>('[data-panel="food_display"]')!;
+    expect(el.classList.contains('panel-revealed')).toBe(true);
+    expect(el.style.animationDelay).toBe('');
+    animationDone('animationend', el);
+    expect(el.classList.contains('panel-revealed')).toBe(false);
+  });
 
   it('without a reveal context, shows its content (tests and harness pages)', () => {
     const view = render(

@@ -19,22 +19,20 @@ const isReveal = (e: Event, el: Element): boolean =>
   e.target === el && (e as AnimationEvent).animationName === 'phaseReveal';
 
 /**
- * Whether a revealed panel's root still carries its stagger delay. The stagger belongs to
- * the one reveal that cascades a phase's panels in (#360): a panel that is not on screen
- * then (its tab is closed) gets none, and the delay goes once that reveal animation is over,
- * so reopening the tab never makes the panel wait out its place in the cascade again.
+ * A revealed panel's reveal animation (`.panel-revealed`), which plays once (#360, #361):
+ * the class and its stagger delay go when the animation ends or is cut short, so showing
+ * the tab again never replays the slide-in. Only a panel on screen as it is revealed is
+ * staggered; one in a closed tab slides in, unstaggered, when its tab first opens.
  */
-export function useStagger(el: { current: HTMLElement | null }, shown: boolean, delay: number): boolean {
-  const [active, setActive] = useState(true);
+export function useRevealOnce(el: { current: HTMLElement | null }, shown: boolean, delay: number): { revealing: boolean; staggered: boolean } {
+  const [revealing, setRevealing] = useState(true);
+  const [offScreen, setOffScreen] = useState(false);
   useLayoutEffect(() => {
     const node = el.current;
-    if (!node || delay <= 0 || !active) return;
-    if (node.getClientRects().length === 0) {
-      setActive(false);
-      return;
-    }
+    if (!node || !revealing) return;
+    if (node.getClientRects().length === 0) setOffScreen(true);
     const done = (e: Event) => {
-      if (isReveal(e, node)) setActive(false);
+      if (isReveal(e, node)) setRevealing(false);
     };
     node.addEventListener('animationend', done);
     node.addEventListener('animationcancel', done);
@@ -42,14 +40,14 @@ export function useStagger(el: { current: HTMLElement | null }, shown: boolean, 
       node.removeEventListener('animationend', done);
       node.removeEventListener('animationcancel', done);
     };
-  }, [shown, delay, active]);
-  return active && delay > 0;
+  }, [shown, revealing]);
+  return { revealing, staggered: revealing && !offScreen && delay > 0 };
 }
 
 /**
  * One panel of the tab registry (`data/content/tabs.ts`, Story 1.36): absent
  * until its phase reveals it, then its root element with the legacy id and
- * classes kept, `.panel-revealed` (the reveal animation, main.css) and
+ * classes kept, `.panel-unlocked`, `.panel-revealed` while its reveal plays (main.css) and
  * `[data-panel=<id>]` (where an event line jumps to).
  */
 export function Panel({
@@ -72,7 +70,7 @@ export function Panel({
   const shown = usePanelShown(id);
   const delay = usePanelDelay(id);
   const root = useRef<HTMLDivElement>(null);
-  const staggered = useStagger(root, shown, delay);
+  const { revealing, staggered } = useRevealOnce(root, shown, delay);
   if (!shown) return null;
   const Tag = tag;
   return (
@@ -80,7 +78,7 @@ export function Panel({
       {...attrs}
       ref={root}
       id={domId}
-      class={[className, 'panel-unlocked', 'panel-revealed'].filter(Boolean).join(' ')}
+      class={[className, 'panel-unlocked', revealing && 'panel-revealed'].filter(Boolean).join(' ')}
       data-panel={id}
       style={staggered ? { animationDelay: `${delay}ms` } : undefined}
     >

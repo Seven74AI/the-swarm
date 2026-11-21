@@ -321,11 +321,9 @@ test.describe('Transcendence Victory — Phase Transition & Overlay', () => {
     await page.clock.runFor(500);
 
     const tcPanel = page.locator('#transcendence-panel');
-    // Panel should exist but show non-victory text
-    const count = await tcPanel.count();
-    if (count > 0) {
-      await expect(tcPanel).toContainText('THE STARS ARE STILL OUT OF REACH');
-      await expect(tcPanel).not.toContainText('THE SWARM TRANSCENDS.');
-    }
+    // Panel exists in TRANSCENDENCE and shows the non-victory text
+    await expect(tcPanel).toHaveCount(1);
+    await expect(tcPanel).toContainText('THE STARS ARE STILL OUT OF REACH');
+    await expect(tcPanel).not.toContainText('THE SWARM TRANSCENDS.');
   });
 });

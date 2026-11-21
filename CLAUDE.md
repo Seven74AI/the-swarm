@@ -115,3 +115,18 @@ module must be pinned (`--pin gds=<tag>`) where the GitHub API is unreachable. T
 - rAF fake timers don't reliably drive `Ticker`; test the public API, not tick counts.
 - Panels exist but are `display:none` until their phase — use `toBeVisible()`.
 - Selectors: grep `src/ui/panels/*.ts` for `data-` / `id=`; there is no canonical selector list.
+- **Vitest runs in the `vmThreads` pool:** each file gets fresh modules, but one jsdom is shared per worker.
+  Clean up what a test adds to `document.body` / `localStorage` (`afterEach`) so files can't leak into each other.
+  A test that runs a real Vite build must be listed in `BUILD_TESTS` (`vitest.config.ts`), which run in `forks`:
+  the bundler's native bindings fail inside a VM context.
+- **E2E runs against a bundle, not the dev server:** `E2E_BUILD=1 vite build --mode development` + `vite preview`
+  (`playwright.config.ts`). It is a development-mode, unminified build (dev cheats and dev logging are in, CSS
+  values stay as written) with the harness pages added. Rebuilt on every `pnpm test:e2e`; a dev server already on
+  :5173 is reused locally instead.
+- **Panels slide in on a stagger** (`.panel-revealed`). Before asserting positions or doing a tap/hold that
+  depends on layout, call `settleReveals(page)` from `tests/e2e/helpers/reveal.ts`.
+- Don't guard assertions with `if (found) { expect(…) }` or a conditional `test.skip`: seed the state so the
+  element must exist, and assert that it does. A guarded test passes when the feature is gone.
+- `page.clock.install()` alone keeps time flowing in real time, so short-lived UI (the 3.5 s phase reveal) can end
+  while a slow runner is still asserting. For deterministic time, also call `page.clock.pauseAt(Date.now() + 1000)`
+  before `goto` and move time only with `runFor()`.

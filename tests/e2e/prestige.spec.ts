@@ -82,34 +82,16 @@ test.describe('Prestige System — Legacy Layer', () => {
   });
 
   test('prestige panel exists and shows Legacy Points', async ({ page }) => {
-    // The prestige panel is a Phase 5 lazy panel — it should exist
-    // but may not be visible until TRANSCENDENCE phase.
-    // Check that the panel element exists in the DOM (even if hidden).
+    // The seed is in TRANSCENDENCE, where the lazy prestige panel is mounted.
     const panel = page.locator('#prestige-panel');
-    // Panel may or may not exist depending on phase gating
-    // For this test, we verify the panel content when present
-    const count = await panel.count();
-    if (count > 0) {
-      const text = await panel.textContent();
-      expect(text).toContain('Legacy');
-    }
+    await expect(panel).toHaveCount(1);
+    await expect(panel).toContainText('Legacy');
   });
 
   test('prestige button resets resources and increments legacy points', async ({ page }) => {
-    // First, make sure we're at transcendence phase so the panel is visible.
-    // We need to set the phase to transcendence for the panel to be shown.
-    // Since we can't easily trigger a phase transition, we'll navigate and check.
-
-    // The panel might be hidden. Let's check if the button exists.
+    // The seed is in TRANSCENDENCE, where the lazy prestige panel is mounted.
     const prestigeBtn = page.locator('#prestige-panel .btn-prestige');
-    const btnCount = await prestigeBtn.count();
-
-    if (btnCount === 0) {
-      // Panel not mounted at current phase — this is expected for non-TRANSCENDENCE.
-      // The panel is lazily created in TRANSCENDENCE phase only.
-      test.skip(true, 'Prestige panel not mounted in current phase');
-      return;
-    }
+    await expect(prestigeBtn).toHaveCount(1);
 
     // Verify button text
     const btnText = await prestigeBtn.textContent();
@@ -124,13 +106,8 @@ test.describe('Prestige System — Legacy Layer', () => {
     await page.clock.runFor(1500);
     await prestigeBtn.dispatchEvent('pointerup', { pointerId: 1, button: 0, isPrimary: true });
 
-    // Verify resources reset — food should be 0 after prestige
-    await page.waitForTimeout(500);
-
-    // Check the prestige panel shows updated count
-    const panelText = await page.locator('#prestige-panel').textContent();
-    // After prestige, count should be 1 (was 0)
-    expect(panelText).toMatch(/Legacy.*?1/);
+    // After prestige the panel shows the new count (was 0).
+    await expect(page.locator('#prestige-panel')).toContainText(/Legacy.*?1/);
   });
 
   test('prestige button is disabled when requirements not met', async ({ page }) => {
@@ -159,14 +136,8 @@ test.describe('Prestige System — Legacy Layer', () => {
     await page.goto('/');
     await page.waitForSelector('#panels', { timeout: 10000 });
 
-    // Check if panel exists
     const btn = page.locator('#prestige-panel .btn-prestige');
-    const count = await btn.count();
-
-    if (count === 0) {
-      test.skip(true, 'Prestige panel not mounted');
-      return;
-    }
+    await expect(btn).toHaveCount(1);
 
     // Button should be disabled
     const disabled = await btn.isDisabled();
