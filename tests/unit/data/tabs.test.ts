@@ -100,6 +100,11 @@ describe('tab registry', () => {
       starmap_panel: ['front', 'stars'],
       exploration_panel: ['front', 'stars'],
       cosmic_panel: ['front', 'stars'],
+      // LOG (Story 1.26): chronicle, lifetime stats, settings entry, LEGACY (which hosts the prestige panels).
+      log_chronicle: ['log'],
+      log_stats: ['log'],
+      log_settings: ['log'],
+      log_legacy: ['log'],
       prestige_panel: ['log'],
       prestige_tree_panel: ['log'],
     };
@@ -109,6 +114,11 @@ describe('tab registry', () => {
       expect(p.tab, id).toBe(tab);
       expect(p.segment, id).toBe(segment);
     }
+  });
+
+  it('LOG shows the chronicle, lifetime stats, settings and LEGACY from Colony, in that order (Story 1.26)', () => {
+    const colony = panelsForPhase(Phase.COLONY).filter((id) => PANEL_PLACEMENT[id].tab === 'log');
+    expect(colony).toEqual(['log_chronicle', 'log_stats', 'log_settings', 'log_legacy', 'prestige_panel', 'prestige_tree_panel']);
   });
 
   it('the NEST primary zone holds the lay-egg button', () => {

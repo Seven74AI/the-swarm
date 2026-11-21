@@ -470,3 +470,49 @@ describe('v15 → v16: seen phase reveals (Story 1.20)', () => {
     expect(migrateSave(data, 15, 16).gameState.lifetime.revealsSeen).toEqual([]);
   });
 });
+
+describe('v16 → v17: the chronicle is kept with the save (Story 1.26)', () => {
+  const v16 = (gs: Partial<GameState>): SaveData => ({
+    version: 16,
+    timestamp: 0,
+    playTimeMs: 0,
+    gameState: { ...createInitialState(), ...gs },
+  });
+
+  it('adds an empty chronicle to a save that has none', () => {
+    const out = migrateSave(v16({}), 16, 17);
+    expect(out.version).toBe(17);
+    expect(out.chronicle?.entries).toEqual([]);
+  });
+
+  it('marks the one-time lines a save has already passed, so they never fire late', () => {
+    const fresh = migrateSave(v16({}), 16, 17).chronicle!.milestones;
+    const played = migrateSave(
+      v16({
+        phase: 'combat',
+        stats: { totalEggsLaid: 5, totalClicks: 5, playTimeMs: 0 },
+        resources: { ...createInitialState().resources, workers: 12 },
+        combatSoldiers: 2,
+      }),
+      16,
+      17,
+    ).chronicle!.milestones;
+    expect(fresh).toEqual([]);
+    expect(played.length).toBeGreaterThan(fresh.length);
+    expect(played).toEqual(expect.arrayContaining(['first_egg', 'first_worker', 'first_soldier', 'phase_colony', 'phase_combat']));
+    expect(played).not.toContain('phase_expansion');
+  });
+
+  it('keeps a chronicle that is already there', () => {
+    const chronicle = { entries: [{ message: 'kept', timestamp: 1 }], milestones: ['first_egg'] };
+    const out = migrateSave({ ...v16({}), chronicle }, 16, 17);
+    expect(out.chronicle).toEqual(chronicle);
+  });
+
+  it('survives a partial v16 game state', () => {
+    const data = { version: 16, timestamp: 0, playTimeMs: 0, gameState: { phase: 'colony' } as unknown as GameState };
+    const out = migrateSave(data, 16, 17);
+    expect(out.chronicle?.entries).toEqual([]);
+    expect(out.chronicle?.milestones).toContain('phase_colony');
+  });
+});

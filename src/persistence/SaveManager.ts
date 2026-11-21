@@ -3,12 +3,15 @@ import type { GameState } from '../state/GameState';
 import { createInitialState } from '../state/GameState';
 import { calculateOfflineTicks } from '../systems/OfflineProgression';
 import { migrateSave } from './migrations';
+import { emptyChronicle, normalizeChronicle, type ChronicleSave } from '../state/chronicle';
 
 export interface SaveData {
   version: number;
   timestamp: number;
   playTimeMs: number;
   gameState: GameState;
+  /** The event lines (Story 1.26, ADR 0018), beside the game state. From v17. */
+  chronicle?: ChronicleSave;
 }
 
 /** Offline catch-up info computed during load. null if no offline time elapsed. */
@@ -59,7 +62,7 @@ export class SaveManager {
   private static SAVE_KEY = 'the_swarm_save';
   private static BACKUP1_KEY = 'the_swarm_save_bak1';
   private static BACKUP2_KEY = 'the_swarm_save_bak2';
-  private static SAVE_VERSION = 16;
+  private static SAVE_VERSION = 17;
   private static AUTOSAVE_INTERVAL_MS = 30_000;
   /** Minimum interval between action-triggered saves (5 seconds). */
   private static ACTION_SAVE_INTERVAL_MS = 5_000;
@@ -67,6 +70,13 @@ export class SaveManager {
   private autosaveTimer: ReturnType<typeof setInterval> | null = null;
   /** Timestamp of the last save triggered by a user action (not autosave/beforeunload). */
   private lastActionSaveTimestamp = 0;
+  /** Where the event lines come from (main: the chronicle, Story 1.26). */
+  private chronicleSource: (() => ChronicleSave) | null = null;
+
+  /** Every save from now on writes the chronicle this returns (Story 1.26). */
+  setChronicleSource(source: () => ChronicleSave): void {
+    this.chronicleSource = source;
+  }
 
   /**
    * Save the game state to localStorage with backup rotation.
@@ -115,11 +125,18 @@ export class SaveManager {
       timestamp: Date.now(),
       playTimeMs,
       gameState: { ...state, lastSaveTimestamp: Date.now() },
+      chronicle: this.chronicleSource ? this.chronicleSource() : emptyChronicle(),
     };
     return JSON.stringify(data);
   }
 
-  load(): { gameState: GameState; playTimeMs: number; timestamp?: number; offline: OfflineLoadInfo | null } | null {
+  load(): {
+    gameState: GameState;
+    playTimeMs: number;
+    timestamp?: number;
+    offline: OfflineLoadInfo | null;
+    chronicle: ChronicleSave;
+  } | null {
     // Try primary save first
     const result = this.tryLoadKey(SaveManager.SAVE_KEY);
     if (result) {
@@ -148,11 +165,12 @@ export class SaveManager {
    * Deep-merges the loaded game state with createInitialState() so any
    * missing fields get sensible defaults. Also computes offline progression.
    */
-  private applyDefaults(result: { gameState: GameState; playTimeMs: number; timestamp?: number }): {
+  private applyDefaults(result: { gameState: GameState; playTimeMs: number; timestamp?: number; chronicle?: ChronicleSave }): {
     gameState: GameState;
     playTimeMs: number;
     timestamp?: number;
     offline: OfflineLoadInfo | null;
+    chronicle: ChronicleSave;
   } {
     // Deep-merge loaded state over defaults — loaded values win, missing fields get defaults
     const defaultState = createInitialState();
@@ -166,6 +184,7 @@ export class SaveManager {
       ...result,
       gameState: mergedState as unknown as GameState,
       offline,
+      chronicle: normalizeChronicle(result.chronicle),
     };
   }
 
@@ -201,7 +220,7 @@ export class SaveManager {
     };
   }
 
-  private tryLoadKey(key: string): { gameState: GameState; playTimeMs: number; timestamp?: number } | null {
+  private tryLoadKey(key: string): { gameState: GameState; playTimeMs: number; timestamp?: number; chronicle?: ChronicleSave } | null {
     try {
       const raw = localStorage.getItem(key);
       if (!raw) return null;
@@ -225,6 +244,7 @@ export class SaveManager {
         gameState: migrated.gameState,
         playTimeMs: migrated.playTimeMs ?? 0,
         timestamp: migrated.timestamp,
+        chronicle: migrated.chronicle,
       };
     } catch {
       return null;

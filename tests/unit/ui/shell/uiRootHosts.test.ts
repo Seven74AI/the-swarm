@@ -159,4 +159,43 @@ describe('UIRoot in the tab shell', () => {
     const order = Array.from(war.children).map((el) => el.id);
     expect(order).toEqual(['soldier-panel', 'mutation-panel', 'battle-panel', 'combat-log-panel']);
   });
+
+  it('lays LOG out top to bottom: chronicle, lifetime stats, settings, LEGACY holding the prestige panels (Story 1.26)', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    let state = createInitialState();
+    const bus = new EventBus();
+    const mounted: Record<string, HTMLElement> = {};
+    let legacyPanels: readonly HTMLElement[] = [];
+    const ui = new UIRoot({
+      bus,
+      actions: testActions(bus, () => state, (s: GameState) => { state = s; }),
+      saveManager: new SaveManager(),
+      getState: () => state,
+      loop: new GameLoop(new Ticker()),
+      confirmSettings: confirmSettings(),
+      mountLog: {
+        chronicle: (host) => { mounted.chronicle = host; },
+        stats: (host) => { mounted.stats = host; },
+        settings: (host) => { mounted.settings = host; },
+        legacy: (host, panels) => {
+          mounted.legacy = host;
+          legacyPanels = panels;
+          for (const p of panels) host.appendChild(p);
+        },
+      },
+    });
+    ui.mount(shellHosts(container));
+    // The prestige panel first: it is still created inside LEGACY.
+    const prestige = ui.createPanel('prestige_panel');
+    for (const id of ['log_chronicle', 'log_stats', 'log_settings', 'log_legacy', 'prestige_tree_panel']) ui.createPanel(id);
+    const log = container.querySelector<HTMLElement>('[data-tab-content="log"]')!;
+    const order = Array.from(log.children).map((el) => el.getAttribute('data-log-host'));
+    expect(order).toEqual(['chronicle', 'stats', 'settings', 'legacy']);
+    expect(mounted.chronicle).toBe(log.querySelector('[data-log-host="chronicle"]'));
+    expect(mounted.legacy.contains(prestige)).toBe(true);
+    expect(prestige.id).toBe('prestige-panel');
+    expect(legacyPanels).toContain(ui.createPanel('prestige_tree_panel'));
+    expect(ui.panelElement('prestige_panel')).toBe(prestige);
+  });
 });
