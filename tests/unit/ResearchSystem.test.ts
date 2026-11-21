@@ -53,26 +53,30 @@ describe('ResearchSystem', () => {
       }
     });
 
-    it('voidCrystalSynthesis requires 500 stone, 200 nectar, 50 researchers, 600 ticks', () => {
-      const vcs = getProjects().find((p) => p.id === 'voidCrystalSynthesis')!;
-      expect(vcs.cost.stone).toBe(500);
-      expect(vcs.cost.nectar).toBe(200);
-      expect(vcs.requiredResearchers).toBe(50);
-      expect(vcs.durationMs).toBe(600 * 50);
+    it('every space project costs something, needs researchers and takes time', () => {
+      // Exact amounts are balance (data), not behaviour. Integer costs are Story 3.3 (#283).
+      for (const project of getProjectsFor('research_panel')) {
+        const amounts = Object.values(project.cost) as number[];
+        expect(amounts.length, project.id).toBeGreaterThan(0);
+        for (const amount of amounts) expect(amount, project.id).toBeGreaterThan(0);
+        expect(Number.isInteger(project.requiredResearchers), project.id).toBe(true);
+        expect(project.durationMs % 50, `${project.id}: whole ticks`).toBe(0);
+      }
     });
 
-    it('antimatterContainment requires 5 voidCrystals, 30 researchers, 1500 ticks', () => {
-      const ac = getProjects().find((p) => p.id === 'antimatterContainment')!;
-      expect(ac.cost.voidCrystals).toBe(5);
-      expect(ac.requiredResearchers).toBe(30);
-      expect(ac.durationMs).toBe(1500 * 50);
+    it('the space chain runs void crystals → antimatter → dark matter, each step paid with the last one\'s output', () => {
+      const byId = new Map(getProjects().map((p) => [p.id, p]));
+      expect(byId.get('voidCrystalSynthesis')!.prerequisite ?? null).toBeNull();
+      expect(byId.get('antimatterContainment')!.prerequisite).toBe('voidCrystalSynthesis');
+      expect(byId.get('darkMatterDetection')!.prerequisite).toBe('antimatterContainment');
+      expect(Object.keys(byId.get('antimatterContainment')!.cost)).toContain('voidCrystals');
+      expect(Object.keys(byId.get('darkMatterDetection')!.cost)).toContain('antimatter');
     });
 
-    it('darkMatterDetection requires 0.1 antimatter, 20 researchers, 3000 ticks', () => {
-      const dmd = getProjects().find((p) => p.id === 'darkMatterDetection')!;
-      expect(dmd.cost.antimatter).toBe(0.1);
-      expect(dmd.requiredResearchers).toBe(20);
-      expect(dmd.durationMs).toBe(3000 * 50);
+    it('later steps of the chain take longer', () => {
+      const ms = (id: string) => getProjects().find((p) => p.id === id)!.durationMs;
+      expect(ms('antimatterContainment')).toBeGreaterThan(ms('voidCrystalSynthesis'));
+      expect(ms('darkMatterDetection')).toBeGreaterThan(ms('antimatterContainment'));
     });
   });
 
