@@ -1,9 +1,14 @@
 /**
  * Battle balance (Story 3.2): rounds, damage and loss rolls, poison and the
- * scorpion's chitin. Read by `systems/BattleSystem.ts` and
+ * scorpion's chitin, and how enemies scale with battles won. Read by `systems/BattleSystem.ts` and
  * `systems/VenomSystem.ts`. Enemy stats and scaling are in `enemies.ts`.
  */
 export const combatBalance = {
+  /**
+   * Enemy strength and hit points grow with `battlesWon ^ enemyScalingExponent`:
+   * below 1, so the growth slows and equipment (max Lv.5) keeps up (Story 4.1).
+   */
+  enemyScalingExponent: 0.6,
   /** A battle ends after this many rounds at most. */
   maxRounds: 20,
   /** Each hit is the attack ratio × a roll in [min, max). */

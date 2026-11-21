@@ -49,6 +49,25 @@ test.describe('FRONT · WAR', () => {
     await expect(war(page).locator('#combat-log-panel [data-empty]')).toBeVisible();
   });
 
+  test('the enemy card shows its type and trait before the fight, and the same enemy after a reload (Story 4.1)', async ({ page }) => {
+    const save = JSON.stringify({ version: 16, timestamp: Date.now(), playTimeMs: 0, gameState: combat({ nextEnemy: 'beetle' }) });
+    await page.addInitScript((text: string) => {
+      if (sessionStorage.getItem('seeded')) return;
+      sessionStorage.setItem('seeded', '1');
+      localStorage.setItem('the_swarm_save', text);
+      localStorage.setItem('the_swarm_onboarding', 'complete');
+    }, save);
+    await page.goto('/');
+    await openTab(page, 'front', 'war');
+    const card = war(page).locator('[data-war="enemy"]');
+    await expect(card).toHaveAttribute('data-enemy', 'beetle');
+    await expect(card.locator('.card__name')).toHaveText(/ARMORED BEETLE\s*·\s*,?\s*THICK SHELL/);
+    await expect(card.locator('[data-trait-line]')).not.toBeEmpty();
+    await page.reload();
+    await openTab(page, 'front', 'war');
+    await expect(war(page).locator('[data-war="enemy"]')).toHaveAttribute('data-enemy', 'beetle');
+  });
+
   test('> FIGHT is the primary action, disabled with "train soldiers first" without soldiers', async ({ page }) => {
     await seed(page, combat({ combatSoldiers: 0 }));
     await openTab(page, 'front', 'war');

@@ -1,10 +1,13 @@
 import { pick, rngStream, type RngStream } from '../utils/rng';
-import type { GameState } from '../state/GameState';
 import { enemyBalance } from '../data/balance/enemies';
+import { combatBalance } from '../data/balance/combat';
+import { ENEMIES, ENEMY_TYPES, type EnemyType, type TraitId } from '../data/content/enemies';
 
 export interface EnemyDef {
   type: string;
   name: string;
+  /** Its trait (Story 4.1): what it is strong against, shown on the enemy card. */
+  trait: TraitId;
   strength: number;
   defense: number;
   speed: number;
@@ -20,23 +23,28 @@ export interface EnemyDef {
   };
 }
 
-/** Enemy names; their numbers are in `data/balance/enemies.ts`. */
-const ENEMY_NAMES = {
-  red_ant: 'Red Ant',
-  termite: 'Termite',
-  spider: 'Spider',
-  beetle: 'Beetle',
-  wasp: 'Wasp',
-  scorpion: 'Scorpion',
-} as const satisfies Record<keyof typeof enemyBalance.stats, string>;
+/** What a trait changes in the fight (`enemyBalance.traits`; each field is described there). */
+export interface TraitEffects {
+  readonly hitCap?: number;
+  readonly shell?: number;
+  readonly glanceShare?: number;
+  readonly poisonShare?: number;
+  readonly strikersMax?: number;
+  readonly strikesPerRound?: number;
+  readonly strikesFirst?: boolean;
+  readonly regrowthPerRound?: number;
+}
 
-type EnemyType = keyof typeof ENEMY_NAMES;
+export function traitEffects(trait: TraitId): TraitEffects {
+  return enemyBalance.traits[trait];
+}
 
-const ENEMY_DEFS: EnemyDef[] = (Object.keys(ENEMY_NAMES) as EnemyType[]).map((type) => {
+const ENEMY_DEFS: EnemyDef[] = ENEMY_TYPES.map((type) => {
   const b = enemyBalance.stats[type];
   return {
     type,
-    name: ENEMY_NAMES[type],
+    name: ENEMIES[type].name,
+    trait: ENEMIES[type].trait,
     strength: b.strength,
     defense: b.defense,
     speed: b.speed,
@@ -90,7 +98,7 @@ export function peekEnemy(rngState: number, battlesWon: number): EnemyDef {
 
 /**
  * Scale enemy stats based on battles won using a diminishing-returns curve.
- * Uses pow(battlesWon, 0.6) instead of linear to prevent the combat scaling wall
+ * Uses pow(battlesWon, combatBalance.enemyScalingExponent) instead of linear to prevent the combat scaling wall
  * where enemies outscale the soldier equipment cap (max Lv.5).
  *
  * At exponent 0.6:
@@ -101,28 +109,10 @@ export function peekEnemy(rngState: number, battlesWon: number): EnemyDef {
  * This keeps early battles challenging while preventing late-game runaway.
  */
 export function scaleEnemy(enemy: EnemyDef, battlesWon: number): EnemyDef {
-  const scale = Math.pow(battlesWon, enemyBalance.scalingExponent);
+  const scale = Math.pow(battlesWon, combatBalance.enemyScalingExponent);
   return {
     ...enemy,
     strength: enemy.strength + enemy.scaling.strengthPerBattle * scale,
     hp: enemy.hp + enemy.scaling.hpPerBattle * scale,
   };
-}
-
-/** How the army looks against an enemy, before committing (the enemy card, Story 1.25). */
-export type Matchup = 'favoured' | 'even' | 'dangerous';
-
-/**
- * A rough read of the fight, kept from the legacy scout report: soldiers times
- * weapon strength against the enemy's strength times its health. Story 4.1
- * adds traits; this stays a hint, never a promise (combat is random).
- */
-export function assessMatchup(state: Pick<GameState, 'combatSoldiers' | 'equipment'>, enemy: EnemyDef): Matchup {
-  const ours = state.combatSoldiers * (1 + state.equipment.weapon);
-  const m = enemyBalance.matchup;
-  const theirs = enemy.strength * (enemy.hp / m.hpPerThreat);
-  const ratio = ours / Math.max(theirs, m.minThreat);
-  if (ratio > m.favouredAbove) return 'favoured';
-  if (ratio >= m.evenFrom) return 'even';
-  return 'dangerous';
 }

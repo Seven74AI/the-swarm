@@ -25,7 +25,8 @@ export {
   getSoldierStrength,
 } from '../systems/SoldierSystem';
 export type { BattleOutcome, BattleResult } from '../systems/BattleSystem';
-export { assessMatchup, getEnemyDef, getEnemyDefs, getRandomEnemy, peekEnemy, scaleEnemy, type EnemyDef, type Matchup } from '../systems/EnemySystem';
+export { getEnemyDef, getEnemyDefs, getRandomEnemy, peekEnemy, scaleEnemy, type EnemyDef } from '../systems/EnemySystem';
+export { assessMatchup, type Matchup } from '../systems/CombatRounds';
 export { displayRemainingMs, isTimed, type DecisionTimerMode } from '../systems/DecisionSystem';
 export {
   canStartProject,

@@ -16,6 +16,7 @@ import { PHASE_TITLES, REVEAL_LINES } from '../../src/data/content/phaseReveal';
 import { DECISIONS, timeoutLine } from '../../src/data/content/decisions';
 import { SEGMENTS, TABS } from '../../src/data/content/tabs';
 import { ROLES } from '../../src/data/content/roles';
+import { TRAITS } from '../../src/data/content/enemies';
 import { RESOURCES } from '../../src/ui/shell/resourceCatalog';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -154,6 +155,8 @@ describe('no copy names a phase the player has not entered', () => {
     }),
     ...TABS.flatMap((t) => [t.label, t.railLabel, t.name, t.empty].map((s): [string, string, Phase] => [`tab ${t.id}`, s, t.unlockPhase])),
     ...SEGMENTS.map((s): [string, string, Phase] => [`segment ${s.id}`, s.label, s.unlockPhase]),
+    // Enemy traits show on the enemy card, which opens in Combat (Story 4.1).
+    ...Object.entries(TRAITS).flatMap(([id, t]) => [t.label, t.line].map((s): [string, string, Phase] => [`trait ${id}`, s, Phase.COMBAT])),
     ...ROLES.flatMap((r) => [r.label, r.worker, r.effect].map((s): [string, string, Phase] => [`role ${r.id}`, s, r.unlockPhase])),
     ...RESOURCES.flatMap((r) => [r.label, r.name, r.source].map((s): [string, string, Phase] => [`resource ${r.id}`, s, r.unlockPhase])),
     ...TRANSITIONS.flatMap((t) =>

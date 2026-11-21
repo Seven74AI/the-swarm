@@ -4,7 +4,7 @@ import { getEquipmentUpgradeCost } from '../systems/SoldierSystem';
 import { soldierBalance } from '../data/balance/soldiers';
 import type { BattleResult } from '../systems/BattleSystem';
 import { MUTATIONS, purchaseMutation } from '../systems/MutationSystem';
-import { getEnemyDefs } from '../systems/EnemySystem';
+import { isEnemyType } from '../data/content/enemies';
 import { freeWorkers } from '../systems/Workforce';
 import {
   SCOUT_BARRACKS_LEVEL,
@@ -44,15 +44,18 @@ export function upgradeArmor(deps: ActionDeps): ActionResult {
 }
 
 /**
- * Fight a battle now, against `enemyType` when given (the enemy on the enemy
- * card, Story 1.25). The result says how it went.
+ * Fight the enemy on the enemy card (`state.nextEnemy`, Story 4.1). A caller
+ * that names the enemy it showed (`enemyType`) is refused if that is no
+ * longer the next enemy (`unavailable`), so FIGHT never fights something the
+ * player did not see. The result says how it went.
  */
 export function fight(deps: ActionDeps, enemyType?: string): ActionResult<BattleResult> {
   const s = current(deps);
   if (s.combatSoldiers <= 0) return refuse('no_soldiers');
-  if (enemyType !== undefined && !getEnemyDefs().some((e) => e.type === enemyType)) return refuse('unknown_id');
-  if (enemyType) deps.bus.emit('battle_engage', { enemyType });
-  const { newState, result } = deps.battleSystem.resolveBattle(s, enemyType);
+  if (enemyType !== undefined && !isEnemyType(enemyType)) return refuse('unknown_id');
+  if (enemyType !== undefined && enemyType !== s.nextEnemy) return refuse('unavailable');
+  deps.bus.emit('battle_engage', { enemyType: s.nextEnemy });
+  const { newState, result } = deps.battleSystem.resolveBattle(s);
   const r = commit(deps, s, newState);
   return r.ok ? { ok: true, value: result } : r;
 }

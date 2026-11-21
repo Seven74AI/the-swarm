@@ -24,6 +24,8 @@ const SPACE = {
   buildings: { barracks: { level: 2, count: 1 }, walls: { level: 2 }, warehouse: { level: 2 } },
   combatSoldiers: 5,
   battlesWon: 6,
+  // The longest enemy card title and trait line (Story 4.1): SCORPION · VENOM RESISTANCE.
+  nextEnemy: 'scorpion',
   stats: { totalEggsLaid: 5000, totalClicks: 800, playTimeMs: 0 },
 };
 

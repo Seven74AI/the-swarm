@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { migrateSave } from '../../src/persistence/migrations';
 import type { SaveData } from '../../src/persistence/SaveManager';
 import { createInitialState, type GameState } from '../../src/state/GameState';
+import { peekEnemy } from '../../src/systems/EnemySystem';
 
 describe('migrateSave', () => {
   it('migrates v1 to v2 adding a new default field', () => {
@@ -791,5 +792,45 @@ describe('v25 → v26: the Forage role (Story 3.4, FR3)', () => {
     const gs = structuredClone(createInitialState());
     gs.workersAssigned = { ...gs.workersAssigned, forage: 4 };
     expect(migrateSave(v25(structuredClone(gs)), 25, 26).gameState).toEqual(gs);
+  });
+});
+
+describe('v26 → v27: the next enemy is in the save (Story 4.1, FR12)', () => {
+  const v26 = (gs: unknown): SaveData => ({
+    version: 26,
+    timestamp: 1_700_000_000_000,
+    playTimeMs: 0,
+    gameState: gs as GameState,
+  });
+  /** A v26 state: no `nextEnemy`; the card peeked the generator instead. */
+  const withoutEnemy = (over: Record<string, unknown> = {}) => {
+    const { nextEnemy: _drop, ...rest } = structuredClone(createInitialState()) as unknown as Record<string, unknown>;
+    return { ...rest, ...over };
+  };
+
+  it('stores the enemy the card showed: the one the generator would draw next', () => {
+    for (const [rng, battlesWon] of [[1, 0], [99, 3], [123_456, 12]]) {
+      const out = migrateSave(v26(withoutEnemy({ rng, battlesWon })), 26, 27);
+      expect(out.version).toBe(27);
+      expect(out.gameState.nextEnemy).toBe(peekEnemy(rng, battlesWon).type);
+    }
+  });
+
+  it('leaves the generator where it was (nothing is drawn)', () => {
+    const out = migrateSave(v26(withoutEnemy({ rng: 77 })), 26, 27);
+    expect(out.gameState.rng).toBe(77);
+  });
+
+  it('keeps a known next enemy, and replaces an unknown one', () => {
+    const kept = migrateSave(v26(withoutEnemy({ nextEnemy: 'wasp' })), 26, 27);
+    expect(kept.gameState.nextEnemy).toBe('wasp');
+    const fixed = migrateSave(v26(withoutEnemy({ nextEnemy: 'dragon', rng: 5, battlesWon: 1 })), 26, 27);
+    expect(fixed.gameState.nextEnemy).toBe(peekEnemy(5, 1).type);
+  });
+
+  it('a partial save without a generator state is left for the defaults', () => {
+    const out = migrateSave(v26({ phase: 'combat' }), 26, 27);
+    expect(out.version).toBe(27);
+    expect(out.gameState).toEqual({ phase: 'combat' });
   });
 });

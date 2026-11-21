@@ -2,6 +2,7 @@ import { getDecision, timeoutLine, type DecisionId } from '../../data/content/de
 import type { EventBus } from '../../engine/EventBus';
 import type { PanelId } from '../../data/content/tabs';
 import { COLONY_LINES, colonyLine } from '../../data/content/colonyLines';
+import { ENEMIES, isEnemyType } from '../../data/content/enemies';
 import { createChronicle, type Chronicle, type ChronicleEntry } from '../../state/chronicle';
 
 /** One event line (kept in the chronicle, Story 1.26). */
@@ -97,7 +98,8 @@ export class EventLog {
 
     const onEngageCb = (payload: unknown) => {
       const p = payload as { enemyType: string };
-      this.addEntry(colonyLine('battle_engage', { enemy: p.enemyType }), { target: 'battle_panel' });
+      const enemy = isEnemyType(p.enemyType) ? ENEMIES[p.enemyType].name : p.enemyType;
+      this.addEntry(colonyLine('battle_engage', { enemy }), { target: 'battle_panel' });
     };
     bus.subscribe('battle_engage', onEngageCb);
     this.unsubscribeHandles.push(() => bus.unsubscribe('battle_engage', onEngageCb));

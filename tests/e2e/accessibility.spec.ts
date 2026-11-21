@@ -44,6 +44,8 @@ const COMBAT = {
   eggPipeline: { count: 0, progress: 0 },
   larvaPipeline: { count: 0, progress: 0 },
   workersAssigned: { gather: 8, tend: 4, dig: 4, guard: 4, researchers: 0 },
+  // The enemy card shows a trait and its line (Story 4.1).
+  nextEnemy: 'beetle',
 };
 
 const TABS: readonly [TabId, SegmentId?][] = [['nest'], ['wrkr'], ['build'], ['front', 'war'], ['log']];

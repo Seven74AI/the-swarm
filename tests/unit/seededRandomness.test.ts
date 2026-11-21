@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { createEmptyMap, createInitialState, type GameState } from '../../src/state/GameState';
+import { peekEnemy } from '../../src/systems/EnemySystem';
 import { processTick } from '../../src/engine/processTick';
 import { createTickContext } from '../../src/engine/TickContext';
 import { EventBus } from '../../src/engine/EventBus';
@@ -148,7 +149,9 @@ describe('the same state and seed replay the same run', () => {
     const outcomes = new Set<BattleOutcome>();
     const results = new Set<string>();
     for (let seed = 0; seed < 60; seed++) {
-      const state = { ...createInitialState(), combatSoldiers: 3, battlesWon: 6, rng: rngFromSeed(seed) };
+      // The next enemy is drawn from the generator too (Story 4.1), as the battle before would have.
+      const nextEnemy = peekEnemy(rngFromSeed(seed + 1), 6).type as GameState['nextEnemy'];
+      const state = { ...createInitialState(), combatSoldiers: 3, battlesWon: 6, nextEnemy, rng: rngFromSeed(seed) };
       const { result } = battle.resolveBattle(state);
       outcomes.add(result.outcome);
       results.add(`${result.enemyType}/${result.soldiersLost}/${result.foodGained}`);

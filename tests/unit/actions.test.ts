@@ -357,12 +357,20 @@ describe('combat', () => {
     }
   });
 
-  it('fights the enemy it is given and refuses an unknown one (Story 1.25)', () => {
-    const before = given(rich({ combatSoldiers: 20 }));
+  it('fights the enemy on the card and refuses an unknown one (Story 1.25)', () => {
+    const before = given(rich({ combatSoldiers: 20, nextEnemy: 'termite' }));
     expectRefused(actions.fight('no_such_enemy'), 'unknown_id', before);
     const result = actions.fight('termite');
     expectApplied(result, before);
     if (result.ok) expect(result.value.enemyType).toBe('termite');
+  });
+
+  it('refuses to fight an enemy that is no longer the next one (Story 4.1)', () => {
+    const before = given(rich({ combatSoldiers: 20, nextEnemy: 'spider' }));
+    expectRefused(actions.fight('termite'), 'unavailable', before);
+    const result = actions.fight();
+    expectApplied(result, before);
+    if (result.ok) expect(result.value.enemyType).toBe('spider');
   });
 
   it('buys a mutation once, behind its prerequisite', () => {

@@ -2,17 +2,13 @@ import { colonyLine } from '../data/content/colonyLines';
 import type { EventBus } from '../engine/EventBus';
 import type { GameState } from '../state/GameState';
 import { getEnemyDef, getRandomEnemy, scaleEnemy } from './EnemySystem';
-import {
-  getSoldierStrength,
-  getSoldierDefense,
-  getSoldierSpeed,
-  getSoldierMaxHp,
-} from './SoldierSystem';
-import { getPoisonDamagePerTick, consumeVenom } from './VenomSystem';
+import { armyOf, fightRounds, type BattleOutcome } from './CombatRounds';
+import { consumeVenom } from './VenomSystem';
 import { between, intBetween, rngStream, type RngStream } from '../utils/rng';
 import { combatBalance } from '../data/balance/combat';
+import type { EnemyType } from '../data/content/enemies';
 
-export type BattleOutcome = 'victory' | 'defeat' | 'draw';
+export type { BattleOutcome } from './CombatRounds';
 
 export interface BattleResult {
   victory: boolean;
@@ -34,7 +30,6 @@ export interface BattleResult {
 
 /** A battle that lasts this many rounds is a draw: the enemy flees. */
 export const MAX_BATTLE_ROUNDS = combatBalance.maxRounds;
-const MAX_ROUNDS = MAX_BATTLE_ROUNDS;
 
 
 export class BattleSystem {
@@ -42,7 +37,8 @@ export class BattleSystem {
 
   /**
    * Fight one battle now. `enemyType` is the enemy the player saw on the enemy
-   * card (Story 1.25); without it a random enemy is drawn.
+   * card (Story 1.25); without it, `state.nextEnemy`, the one the card shows
+   * (Story 4.1). After the battle the next enemy is drawn into state.
    *
    * Every roll comes from `rng`, by default a stream of the game's generator
    * (`state.rng`, Story 3.1): the same state fights the same battle, and the
@@ -70,70 +66,19 @@ export class BattleSystem {
       };
     }
 
-    // Pick and scale enemy
-    const baseEnemy = enemyType ? getEnemyDef(enemyType) : getRandomEnemy(state.battlesWon, rng);
-    const enemy = scaleEnemy(baseEnemy, state.battlesWon);
+    // The enemy on the card (Story 4.1: drawn into state by the battle before), scaled to the battles won
+    const enemy = scaleEnemy(getEnemyDef(enemyType ?? state.nextEnemy), state.battlesWon);
 
     // Poison DoT: activate if Venom Lab Lv.1+ and venom in stock
-    const poisonDamagePerRound = getPoisonDamagePerTick(state);
-    let workingState = poisonDamagePerRound > 0 ? consumeVenom(state) : state;
+    const army = armyOf(state);
+    const workingState = army.poisonPerRound > 0 ? consumeVenom(state) : state;
+    const soldierDefense = army.defense;
 
-    // Player stats
-    const soldierStrength = getSoldierStrength(workingState);
-    const soldierDefense = getSoldierDefense(workingState);
-    const soldierSpeed = getSoldierSpeed(workingState);
-    const soldierMaxHp = getSoldierMaxHp(workingState);
-
-    const totalSoldierStrength = workingState.combatSoldiers * soldierStrength;
-    let playerHp = workingState.combatSoldiers * soldierMaxHp;
-    let enemyHp = enemy.hp;
-    let poisonDamageDealt = 0;
-
-    // Determine attack order: faster side goes first
-    const playerFirst = soldierSpeed >= enemy.speed;
-
-    let round = 0;
-    for (round = 0; round < MAX_ROUNDS; round++) {
-      // Poison damage applies each round before regular attacks
-      if (poisonDamagePerRound > 0 && enemyHp > 0) {
-        const actualPoison = Math.min(poisonDamagePerRound, enemyHp);
-        enemyHp -= actualPoison;
-        poisonDamageDealt += actualPoison;
-      }
-
-      // Check if poison killed target
-      if (enemyHp <= 0 || playerHp <= 0) break;
-
-      // First attacker
-      if (playerFirst) {
-        const damage = (totalSoldierStrength / enemy.defense) * between(rng, combatBalance.damageRoll.min, combatBalance.damageRoll.max);
-        enemyHp -= damage;
-      } else {
-        const damage = (enemy.strength / soldierDefense) * between(rng, combatBalance.damageRoll.min, combatBalance.damageRoll.max);
-        playerHp -= damage;
-      }
-
-      // Check if first attack killed target
-      if (enemyHp <= 0 || playerHp <= 0) break;
-
-      // Second attacker
-      if (playerFirst) {
-        const damage = (enemy.strength / soldierDefense) * between(rng, combatBalance.damageRoll.min, combatBalance.damageRoll.max);
-        playerHp -= damage;
-      } else {
-        const damage = (totalSoldierStrength / enemy.defense) * between(rng, combatBalance.damageRoll.min, combatBalance.damageRoll.max);
-        enemyHp -= damage;
-      }
-
-      // Check if second attack killed target
-      if (enemyHp <= 0 || playerHp <= 0) break;
-    }
-
-    const victory = enemyHp <= 0 && playerHp > 0;
-    const defeat = playerHp <= 0;
-    const outcome: BattleOutcome = victory ? 'victory' : defeat ? 'defeat' : 'draw';
-    // A break leaves `round` on the round being fought; running out leaves it at MAX_ROUNDS.
-    const rounds = Math.min(round + 1, MAX_ROUNDS);
+    const fought = fightRounds(army, enemy, rng);
+    const { outcome, rounds } = fought;
+    const poisonDamageDealt = fought.poisonDealt;
+    const victory = outcome === 'victory';
+    const defeat = outcome === 'defeat';
 
     // Calculate soldiers lost
     let soldiersLost: number;
@@ -206,9 +151,11 @@ export class BattleSystem {
     };
 
     // Apply to state
+    const battlesWon = workingState.battlesWon + (victory ? 1 : 0);
+    // The next enemy is drawn now, after this battle's rolls (Story 4.1): the card shows it until it is fought.
+    const nextEnemy = getRandomEnemy(battlesWon, rng).type as EnemyType;
     const newState: GameState = {
       ...workingState,
-      rng: rng.state,
       resources: {
         ...workingState.resources,
         food: workingState.resources.food + foodGained,
@@ -219,8 +166,10 @@ export class BattleSystem {
         silk: workingState.combatResources.silk + silkGained,
         venom: workingState.combatResources.venom + venomGained,
       },
-      battlesWon: workingState.battlesWon + (victory ? 1 : 0),
+      battlesWon,
+      nextEnemy,
       battlesLost: workingState.battlesLost + (defeat ? 1 : 0),
+      rng: rng.state,
       lastBattle: {
         status: 'done',
         enemyType: enemy.type,

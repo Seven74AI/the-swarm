@@ -10,6 +10,7 @@ import {
   selectEquipment,
   selectFreeWorkers,
   selectLastBattle,
+  selectMatchup,
   selectMutationStatus,
   selectResources,
   selectSoldierDefense,
@@ -19,9 +20,9 @@ import {
   selectSoldierStrength,
 } from '../../state/selectors';
 import { soldierBalance } from '../../data/balance/soldiers';
+import { TRAITS } from '../../data/content/enemies';
 import {
   MUTATIONS,
-  assessMatchup,
   getEnemyDefs,
   getEquipmentUpgradeCost,
   type BattleOutcome,
@@ -284,23 +285,36 @@ const MATCHUP_LINE: Record<Matchup, string> = {
 
 /**
  * The enemy card, in `#battle-panel` (replaces BattlePanel): the enemy `> FIGHT`
- * fights, a read of the matchup, the record, and a round counter while a
- * battle runs (UX-DR26). Story 4.1 adds the trait to the title line.
+ * fights with its trait (`ARMORED BEETLE · THICK SHELL`, Story 4.1) and what
+ * the trait does, a read of the matchup, the record, and a round counter while
+ * a battle runs (UX-DR26).
  */
 export function EnemyCard({ session }: { session: WarSession }) {
   const enemy = session.enemy.value;
   const battle = session.battle.value;
-  const matchup = assessMatchup({ combatSoldiers: selectCombatSoldiers.value, equipment: selectEquipment.value }, enemy);
+  const matchup = selectMatchup.value;
+  const trait = TRAITS[enemy.trait];
   return (
-    <div class="war-section" data-war="enemy" data-enemy={enemy.type}>
+    <div class="war-section" data-war="enemy" data-enemy={enemy.type} data-trait={enemy.trait}>
       <h2 class="panel-title">ENEMY</h2>
       <Card
         id="enemy"
-        title={<span id="enemy-name">{upper(enemy.name)}</span>}
+        title={
+          <>
+            <span id="enemy-name">{upper(enemy.name)}</span>
+            <Sep />
+            <span data-enemy-trait={enemy.trait}>{trait.label}</span>
+          </>
+        }
         effect={
-          <span data-matchup={matchup} id="enemy-comparison">
-            {MATCHUP_LINE[matchup]}
-          </span>
+          <>
+            <span class="war-trait-line" data-trait-line="">
+              {trait.line}
+            </span>{' '}
+            <span data-matchup={matchup} id="enemy-comparison">
+              {MATCHUP_LINE[matchup]}
+            </span>
+          </>
         }
         cost={
           <Stats

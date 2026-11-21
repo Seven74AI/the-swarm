@@ -1,6 +1,8 @@
 import { soldierBalance } from '../data/balance/soldiers';
 import { DEFAULT_SEED } from './seed';
 import { rngFromSeed } from '../utils/rng';
+import { peekEnemy } from '../systems/EnemySystem';
+import type { EnemyType } from '../data/content/enemies';
 import type { DecisionId } from '../data/content/decisions';
 export enum TileType {
   EMPTY = 'empty',
@@ -174,6 +176,13 @@ export interface GameState {
   };
   battlesWon: number;
   battlesLost: number;
+  /**
+   * The enemy the next battle fights, shown on the enemy card before the
+   * player commits (Story 4.1, FR12). Drawn from the seeded generator by the
+   * battle before it (the first from the starting generator state), so a
+   * reload shows the same enemy. Prestige keeps it, as it keeps battles won.
+   */
+  nextEnemy: EnemyType;
   /** Whether the colony has achieved transcendence victory. */
   victoryAchieved: boolean;
   /**
@@ -438,6 +447,7 @@ export function createInitialState(): GameState {
     },
     battlesWon: 0,
     battlesLost: 0,
+    nextEnemy: peekEnemy(rngFromSeed(DEFAULT_SEED), 0).type as EnemyType,
     soldierPipeline: { count: 0, progress: 0 },
     capacityAccumulator: 0,
     resourceRemainder: { food: 0, wood: 0, stone: 0, nectar: 0 },
