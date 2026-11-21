@@ -1,95 +1,107 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, cleanup, act, fireEvent } from '@testing-library/preact';
+import { signal, type Signal } from '@preact/signals';
 import '@preact/signals';
-import { EventBus } from '../../../../src/engine/EventBus';
 import { createSheetController, type SheetController } from '../../../../src/ui/shell/SheetController';
 import { SheetHost } from '../../../../src/ui/shell/SheetHost';
-import { bindDecisionSheets, DECISION_AUTO_DISMISS_MS } from '../../../../src/ui/sheets/DecisionSheet';
-import type { DecisionEvent } from '../../../../src/systems/DecisionSystem';
+import { bindDecisionSheets, TIMER_HINT, TIMER_HINT_CONCEPT, type DecisionSheets } from '../../../../src/ui/sheets/DecisionSheet';
+import { DECISIONS, type DecisionDef } from '../../../../src/data/content/decisions';
+import type { OpenDecision } from '../../../../src/state/GameState';
+import type { DecisionTimerMode } from '../../../../src/state/queries';
 
 /**
- * Story 1.14: the legacy DecisionPopup renders as a decision sheet through the
- * SheetController, with its old behavior and `#decision-popup` hooks
- * (decision-popups.spec): it applies the choice through the action before
- * announcing it, auto-dismisses, and never closes by Esc or the scrim.
+ * Story 1.28 (UX-DR23): the decision sheet renders `state.decision.open`. It
+ * shows the situation, two choices with their cost or risk, a timer meter when
+ * timed and the IGNORE line; it can't be closed with Esc or the scrim; it
+ * closes when the event leaves the state. Hooks kept: `#decision-popup`,
+ * `.decision-popup-title`, `.decision-popup-desc`, `button[data-choice]`.
  */
 
-const beetle: DecisionEvent = {
-  type: 'beetle',
-  title: 'Beetle Sighting',
-  description: 'A large beetle was spotted.',
-  choices: [
-    { label: 'Collect', description: '+food, risk worker' },
-    { label: 'Ignore', description: 'No change' },
-  ],
-};
+const byPolicy = (p: DecisionDef['ignorePolicy']): DecisionDef => DECISIONS.find((d) => d.ignorePolicy === p)!;
+const opened = (def: DecisionDef): OpenDecision => ({ id: def.id, remainingMs: def.timerMs ?? null, openedAtSessionMs: 0, roll: 0.5 });
 
-let bus: EventBus;
 let sheets: SheetController;
-let choose: ReturnType<typeof vi.fn<(type: string, choice: string) => unknown>>;
-let unbind: () => void;
+let open: Signal<OpenDecision | null>;
+let timers: Signal<DecisionTimerMode>;
+let held: Signal<boolean>;
+let affordable: Signal<boolean>;
+let seen: Signal<{ coachMarksSeen: readonly string[] }>;
+let choose: ReturnType<typeof vi.fn<(choice: string) => unknown>>;
+let bound: DecisionSheets;
 
 beforeEach(() => {
-  vi.useFakeTimers();
-  bus = new EventBus();
   sheets = createSheetController();
-  choose = vi.fn<(type: string, choice: string) => unknown>();
-  unbind = bindDecisionSheets({ bus, sheets, choose });
-  render(<SheetHost sheets={sheets} />);
+  open = signal<OpenDecision | null>(null);
+  timers = signal<DecisionTimerMode>('normal');
+  held = signal(false);
+  affordable = signal(true);
+  seen = signal<{ coachMarksSeen: readonly string[] }>({ coachMarksSeen: [] });
+  choose = vi.fn<(choice: string) => unknown>();
+  bound = bindDecisionSheets({
+    sheets,
+    open,
+    held,
+    timers,
+    canChoose: () => affordable,
+    choose,
+    memory: { settings: seen, update: (p) => (seen.value = { ...seen.value, ...p }) },
+  });
+  render(<SheetHost sheets={sheets} held={held} />);
 });
 afterEach(() => {
-  unbind();
+  bound.unbind();
   cleanup();
   document.body.replaceChildren();
-  vi.useRealTimers();
 });
 
 const popup = () => document.getElementById('decision-popup');
-const show = (e: DecisionEvent = beetle) => act(() => bus.emit('decision_event', e));
+const show = (def: DecisionDef) => act(() => void (open.value = opened(def)));
 
 describe('decision sheet', () => {
-  it('opens a decision-priority modal sheet on decision_event', () => {
-    show();
+  it('opens a decision-priority modal for the open event, with its situation and two choices', () => {
+    const def = byPolicy('costly');
+    show(def);
     expect(sheets.state.value.open?.priority).toBe('decision');
     expect(popup()?.getAttribute('aria-modal')).toBe('true');
-    expect(popup()?.querySelector('.decision-popup-title')?.textContent).toBe(beetle.title);
-    expect(popup()?.querySelector('.decision-popup-desc')?.textContent).toBe(beetle.description);
-  });
-
-  it('shows one button per choice and no [ CLOSE ]', () => {
-    show({
-      ...beetle,
-      type: 'overcrowding',
-      choices: [
-        { label: 'Expand', description: 'More space' },
-        { label: 'Cull', description: 'Reduce pop' },
-        { label: 'Wait', description: 'Hold steady' },
-      ],
-    });
-    const buttons = popup()!.querySelectorAll('button');
-    expect([...buttons].map((b) => b.dataset.choice)).toEqual(['Expand', 'Cull', 'Wait']);
+    expect(popup()!.querySelector('.decision-popup-title')?.textContent).toBe(def.title);
+    expect(popup()!.querySelector('.decision-popup-desc')?.textContent).toBe(def.situation);
+    const buttons = [...popup()!.querySelectorAll<HTMLButtonElement>('button[data-choice]')];
+    expect(buttons.map((b) => b.dataset.choice)).toEqual(def.choices.map((c) => c.id));
+    for (const c of def.choices) expect(popup()!.textContent).toContain(c.costLine);
     expect(popup()!.querySelector('[data-sheet-close]')).toBeNull();
   });
 
-  it('applies the choice through the action, then announces it, then closes', () => {
-    const order: string[] = [];
-    choose.mockImplementation(() => order.push('action'));
-    let chosen: unknown = null;
-    bus.subscribe('decision_chosen', (p) => {
-      order.push('event');
-      chosen = p;
-    });
-    show();
-    act(() => popup()!.querySelector<HTMLButtonElement>('[data-choice="Collect"]')!.click());
-    expect(choose).toHaveBeenCalledWith('beetle', 'Collect');
-    expect(order).toEqual(['action', 'event']);
-    expect(chosen).toEqual({ type: 'beetle', choice: 'Collect' });
+  it('a timed event shows a timer meter and its IGNORE line', () => {
+    const def = byPolicy('costly');
+    show(def);
+    expect(popup()!.querySelector('[data-decision-timer] [role="progressbar"]')).not.toBeNull();
+    expect(popup()!.querySelector('[data-ignore-line]')?.textContent).toBe(`IGNORE: ${def.ignoreLine}`);
+  });
+
+  it('an unavoidable event has no timer and no IGNORE line; timers off removes the meter', () => {
+    show(byPolicy('unavoidable'));
+    expect(popup()!.querySelector('[data-decision-timer]')).toBeNull();
+    expect(popup()!.querySelector('[data-ignore-line]')).toBeNull();
+    act(() => void (open.value = null));
+    act(() => void (timers.value = 'off'));
+    show(byPolicy('free'));
+    expect(popup()!.querySelector('[data-decision-timer]')).toBeNull();
+    expect(popup()!.querySelector('[data-ignore-line]')).not.toBeNull();
+  });
+
+  it('a choice calls the action; the sheet closes when the event leaves the state, not before', () => {
+    const def = byPolicy('free');
+    show(def);
+    act(() => popup()!.querySelector<HTMLButtonElement>(`[data-choice="${def.choices[0].id}"]`)!.click());
+    expect(choose).toHaveBeenCalledWith(def.choices[0].id);
+    expect(popup()).not.toBeNull();
+    act(() => void (open.value = null));
     expect(popup()).toBeNull();
     expect(sheets.state.value.open).toBeNull();
   });
 
   it('does not close on Esc or a scrim tap', () => {
-    show();
+    show(byPolicy('free'));
     act(() => {
       fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
       document.querySelector<HTMLElement>('[data-sheet-scrim]')!.click();
@@ -97,49 +109,47 @@ describe('decision sheet', () => {
     expect(popup()).not.toBeNull();
   });
 
-  it('auto-dismisses after its timeout without applying a choice, and not before', () => {
-    show();
-    act(() => void vi.advanceTimersByTime(DECISION_AUTO_DISMISS_MS - 1));
-    expect(popup()).not.toBeNull();
-    act(() => void vi.advanceTimersByTime(1));
-    expect(popup()).toBeNull();
+  it('a choice the colony cannot pay for is disabled with its reason', () => {
+    affordable.value = false;
+    show(byPolicy('costly'));
+    const btn = popup()!.querySelector<HTMLButtonElement>('button[data-choice]')!;
+    expect(btn.getAttribute('aria-disabled')).toBe('true');
+    act(() => btn.click());
     expect(choose).not.toHaveBeenCalled();
   });
 
-  it('does not run its timer while it waits behind a higher-priority sheet', () => {
-    act(() => {
-      sheets.open({ priority: 'offline', render: () => null });
-    });
-    show();
-    act(() => void vi.advanceTimersByTime(DECISION_AUTO_DISMISS_MS * 2));
-    expect(sheets.state.value.queue.map((s) => s.priority)).toEqual(['decision']);
+  it('is shown only when drawn: not while it waits behind a higher sheet or an overlay', () => {
+    act(() => void sheets.open({ priority: 'offline', render: () => null }));
+    show(byPolicy('costly'));
+    expect(popup()).toBeNull();
+    expect(bound.shown()).toBe(false);
     act(() => sheets.close(sheets.state.value.open!.id));
     expect(popup()).not.toBeNull();
+    expect(bound.shown()).toBe(true);
+    act(() => void (held.value = true));
+    expect(bound.shown()).toBe(false);
   });
 
-  it('replaces an open decision with a newer one instead of stacking', () => {
-    show();
-    show({ ...beetle, type: 'scouts', title: 'Scout Report' });
+  it('the first timed event shows the timer hint once, ever', () => {
+    show(byPolicy('costly'));
+    expect(popup()!.querySelector('[data-timer-hint]')?.textContent).toBe(TIMER_HINT);
+    expect(seen.value.coachMarksSeen).toContain(TIMER_HINT_CONCEPT);
+    act(() => void (open.value = null));
+    show(byPolicy('free'));
+    expect(popup()!.querySelector('[data-timer-hint]')).toBeNull();
+  });
+
+  it('an untimed event does not use up the timer hint', () => {
+    show(byPolicy('unavoidable'));
+    expect(popup()!.querySelector('[data-timer-hint]')).toBeNull();
+    expect(seen.value.coachMarksSeen).not.toContain(TIMER_HINT_CONCEPT);
+  });
+
+  it('a new event replaces the sheet instead of stacking', () => {
+    show(byPolicy('free'));
+    act(() => void (open.value = null));
+    show(byPolicy('costly'));
     expect(document.querySelectorAll('#decision-popup')).toHaveLength(1);
-    expect(popup()!.querySelector('.decision-popup-title')?.textContent).toBe('Scout Report');
     expect(sheets.state.value.queue).toHaveLength(0);
-  });
-
-  it('renders HTML-like event text literally and still resolves the clicked choice (#189)', () => {
-    const hostile: DecisionEvent = {
-      type: 'beetle',
-      title: '<b>x</b> "Title"',
-      description: '<img src=x onerror="alert(1)"> desc',
-      choices: [
-        { label: 'Say "hi" <b>x</b>', description: '<i>first</i>' },
-        { label: 'Plain', description: 'second' },
-      ],
-    };
-    show(hostile);
-    const el = popup()!;
-    expect(el.querySelector('b, i, img')).toBeNull();
-    expect(el.querySelector('.decision-popup-title')?.textContent).toBe(hostile.title);
-    act(() => el.querySelectorAll('button')[0].click());
-    expect(choose).toHaveBeenCalledWith('beetle', hostile.choices[0].label);
   });
 });

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { EventLog } from '../../src/ui/panels/EventLog';
 import { EventBus } from '../../src/engine/EventBus';
 import { Phase } from '../../src/phases/phases';
+import { getDecision } from '../../src/data/content/decisions';
 
 describe('EventLog', () => {
   let bus: EventBus;
@@ -22,6 +23,21 @@ describe('EventLog', () => {
     const entries = log.getElement().querySelectorAll('.log-entry');
     return entries.length > 0 ? entries[0].textContent ?? '' : '';
   }
+
+  // ── Decision events (Story 1.28) ──
+  describe('decision events', () => {
+    it('logs a costly timeout with its outcome', () => {
+      const def = getDecision('overcrowding');
+      bus.emit('decision_resolved', { id: def.id, choice: 'ignore', timedOut: true, policy: 'costly' });
+      expect(getLatestEntry()).toContain(def.ignoreLine);
+    });
+
+    it('does not log a free timeout as a loss', () => {
+      const before = getEntries().length;
+      bus.emit('decision_resolved', { id: 'beetle_sighting', choice: 'ignore', timedOut: true, policy: 'free' });
+      expect(getEntries().length).toBe(before);
+    });
+  });
 
   // ── Ground expeditions (unchanged) ──
   describe('expedition events', () => {

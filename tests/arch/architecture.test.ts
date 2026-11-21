@@ -61,7 +61,6 @@ const LEGACY_READER_SCOPE = /^ui\/(UIRoot\.ts$|panels\/|components\/)/;
  */
 const KNOWN_MATH_RANDOM: Readonly<Record<string, number>> = {
   'systems/BattleSystem.ts': 1, // Story 3.1 (#281)
-  'systems/DecisionSystem.ts': 4, // Story 3.1 (#281)
   'systems/EnemySystem.ts': 1, // Story 3.1 (#281)
   'systems/ExpeditionSystem.ts': 4, // Story 3.1 (#281)
   'systems/ExplorationSystem.ts': 5, // Story 3.1 (#281)

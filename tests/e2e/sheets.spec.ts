@@ -3,8 +3,8 @@ import { test, expect, type Page } from '@playwright/test';
 /**
  * E2E: one sheet at a time (Story 1.14, AR10, UX-DR22).
  *
- * A save that is both old enough for the offline summary and long-played enough
- * for a decision event requests both sheets at boot. The offline summary
+ * A save that is old enough for the offline summary and has a decision event
+ * open (Story 1.28: it is in the save) requests both sheets at boot. The offline summary
  * (higher priority) opens first; the decision sheet waits and opens when it closes.
  * The modal sheets are dialogs that take focus and keep it, a dismissible one closes
  * with Esc, and a decision sheet does not.
@@ -17,6 +17,8 @@ function emptyMapTiles() {
   for (let x = 0; x < 8; x++) for (let y = 0; y < 8; y++) tiles.push({ x, y, type: 'empty', discovered: false, claimed: false });
   return tiles;
 }
+
+const OPEN_MS = 40_000;
 
 async function seedBoth(page: Page): Promise<void> {
   const away = Date.now() - 120_000;
@@ -65,6 +67,10 @@ async function seedBoth(page: Page): Promise<void> {
       entropy: 0,
       entropyDampener: { level: 0 },
       prestigeTree: { purchased: [] },
+      decision: {
+        open: { id: 'overcrowding', remainingMs: OPEN_MS, openedAtSessionMs: 0, roll: 0.5 },
+        nextSpawnSessionMs: 0,
+      },
     },
   };
   await page.addInitScript((s: string) => localStorage.setItem('the_swarm_save', s), JSON.stringify(save));
@@ -83,10 +89,20 @@ test.describe('Sheets (Story 1.14)', () => {
     await expect(decision(page)).toHaveCount(0);
     await expect(page.locator('[role="dialog"][aria-modal="true"]')).toHaveCount(1);
 
+    // Its countdown waits too (Story 1.28): no time is lost behind the summary.
+    const left = () =>
+      page.evaluate(
+        () =>
+          (window as unknown as { __swarm: { manager: { getState(): { decision: { open: { remainingMs: number } | null } } } } }).__swarm.manager.getState()
+            .decision.open?.remainingMs,
+      );
+    expect(await left()).toBe(OPEN_MS);
+
     await offline(page).locator('button').click();
     await expect(offline(page)).toHaveCount(0);
     await expect(decision(page)).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('[role="dialog"][aria-modal="true"]')).toHaveCount(1);
+    await expect.poll(left, { timeout: 5_000 }).toBeLessThan(OPEN_MS);
   });
 
   test('a modal sheet takes focus on its headline, keeps Tab inside, and closes with Esc', async ({ page }) => {

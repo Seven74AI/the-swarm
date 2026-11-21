@@ -8,6 +8,8 @@ import { getBuildAction, getNextAction, type NextAction } from '../systems/NextA
 import { assignedTotal, freeWorkers, getReallocation, workforceTotal, type Reallocation } from '../systems/Workforce';
 import { TerritorySystem } from '../systems/TerritorySystem';
 import { getSoldierDefense, getSoldierMaxHp, getSoldierSpeed, getSoldierStrength } from '../systems/SoldierSystem';
+import { canChoose } from '../systems/DecisionSystem';
+import { getDecision } from '../data/content/decisions';
 import { canPurchaseMutation, isMutationUnlocked } from '../systems/MutationSystem';
 import {
   canBuildAuto,
@@ -78,6 +80,11 @@ export const selectBattlesWon = slice('battlesWon');
 export const selectBattlesLost = slice('battlesLost');
 export const selectVictoryAchieved = slice('victoryAchieved');
 export const selectPhaseGoal = slice('phaseGoal');
+export const selectDecision = slice('decision');
+/** The open decision event (Story 1.28), or null. */
+export const selectOpenDecision = computed(() => selectDecision.value.open);
+/** The id of the open decision event: changes only when an event opens or closes. */
+export const selectOpenDecisionId = computed(() => selectDecision.value.open?.id ?? null);
 export const selectLifetime = slice('lifetime');
 export const selectSpaceship = slice('spaceship');
 export const selectSpaceProbes = slice('spaceProbes');
@@ -129,6 +136,15 @@ function memo<K, V>(cache: Map<K, ReadonlySignal<V>>, key: K, make: () => V): Re
 }
 
 const canBuilds = new Map<BuildingType, ReadonlySignal<boolean>>();
+const canChooses = new Map<string, ReadonlySignal<boolean>>();
+
+/** Whether a choice of the open decision event can be taken now (Story 1.28; false when none is open). */
+export function selectCanChoose(choiceId: string): ReadonlySignal<boolean> {
+  return memo(canChooses, choiceId, () => {
+    const open = gameState.value.decision.open;
+    return open !== null && canChoose(gameState.value, getDecision(open.id), choiceId);
+  });
+}
 const researchStatuses = new Map<ResearchProjectId, ReadonlySignal<ResearchProjectStatus>>();
 const canStarts = new Map<ResearchProjectId, ReadonlySignal<boolean>>();
 const conversionUnlocks = new Map<ConversionId, ReadonlySignal<boolean>>();

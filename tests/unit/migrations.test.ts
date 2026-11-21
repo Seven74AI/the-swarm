@@ -516,3 +516,33 @@ describe('v16 → v17: the chronicle is kept with the save (Story 1.26)', () => 
     expect(out.chronicle?.milestones).toContain('phase_colony');
   });
 });
+
+describe('v17 → v18: the open decision event is saved (Story 1.28)', () => {
+  const v17 = (gs: Record<string, unknown>): SaveData => ({
+    version: 17,
+    timestamp: 0,
+    playTimeMs: 0,
+    gameState: gs as unknown as GameState,
+  });
+
+  it('adds an empty decision slot to a save that has none', () => {
+    const { decision: _drop, ...old } = createInitialState();
+    const out = migrateSave(v17(old), 17, 18);
+    expect(out.version).toBe(18);
+    expect(out.gameState.decision).toEqual({ open: null, nextSpawnSessionMs: null });
+  });
+
+  it('keeps a valid open event and drops a malformed one', () => {
+    const open = { id: 'beetle_sighting', remainingMs: 5000, openedAtSessionMs: 1, roll: 0.5 };
+    expect(migrateSave(v17({ ...createInitialState(), decision: { open, nextSpawnSessionMs: 3 } }), 17, 18).gameState.decision.open).toEqual(open);
+    for (const bad of [{ id: 'nope', remainingMs: 1, openedAtSessionMs: 0, roll: 0 }, { id: 'beetle_sighting', remainingMs: 'x' }, 'junk']) {
+      const out = migrateSave(v17({ ...createInitialState(), decision: { open: bad, nextSpawnSessionMs: 0 } }), 17, 18);
+      expect(out.gameState.decision.open).toBeNull();
+    }
+  });
+
+  it('survives a partial v17 game state', () => {
+    const out = migrateSave(v17({ phase: 'colony' }), 17, 18);
+    expect(out.gameState.decision).toEqual({ open: null, nextSpawnSessionMs: null });
+  });
+});
