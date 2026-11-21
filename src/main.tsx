@@ -3,7 +3,6 @@ import './ui/styles/base.css';
 import './ui/styles/motion.css';
 import { log } from './utils/log';
 import { EventBus } from './engine/EventBus';
-import { EventQueue, type EventSink } from './engine/events';
 import type { TickContext } from './engine/TickContext';
 import { createActions, type Actions } from './actions';
 import { Ticker } from './engine/Ticker';
@@ -27,6 +26,7 @@ import {
 } from './systems/SpaceshipSystem';
 import { tickAutoProduction } from './engine/AutoProductionLoop';
 import { processTick } from './engine/processTick';
+import { catchUp, type CatchUpDeps } from './engine/catchUp';
 import { getPrestigeBonuses } from './systems/PrestigeBonusSystem';
 import { render } from 'preact';
 import { computed } from '@preact/signals-core';
@@ -37,13 +37,16 @@ import { selectAffordableKeys, selectCanChoose, selectCapacityReached, selectGoa
 import { AudioSystem } from './ui/AudioSystem';
 import { SaveManager } from './persistence/SaveManager';
 import type { OfflineLoadInfo } from './persistence/SaveManager';
-import { computeOfflineResourceDeltas } from './systems/OfflineProgression';
 import { openOfflineSummary } from './ui/sheets/OfflineSummarySheet';
 import { bindDecisionSheets, type DecisionSheets } from './ui/sheets/DecisionSheet';
 import { createToasts, type Toasts } from './ui/primitives/Toast';
 import { openTickFailure } from './ui/sheets/TickFailureSheet';
 import { openSettings } from './ui/sheets/SettingsSheet';
 import { buildDiagnostics, DIAGNOSTICS_FILENAME } from './debug/diagnostics';
+import { createTickTimings } from './debug/timings';
+import { debugEnabled } from './debug/enabled';
+import type { Cheats } from './debug/cheats';
+import { randomSeed } from './state/seed';
 import { createSheetController, type SheetController } from './ui/shell/SheetController';
 import { bindShortcuts } from './ui/shell/shortcuts';
 import { bindTips } from './ui/shell/tips';
@@ -118,6 +121,8 @@ export function bootstrap(): {
   chronicle: Chronicle;
   /** One-line toasts (Story 1.12 primitive; first used by Story 1.28's costly timeouts). */
   toasts: Toasts;
+  /** Dev builds only (Story 1.34): the cheats, once their chunk has loaded; null in production. */
+  cheatsLoaded: Promise<Cheats> | null;
 } {
   // Platform services, built once and passed on (Story 1.10, D9). Only main
   // imports platform/ values; settings live under their own key, outside the save.
@@ -135,6 +140,11 @@ export function bootstrap(): {
   const territorySystem = new TerritorySystem();
   // The phase flow: evaluate/latch every tick, commit only on CONTINUE (Story 1.19, D3)
   const fsm = new PhaseStateMachine(TRANSITIONS);
+  // Offline catch-up (engine/catchUp.ts): resume-on-load and the dev time skip (Story 1.34).
+  const catchUpDeps: CatchUpDeps = { resourceSystem, soldierSystem, mapSystem, territorySystem, latch: (s) => fsm.latch(s) };
+  // The debug overlay's numbers (Story 1.34): how long resume took, and every tick's step.
+  let catchUpMs: number | null = null;
+  const tickTimings = createTickTimings();
 
   // Try to load saved state
   const saved = saveManager.load();
@@ -143,6 +153,10 @@ export function bootstrap(): {
   const chronicle = createChronicle(saved?.chronicle);
   saveManager.setChronicleSource(() => chronicle.snapshot());
 
+  if (!saved) {
+    // A new game draws its seed (Story 1.34, D6); a loaded one keeps the seed in its save.
+    gameState.value = { ...gameState.value, seed: randomSeed(Math.random) };
+  }
   if (saved) {
     gameState.value = saved.gameState;
     log.info('offline', `Save loaded. offline: ${saved.offline ? `ticks=${saved.offline.offlineTicks}` : 'null'}`);
@@ -155,52 +169,13 @@ export function bootstrap(): {
       // Capture before-state for resource delta calculation
       const beforeState = gameState.value;
 
-      // ─── Closed-form resource computation (rate × time) ───
-      // Deterministic resources (food, wood, stone) use a single bulk computation
-      // instead of per-tick summation. This is O(1) instead of O(ticks) for
-      // resource math, making offline catch-up faster.
-      const totalDtSec = offlineData.effectiveMs / 1000;
-      const territoryBonuses = territorySystem.getBonuses(gameState.value);
-      const resourceDeltas = computeOfflineResourceDeltas(
-        gameState.value,
-        totalDtSec,
-        territoryBonuses,
-      );
-
-      // Apply closed-form resource deltas
-      let catchUpState = {
-        ...gameState.value,
-        resources: {
-          ...gameState.value.resources,
-          food: gameState.value.resources.food + resourceDeltas.foodDelta,
-          wood: gameState.value.resources.wood + resourceDeltas.woodDelta,
-          stone: gameState.value.resources.stone + resourceDeltas.stoneDelta,
-          nectar: gameState.value.resources.nectar + resourceDeltas.nectarDelta,
-        },
-        prestige: {
-          ...gameState.value.prestige,
-          totalFoodProduced: gameState.value.prestige.totalFoodProduced + resourceDeltas.grossFoodProduced,
-        },
-      };
-
-      // ─── Tick-based catch-up: only non-linear events ───
-      // Run the tick loop for pipelines (eggs→larvae→workers/soldiers),
-      // battles, expeditions, and other non-deterministic events.
-      // Deterministic resource deltas are skipped (applied above via closed-form).
-      // Simulated ticks raise events into a collecting queue that is never
-      // flushed: nothing plays or animates for catch-up (AR18). The summary
-      // below is built from the before/after states.
-      const dtSec = 50 / 1000; // 50ms per tick
-      const offlineEvents = new EventQueue();
-      for (let i = 0; i < offlineData.offlineTicks; i++) {
-        catchUpState = processTick(
-          catchUpState, resourceSystem, soldierSystem, mapSystem, territorySystem, offlineEvents, dtSec,
-          true, // skipDeterministicResources — handled by closed-form above
-        );
-        // Catch-up never commits a phase, but the goal may latch (D2).
-        catchUpState = fsm.latch(catchUpState);
-        offlineEvents.clear();
-      }
+      // Closed-form resources, then ticks for the non-linear parts (engine/catchUp.ts).
+      // Catch-up never commits a phase, but the goal may latch (D2). Its duration
+      // is shown in the debug overlay (Story 1.34).
+      const catchUpStart = performance.now();
+      const catchUpState = catchUp(beforeState, offlineData.effectiveMs, offlineData.offlineTicks, catchUpDeps);
+      catchUpMs = Math.round(performance.now() - catchUpStart);
+      log.info('offline', `caught up in ${catchUpMs} ms`);
 
       gameState.value = catchUpState;
 
@@ -425,7 +400,8 @@ export function bootstrap(): {
   let haltedSnapshot: GameState | null = null;
   const tick = loop.bindTick({
     read: () => gameState.value,
-    step,
+    // Timed for the debug overlay's tick p50/p95 (Story 1.34).
+    step: (state, ctx) => tickTimings.measure(() => step(state, ctx)),
     write: (next) => {
       gameState.value = next;
     },
@@ -526,6 +502,7 @@ export function bootstrap(): {
       now: Date.now(),
       userAgent: typeof navigator === 'undefined' ? '' : navigator.userAgent,
       save: saveManager.serialize(state, state.stats.playTimeMs),
+      seed: state.seed,
       settings: platform.settings.settings.value,
       capabilities: platform.capabilities,
       log: log.entries(),
@@ -653,6 +630,37 @@ export function bootstrap(): {
     );
   }
 
+  // ── The debug overlay (Story 1.34, AR24): dev builds and `?debug=1`, in its own chunk ──
+  // Backtick or a 3-finger long-press toggles it. Read-only; EXPORT DIAGNOSTICS is the settings export.
+  if (debugEnabled({ dev: import.meta.env.DEV, search: typeof location === 'undefined' ? '' : location.search })) {
+    void import('./debug/overlay')
+      .then(({ mountDebugOverlay }) =>
+        mountDebugOverlay({
+          state: gameState,
+          ticks: tickTimings,
+          catchUpMs,
+          saveVersion: SaveManager.SAVE_VERSION,
+          build: BUILD_ID,
+          onExportDiagnostics: exportDiagnostics,
+        }),
+      )
+      .catch((e: unknown) => log.warn('debug', 'debug overlay failed to load', e));
+  }
+  // ── Cheats (Story 1.34): DEV BUILDS ONLY. The bundler drops this branch, and the chunk, from production. ──
+  const cheatsLoaded: Promise<Cheats> | null = import.meta.env.DEV
+    ? import('./debug/cheats').then(({ createCheats }) =>
+        createCheats({
+          read: () => gameState.value,
+          write: (next) => {
+            gameState.value = next;
+          },
+          bus,
+          fsm,
+          catchUp: (state, ms) => catchUp(state, ms, Math.floor(ms / 50), catchUpDeps),
+        }),
+      )
+    : null;
+
   // ── Keyboard shortcuts (Story 1.30): primary action, tabs, pause, close; on/off and remaps from settings ──
   bindShortcuts({
     settings: platform.settings.settings,
@@ -753,7 +761,7 @@ export function bootstrap(): {
 
   loop.start();
 
-  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, ui, audio, actions, platform, sheets, overlays, chronicle, toasts };
+  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, ui, audio, actions, platform, sheets, overlays, chronicle, toasts, cheatsLoaded };
 }
 
 // processTick lives in engine/processTick.ts; re-exported for existing callers.
@@ -768,4 +776,8 @@ if (typeof window !== 'undefined') {
     setState: (s: GameState) => { gameState.value = s; },
   };
   (window as unknown as Record<string, unknown>).__swarm = swarm;
+  // Dev builds: `window.__swarm.cheats` (addResources, setPhase, timeSkip, setSeed), once loaded.
+  void swarm.cheatsLoaded?.then((cheats) => {
+    (swarm as Record<string, unknown>).cheats = cheats;
+  });
 }

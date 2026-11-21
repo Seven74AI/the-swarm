@@ -157,6 +157,16 @@ for (const setup of SETUPS) {
       found.push(...(await layoutProblems(page)).map((p) => `resource sheet: ${p}`));
       expect(found).toEqual([]);
     });
+
+    test('the debug overlay fits the screen too', async ({ page }) => {
+      // Story 1.34: dev builds (this server) and ?debug=1; one inspector key open.
+      await seed(page, setup);
+      await expect(page.locator('[data-debug-root][data-ready]')).toBeAttached();
+      await page.keyboard.press('Backquote');
+      await page.locator('[data-debug-inspector] [data-key="resources"] summary').click();
+      await expect(page.locator('[data-debug-inspector] [data-key="resources"] pre')).toBeVisible();
+      expect(await layoutProblems(page)).toEqual([]);
+    });
   });
 }
 

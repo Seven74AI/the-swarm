@@ -1,0 +1,105 @@
+/* The debug overlay (Story 1.34). Dev builds and ?debug=1 only. Wraps, never scrolls sideways. */
+.debug-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  overflow-y: auto;
+  padding: 0.875rem;
+  background: var(--color-bg);
+  color: var(--color-dim);
+  font-family: inherit;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.debug-overlay__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.debug-overlay__title,
+.debug-overlay__subtitle {
+  margin: 0.75rem 0 0.5rem;
+  font-size: 1rem;
+  color: var(--color-accent);
+}
+
+.debug-overlay__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr));
+  gap: 0.25rem 1rem;
+  margin: 0 0 0.75rem;
+}
+
+.debug-overlay__stat {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.debug-overlay__stat dt,
+.debug-overlay__stat dd {
+  margin: 0;
+}
+
+.debug-overlay__stat dd {
+  color: var(--color-accent);
+}
+
+.debug-overlay__inspector details {
+  border-top: 1px solid var(--color-line);
+}
+
+.debug-overlay__inspector summary {
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.debug-overlay pre {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.75rem;
+}
+
+.debug-overlay__log {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+}
+
+.debug-overlay__log [data-level='error'],
+.debug-overlay__log [data-level='warn'] {
+  color: var(--color-warn);
+}
+
+/* Buttons wrap their label rather than run off a narrow screen or large text (Story 1.31 reflow). */
+.debug-overlay .swarm-btn {
+  max-width: 100%;
+}
+
+.debug-overlay .swarm-btn__label {
+  flex-wrap: wrap;
+}
+
+.debug-overlay .swarm-btn__line,
+.debug-overlay .swarm-btn__verb {
+  min-width: 0;
+  white-space: normal;
+}
+
+.debug-overlay .swarm-btn__verb {
+  flex: 0 1 auto;
+}
+
+:root[data-grid="narrow"] .debug-overlay,
+:root[data-grid="narrow"] .debug-overlay * {
+  letter-spacing: 0;
+}
