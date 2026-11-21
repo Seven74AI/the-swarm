@@ -41,7 +41,7 @@ let store: SettingsStore;
 function open(over: Partial<SettingsScreenDeps> = {}, capabilities = caps()) {
   storage = memoryStore();
   store = createSettingsStore({ storage, capabilities });
-  act(() => void openSettings(sheets, { store, capabilities, onExportDiagnostics: () => {}, onPause: () => {}, ...over }));
+  act(() => void openSettings(sheets, { store, capabilities, onExportDiagnostics: () => {}, onPause: () => {}, onExportSave: () => {}, onImportSave: () => {}, ...over }));
 }
 
 const sheet = () => document.querySelector<HTMLElement>('[data-settings-sheet]')!;
@@ -192,6 +192,18 @@ describe('settings screen', () => {
     open({ onExportDiagnostics });
     act(() => sheet().querySelector<HTMLButtonElement>('[data-action="export-diagnostics"]')!.click());
     expect(onExportDiagnostics).toHaveBeenCalledTimes(1);
+  });
+
+  it('exports and imports the save through the handlers main passes in (Story 2.11)', () => {
+    const onExportSave = vi.fn();
+    const onImportSave = vi.fn();
+    open({ onExportSave, onImportSave });
+    act(() => sheet().querySelector<HTMLButtonElement>('[data-action="export-save"]')!.click());
+    expect(onExportSave).toHaveBeenCalledTimes(1);
+    expect(onImportSave).not.toHaveBeenCalled();
+    act(() => sheet().querySelector<HTMLButtonElement>('[data-action="import-save"]')!.click());
+    expect(onImportSave).toHaveBeenCalledTimes(1);
+    expect(onExportSave).toHaveBeenCalledTimes(1);
   });
 
   it('replays the intro through its handler, and shows it disabled with a reason while there is none', () => {

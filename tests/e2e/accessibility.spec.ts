@@ -232,6 +232,31 @@ test.describe('live regions', () => {
     expect((await spokenTree(page)).split('\n').filter((l) => DECORATION.test(l))).toEqual([]);
   });
 
+  test('the import sheets pass axe, take focus and read no decoration (Story 2.11)', async ({ page }) => {
+    await seed(page, COMBAT);
+    const pick = async (text: string) => {
+      await page.locator('[data-resource-strip]').click();
+      await page.locator('[data-resource-sheet] [data-action="settings"]').click();
+      await expect(page.locator('[data-settings-sheet]')).toBeVisible();
+      const chooser = page.waitForEvent('filechooser');
+      await page.locator('[data-settings-sheet] [data-action="import-save"]').click();
+      await (await chooser).setFiles({ name: 'save.json', mimeType: 'application/json', buffer: Buffer.from(text) });
+    };
+    await pick('not a save');
+    const refused = page.getByRole('dialog', { name: "THAT FILE ISN'T A SWARM SAVE." });
+    await expect(refused).toBeVisible();
+    await expect(refused.locator('[data-sheet-headline]')).toBeFocused();
+    expect(await axe(page)).toEqual([]);
+    expect((await spokenTree(page)).split('\n').filter((l) => DECORATION.test(l))).toEqual([]);
+    await refused.locator('[data-sheet-close]').click();
+    await pick(await page.evaluate(() => localStorage.getItem('the_swarm_save')!));
+    const confirm = page.locator('[data-import-confirm]');
+    await expect(confirm).toBeVisible();
+    await expect(confirm.locator('[data-sheet-headline]')).toBeFocused();
+    expect(await axe(page)).toEqual([]);
+    expect((await spokenTree(page)).split('\n').filter((l) => DECORATION.test(l))).toEqual([]);
+  });
+
   test('a failed save is toasted in a status region and logged', async ({ page }) => {
     await seed(page, COMBAT);
     await page.evaluate(() => {

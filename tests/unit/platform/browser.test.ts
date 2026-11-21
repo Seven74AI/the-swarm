@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createWebBrowser } from '../../../src/platform/browser';
 import { createWebPlatform } from '../../../src/platform';
 
@@ -38,5 +38,45 @@ describe('web browser service', () => {
     const p = createWebPlatform({});
     expect(typeof p.browser.download).toBe('function');
     expect(typeof p.browser.reload).toBe('function');
+  });
+
+  it('is part of the web platform with a file picker', () => {
+    expect(typeof createWebPlatform({}).browser.pickFile).toBe('function');
+  });
+});
+
+/** Story 2.11: IMPORT SAVE reads one file the player picks. */
+describe('web browser file picker', () => {
+  afterEach(() => document.body.replaceChildren());
+
+  const input = () => document.querySelector<HTMLInputElement>('input[type="file"]');
+
+  function pick(file: File | null) {
+    const b = createWebBrowser({ document });
+    const picked = b.pickFile('.json,application/json');
+    const el = input()!;
+    expect(el).not.toBeNull();
+    expect(el.accept).toBe('.json,application/json');
+    if (file) {
+      Object.defineProperty(el, 'files', { value: [file] });
+      el.dispatchEvent(new Event('change'));
+    } else {
+      el.dispatchEvent(new Event('cancel'));
+    }
+    return picked;
+  }
+
+  it('gives the picked file’s text and removes its input', async () => {
+    await expect(pick(new File(['{"version":1}'], 'save.json'))).resolves.toBe('{"version":1}');
+    expect(input()).toBeNull();
+  });
+
+  it('gives null when the player cancels', async () => {
+    await expect(pick(null)).resolves.toBeNull();
+    expect(input()).toBeNull();
+  });
+
+  it('gives null, without throwing, where there is no document', async () => {
+    await expect(createWebBrowser({}).pickFile('.json')).resolves.toBeNull();
   });
 });

@@ -1,6 +1,7 @@
 import { log } from '../utils/log';
 import type { GameState } from '../state/GameState';
 import { createInitialState } from '../state/GameState';
+import { Phase } from '../phases/phases';
 import { migrateSave } from './migrations';
 import { emptyChronicle, normalizeChronicle, type ChronicleSave } from '../state/chronicle';
 import type { BackupSlot, LoadResult, SaveStore } from '../platform/storage/SaveStore';
@@ -53,6 +54,29 @@ export interface LoadedSave {
 
 /** What `open()` found (Story 2.2): the store's load status, decoded saves in place of text. */
 export type SaveLoad = LoadResult<LoadedSave>;
+
+/**
+ * The largest file IMPORT SAVE reads, in characters (Story 2.11). A real save is
+ * well under 100 KB; anything this big is not one, and is refused unparsed.
+ */
+export const MAX_IMPORT_CHARS = 5_000_000;
+
+/** Why an imported file was refused (Story 2.11, UX-DR33). */
+export type ImportRefusal = 'not_a_save' | 'newer_version';
+
+/** What `readImport()` made of a file: the save, migrated to this version, or why it isn't one. */
+export type ImportRead =
+  | { readonly ok: true; readonly save: LoadedSave }
+  | { readonly ok: false; readonly reason: ImportRefusal; readonly version?: number };
+
+/** Thrown by `decode` for a save newer than this build, so import can say so. */
+class NewerSaveError extends Error {
+  constructor(readonly version: number) {
+    super(`save version ${version} is newer than this build (${SaveManager.SAVE_VERSION})`);
+  }
+}
+
+const PHASES: ReadonlySet<string> = new Set(Object.values(Phase));
 
 /**
  * SaveManager: the save format (version, migrations, defaults, offline info)
@@ -211,6 +235,53 @@ export class SaveManager {
     return this.save(state, playTimeMs, true);
   }
 
+  /**
+   * IMPORT SAVE, step 1 (Story 2.11): what `text` is. A save of any shipped
+   * version is migrated to this one and decoded exactly as a load would; a file
+   * that isn't a swarm save (bad JSON, a wrong shape, an unknown phase, a
+   * migration that throws, a version newer than this build) is refused. Never
+   * writes anything.
+   */
+  readImport(text: string): ImportRead {
+    if (typeof text !== 'string' || text.length > MAX_IMPORT_CHARS) return { ok: false, reason: 'not_a_save' };
+    try {
+      return { ok: true, save: this.decode(text) };
+    } catch (e) {
+      if (e instanceof NewerSaveError) return { ok: false, reason: 'newer_version', version: e.version };
+      log.info('save', 'import refused: not a swarm save', e);
+      return { ok: false, reason: 'not_a_save' };
+    }
+  }
+
+  /**
+   * IMPORT SAVE, step 2 (Story 2.11), after the player confirms: write `save`
+   * as THE save, with its own chronicle and play time. The replaced run rotates
+   * into the first backup. From then on every save is held, so nothing this
+   * session still runs (autosave, pagehide, beforeunload) can overwrite the
+   * import before main reloads into it. Its lastSeenAt is now: the run resumes
+   * where the file left off, with no offline time for the file's age.
+   * Returns false, holding nothing, if storage refused the write.
+   */
+  replaceWith(save: LoadedSave): boolean {
+    const now = Date.now();
+    const data: SaveData = {
+      version: SaveManager.SAVE_VERSION,
+      timestamp: now,
+      playTimeMs: save.playTimeMs,
+      gameState: { ...save.gameState, lastSaveTimestamp: now },
+      chronicle: save.chronicle,
+      lastSeenAt: now,
+    };
+    try {
+      this.store.write(JSON.stringify(data));
+    } catch (e) {
+      log.warn('save', 'import could not be written', e);
+      return false;
+    }
+    this.held = true;
+    return true;
+  }
+
   /** The text of the last save that couldn't be read (kept aside), or null. */
   unreadableText(): string | null {
     return this.store.unreadable();
@@ -234,9 +305,21 @@ export class SaveManager {
       throw new Error('not a save');
     }
     if (data.version > SaveManager.SAVE_VERSION) {
-      throw new Error(`save version ${data.version} is newer than this build (${SaveManager.SAVE_VERSION})`);
+      throw new NewerSaveError(data.version);
     }
     const migrated = migrateSave(data, data.version, SaveManager.SAVE_VERSION);
+    const gs = migrated.gameState as Partial<GameState> | null;
+    if (
+      !gs ||
+      typeof gs !== 'object' ||
+      typeof gs.phase !== 'string' ||
+      !PHASES.has(gs.phase) ||
+      !gs.resources ||
+      typeof gs.resources !== 'object' ||
+      Array.isArray(gs.resources)
+    ) {
+      throw new Error('not a save: no known phase or resources');
+    }
     return this.applyDefaults({
       gameState: migrated.gameState,
       playTimeMs: migrated.playTimeMs ?? 0,

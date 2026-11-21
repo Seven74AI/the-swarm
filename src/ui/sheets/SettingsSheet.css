@@ -73,3 +73,14 @@
   gap: 0.5rem;
   margin-top: 1rem;
 }
+
+/* Long verbs (EXPORT DIAGNOSTICS) wrap rather than push the sheet off a 320 px screen at 200 % text. */
+.settings-actions .swarm-btn {
+  max-width: 100%;
+}
+.settings-actions .swarm-btn__verb {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

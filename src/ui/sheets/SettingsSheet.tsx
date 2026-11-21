@@ -17,14 +17,16 @@ import './SettingsSheet.css';
  * Rows: sound, haptics, reduced motion, CRT effects (FULL says it lowers
  * contrast), decision timers, confirm style, hold duration, lay mode, keyboard
  * shortcuts on/off and one remap control per shortcut, then PAUSE (Story
- * 2.10: closes the settings and pauses; in-session only), REPLAY INTRO and
- * EXPORT DIAGNOSTICS. The web build has no notifications toggle (owner,
+ * 2.10: closes the settings and pauses; in-session only), EXPORT SAVE and
+ * IMPORT SAVE (Story 2.11: the save only, never these settings), REPLAY INTRO
+ * and EXPORT DIAGNOSTICS. The web build has no notifications toggle (owner,
  * 2026-11-21). The settings act where their features live: shortcuts in
  * Story 1.30, timers in Story 1.28, CRT in Epic 8, the intro in Story 8.10.
  *
  * Hooks: `[data-settings-sheet]`, `[data-setting=<field>]` with
  * `[data-option=<value>][aria-pressed]` and `[data-setting-note]`,
- * `[data-shortcut=<id>][data-listening]`, `[data-action="pause"|"replay-intro"|"export-diagnostics"]`.
+ * `[data-shortcut=<id>][data-listening]`,
+ * `[data-action="pause"|"export-save"|"import-save"|"replay-intro"|"export-diagnostics"]`.
  */
 
 export interface SettingsScreenDeps {
@@ -35,6 +37,10 @@ export interface SettingsScreenDeps {
   readonly onExportDiagnostics: () => void;
   /** Pause the game (Story 2.10: main's pause, the same as P and the top bar's button). */
   readonly onPause: () => void;
+  /** Download the save as a file (Story 2.11; main builds it). */
+  readonly onExportSave: () => void;
+  /** Pick a save file and import it (Story 2.11; main reads, checks and confirms it). */
+  readonly onImportSave: () => void;
   /** Play the title cinematic again (Story 8.10). Until it exists the button says why it can't. */
   readonly onReplayIntro?: () => void;
 }
@@ -256,7 +262,7 @@ function PauseButton({ onPause }: { onPause: () => void }) {
   );
 }
 
-export function SettingsSheet({ store, capabilities, onExportDiagnostics, onPause, onReplayIntro }: SettingsScreenDeps) {
+export function SettingsSheet({ store, capabilities, onExportDiagnostics, onPause, onExportSave, onImportSave, onReplayIntro }: SettingsScreenDeps) {
   return (
     <ModalSheet headline="SETTINGS" class="settings-sheet" data-settings-sheet="">
       <ul class="settings-list">
@@ -267,6 +273,8 @@ export function SettingsSheet({ store, capabilities, onExportDiagnostics, onPaus
       </ul>
       <div class="settings-actions">
         <PauseButton onPause={onPause} />
+        <Button verb="EXPORT SAVE" data-action="export-save" onPress={onExportSave} />
+        <Button verb="IMPORT SAVE" data-action="import-save" onPress={onImportSave} />
         <Button
           verb="REPLAY INTRO"
           data-action="replay-intro"

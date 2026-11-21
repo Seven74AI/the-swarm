@@ -231,6 +231,33 @@ for (const setup of SETUPS) {
       expect((await layoutProblems(page)).map((p) => `offline summary: ${p}`)).toEqual([]);
     });
 
+    test('the settings sheet and the import sheets fit the screen too (Story 2.11)', async ({ page }) => {
+      await seed(page, setup);
+      const openSettings = async () => {
+        await page.locator('[data-resource-strip]').click();
+        await page.locator('[data-resource-sheet] [data-action="settings"]').click();
+        await expect(page.locator('[data-settings-sheet]')).toBeVisible();
+      };
+      const pick = async (text: string) => {
+        await openSettings();
+        const chooser = page.waitForEvent('filechooser');
+        await page.locator('[data-settings-sheet] [data-action="import-save"]').click();
+        await (await chooser).setFiles({ name: 'save.json', mimeType: 'application/json', buffer: Buffer.from(text) });
+      };
+      await openSettings();
+      const found = (await layoutProblems(page)).map((p) => `settings sheet: ${p}`);
+      await page.locator('[data-settings-sheet] [data-sheet-close]').click();
+      await pick(JSON.stringify({ version: 999, timestamp: Date.now(), playTimeMs: 0, gameState: { phase: 'egg_laying', resources: {} } }));
+      await expect(page.locator('[data-import-refused]')).toBeVisible();
+      found.push(...(await layoutProblems(page)).map((p) => `import refused sheet: ${p}`));
+      await page.locator('[data-import-refused] [data-sheet-close]').click();
+      const save = await page.evaluate(() => localStorage.getItem('the_swarm_save')!);
+      await pick(save);
+      await expect(page.locator('[data-import-confirm]')).toBeVisible();
+      found.push(...(await layoutProblems(page)).map((p) => `import confirm sheet: ${p}`));
+      expect(found).toEqual([]);
+    });
+
     test('the debug overlay fits the screen too', async ({ page }) => {
       // Story 1.34: dev builds (this server) and ?debug=1; one inspector key open.
       await seed(page, setup);

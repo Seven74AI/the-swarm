@@ -27,6 +27,8 @@ export const CAPACITY_LINE = 'Nest capacity reached.';
 export const SAVE_FAILED_LINE = 'SAVE FAILED: STORAGE IS FULL OR BLOCKED.';
 /** Told once when the save was missing and its backup was loaded instead (Story 2.2). */
 export const SAVE_RECOVERED_LINE = 'THE SAVE WAS MISSING. THE BACKUP IS LOADED.';
+/** An import the player confirmed couldn't be written (Story 2.11): the current run stays. */
+export const IMPORT_FAILED_LINE = 'IMPORT FAILED: STORAGE IS FULL OR BLOCKED. THE CURRENT RUN IS UNCHANGED.';
 
 export interface AnnouncementDeps {
   readonly bus: Pick<EventBus<SwarmEvents>, 'subscribe' | 'unsubscribe'>;
