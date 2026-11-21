@@ -14,6 +14,8 @@ export interface TabDef {
   readonly id: TabId;
   /** Label in the tab bar (4 letters at most). */
   readonly label: string;
+  /** Full label in the desktop rail (Story 1.29, mockups/key-desktop.html). */
+  readonly railLabel: string;
   /** Full name, the accessible name. */
   readonly name: string;
   readonly unlockPhase: Phase;
@@ -39,11 +41,11 @@ export interface PanelPlacement {
 
 /** Tabs in bar order. NEST is home; Phase 1 has no tab bar. */
 export const TABS: readonly TabDef[] = [
-  { id: 'nest', label: 'NEST', name: 'Nest', unlockPhase: Phase.EGG_LAYING, empty: '' },
-  { id: 'wrkr', label: 'WRKR', name: 'Workers', unlockPhase: Phase.COLONY, empty: '' },
-  { id: 'build', label: 'BUILD', name: 'Build', unlockPhase: Phase.COLONY, empty: 'NOTHING TO BUILD YET.' },
-  { id: 'front', label: 'FRONT', name: 'Frontier', unlockPhase: Phase.COMBAT, empty: '' },
-  { id: 'log', label: 'LOG', name: 'Chronicle', unlockPhase: Phase.COLONY, empty: 'THE CHRONICLE FILLS AS THE COLONY GROWS.' },
+  { id: 'nest', label: 'NEST', railLabel: 'NEST', name: 'Nest', unlockPhase: Phase.EGG_LAYING, empty: '' },
+  { id: 'wrkr', label: 'WRKR', railLabel: 'WORKERS', name: 'Workers', unlockPhase: Phase.COLONY, empty: '' },
+  { id: 'build', label: 'BUILD', railLabel: 'BUILD', name: 'Build', unlockPhase: Phase.COLONY, empty: 'NOTHING TO BUILD YET.' },
+  { id: 'front', label: 'FRONT', railLabel: 'FRONTIER', name: 'Frontier', unlockPhase: Phase.COMBAT, empty: '' },
+  { id: 'log', label: 'LOG', railLabel: 'LOG', name: 'Chronicle', unlockPhase: Phase.COLONY, empty: 'THE CHRONICLE FILLS AS THE COLONY GROWS.' },
 ];
 
 /** FRONT's segment row grows WAR → WAR · MAP → WAR · MAP · STARS. */

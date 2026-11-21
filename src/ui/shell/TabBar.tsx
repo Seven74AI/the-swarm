@@ -5,16 +5,38 @@ import type { TabShell } from './tabShell';
  * Bottom tab bar (Story 1.15, UX-DR9): the active tab in inverse video, `•`
  * on a tab where something became affordable since the last visit, no
  * numeric badges. Hidden in Phase 1.
+ *
+ * On desktop (Story 1.29, `shell.columns`) the same buttons are the left text
+ * rail: full tab names and, with `keys`, the key of each tab's shortcut
+ * (`keys[i]` for the i-th tab shown; `aria-hidden`, the name stays the
+ * accessible name). shell.css lays it out as a column.
  */
-export function TabBar({ shell, onSelect }: { shell: TabShell; onSelect: (tab: TabId) => void }) {
+export function TabBar({
+  shell,
+  onSelect,
+  keys = null,
+}: {
+  shell: TabShell;
+  onSelect: (tab: TabId) => void;
+  /** Rail key hints by tab position, or null for the phone bar. */
+  keys?: readonly string[] | null;
+}) {
   const tabs = shell.tabs.value;
   const active = shell.active.value;
   const dots = shell.dots.value;
+  const rail = shell.columns.value;
   return (
-    <nav class="tab-bar" data-tab-bar="" aria-label="Tabs" hidden={!shell.showBar.value}>
-      <div role="tablist" class="tab-bar-list">
-        {TABS.filter((t) => tabs.includes(t.id)).map((t) => {
+    <nav
+      class="tab-bar"
+      data-tab-bar=""
+      data-rail={rail ? 'true' : 'false'}
+      aria-label="Tabs"
+      hidden={!shell.showBar.value}
+    >
+      <div role="tablist" class="tab-bar-list" aria-orientation={rail ? 'vertical' : 'horizontal'}>
+        {TABS.filter((t) => tabs.includes(t.id)).map((t, i) => {
           const selected = t.id === active;
+          const key = rail ? keys?.[i] : undefined;
           return (
             <button
               key={t.id}
@@ -28,12 +50,19 @@ export function TabBar({ shell, onSelect }: { shell: TabShell; onSelect: (tab: T
               title={t.name}
               onClick={() => onSelect(t.id)}
             >
-              <span class="tab-bar-label">{t.label}</span>
+              {rail ? (
+                <span class="tab-bar-name" data-tab-name="">{t.railLabel}</span>
+              ) : (
+                <span class="tab-bar-label">{t.label}</span>
+              )}
               {dots.has(t.id) && (
                 <>
                   <span class="tab-bar-dot" data-tab-dot="" aria-hidden="true">•</span>
                   <span class="visually-hidden">, something new</span>
                 </>
+              )}
+              {key !== undefined && (
+                <span class="tab-bar-key" data-tab-key="" aria-hidden="true">{keyLabel(key)}</span>
               )}
             </button>
           );
@@ -41,4 +70,9 @@ export function TabBar({ shell, onSelect }: { shell: TabShell; onSelect: (tab: T
       </div>
     </nav>
   );
+}
+
+/** How a bound key reads in the rail: letters upper case, the space bar as SPACE. */
+function keyLabel(key: string): string {
+  return key === ' ' ? 'SPACE' : key.toUpperCase();
 }

@@ -182,3 +182,114 @@ describe('Shell: CONTINUE (Story 1.19)', () => {
     expect(cont()!.closest('[hidden]')).not.toBeNull();
   });
 });
+
+describe('Shell: desktop columns (Story 1.29)', () => {
+  afterEach(() => cleanup());
+
+  function setupWide(opts: { wide?: boolean; phase?: Phase; goalMet?: boolean; tabKeys?: readonly string[] } = {}) {
+    const ph = signal(opts.phase ?? Phase.COLONY);
+    const wide = signal(opts.wide ?? true);
+    const goalMet = signal(opts.goalMet ?? false);
+    const shell = createTabShell({ phase: ph, affordable: signal(''), goalMet, wide });
+    const keys = opts.tabKeys ? signal(opts.tabKeys) : undefined;
+    const view = render(
+      <Shell shell={shell} legacy={{ mount: vi.fn() }} onContinue={() => ({ ok: true })} tabKeys={keys} />,
+    );
+    const q = <T extends HTMLElement = HTMLElement>(sel: string) => view.container.querySelector<T>(sel);
+    const root = () => q('[data-shell]')!;
+    const panel = (id: string) => q(`[data-tab-panel="${id}"]`)!;
+    const slot = (id: string) => q(`[data-primary-for="${id}"]`)!;
+    const tab = (id: string) => q<HTMLButtonElement>(`[data-tab="${id}"]`)!;
+    return { ph, wide, goalMet, shell, view, q, root, panel, slot, tab };
+  }
+
+  it('marks the layout: columns on a wide viewport, single column otherwise', () => {
+    const { root, wide } = setupWide();
+    expect(root().getAttribute('data-layout')).toBe('columns');
+    act(() => { wide.value = false; });
+    expect(root().getAttribute('data-layout')).toBe('single');
+  });
+
+  it('Phase 1 stays a single column even on a wide viewport', () => {
+    const { root } = setupWide({ phase: Phase.EGG_LAYING });
+    expect(root().getAttribute('data-layout')).toBe('single');
+  });
+
+  it('NEST stays in column 1 and BUILD fills columns 2–3 on first visit, each with its own primary zone', () => {
+    const { panel, slot } = setupWide();
+    expect(panel('nest').hidden).toBe(false);
+    expect(panel('build').hidden).toBe(false);
+    expect(panel('wrkr').hidden).toBe(true);
+    expect(panel('nest').getAttribute('data-column')).toBe('1');
+    expect(panel('build').getAttribute('data-column')).toBe('2');
+    expect(slot('nest').hidden).toBe(false);
+    expect(slot('build').hidden).toBe(false);
+    expect(slot('wrkr').hidden).toBe(true);
+  });
+
+  it('picking a tab in the rail swaps columns 2–3 and keeps NEST', () => {
+    const { panel, slot, tab } = setupWide();
+    fireEvent.click(tab('wrkr'));
+    expect(panel('nest').hidden).toBe(false);
+    expect(panel('wrkr').hidden).toBe(false);
+    expect(panel('build').hidden).toBe(true);
+    expect(slot('wrkr').hidden).toBe(false);
+    expect(slot('build').hidden).toBe(true);
+    expect(tab('wrkr').getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('picking NEST focuses column 1 and leaves columns 2–3 on the last tab', () => {
+    const { panel, tab } = setupWide();
+    fireEvent.click(tab('log'));
+    fireEvent.click(tab('nest'));
+    expect(document.activeElement).toBe(panel('nest'));
+    expect(panel('log').hidden).toBe(false);
+    expect(tab('nest').getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('CONTINUE stays in column 1 while another tab is picked', () => {
+    const { q, tab } = setupWide({ goalMet: true });
+    fireEvent.click(tab('wrkr'));
+    expect(q('[data-action="continue"]')!.closest('[hidden]')).toBeNull();
+  });
+
+  it('hides the condensed goal line: the full meter is always on screen in column 1', () => {
+    const { q, tab } = setupWide();
+    fireEvent.click(tab('wrkr'));
+    expect(q('[data-goal-line]')!.hidden).toBe(true);
+  });
+
+  it('the rail shows full tab names and number-key hints', () => {
+    const { tab, q } = setupWide();
+    expect(q('[data-tab-bar]')!.getAttribute('data-rail')).toBe('true');
+    expect(tab('wrkr').querySelector('[data-tab-name]')!.textContent).toBe('WORKERS');
+    expect(tab('nest').querySelector('[data-tab-key]')!.textContent).toBe('1');
+    expect(tab('log').querySelector('[data-tab-key]')!.textContent).toBe('4');
+    // The hint is decoration: the accessible name is the tab's name.
+    expect(tab('log').querySelector('[data-tab-key]')!.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('the hints follow the remapped tab keys, and show none when there are none', () => {
+    const remapped = setupWide({ tabKeys: ['a', 'b', 'c', 'd', 'e'] });
+    expect(remapped.tab('wrkr').querySelector('[data-tab-key]')!.textContent).toBe('B');
+    cleanup();
+    const off = setupWide({ tabKeys: [] });
+    expect(off.tab('wrkr').querySelector('[data-tab-key]')).toBeNull();
+  });
+
+  it('the phone tab bar keeps its short labels and no key hints', () => {
+    const { tab, q } = setupWide({ wide: false });
+    expect(q('[data-tab-bar]')!.getAttribute('data-rail')).toBe('false');
+    expect(tab('wrkr').textContent).toBe('WRKR');
+    expect(q('[data-tab-key]')).toBeNull();
+  });
+
+  it('each column keeps its own scroll position', () => {
+    const { panel, tab, shell } = setupWide();
+    panel('build').scrollTop = 120;
+    panel('nest').scrollTop = 40;
+    fireEvent.click(tab('wrkr'));
+    expect(shell.scrollOf('build')).toBe(120);
+    expect(shell.scrollOf('nest')).toBe(40);
+  });
+});

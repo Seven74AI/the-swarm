@@ -1,6 +1,7 @@
 // Installs the signals integration: a component that reads `selectX.value` re-renders when that
 // slice changes, and only then (ADR 0004). Keep this import in the root of the Preact tree.
 import '@preact/signals';
+import type { ReadonlySignal } from '@preact/signals-core';
 import { Shell, type LegacyUi } from './shell/Shell';
 import type { TabShell } from './shell/tabShell';
 import type { SheetController } from './shell/SheetController';
@@ -33,6 +34,7 @@ export function App({
   onContinue,
   overlays,
   toasts,
+  tabKeys,
 }: {
   legacy: LegacyUi;
   shell: TabShell;
@@ -42,10 +44,12 @@ export function App({
   overlays?: OverlayController;
   /** One-line toasts, drawn above the primary zone (Story 1.28 first uses them). */
   toasts?: Toasts;
+  /** The rail's key hints on desktop (Story 1.29). */
+  tabKeys?: ReadonlySignal<readonly string[]>;
 }) {
   return (
     <>
-      <Shell shell={shell} legacy={legacy} onContinue={onContinue} />
+      <Shell shell={shell} legacy={legacy} onContinue={onContinue} tabKeys={tabKeys} />
       {toasts && <ToastHost toasts={toasts} />}
       {sheets && <SheetHost sheets={sheets} held={overlays?.held} />}
       {overlays && <OverlayHost overlays={overlays} />}

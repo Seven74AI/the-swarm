@@ -521,7 +521,20 @@ export function bootstrap(): {
 
   // The tab shell (Story 1.15): tabs revealed by phase, `•` from what became affordable.
   // A latched goal (Story 1.19): `•` on NEST and CONTINUE as its primary action.
-  const shell = createTabShell({ phase: selectPhase, affordable: selectAffordableKeys, goalMet: selectGoalMet });
+  // Desktop (Story 1.29): from 1024 px the shell lays NEST and the active tab out as columns.
+  const shell = createTabShell({
+    phase: selectPhase,
+    affordable: selectAffordableKeys,
+    goalMet: selectGoalMet,
+    wide: platform.viewport.wide,
+  });
+  // The rail's key hints: the keys bound to tabs 1–5, none while shortcuts are off.
+  const tabKeys = computed<readonly string[]>(() => {
+    const s = platform.settings.settings.value;
+    if (!s.keyboardShortcuts) return [];
+    const k = s.keyBindings;
+    return [k.tab1, k.tab2, k.tab3, k.tab4, k.tab5];
+  });
   // FRONT → WAR (Story 1.25): the enemy on the card and the battle replay, shared by the
   // enemy card and FIGHT; the summary opens at battle priority when the replay ends.
   const war = createWarSession({
@@ -601,7 +614,18 @@ export function bootstrap(): {
   if (app) {
     // The Preact root hosts the legacy UIRoot (Story 1.7). render() mounts it synchronously,
     // so the panels exist before the phase's panels are revealed below.
-    render(<App legacy={ui} shell={shell} sheets={sheets} overlays={overlays} toasts={toasts} onContinue={actions.continuePhase} />, app);
+    render(
+      <App
+        legacy={ui}
+        shell={shell}
+        sheets={sheets}
+        overlays={overlays}
+        toasts={toasts}
+        onContinue={actions.continuePhase}
+        tabKeys={tabKeys}
+      />,
+      app,
+    );
   }
 
   // Start onboarding tutorial for new players (persisted via localStorage)

@@ -29,6 +29,15 @@ export interface TabShell {
   readonly dots: ReadonlySignal<ReadonlySet<TabId>>;
   /** The phase goal is latched: NEST's primary action is CONTINUE (Story 1.19). */
   readonly goalMet: ReadonlySignal<boolean>;
+  /**
+   * Desktop columns (Story 1.29, UX-DR6): a wide viewport once there is more
+   * than NEST. NEST stays in column 1 and `columnTab` fills columns 2–3.
+   */
+  readonly columns: ReadonlySignal<boolean>;
+  /** The tab in columns 2–3: the last tab picked other than NEST (BUILD on first visit). */
+  readonly columnTab: ReadonlySignal<TabId | null>;
+  /** The tabs on screen, in bar order: the active one, or NEST and `columnTab` in columns. */
+  readonly visible: ReadonlySignal<readonly TabId[]>;
   /** Open a tab. Tapping the open tab returns 'top': the caller scrolls it to the top. */
   select(tab: TabId): 'switched' | 'top' | 'locked';
   selectSegment(segment: SegmentId): void;
@@ -44,15 +53,35 @@ export interface TabShellDeps {
   affordable: ReadonlySignal<string>;
   /** `selectGoalMet`: the phase goal has latched (Story 1.19). Default: never. */
   goalMet?: ReadonlySignal<boolean>;
+  /** `platform.viewport.wide`: the viewport is at least 1024 px wide (Story 1.29). Default: never. */
+  wide?: ReadonlySignal<boolean>;
 }
 
-export function createTabShell({ phase: rawPhase, affordable, goalMet: rawGoalMet }: TabShellDeps): TabShell {
+/** Columns 2–3 open on BUILD the first time (UX-DR6). */
+const FIRST_COLUMN_TAB: TabId = 'build';
+
+export function createTabShell({ phase: rawPhase, affordable, goalMet: rawGoalMet, wide }: TabShellDeps): TabShell {
   const goalMet = computed(() => rawGoalMet?.value ?? false);
   const phase = computed(() => rawPhase.value as Phase);
   const tabs = computed(() => tabsForPhase(phase.value));
   const showBar = computed(() => showsTabBar(phase.value));
   const chosen = signal<TabId>('nest');
   const active = computed<TabId>(() => (tabs.value.includes(chosen.value) ? chosen.value : 'nest'));
+
+  // Desktop columns: NEST in column 1, the last other tab picked in columns 2–3.
+  const columns = computed(() => (wide?.value ?? false) && showBar.value);
+  const chosenColumn = signal<TabId>(FIRST_COLUMN_TAB);
+  const columnTab = computed<TabId | null>(() => {
+    const others: readonly TabId[] = tabs.value.filter((t) => t !== 'nest');
+    if (others.includes(chosenColumn.value)) return chosenColumn.value;
+    if (others.includes(FIRST_COLUMN_TAB)) return FIRST_COLUMN_TAB;
+    return others[0] ?? null;
+  });
+  const visible = computed<readonly TabId[]>(() => {
+    const col = columnTab.value;
+    if (!columns.value || col === null) return [active.value];
+    return ['nest', col];
+  });
 
   const segments = computed(() => segmentsForPhase('front', phase.value));
   const chosenSegment = signal<SegmentId | null>(null);
@@ -68,7 +97,7 @@ export function createTabShell({ phase: rawPhase, affordable, goalMet: rawGoalMe
   // A met goal puts `•` on NEST while another tab is open (Story 1.19, UX-DR14).
   const dots = computed<ReadonlySet<TabId>>(() => {
     const base = affordDots.value;
-    if (!goalMet.value || active.value === 'nest' || base.has('nest')) return base;
+    if (!goalMet.value || visible.value.includes('nest') || base.has('nest')) return base;
     return new Set([...base, 'nest']);
   });
 
@@ -99,11 +128,11 @@ export function createTabShell({ phase: rawPhase, affordable, goalMet: rawGoalMe
   let previous = untracked(keysByTab);
   const disposeDots = effect(() => {
     const current = keysByTab();
-    const open = active.value;
+    const open = visible.value;
     untracked(() => {
       const next = new Set(affordDots.value);
       for (const [tab, keys] of current) {
-        if (tab === open) continue;
+        if (open.includes(tab)) continue;
         const before = previous.get(tab);
         for (const k of keys) {
           if (!before?.has(k)) {
@@ -112,7 +141,7 @@ export function createTabShell({ phase: rawPhase, affordable, goalMet: rawGoalMe
           }
         }
       }
-      next.delete(open);
+      for (const tab of open) next.delete(tab);
       previous = current;
       const was = affordDots.value;
       if (next.size !== was.size || [...next].some((t) => !was.has(t))) affordDots.value = next;
@@ -127,10 +156,14 @@ export function createTabShell({ phase: rawPhase, affordable, goalMet: rawGoalMe
     segment,
     dots,
     goalMet,
+    columns,
+    columnTab,
+    visible,
     select(tab) {
       if (!tabs.peek().includes(tab)) return 'locked';
       if (active.peek() === tab) return 'top';
       chosen.value = tab;
+      if (tab !== 'nest') chosenColumn.value = tab;
       return 'switched';
     },
     selectSegment(s) {

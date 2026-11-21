@@ -26,6 +26,7 @@ describe('createWebPlatform (Story 1.10)', () => {
     expect(p.capabilities.vibrate).toBe(false);
     expect(p.settings.settings.value.haptics).toBe(false);
     expect(() => p.haptics.play('double')).not.toThrow();
+    expect(p.viewport.wide.value).toBe(false);
   });
 
   it('survives storage that throws on access', () => {
