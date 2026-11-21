@@ -1,8 +1,12 @@
 /**
- * OnboardingManager unit tests — sequence progression, localStorage persistence.
+ * OnboardingManager unit tests — sequence progression, the intro flag (platform/, Story 2.2).
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { OnboardingManager } from '../../src/ui/OnboardingManager';
+import { createIntroFlag } from '../../src/platform/storage/introFlag';
+
+const flag = () => createIntroFlag(localStorage);
+const manager = (hasSave = false) => new OnboardingManager({ flag: flag(), hasSave });
 
 describe('OnboardingManager', () => {
   beforeEach(() => {
@@ -33,23 +37,23 @@ describe('OnboardingManager', () => {
 
   describe('isCompleted', () => {
     it('returns false when no onboarding key exists', () => {
-      expect(OnboardingManager.isCompleted()).toBe(false);
+      expect(manager().isCompleted()).toBe(false);
     });
 
     it('returns false when onboarding key has wrong value', () => {
       localStorage.setItem('the_swarm_onboarding', 'nope');
-      expect(OnboardingManager.isCompleted()).toBe(false);
+      expect(manager().isCompleted()).toBe(false);
     });
 
     it('returns true when onboarding is complete', () => {
       localStorage.setItem('the_swarm_onboarding', 'done');
-      expect(OnboardingManager.isCompleted()).toBe(true);
+      expect(manager().isCompleted()).toBe(true);
     });
   });
 
   describe('start', () => {
     it('shows the first tooltip when onboarding not complete', () => {
-      const mgr = new OnboardingManager();
+      const mgr = manager();
       mgr.start();
 
       const overlay = document.querySelector('.onboarding-overlay');
@@ -60,15 +64,14 @@ describe('OnboardingManager', () => {
 
     it('does not show tooltip when onboarding is complete', () => {
       localStorage.setItem('the_swarm_onboarding', 'done');
-      const mgr = new OnboardingManager();
+      const mgr = manager();
       mgr.start();
 
       expect(document.querySelector('.onboarding-overlay')).toBeNull();
     });
 
     it('does not show tooltip when a save already exists (returning player)', () => {
-      localStorage.setItem('the_swarm_save', JSON.stringify({ version: 2 }));
-      const mgr = new OnboardingManager();
+      const mgr = manager(true);
       mgr.start();
 
       expect(document.querySelector('.onboarding-overlay')).toBeNull();
@@ -78,15 +81,15 @@ describe('OnboardingManager', () => {
   describe('reset', () => {
     it('clears the onboarding localStorage key', () => {
       localStorage.setItem('the_swarm_onboarding', 'done');
-      OnboardingManager.reset();
+      manager().reset();
       expect(localStorage.getItem('the_swarm_onboarding')).toBeNull();
     });
 
     it('allows onboarding to start again after reset', () => {
       localStorage.setItem('the_swarm_onboarding', 'done');
-      OnboardingManager.reset();
+      manager().reset();
 
-      const mgr = new OnboardingManager();
+      const mgr = manager();
       mgr.start();
 
       expect(document.querySelector('.onboarding-overlay')).not.toBeNull();
@@ -95,7 +98,7 @@ describe('OnboardingManager', () => {
 
   describe('sequential progression', () => {
     it('shows first tooltip text on first start call', () => {
-      const mgr = new OnboardingManager();
+      const mgr = manager();
       mgr.start();
 
       const text = document.querySelector('.onboarding-tooltip-text');
@@ -106,10 +109,10 @@ describe('OnboardingManager', () => {
       // Use fake timers to skip the 300ms delay between steps
       vi.useFakeTimers();
 
-      const mgr = new OnboardingManager();
+      const mgr = manager();
       mgr.start();
 
-      expect(OnboardingManager.isCompleted()).toBe(false);
+      expect(manager().isCompleted()).toBe(false);
 
       // Dismiss all 3 steps
       for (let i = 0; i < 3; i++) {
@@ -121,7 +124,7 @@ describe('OnboardingManager', () => {
         }
       }
 
-      expect(OnboardingManager.isCompleted()).toBe(true);
+      expect(manager().isCompleted()).toBe(true);
 
       vi.useRealTimers();
     });

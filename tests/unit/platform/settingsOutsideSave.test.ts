@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { EventBus } from '../../../src/engine/EventBus';
 import { SaveManager } from '../../../src/persistence/SaveManager';
+import { createLocalSaveStore } from '../../../src/platform/storage/SaveStore';
 import { SETTINGS_KEY, createSettingsStore } from '../../../src/platform/settings';
 import { createInitialState, type GameState } from '../../../src/state/GameState';
 import { testActions } from '../helpers/actions';
@@ -33,7 +34,7 @@ describe('settings live outside the game save (Story 1.10, D4)', () => {
 
   it('are not part of a save', () => {
     changedSettings();
-    new SaveManager().save(createInitialState(), 0, true);
+    new SaveManager(createLocalSaveStore(localStorage)).save(createInitialState(), 0, true);
     const raw = localStorage.getItem('the_swarm_save') ?? '';
     expect(raw).not.toBe('');
     expect(raw).not.toContain(SETTINGS_KEY);
@@ -58,7 +59,7 @@ describe('settings live outside the game save (Story 1.10, D4)', () => {
   it('survive loading or deleting a save', () => {
     const store = changedSettings();
     const raw = localStorage.getItem(SETTINGS_KEY);
-    const mgr = new SaveManager();
+    const mgr = new SaveManager(createLocalSaveStore(localStorage));
     mgr.save(prestigeReady(), 0, true);
     expect(mgr.load()).not.toBeNull();
     mgr.deleteSave();

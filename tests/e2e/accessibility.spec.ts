@@ -180,6 +180,38 @@ test.describe('live regions', () => {
     await expect(page.locator('[data-strip-cell="food"] [data-delta][data-trend="down"]')).toContainText('−');
   });
 
+  test('the unreadable-save sheet passes axe, takes focus and reads no decoration (Story 2.2)', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('the_swarm_save', '{"version": 19, "gameState": {');
+      localStorage.setItem('the_swarm_onboarding', 'done');
+    });
+    await page.goto('/');
+    const dialog = page.getByRole('dialog', { name: "THIS SAVE COULDN'T BE READ." });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('[data-sheet-headline]')).toBeFocused();
+    expect(await axe(page)).toEqual([]);
+    expect((await spokenTree(page)).split('\n').filter((l) => DECORATION.test(l))).toEqual([]);
+  });
+
+  test('the SAVE FAILED marker and its sheet pass axe and read no decoration (Story 2.2)', async ({ page }) => {
+    await seed(page, COMBAT);
+    await page.evaluate(() => {
+      const set = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (k: string, v: string) {
+        if (k.startsWith('the_swarm_save')) throw new DOMException('full', 'QuotaExceededError');
+        return set.call(this, k, v);
+      };
+    });
+    await page.locator('#click-egg').click();
+    const marker = page.getByRole('button', { name: 'SAVE FAILED' });
+    await expect(marker).toBeVisible();
+    expect(await axe(page)).toEqual([]);
+    await marker.click();
+    await expect(page.locator('[data-save-failed-sheet]')).toBeVisible();
+    expect(await axe(page)).toEqual([]);
+    expect((await spokenTree(page)).split('\n').filter((l) => DECORATION.test(l))).toEqual([]);
+  });
+
   test('a failed save is toasted in a status region and logged', async ({ page }) => {
     await seed(page, COMBAT);
     await page.evaluate(() => {

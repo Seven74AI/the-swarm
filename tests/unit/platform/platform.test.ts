@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createWebPlatform } from '../../../src/platform';
 import { SETTINGS_KEY } from '../../../src/platform/settings';
+import { SAVE_KEYS } from '../../../src/platform/storage/SaveStore';
 
 describe('createWebPlatform (Story 1.10)', () => {
   it('builds capabilities, settings and haptics from one environment', () => {
@@ -9,7 +10,11 @@ describe('createWebPlatform (Story 1.10)', () => {
     const p = createWebPlatform({
       navigator: { vibrate },
       matchMedia: () => ({ matches: false }),
-      localStorage: { getItem: (k) => data[k] ?? null, setItem: (k, v) => void (data[k] = v) },
+      localStorage: {
+        getItem: (k) => data[k] ?? null,
+        setItem: (k, v) => void (data[k] = v),
+        removeItem: (k) => void delete data[k],
+      },
     });
     expect(p.capabilities.vibrate).toBe(true);
     expect(p.settings.settings.value.haptics).toBe(true);
@@ -19,6 +24,17 @@ describe('createWebPlatform (Story 1.10)', () => {
     p.haptics.play('heavy');
     expect(vibrate).toHaveBeenCalledTimes(1);
     expect(data[SETTINGS_KEY]).toBeDefined();
+  });
+
+  it('keeps the save and the intro flag in the same storage (Story 2.2)', () => {
+    const data: Record<string, string> = {};
+    const p = createWebPlatform({
+      localStorage: { getItem: (k) => data[k] ?? null, setItem: (k, v) => void (data[k] = v), removeItem: (k) => void delete data[k] },
+    });
+    p.saves.write('text');
+    expect(data[SAVE_KEYS.primary]).toBe('text');
+    p.introFlag.markDone();
+    expect(p.introFlag.done()).toBe(true);
   });
 
   it('boots on an environment with no browser APIs at all', () => {
@@ -36,5 +52,8 @@ describe('createWebPlatform (Story 1.10)', () => {
       },
     };
     expect(() => createWebPlatform(env)).not.toThrow();
+    const p = createWebPlatform(env);
+    expect(p.saves.load(() => 1).status).toBe('empty');
+    expect(() => p.saves.write('x')).toThrow();
   });
 });
