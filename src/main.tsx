@@ -23,7 +23,9 @@ import {
 } from './systems/SpaceshipSystem';
 import { tickAutoProduction } from './engine/AutoProductionLoop';
 import { getPrestigeBonuses } from './systems/PrestigeBonusSystem';
+import { render } from 'preact';
 import { UIRoot } from './ui/UIRoot';
+import { App } from './ui/App';
 import { AudioSystem } from './ui/AudioSystem';
 import { SaveManager } from './persistence/SaveManager';
 import type { OfflineLoadInfo } from './persistence/SaveManager';
@@ -371,7 +373,9 @@ export function bootstrap(): {
     loop,
   });
   if (app) {
-    ui.mount(app);
+    // The Preact root hosts the legacy UIRoot (Story 1.7). render() mounts it synchronously,
+    // so the panels exist before the phase's panels are revealed below.
+    render(<App legacy={ui} />, app);
   }
 
   // Start onboarding tutorial for new players (persisted via localStorage)
