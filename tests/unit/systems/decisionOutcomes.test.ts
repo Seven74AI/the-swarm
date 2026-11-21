@@ -4,6 +4,7 @@ import { createInitialState, type GameState } from '../../../src/state/GameState
 import { Phase, PHASE_ORDER } from '../../../src/phases/phases';
 import { DECISIONS, type DecisionDef } from '../../../src/data/content/decisions';
 import { decisionBalance } from '../../../src/data/balance/decisions';
+import { combatBalance } from '../../../src/data/balance/combat';
 import { applyChoice, canChoose, type DecisionChoice } from '../../../src/systems/DecisionSystem';
 
 /**
@@ -153,6 +154,18 @@ describe('decision outcomes on random states (Story 4.5)', () => {
       }),
       { seed: SEED, numRuns: RUNS },
     );
+  });
+
+  it('no outcome mints workers: soldiers sent back to work return at most the workers training them took (Story 4.4)', () => {
+    for (const def of DECISIONS) {
+      for (const c of def.choices) {
+        const all = [...c.effects, ...(c.risk?.effects ?? [])];
+        const net = (stock: string) => all.reduce((a, e) => a + (e.kind === 'add' && e.stock === stock ? e.amount : 0), 0);
+        const soldiersLost = -Math.min(0, net('soldiers'));
+        if (soldiersLost === 0) continue;
+        expect(net('workers'), `${def.id}.${c.id}`).toBeLessThanOrEqual(soldiersLost * combatBalance.army.workersPerSoldier);
+      }
+    }
   });
 
   it('a worker loss takes free workers first, then workers off their roles', () => {
