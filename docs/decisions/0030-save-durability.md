@@ -1,4 +1,4 @@
-# 0029. Save durability: persistent storage and the home-screen hint
+# 0030. Save durability: persistent storage and the home-screen hint
 
 - **Status:** accepted (2026-11-21)
 - **Source:** Story 2.12 (#278) · AR6 · arch D4 (Durability) · ADR 0007, 0026
