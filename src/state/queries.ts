@@ -11,8 +11,6 @@
  */
 export { canBuild, getBuildCost, getEffects, type BuildingType } from '../systems/BuildingSystem';
 export {
-  EGG_HATCH_TIME,
-  LARVA_MATURE_TIME,
   computeResourceRates,
   eggsPerTap,
   getAssignedWorkers,
@@ -20,9 +18,6 @@ export {
   type WorkerRole,
 } from '../systems/ResourceSystem';
 export {
-  MAX_EQUIPMENT_LEVEL,
-  SOLDIER_COST_FOOD,
-  SOLDIER_TRAIN_TIME,
   getEquipmentUpgradeCost,
   getSoldierDefense,
   getSoldierMaxHp,

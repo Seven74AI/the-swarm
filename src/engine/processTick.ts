@@ -12,6 +12,8 @@ import { tickEntropy } from '../systems/EntropySystem';
 import { tickMissions, resolveMission } from '../systems/SpaceshipSystem';
 import { tickAutoProduction } from './AutoProductionLoop';
 import { rngStream, type RngStream } from '../utils/rng';
+import { MS_PER_SEC } from '../data/constants';
+import { resourceBalance } from '../data/balance/resources';
 
 /**
  * Advance the simulation by one step of `dtSec` (Story 2.5, AR4): the live
@@ -54,7 +56,7 @@ export function processTick(
     const pAssigned = workingState.workersAssigned;
     const pGatherCount = pAssigned.gather;
     const pUnassignedCount = pWorkers - pGatherCount - pAssigned.tend - pAssigned.dig - pAssigned.guard;
-    const pBaseFoodProduced = pGatherCount * 2 + Math.max(0, pUnassignedCount) * 1;
+    const pBaseFoodProduced = pGatherCount * resourceBalance.gatherFoodPerSec + Math.max(0, pUnassignedCount) * resourceBalance.idleFoodPerSec;
     const pTerritoryFood = Math.floor(pWorkers * (bonuses.food ?? 0));
     const pGrossFoodProduced = (pBaseFoodProduced + pTerritoryFood) * dtSec;
     newState = {
@@ -170,7 +172,7 @@ export function processTick(
     rng: rng.state,
     stats: {
       ...newState.stats,
-      playTimeMs: newState.stats.playTimeMs + (dtSec * 1000),
+      playTimeMs: newState.stats.playTimeMs + (dtSec * MS_PER_SEC),
     },
   };
 

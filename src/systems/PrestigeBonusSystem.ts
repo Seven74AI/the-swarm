@@ -1,17 +1,12 @@
 import type { GameState } from '../state/GameState';
 import { PRESTIGE_UPGRADES, type PrestigeUpgradeEffect } from '../data/prestigeTree';
+import { prestigeBonusBalance } from '../data/balance/prestigeBonuses';
 
 /**
  * Per-purchase bonus values for production upgrades.
  * Used in additive stacking: 1 + bonus * purchasedCount.
  */
-export const PRODUCTION_BONUS_VALUES: Record<string, number> = {
-  egg_laying: 0.25,
-  hatching: 0.25,
-  food: 0.25,
-  soldier_training: 0.25,
-  worker_efficiency: 0.10,
-};
+export const PRODUCTION_BONUS_VALUES: Readonly<Record<string, number>> = prestigeBonusBalance;
 
 /**
  * The computed set of active prestige bonuses for the current game state.

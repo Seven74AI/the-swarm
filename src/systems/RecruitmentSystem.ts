@@ -1,17 +1,18 @@
 import type { GameState } from '../state/GameState';
 import { getEffects } from './BuildingSystem';
+import { recruitmentBalance } from '../data/balance/recruitment';
 
 /**
  * RecruitmentSystem handles Phase 3 Expansion scout/warrior recruitment.
  * Scouts and warriors are recruited from workers (not independent population).
  * Requires barracks building.
  */
-/** Food to recruit one scout / warrior. */
-export const SCOUT_FOOD_COST = 50;
-export const WARRIOR_FOOD_COST = 100;
+/** Food to recruit one scout / warrior (`data/balance/recruitment.ts`). */
+export const SCOUT_FOOD_COST = recruitmentBalance.scoutFoodCost;
+export const WARRIOR_FOOD_COST = recruitmentBalance.warriorFoodCost;
 /** Barracks level that unlocks scouts / warriors. */
-export const SCOUT_BARRACKS_LEVEL = 1;
-export const WARRIOR_BARRACKS_LEVEL = 2;
+export const SCOUT_BARRACKS_LEVEL = recruitmentBalance.scoutBarracksLevel;
+export const WARRIOR_BARRACKS_LEVEL = recruitmentBalance.warriorBarracksLevel;
 
 export function getMaxScouts(state: GameState): number {
   const effects = getEffects('barracks', state.buildings.barracks.level);

@@ -18,10 +18,9 @@ import {
   selectSoldierSpeed,
   selectSoldierStrength,
 } from '../../state/selectors';
+import { soldierBalance } from '../../data/balance/soldiers';
 import {
-  MAX_EQUIPMENT_LEVEL,
   MUTATIONS,
-  SOLDIER_COST_FOOD,
   assessMatchup,
   getEnemyDefs,
   getEquipmentUpgradeCost,
@@ -133,7 +132,7 @@ function TrainButton({ actions }: { actions: WarActions }) {
   const free = selectFreeWorkers.value;
   const food = selectResources.value.food;
   const reason =
-    free < 1 ? 'no free workers' : food < SOLDIER_COST_FOOD ? `needs ${formatFull(SOLDIER_COST_FOOD - food)} more food` : false;
+    free < 1 ? 'no free workers' : food < soldierBalance.costFood ? `needs ${formatFull(soldierBalance.costFood - food)} more food` : false;
   return (
     <Button
       verb="TRAIN"
@@ -141,7 +140,7 @@ function TrainButton({ actions }: { actions: WarActions }) {
       repeat
       onPress={actions.trainSoldier}
       disabled={reason}
-      cost={`${formatFull(SOLDIER_COST_FOOD)} FOOD · 1 WORKER`}
+      cost={`${formatFull(soldierBalance.costFood)} FOOD · 1 WORKER`}
       data-action="train-soldier"
     />
   );
@@ -156,7 +155,7 @@ function EquipmentCard({ item, actions }: { item: (typeof EQUIPMENT)[number]; ac
   const level = selectEquipment.value[item.id];
   const built = (selectBuildings.value[item.building]?.level ?? 0) >= 1;
   const have = selectCombatResources.value[item.pool];
-  const max = level >= MAX_EQUIPMENT_LEVEL;
+  const max = level >= soldierBalance.maxEquipmentLevel;
   const cost = max ? 0 : getEquipmentUpgradeCost(level);
   const affordable = !max && built && have >= cost;
   const reason = max

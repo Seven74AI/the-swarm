@@ -1,6 +1,7 @@
 import type { EventSink } from '../engine/events';
 import type { GameState, OpenDecision } from '../state/GameState';
 import { decisionBalance } from '../data/balance/decisions';
+import { PERCENT } from '../data/constants';
 import {
   DECISIONS,
   getDecision,
@@ -139,7 +140,7 @@ function applyEffect(state: GameState, e: DecisionEffect): GameState {
     }
     case 'lose_percent': {
       const have = state.resources[e.resource];
-      const v = Math.max(0, have - Math.floor((have * e.percent) / 100));
+      const v = Math.max(0, have - Math.floor((have * e.percent) / PERCENT));
       return { ...state, resources: { ...state.resources, [e.resource]: Math.floor(v) } };
     }
     case 'reveal_tiles':

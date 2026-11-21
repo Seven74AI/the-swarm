@@ -194,8 +194,8 @@ test.describe('Worker Management', () => {
     await openTab(page, 'wrkr');
     await expect(page.locator('#worker-assignment')).toBeVisible({ timeout: 5000 });
 
-    // With 5x pacing nerf (EGG_HATCH_TIME=50, LARVA_MATURE_TIME=50),
-    // we need more time for eggs to hatch AND larvae to mature.
+    // Hatching and maturing take resourceBalance.hatchMs and matureMs on average, so
+    // eggs need time to hatch AND larvae to mature.
     // Use more eggs + longer wait.
     const tendRow = page.locator('[data-role="tend"]');
     await tendRow.locator('.role-controls button').filter({ hasText: '+' }).click();

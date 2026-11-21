@@ -1,3 +1,4 @@
+import { soldierBalance } from '../../src/data/balance/soldiers';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Phase, PHASE_ORDER } from '../../src/phases/phases';
 import { COLONY_TO_COMBAT, TRANSITIONS } from '../../src/phases/transitions';
@@ -119,10 +120,10 @@ describe('createInitialState — combat fields', () => {
 
   it('initializes soldierStats with correct defaults', () => {
     const state = createInitialState();
-    expect(state.soldierStats.strength).toBe(1.0);
-    expect(state.soldierStats.defense).toBe(1.0);
-    expect(state.soldierStats.speed).toBe(5);
-    expect(state.soldierStats.maxHp).toBe(10);
+    expect(state.soldierStats.strength).toBe(soldierBalance.baseStrength);
+    expect(state.soldierStats.defense).toBe(soldierBalance.baseDefense);
+    expect(state.soldierStats.speed).toBe(soldierBalance.baseSpeed);
+    expect(state.soldierStats.maxHp).toBe(soldierBalance.baseMaxHp);
   });
 
   it('initializes equipment to zero upgrade levels', () => {

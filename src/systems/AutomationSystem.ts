@@ -1,4 +1,5 @@
 import type { GameState } from '../state/GameState';
+import { automationBalance as A } from '../data/balance/automation';
 
 /**
  * Research types for the automation tree (GM-3).
@@ -60,36 +61,36 @@ export const RESEARCHES: Record<ResearchType, ResearchDef> = {
   basic_incubation: {
     id: 'basic_incubation',
     name: 'Basic Incubation',
-    cost: { food: 100, workers: 50 },
-    effect: { autoEggRate: 0.5 },
+    cost: { ...A.research.basic_incubation.cost },
+    effect: { autoEggRate: A.research.basic_incubation.eggsPerSec },
     prerequisites: [],
   },
   queens_pheromones: {
     id: 'queens_pheromones',
     name: "Queen's Pheromones",
-    cost: { food: 500, workers: 200 },
-    effect: { autoEggRate: 2, hatchBonus: 10 },
+    cost: { ...A.research.queens_pheromones.cost },
+    effect: { autoEggRate: A.research.queens_pheromones.eggsPerSec, hatchBonus: A.research.queens_pheromones.hatchBonusPercent },
     prerequisites: ['basic_incubation'],
   },
   thermal_regulation: {
     id: 'thermal_regulation',
     name: 'Thermal Regulation',
-    cost: { stone: 200, food: 1000 },
-    effect: { autoEggRate: 5, unlocksBuilding: 'nursery' },
+    cost: { ...A.research.thermal_regulation.cost },
+    effect: { autoEggRate: A.research.thermal_regulation.eggsPerSec, unlocksBuilding: 'nursery' },
     prerequisites: ['queens_pheromones'],
   },
   genetic_optimization: {
     id: 'genetic_optimization',
     name: 'Genetic Optimization',
-    cost: { voidCrystals: 5, workers: 50 },
-    effect: { multiplier: 1.5 },
+    cost: { ...A.research.genetic_optimization.cost },
+    effect: { multiplier: A.research.genetic_optimization.multiplier },
     prerequisites: ['thermal_regulation'],
   },
   cloning_vats: {
     id: 'cloning_vats',
     name: 'Cloning Vats',
-    cost: { antimatter: 2, workers: 100 },
-    effect: { multiplier: 2, unlocksBuilding: 'hatchery' },
+    cost: { ...A.research.cloning_vats.cost },
+    effect: { multiplier: A.research.cloning_vats.multiplier, unlocksBuilding: 'hatchery' },
     prerequisites: ['genetic_optimization'],
   },
 };
@@ -99,20 +100,20 @@ export const AUTOMATION_BUILDINGS: Record<AutomationBuildingType, AutomationBuil
   nursery: {
     id: 'nursery',
     name: 'Nursery',
-    maxLevel: 10,
-    baseCost: { wood: 20, food: 50 },
+    maxLevel: A.buildings.nursery.maxLevel,
+    baseCost: { ...A.buildings.nursery.baseCost },
   },
   hatchery: {
     id: 'hatchery',
     name: 'Hatchery',
-    maxLevel: 5,
-    baseCost: { stone: 100, voidCrystals: 2 },
+    maxLevel: A.buildings.hatchery.maxLevel,
+    baseCost: { ...A.buildings.hatchery.baseCost },
   },
   queens_chamber: {
     id: 'queens_chamber',
     name: "Queen's Chamber",
-    maxLevel: 1,
-    baseCost: { nectar: 50, stone: 200 },
+    maxLevel: A.buildings.queens_chamber.maxLevel,
+    baseCost: { ...A.buildings.queens_chamber.baseCost },
   },
 };
 
@@ -275,11 +276,11 @@ export function getBuildingEffect(
 ): { autoEggRate?: number; multiplier?: number; efficiency?: number } {
   switch (building) {
     case 'nursery':
-      return { autoEggRate: level * 1 }; // +1 egg/s per level
+      return { autoEggRate: level * A.nurseryEggsPerSecPerLevel };
     case 'hatchery':
-      return { multiplier: 1 + level * 0.2 }; // ×1.2 per level
+      return { multiplier: 1 + level * A.hatcheryMultiplierPerLevel };
     case 'queens_chamber':
-      return { efficiency: level * 0.1 }; // +10% efficiency
+      return { efficiency: level * A.queensChamberEfficiencyPerLevel };
   }
 }
 
@@ -309,7 +310,7 @@ export function getAutoEggRate(state: GameState): number {
   // ── Flat rate from buildings (Nursery) ──
   const nurseryLevel = state.autoProduction.buildings['nursery'] ?? 0;
   if (nurseryLevel > 0) {
-    flatRate += nurseryLevel * 1;
+    flatRate += nurseryLevel * A.nurseryEggsPerSecPerLevel;
   }
 
   // ── Multiplicative bonuses from researches ──
@@ -328,14 +329,14 @@ export function getAutoEggRate(state: GameState): number {
   const hatcheryLevel = state.autoProduction.buildings['hatchery'] ?? 0;
   let buildingMult = 1;
   if (hatcheryLevel > 0) {
-    buildingMult = 1 + hatcheryLevel * 0.2;
+    buildingMult = 1 + hatcheryLevel * A.hatcheryMultiplierPerLevel;
   }
 
   // ── Efficiency bonus (Queen's Chamber) ──
   const queenLevel = state.autoProduction.buildings['queens_chamber'] ?? 0;
   let efficiencyMult = 1;
   if (queenLevel > 0) {
-    efficiencyMult = 1 + queenLevel * 0.1;
+    efficiencyMult = 1 + queenLevel * A.queensChamberEfficiencyPerLevel;
   }
 
   const totalMult = researchMult * buildingMult * efficiencyMult;

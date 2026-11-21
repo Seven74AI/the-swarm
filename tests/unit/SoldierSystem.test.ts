@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { EventBus } from '../../src/engine/EventBus';
-import { SoldierSystem, SOLDIER_TRAIN_TIME } from '../../src/systems/SoldierSystem';
+import { SoldierSystem } from '../../src/systems/SoldierSystem';
+import { soldierBalance } from '../../src/data/balance/soldiers';
+import { MS_PER_SEC } from '../../src/data/constants';
+
+/** Pipeline size at which about one soldier completes a second. */
+const ONE_PER_SEC = soldierBalance.trainMs / MS_PER_SEC;
 import { createInitialState, type GameState } from '../../src/state/GameState';
 
 /**
@@ -70,9 +75,16 @@ describe('SoldierSystem — pipeline-based', () => {
   });
 
   describe('tick', () => {
-    it('completes training at rate count/SOLDIER_TRAIN_TIME', () => {
-      // 75 in pipeline: about one completes a second; a 2 s step completes some.
-      state.soldierPipeline = { count: 75, progress: 0 };
+    it('over trainMs, about 1 − 1/e of the pipeline trains (durations are ms, Story 3.2)', () => {
+      state.soldierPipeline = { count: 10_000, progress: 0 };
+      state.combatSoldiers = 0;
+      const r = system.tick(state, soldierBalance.trainMs / MS_PER_SEC);
+      expect(r.combatSoldiers / 10_000).toBeCloseTo(1 - Math.exp(-1), 2);
+    });
+
+    it('completes training at rate count / train time', () => {
+      // About one completes a second; a 2 s step completes some.
+      state.soldierPipeline = { count: ONE_PER_SEC, progress: 0 };
       state.combatSoldiers = 0;
       const before = {
         count: state.soldierPipeline.count,
@@ -84,8 +96,8 @@ describe('SoldierSystem — pipeline-based', () => {
     });
 
     it('completes multiple when count is large', () => {
-      // 225 in pipeline, rate = 225/75 = 3/tick with dtSec=1 (5x pacing nerf)
-      state.soldierPipeline = { count: 225, progress: 0 };
+      // About three complete a second.
+      state.soldierPipeline = { count: 3 * ONE_PER_SEC, progress: 0 };
       state.combatSoldiers = 0;
       const before = {
         count: state.soldierPipeline.count,
@@ -162,7 +174,7 @@ describe('SoldierSystem — pipeline-based', () => {
     it('returns unchanged at max equipment level', () => {
       state.buildings.chitin_armory = { level: 1 };
       state.combatResources.chitin = 100;
-      state.equipment.weapon = 5; // MAX_EQUIPMENT_LEVEL
+      state.equipment.weapon = soldierBalance.maxEquipmentLevel;
       const result = system.upgradeWeapon(state);
       expect(result).toBe(state);
     });
@@ -204,7 +216,7 @@ describe('SoldierSystem — pipeline-based', () => {
     it('returns unchanged at max equipment level', () => {
       state.buildings.silk_weaving = { level: 1 };
       state.combatResources.silk = 100;
-      state.equipment.armor = 5; // MAX_EQUIPMENT_LEVEL
+      state.equipment.armor = soldierBalance.maxEquipmentLevel;
       const result = system.upgradeArmor(state);
       expect(result).toBe(state);
     });

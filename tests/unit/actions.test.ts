@@ -13,7 +13,8 @@ import { EventBus } from '../../src/engine/EventBus';
 import { createActions, type Actions } from '../../src/actions';
 import { REFUSAL_REASONS, type ActionResult, type RefusalReason } from '../../src/actions/result';
 import { ResourceSystem } from '../../src/systems/ResourceSystem';
-import { SoldierSystem, MAX_EQUIPMENT_LEVEL } from '../../src/systems/SoldierSystem';
+import { SoldierSystem } from '../../src/systems/SoldierSystem';
+import { soldierBalance } from '../../src/data/balance/soldiers';
 import { BattleSystem } from '../../src/systems/BattleSystem';
 import { TerritorySystem } from '../../src/systems/TerritorySystem';
 import { MAX_ACTIVE_EXPEDITIONS } from '../../src/systems/ExpeditionSystem';
@@ -334,7 +335,7 @@ describe('combat', () => {
     after = expectApplied(actions.upgradeArmor(), after);
     expect(after.equipment.armor).toBeGreaterThan(before.equipment.armor);
 
-    before = given({ ...built, equipment: { weapon: MAX_EQUIPMENT_LEVEL, armor: MAX_EQUIPMENT_LEVEL } });
+    before = given({ ...built, equipment: { weapon: soldierBalance.maxEquipmentLevel, armor: soldierBalance.maxEquipmentLevel } });
     expectRefused(actions.upgradeWeapon(), 'max_level', before);
     expectRefused(actions.upgradeArmor(), 'max_level', before);
   });

@@ -1,6 +1,7 @@
 import type { GameState } from '../state/GameState';
 import type { RoleId } from '../data/content/roles';
 import { nextActionBalance } from '../data/balance/nextAction';
+import { midpoint } from '../utils/math';
 import { computeResourceRates, getAssignedWorkers } from './ResourceSystem';
 import { TerritorySystem } from './TerritorySystem';
 import { isCapacityCritical, isFoodCritical, workersOpen } from './NextAction';
@@ -99,7 +100,7 @@ function fewestToStopLoss(s: GameState, from: MoveSource): number {
   let lo = 1;
   let hi = most;
   while (lo < hi) {
-    const mid = Math.floor((lo + hi) / 2);
+    const mid = midpoint(lo, hi);
     if (netFood(moveWorkers(s, from, 'gather', mid)) >= 0) hi = mid;
     else lo = mid + 1;
   }

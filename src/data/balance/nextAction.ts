@@ -4,8 +4,8 @@
  * pacing pass). Tests import these; they never restate the numbers.
  */
 export const nextActionBalance = {
-  /** Food is critical when the net rate is negative and the stock covers less than this many seconds of upkeep. */
-  foodCriticalSeconds: 60,
+  /** Food is critical when the net rate is negative and the stock covers less than this much upkeep time (was `foodCriticalSeconds: 60`). */
+  foodCriticalMs: 60_000,
   /** Capacity is critical when workers fill at least this percentage of the effective nest capacity. */
   capacityCriticalPercent: 95,
   /** The primary action keeps its target while held and for this long after the last tap. */

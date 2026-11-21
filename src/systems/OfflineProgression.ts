@@ -6,6 +6,8 @@ import {
   OFFLINE_CAP_MAX_MS,
   OFFLINE_EFFICIENCY_BASE_POINTS,
   OFFLINE_EFFICIENCY_MAX_POINTS,
+  PERCENT,
+  TICK_MS,
 } from '../data/constants';
 import { PRESTIGE_UPGRADES, type PrestigeUpgrade } from '../data/prestigeTree';
 import { getProjects } from './ResearchSystem';
@@ -37,8 +39,6 @@ export interface OfflinePlan {
   capped: boolean;
 }
 
-/** The simulated tick length. */
-const TICK_MS = 50;
 
 /**
  * Closed-form resource deltas for the full offline period.
@@ -133,7 +133,7 @@ export function getOfflineEfficiency(state: GameState, upgrades: readonly Presti
   for (const u of upgrades) {
     if (owned.has(u.id)) points += u.offlineEfficiencyPoints ?? 0;
   }
-  return Math.min(points, OFFLINE_EFFICIENCY_MAX_POINTS) / 100;
+  return Math.min(points, OFFLINE_EFFICIENCY_MAX_POINTS) / PERCENT;
 }
 
 /** `ms` of absence, cut to the offline cap (negative and non-finite gaps read as 0). */

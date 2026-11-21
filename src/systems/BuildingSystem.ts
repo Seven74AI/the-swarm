@@ -1,5 +1,7 @@
 import type { GameState } from '../state/GameState';
 import { buildingUpgradeCost, softCapEffectiveness } from '../engine/ProgressionCurve';
+import { buildingBalance as B } from '../data/balance/buildings';
+import { recruitmentBalance } from '../data/balance/recruitment';
 
 export type BuildingType = 'barracks' | 'walls' | 'warehouse' | 'silk_weaving' | 'chitin_armory' | 'venom_lab';
 
@@ -13,14 +15,7 @@ interface Cost {
   venom: number;
 }
 
-const BUILDING_BASE_COSTS: Record<BuildingType, Cost> = {
-  barracks: { food: 100, wood: 50, stone: 0, nectar: 0, chitin: 0, silk: 0, venom: 0 },
-  walls: { food: 0, wood: 0, stone: 200, nectar: 0, chitin: 0, silk: 0, venom: 0 },
-  warehouse: { food: 0, wood: 150, stone: 100, nectar: 0, chitin: 0, silk: 0, venom: 0 },
-  silk_weaving: { food: 0, wood: 40, stone: 0, nectar: 0, chitin: 0, silk: 4, venom: 0 },
-  chitin_armory: { food: 0, wood: 0, stone: 40, nectar: 0, chitin: 4, silk: 0, venom: 0 },
-  venom_lab: { food: 0, wood: 0, stone: 0, nectar: 40, chitin: 0, silk: 0, venom: 2 },
-};
+const BUILDING_BASE_COSTS: Readonly<Record<BuildingType, Readonly<Cost>>> = B.baseCosts;
 
 export function getBuildCost(building: BuildingType, level: number): Cost {
   const base = BUILDING_BASE_COSTS[building];
@@ -35,14 +30,14 @@ export function getBuildCost(building: BuildingType, level: number): Cost {
   };
 
   // Advanced building costs (Lv.5+): combat resources as resource sink
-  if (level >= 5) {
+  if (level >= B.advancedFromLevel) {
     if (building === 'barracks') {
-      cost.chitin += buildingUpgradeCost(1, level);
+      cost.chitin += buildingUpgradeCost(B.advancedBaseCost, level);
     } else if (building === 'walls') {
-      cost.silk += buildingUpgradeCost(1, level);
+      cost.silk += buildingUpgradeCost(B.advancedBaseCost, level);
     } else if (building === 'warehouse') {
-      cost.silk += buildingUpgradeCost(1, level);
-      cost.chitin += buildingUpgradeCost(1, level);
+      cost.silk += buildingUpgradeCost(B.advancedBaseCost, level);
+      cost.chitin += buildingUpgradeCost(B.advancedBaseCost, level);
     }
   }
 
@@ -123,13 +118,13 @@ function getRawEffects(
 ): Record<string, number> {
   switch (building) {
     case 'barracks':
-      if (level >= 2) return { scoutsCap: 3, warriorsCap: 2 };
-      if (level >= 1) return { scoutsCap: 2, warriorsCap: 0 };
+      if (level >= recruitmentBalance.warriorBarracksLevel) return { ...B.barracksCaps.warriors };
+      if (level >= recruitmentBalance.scoutBarracksLevel) return { ...B.barracksCaps.scouts };
       return { scoutsCap: 0, warriorsCap: 0 };
     case 'walls':
-      return { defenseBonus: level * 0.05 };
+      return { defenseBonus: level * B.wallsDefensePerLevel };
     case 'warehouse':
-      return { nestCapacity: level * 25 };
+      return { nestCapacity: level * B.warehouseNestCapacityPerLevel };
     case 'silk_weaving':
       return { armorUnlocked: level >= 1 ? 1 : 0 };
     case 'chitin_armory':

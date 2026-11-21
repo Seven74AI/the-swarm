@@ -47,3 +47,8 @@ export function creditWhole(
   const whole = Math.floor(total);
   return { amount: whole, remainder: total - whole };
 }
+
+/** The whole number halfway between two whole numbers, rounded down (binary search). */
+export function midpoint(lo: number, hi: number): number {
+  return Math.floor((lo + hi) / 2);
+}

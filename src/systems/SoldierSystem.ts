@@ -5,10 +5,8 @@ import { upgradeCost } from '../utils/math';
 import { completedShare } from '../utils/decay';
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
 import { getMutationEffects } from './MutationSystem';
-
-export const SOLDIER_COST_FOOD = 5;
-export const SOLDIER_TRAIN_TIME = 75; // 5x pacing nerf (was 15)
-export const MAX_EQUIPMENT_LEVEL = 5;
+import { MS_PER_SEC } from '../data/constants';
+import { soldierBalance as B } from '../data/balance/soldiers';
 
 /**
  * SoldierSystem handles soldier recruitment, training, and equipment upgrades.
@@ -16,7 +14,7 @@ export const MAX_EQUIPMENT_LEVEL = 5;
  */
 /** Chitin (weapon) or silk (armour) to raise equipment from `level`. */
 export function getEquipmentUpgradeCost(level: number): number {
-  return upgradeCost(10, 1.2, level);
+  return upgradeCost(B.equipmentUpgrade.baseCost, B.equipmentUpgrade.costMultiplier, level);
 }
 
 export class SoldierSystem {
@@ -28,14 +26,14 @@ export class SoldierSystem {
    */
   recruitSoldier(state: GameState): GameState {
     if (state.resources.workers < 1) return state;
-    if (state.resources.food < SOLDIER_COST_FOOD) return state;
+    if (state.resources.food < B.costFood) return state;
 
     const result: GameState = {
       ...state,
       resources: {
         ...state.resources,
         workers: state.resources.workers - 1,
-        food: state.resources.food - SOLDIER_COST_FOOD,
+        food: state.resources.food - B.costFood,
       },
       soldierPipeline: {
         count: state.soldierPipeline.count + 1,
@@ -58,7 +56,7 @@ export class SoldierSystem {
 
     const prestigeBonuses = getPrestigeBonuses(state);
     // Exact flow over the step (Story 2.5): one long step trains what many short ones do.
-    const trainK = prestigeBonuses.soldierTraining / SOLDIER_TRAIN_TIME;
+    const trainK = prestigeBonuses.soldierTraining * (MS_PER_SEC / B.trainMs);
     pipe.progress += pipe.count * completedShare(trainK, dtSec);
     const completed = Math.floor(pipe.progress);
     pipe.progress -= completed;
@@ -86,7 +84,7 @@ export class SoldierSystem {
 
   upgradeWeapon(state: GameState): GameState {
     const weapon = state.equipment.weapon;
-    if (weapon >= MAX_EQUIPMENT_LEVEL) return state;
+    if (weapon >= B.maxEquipmentLevel) return state;
 
     // Gate: requires Chitin Armory
     if ((state.buildings.chitin_armory?.level ?? 0) < 1) return state;
@@ -109,7 +107,7 @@ export class SoldierSystem {
 
   upgradeArmor(state: GameState): GameState {
     const armor = state.equipment.armor;
-    if (armor >= MAX_EQUIPMENT_LEVEL) return state;
+    if (armor >= B.maxEquipmentLevel) return state;
 
     // Gate: requires Silk Weaving
     if ((state.buildings.silk_weaving?.level ?? 0) < 1) return state;
@@ -132,17 +130,17 @@ export class SoldierSystem {
 }
 
 export function getSoldierStrength(state: GameState): number {
-  return 1 + state.equipment.weapon + getMutationEffects(state).strength;
+  return B.baseStrength + state.equipment.weapon * B.strengthPerWeaponLevel + getMutationEffects(state).strength;
 }
 
 export function getSoldierDefense(state: GameState): number {
-  return 1 + state.equipment.armor;
+  return B.baseDefense + state.equipment.armor * B.defensePerArmorLevel;
 }
 
 export function getSoldierSpeed(state: GameState): number {
-  return 5 + getMutationEffects(state).speed;
+  return B.baseSpeed + getMutationEffects(state).speed;
 }
 
 export function getSoldierMaxHp(state: GameState): number {
-  return 10 + state.equipment.armor * 2 + getMutationEffects(state).maxHp;
+  return B.baseMaxHp + state.equipment.armor * B.maxHpPerArmorLevel + getMutationEffects(state).maxHp;
 }

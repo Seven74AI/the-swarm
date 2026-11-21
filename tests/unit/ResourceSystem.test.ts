@@ -1,7 +1,16 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { EventBus } from '../../src/engine/EventBus';
-import { ResourceSystem, EGG_HATCH_TIME, LARVA_MATURE_TIME } from '../../src/systems/ResourceSystem';
+import { ResourceSystem } from '../../src/systems/ResourceSystem';
+import { resourceBalance } from '../../src/data/balance/resources';
+import { MS_PER_SEC, TICK_MS } from '../../src/data/constants';
 import { createInitialState, type GameState } from '../../src/state/GameState';
+
+/**
+ * Enough live ticks for a big pipeline to move some items: 1/10 of the mean
+ * hatch (or mature) time, so it scales with the balance (Story 3.2).
+ */
+const HATCH_TICKS = resourceBalance.hatchMs / TICK_MS / 10;
+const MATURE_TICKS = resourceBalance.matureMs / TICK_MS / 10;
 
 /** Food on hand plus the fraction of a unit carried to the next tick (Story 2.5). */
 const totalFood = (s: GameState) => s.resources.food + s.resourceRemainder.food;
@@ -52,7 +61,7 @@ describe('ResourceSystem', () => {
 
       // Run enough ticks to guarantee at least one hatch
       let result = state;
-      for (let i = 0; i < EGG_HATCH_TIME * 2; i++) {
+      for (let i = 0; i < HATCH_TICKS; i++) {
         result = system.tick(result);
       }
 
@@ -92,13 +101,44 @@ describe('ResourceSystem', () => {
     });
   });
 
+  describe('tick — durations are milliseconds (Story 3.2)', () => {
+    // A rate pipeline is first-order: over its mean time `…Ms`, a share
+    // 1 − e^(−1) of its items completes, at any step length.
+    const MEAN_SHARE = 1 - Math.exp(-1);
+
+    it('over hatchMs, about 1 − 1/e of the egg pipeline hatches', () => {
+      state.resources.eggs = 10_000;
+      state.eggPipeline = { count: 10_000, progress: 0 };
+      state.workersAssigned = { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 };
+      const r = system.tick(state, undefined, resourceBalance.hatchMs / MS_PER_SEC);
+      const hatched = state.eggPipeline.count - r.eggPipeline.count;
+      expect(hatched / state.eggPipeline.count).toBeCloseTo(MEAN_SHARE, 2);
+    });
+
+    it('over matureMs, about 1 − 1/e of the larva pipeline matures', () => {
+      state.resources.larvae = 10_000;
+      state.resources.nestCapacity = 100_000;
+      state.larvaPipeline = { count: 10_000, progress: 0 };
+      const r = system.tick(state, undefined, resourceBalance.matureMs / MS_PER_SEC);
+      const matured = state.larvaPipeline.count - r.larvaPipeline.count;
+      expect(matured / state.larvaPipeline.count).toBeCloseTo(MEAN_SHARE, 2);
+    });
+
+    it('one dig worker adds one room per digMsPerRoom', () => {
+      state.workersAssigned = { gather: 0, tend: 0, dig: 1, guard: 0, researchers: 0 };
+      state.resources.workers = 1;
+      const r = system.tick(state, undefined, (3 * resourceBalance.digMsPerRoom) / MS_PER_SEC);
+      expect(r.resources.nestCapacity - state.resources.nestCapacity).toBe(3);
+    });
+  });
+
   describe('tick — larva pipeline', () => {
     it('matures larvae into workers when pipeline is fed', () => {
       state.resources.larvae = 50;
       state.larvaPipeline = { count: 50, progress: 0 };
 
       let result = state;
-      for (let i = 0; i < LARVA_MATURE_TIME * 2; i++) {
+      for (let i = 0; i < MATURE_TICKS; i++) {
         result = system.tick(result);
       }
 
@@ -214,7 +254,7 @@ describe('ResourceSystem', () => {
       state.resources.larvae = 50;
       state.larvaPipeline = { count: 50, progress: 0 };
       let result = state;
-      for (let i = 0; i < LARVA_MATURE_TIME * 2; i++) {
+      for (let i = 0; i < MATURE_TICKS; i++) {
         result = system.tick(result);
       }
       expect(fired).toBe(true);
@@ -298,7 +338,7 @@ describe('ResourceSystem', () => {
       state.larvaPipeline = { count: 50, progress: 0 };
 
       let result = state;
-      for (let i = 0; i < LARVA_MATURE_TIME * 2; i++) {
+      for (let i = 0; i < MATURE_TICKS; i++) {
         result = system.tick(result);
       }
       // Workers should not increase — at capacity cap
@@ -312,7 +352,7 @@ describe('ResourceSystem', () => {
       state.larvaPipeline = { count: 50, progress: 0 };
 
       let result = state;
-      for (let i = 0; i < LARVA_MATURE_TIME * 2; i++) {
+      for (let i = 0; i < MATURE_TICKS; i++) {
         result = system.tick(result);
       }
       // Workers should increase but not exceed capacity
@@ -340,7 +380,7 @@ describe('ResourceSystem', () => {
       state.larvaPipeline = { count: 50, progress: 0 };
 
       let result = state;
-      for (let i = 0; i < LARVA_MATURE_TIME * 2; i++) {
+      for (let i = 0; i < MATURE_TICKS; i++) {
         result = system.tick(result);
       }
       // Effective capacity = 25 + 25 = 50, so workers can grow beyond 25

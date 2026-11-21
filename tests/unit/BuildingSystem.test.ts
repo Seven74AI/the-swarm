@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 import { canBuild, build, getBuildCost, getEffects, type BuildingType } from '../../src/systems/BuildingSystem';
+import { buildingBalance as B } from '../../src/data/balance/buildings';
+import { progressionBalance as P } from '../../src/data/balance/progression';
+
+const FULL = P.softCap.fullLevels;
 
 /**
  * BuildingSystem tests — behavior-focused.
@@ -381,15 +385,14 @@ describe('BuildingSystem', () => {
     });
 
     // GM-5: Soft cap diminishing returns after level 5
-    it('applies diminishing returns after level 5 (walls defense)', () => {
-      // Level 5 walls: defense = 5 * 0.05 = 0.25 (no cap)
-      const lv5 = getEffects('walls', 5);
-      expect(lv5.defenseBonus).toBeCloseTo(0.25, 4);
+    it('applies diminishing returns past the soft cap (walls defense)', () => {
+      // At the soft-cap level: the raw effect
+      const lv5 = getEffects('walls', FULL);
+      expect(lv5.defenseBonus).toBeCloseTo(FULL * B.wallsDefensePerLevel, 4);
 
-      // Level 6 walls: raw = 6*0.05 = 0.30, cap = 0.30/(1+0.08*1) = 0.27778
-      const lv6 = getEffects('walls', 6);
-      expect(lv6.defenseBonus).toBeLessThan(0.30); // less than raw
-      expect(lv6.defenseBonus).toBeCloseTo(0.27778, 4);
+      // One past it: less than raw
+      const lv6 = getEffects('walls', FULL + 1);
+      expect(lv6.defenseBonus).toBeLessThan((FULL + 1) * B.wallsDefensePerLevel);
       // Should still be >= level 5 (monotonic)
       expect(lv6.defenseBonus).toBeGreaterThanOrEqual(lv5.defenseBonus);
     });

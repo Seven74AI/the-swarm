@@ -3,11 +3,13 @@ import { Phase, PHASE_ORDER } from '../phases/phases';
 import { CRITICAL_PATH, type ItemRef } from '../data/content/criticalPath';
 import { PANEL_PLACEMENT, isUnlocked, type PanelId } from '../data/content/tabs';
 import { nextActionBalance } from '../data/balance/nextAction';
+import { MS_PER_SEC, PERCENT } from '../data/constants';
 import { canBuild, getBuildCost, getEffects, type BuildingType } from './BuildingSystem';
 import { computeResourceRates, getAssignedWorkers, getUpgradeCost, type WorkerRole } from './ResourceSystem';
 import { TerritorySystem } from './TerritorySystem';
 import { MUTATIONS, canPurchaseMutation } from './MutationSystem';
-import { MAX_EQUIPMENT_LEVEL, getEquipmentUpgradeCost } from './SoldierSystem';
+import { getEquipmentUpgradeCost } from './SoldierSystem';
+import { soldierBalance } from '../data/balance/soldiers';
 import { MAX_SHIP_LEVEL, canAffordShipCost, getShipCost } from './SpaceshipSystem';
 import { canStartProject, getAssignedResearchers, getProjectStatus, getProjects } from './ResearchSystem';
 import {
@@ -142,7 +144,7 @@ function defOf(ref: ItemRef): ItemDef {
       const pool = weapon ? 'chitin' : 'silk';
       const level = (s: GameState) => s.equipment[ref.id];
       const cost = (s: GameState): ItemCost => nonZero({ [pool]: getEquipmentUpgradeCost(level(s)) });
-      const open = (s: GameState) => level(s) < MAX_EQUIPMENT_LEVEL && (s.buildings[building]?.level ?? 0) >= 1;
+      const open = (s: GameState) => level(s) < soldierBalance.maxEquipmentLevel && (s.buildings[building]?.level ?? 0) >= 1;
       return {
         panel: 'soldier_panel',
         name: weapon ? 'Weapons' : 'Armor',
@@ -300,13 +302,13 @@ const freeWorkers = (s: GameState): number => s.resources.workers - getAssignedW
 export function isFoodCritical(s: GameState): boolean {
   const r = computeResourceRates(s, new TerritorySystem().getBonuses(s));
   const net = r.foodProducedPerSec - r.foodConsumedPerSec;
-  return net < 0 && s.resources.food < r.foodConsumedPerSec * nextActionBalance.foodCriticalSeconds;
+  return net < 0 && s.resources.food < r.foodConsumedPerSec * (nextActionBalance.foodCriticalMs / MS_PER_SEC);
 }
 
 /** Capacity is critical: workers fill the effective nest capacity up to the balance percentage. */
 export function isCapacityCritical(s: GameState): boolean {
   const cap = s.resources.nestCapacity + (getEffects('warehouse', s.buildings.warehouse.level).nestCapacity ?? 0);
-  return cap > 0 && s.resources.workers * 100 >= cap * nextActionBalance.capacityCriticalPercent;
+  return cap > 0 && s.resources.workers * PERCENT >= cap * nextActionBalance.capacityCriticalPercent;
 }
 
 /** Whether WRKR (the worker roles) is open in the state's phase. */

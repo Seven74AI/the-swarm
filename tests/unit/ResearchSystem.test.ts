@@ -386,7 +386,7 @@ describe('ResearchSystem', () => {
           dormantForaging: { status: 'idle' },
         },
       };
-      expect(getTotalProgress(state)).toBe(150 * 50);
+      expect(getTotalProgress(state)).toBe(5000 + 2500);
     });
   });
 

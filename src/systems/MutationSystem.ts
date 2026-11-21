@@ -1,4 +1,6 @@
 import type { GameState, Mutation as MutationState } from '../state/GameState';
+import { mutationBalance } from '../data/balance/mutations';
+import { PERCENT } from '../data/constants';
 
 /**
  * Mutation bonus effect values.
@@ -42,55 +44,58 @@ export interface MutationDef {
   effects: Partial<MutationEffects>;
 }
 
+/** A share as whole percentage points, for the descriptions. */
+const pct = (share: number): number => Math.round(share * PERCENT);
+
 /** Registry of all available mutations. */
 export const MUTATIONS: MutationDef[] = [
   {
     id: 'efficient_gatherers',
     name: 'Efficient Gatherers',
-    description: '+10% gather rate',
-    cost: { silk: 5, chitin: 5, venom: 0 },
+    description: `+${pct(mutationBalance.efficient_gatherers.effects.gatherShare)}% gather rate`,
+    cost: { ...mutationBalance.efficient_gatherers.cost },
     prerequisite: null,
-    effects: { gatherRate: 0.10 },
+    effects: { gatherRate: mutationBalance.efficient_gatherers.effects.gatherShare },
   },
   {
     id: 'swift_soldiers',
     name: 'Swift Soldiers',
-    description: '+1 soldier speed',
-    cost: { chitin: 10, silk: 0, venom: 5 },
+    description: `+${mutationBalance.swift_soldiers.effects.speed} soldier speed`,
+    cost: { ...mutationBalance.swift_soldiers.cost },
     prerequisite: null,
-    effects: { speed: 1 },
+    effects: { ...mutationBalance.swift_soldiers.effects },
   },
   {
     id: 'accelerated_hatching',
     name: 'Accelerated Hatching',
-    description: 'Larvae hatch 20% faster',
-    cost: { silk: 10, chitin: 0, venom: 5 },
+    description: `Larvae hatch ${pct(mutationBalance.accelerated_hatching.effects.hatchShare)}% faster`,
+    cost: { ...mutationBalance.accelerated_hatching.cost },
     prerequisite: null,
-    effects: { hatchRate: 0.20 },
+    effects: { hatchRate: mutationBalance.accelerated_hatching.effects.hatchShare },
   },
   {
     id: 'tough_shells',
     name: 'Tough Shells',
-    description: '+2 soldier max HP',
-    cost: { chitin: 15, silk: 10, venom: 0 },
+    description: `+${mutationBalance.tough_shells.effects.maxHp} soldier max HP`,
+    cost: { ...mutationBalance.tough_shells.cost },
     prerequisite: null,
-    effects: { maxHp: 2 },
+    effects: { ...mutationBalance.tough_shells.effects },
   },
   {
     id: 'potent_venom',
     name: 'Potent Venom',
-    description: '+50% poison DoT damage',
-    cost: { venom: 20, chitin: 10, silk: 0 },
+    description: `+${pct(mutationBalance.potent_venom.effects.poisonDamage)}% poison DoT damage`,
+    cost: { ...mutationBalance.potent_venom.cost },
     prerequisite: 'accelerated_hatching',
-    effects: { poisonDamage: 0.50 },
+    effects: { ...mutationBalance.potent_venom.effects },
   },
   {
     id: 'reinforced_mandibles',
     name: 'Reinforced Mandibles',
-    description: '+1 soldier strength',
-    cost: { chitin: 20, silk: 15, venom: 0 },
+    description: `+${mutationBalance.reinforced_mandibles.effects.strength} soldier strength`,
+    cost: { ...mutationBalance.reinforced_mandibles.cost },
     prerequisite: 'swift_soldiers',
-    effects: { strength: 1 },
+    effects: { ...mutationBalance.reinforced_mandibles.effects },
   },
 ];
 

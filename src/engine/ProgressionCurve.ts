@@ -9,22 +9,16 @@
  * - getPhaseNumber: phase name → numeric index mapping
  */
 
-/** Maps phase names to their numeric position (egg_laying=1, …, transcendence=6). */
-const PHASE_NUMBER: Record<string, number> = {
-  egg_laying: 1,
-  colony: 2,
-  combat: 3,
-  expansion: 4,
-  space: 5,
-  transcendence: 6,
-};
+import { PHASE_ORDER, type Phase } from '../phases/phases';
+import { progressionBalance } from '../data/balance/progression';
 
 /**
- * Get the numeric phase number for a given phase name.
+ * Get the numeric phase number for a given phase name: its position in
+ * `PHASE_ORDER`, from 1 (egg_laying=1, …, transcendence=6).
  * Returns 1 for unknown phase names.
  */
 export function getPhaseNumber(phase: string): number {
-  return PHASE_NUMBER[phase] ?? 1;
+  return Math.max(0, PHASE_ORDER.indexOf(phase as Phase)) + 1;
 }
 
 /**
@@ -44,8 +38,8 @@ export function productionMultiplier(
   overridePhaseNumber?: number,
 ): number {
   const phaseNumber = overridePhaseNumber ?? getPhaseNumber(phase);
-  const base = Math.pow(1.12, phaseNumber);
-  return base * (1 + 0.15 * legacyPoints);
+  const base = Math.pow(progressionBalance.productionPerPhase, phaseNumber);
+  return base * (1 + progressionBalance.productionPerLegacyPoint * legacyPoints);
 }
 
 /**
@@ -58,8 +52,9 @@ export function productionMultiplier(
  * @param level  Current building level
  */
 export function softCapEffectiveness(base: number, level: number): number {
-  if (level <= 5) return base;
-  return base / (1 + 0.08 * (level - 5));
+  const { fullLevels, falloffPerLevel } = progressionBalance.softCap;
+  if (level <= fullLevels) return base;
+  return base / (1 + falloffPerLevel * (level - fullLevels));
 }
 
 /**
@@ -76,8 +71,9 @@ export function softCapEffectiveness(base: number, level: number): number {
  * @param workers  Total worker count
  */
 export function workerEfficiency(workers: number): number {
-  if (workers <= 500) return 1.0;
-  return 1 / (1 + 0.0005 * (workers - 500));
+  const { freeWorkers, falloffPerWorker } = progressionBalance.scalePenalty;
+  if (workers <= freeWorkers) return 1.0;
+  return 1 / (1 + falloffPerWorker * (workers - freeWorkers));
 }
 
 /**
@@ -92,5 +88,5 @@ export function workerEfficiency(workers: number): number {
  *                  Actual building level before upgrade is (level - 1).
  */
 export function buildingUpgradeCost(baseCost: number, level: number): number {
-  return Math.floor(baseCost * Math.pow(2.5, level));
+  return Math.floor(baseCost * Math.pow(progressionBalance.buildingCostGrowth, level));
 }

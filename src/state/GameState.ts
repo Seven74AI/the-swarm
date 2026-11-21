@@ -1,3 +1,4 @@
+import { soldierBalance } from '../data/balance/soldiers';
 import { DEFAULT_SEED } from './seed';
 import { rngFromSeed } from '../utils/rng';
 import type { DecisionId } from '../data/content/decisions';
@@ -413,10 +414,10 @@ export function createInitialState(): GameState {
     // Combat defaults
     combatSoldiers: 0,
     soldierStats: {
-      strength: 1.0,
-      defense: 1.0,
-      speed: 5,
-      maxHp: 10,
+      strength: soldierBalance.baseStrength,
+      defense: soldierBalance.baseDefense,
+      speed: soldierBalance.baseSpeed,
+      maxHp: soldierBalance.baseMaxHp,
     },
     equipment: {
       weapon: 0,

@@ -1,6 +1,7 @@
 import type { GameState, ResearchProject, ResearchProjectId, ResearchProjectStatus } from '../state/GameState';
 import type { PanelId } from '../data/content/tabs';
-import { OFFLINE_EFFICIENCY_STEP_POINTS } from '../data/constants';
+import { MS_PER_SEC, OFFLINE_EFFICIENCY_STEP_POINTS } from '../data/constants';
+import { researchBalance } from '../data/balance/research';
 
 export type { ResearchProjectId } from '../state/GameState';
 
@@ -32,9 +33,9 @@ const PROJECTS: ResearchProjectDef[] = [
     id: 'voidCrystalSynthesis',
     name: 'Void Crystal Synthesis',
     description: 'Synthesize void crystals from stone and nectar using concentrated worker energy.',
-    cost: { stone: 500, nectar: 200 },
-    requiredResearchers: 50,
-    durationMs: 30_000, // 600 ticks
+    cost: { ...researchBalance.projects.voidCrystalSynthesis.cost },
+    requiredResearchers: researchBalance.projects.voidCrystalSynthesis.requiredResearchers,
+    durationMs: researchBalance.projects.voidCrystalSynthesis.durationMs,
     unlock: 'voidCrystal',
     prerequisite: null,
     panel: 'research_panel',
@@ -43,9 +44,9 @@ const PROJECTS: ResearchProjectDef[] = [
     id: 'antimatterContainment',
     name: 'Antimatter Containment',
     description: 'Contain antimatter using void crystal lattices. Requires a particle lab.',
-    cost: { voidCrystals: 5 },
-    requiredResearchers: 30,
-    durationMs: 75_000, // 1500 ticks
+    cost: { ...researchBalance.projects.antimatterContainment.cost },
+    requiredResearchers: researchBalance.projects.antimatterContainment.requiredResearchers,
+    durationMs: researchBalance.projects.antimatterContainment.durationMs,
     unlock: 'antimatter + particle lab',
     prerequisite: 'voidCrystalSynthesis',
     panel: 'research_panel',
@@ -54,9 +55,9 @@ const PROJECTS: ResearchProjectDef[] = [
     id: 'darkMatterDetection',
     name: 'Dark Matter Detection',
     description: 'Detect dark matter signatures using antimatter annihilation sensors.',
-    cost: { antimatter: 0.1 },
-    requiredResearchers: 20,
-    durationMs: 150_000, // 3000 ticks
+    cost: { ...researchBalance.projects.darkMatterDetection.cost },
+    requiredResearchers: researchBalance.projects.darkMatterDetection.requiredResearchers,
+    durationMs: researchBalance.projects.darkMatterDetection.durationMs,
     unlock: 'darkMatter from expeditions',
     prerequisite: 'antimatterContainment',
     panel: 'research_panel',
@@ -65,9 +66,9 @@ const PROJECTS: ResearchProjectDef[] = [
     id: OFFLINE_RESEARCH_ID,
     name: 'Dormant Foraging',
     description: 'Workers keep a slow foraging rhythm while the colony is left alone.',
-    cost: { food: 300 },
-    requiredResearchers: 0,
-    durationMs: 60_000, // 1200 ticks
+    cost: { ...researchBalance.projects[OFFLINE_RESEARCH_ID].cost },
+    requiredResearchers: researchBalance.projects[OFFLINE_RESEARCH_ID].requiredResearchers,
+    durationMs: researchBalance.projects[OFFLINE_RESEARCH_ID].durationMs,
     unlock: 'offline efficiency',
     prerequisite: null,
     panel: 'offline_research_panel',
@@ -176,10 +177,10 @@ export function cancelProject(
 
   const def = getProjectDef(projectId);
 
-  // Refund 50% of costs (floor)
+  // Refund a share of the costs (floor)
   const resources = { ...state.resources };
   for (const [resource, amount] of Object.entries(def.cost)) {
-    const refund = Math.floor((amount as number) / 2);
+    const refund = Math.floor((amount as number) * researchBalance.cancelRefundShare);
     if (refund > 0) {
       const key = resource as keyof GameState['resources'];
       (resources as Record<string, number>)[resource] = (resources[key] as number) + refund;
@@ -208,7 +209,7 @@ export function tickResearch(state: GameState, dtSec: number): GameState {
   if (!state.research || !state.research.projects) return state;
 
   const researchers = getAssignedResearchers(state);
-  const dtMs = Math.round(dtSec * 1000);
+  const dtMs = Math.round(dtSec * MS_PER_SEC);
   const ids = Object.keys(state.research.projects) as ResearchProjectId[];
 
   let projects: Record<ResearchProjectId, ResearchProject> | null = null;

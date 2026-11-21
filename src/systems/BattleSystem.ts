@@ -10,6 +10,7 @@ import {
 } from './SoldierSystem';
 import { getPoisonDamagePerTick, consumeVenom } from './VenomSystem';
 import { between, intBetween, rngStream, type RngStream } from '../utils/rng';
+import { combatBalance } from '../data/balance/combat';
 
 export type BattleOutcome = 'victory' | 'defeat' | 'draw';
 
@@ -32,7 +33,7 @@ export interface BattleResult {
 }
 
 /** A battle that lasts this many rounds is a draw: the enemy flees. */
-export const MAX_BATTLE_ROUNDS = 20;
+export const MAX_BATTLE_ROUNDS = combatBalance.maxRounds;
 const MAX_ROUNDS = MAX_BATTLE_ROUNDS;
 
 
@@ -105,10 +106,10 @@ export class BattleSystem {
 
       // First attacker
       if (playerFirst) {
-        const damage = (totalSoldierStrength / enemy.defense) * between(rng, 0.85, 1.15);
+        const damage = (totalSoldierStrength / enemy.defense) * between(rng, combatBalance.damageRoll.min, combatBalance.damageRoll.max);
         enemyHp -= damage;
       } else {
-        const damage = (enemy.strength / soldierDefense) * between(rng, 0.85, 1.15);
+        const damage = (enemy.strength / soldierDefense) * between(rng, combatBalance.damageRoll.min, combatBalance.damageRoll.max);
         playerHp -= damage;
       }
 
@@ -117,10 +118,10 @@ export class BattleSystem {
 
       // Second attacker
       if (playerFirst) {
-        const damage = (enemy.strength / soldierDefense) * between(rng, 0.85, 1.15);
+        const damage = (enemy.strength / soldierDefense) * between(rng, combatBalance.damageRoll.min, combatBalance.damageRoll.max);
         playerHp -= damage;
       } else {
-        const damage = (totalSoldierStrength / enemy.defense) * between(rng, 0.85, 1.15);
+        const damage = (totalSoldierStrength / enemy.defense) * between(rng, combatBalance.damageRoll.min, combatBalance.damageRoll.max);
         enemyHp -= damage;
       }
 
@@ -140,7 +141,7 @@ export class BattleSystem {
       soldiersLost = workingState.combatSoldiers;
     } else {
       soldiersLost = Math.round(
-        (enemy.strength / Math.max(soldierDefense, 0.1)) * between(rng, 0.7, 1.3),
+        (enemy.strength / Math.max(soldierDefense, combatBalance.minDefense)) * between(rng, combatBalance.lossRoll.min, combatBalance.lossRoll.max),
       );
       soldiersLost = Math.max(0, Math.min(soldiersLost, workingState.combatSoldiers));
     }
@@ -166,7 +167,7 @@ export class BattleSystem {
 
       // Scorpion gives extra chitin on top of venom
       if (enemy.type === 'scorpion') {
-        chitinGained = intBetween(rng, 1, 5);
+        chitinGained = intBetween(rng, combatBalance.scorpionChitin.min, combatBalance.scorpionChitin.max);
       }
     }
 

@@ -10,6 +10,9 @@ import {
   scaleEnemy,
   type EnemyDef,
 } from '../../src/systems/EnemySystem';
+import { enemyBalance } from '../../src/data/balance/enemies';
+
+const BOSS = enemyBalance.bossFromBattlesWon;
 
 /** Helper: a minimal EnemyDef for scaleEnemy invariant testing. */
 function makeEnemy(overrides: {
@@ -116,17 +119,17 @@ describe('EnemySystem', () => {
       expect(found).toBeDefined();
     });
 
-    it('never returns Scorpion when battlesWon < 5 (test 200 rolls)', () => {
+    it('never returns Scorpion before the boss threshold (test 200 rolls)', () => {
       for (let i = 0; i < 200; i++) {
-        const enemy = getRandomEnemy(3, rng);
+        const enemy = getRandomEnemy(BOSS - 1, rng);
         expect(enemy.type).not.toBe('scorpion');
       }
     });
 
-    it('can return Scorpion when battlesWon >= 5 (test 500 rolls)', () => {
+    it('can return Scorpion from the boss threshold (test 500 rolls)', () => {
       let foundScorpion = false;
       for (let i = 0; i < 500; i++) {
-        const enemy = getRandomEnemy(5, rng);
+        const enemy = getRandomEnemy(BOSS, rng);
         if (enemy.type === 'scorpion') {
           foundScorpion = true;
           break;
