@@ -27,7 +27,6 @@ import { EventLog } from './ui/log/EventLog';
 import { createPanelReveal, type PanelReveal } from './ui/shell/panelReveal';
 import { createTabShell } from './ui/shell/tabShell';
 import { selectAffordableKeys, selectCanChoose, selectCapacityReached, selectGoalMet, selectStarving, selectLifetime, selectOpenDecision, selectPhase, selectNearGoalPhase } from './state/selectors';
-import { AudioSystem } from './ui/AudioSystem';
 import { SaveManager } from './persistence/SaveManager';
 import { openOfflineSummary, type OfflineSummary } from './ui/sheets/OfflineSummarySheet';
 import { decisionsAvailable, getReturnMove, itemPanel } from './systems/NextAction';
@@ -71,7 +70,8 @@ import { openHomeScreenHint } from './ui/sheets/HomeScreenHintSheet';
 import { bindDurability } from './persistence/durability';
 import { createWebPlatform, type Platform } from './platform';
 import { serviceWorkerWanted } from './platform/serviceWorker';
-import { bindHapticFeedback, bindSoundSetting } from './platform/feedback';
+import { bindHapticFeedback, bindSoundFeedback } from './platform/feedback';
+import type { Audio } from './platform/audio';
 
 /**
  * THE SWARM — Bootstrap
@@ -99,7 +99,8 @@ export function bootstrap(): {
   fsm: PhaseStateMachine;
   /** Which panels the session has revealed (Story 1.36; UIRoot is gone). */
   panels: PanelReveal;
-  audio: AudioSystem;
+  /** The platform's sound service (Story 8.8), the same as `platform.audio`. */
+  audio: Audio;
   actions: Actions;
   platform: Platform;
   sheets: SheetController;
@@ -123,7 +124,6 @@ export function bootstrap(): {
   const battleSystem = new BattleSystem(bus);
   // The save lives behind the platform SaveStore (Story 2.2, D4): primary, 2 backups, the unreadable copy.
   const saveManager = new SaveManager(platform.saves);
-  const audio = new AudioSystem();
   const loop = new GameLoop(ticker);
   const phaseContent = new PhaseContent();
   const mapSystem = new MapSystem();
@@ -619,33 +619,12 @@ export function bootstrap(): {
   // A prestige starts the run over: telemetry closes the phase it left (Story 3.10).
   bus.subscribe('prestige_triggered', () => telemetry.phase(gameState.peek().phase));
 
-  // ── Haptics and the sound setting (Story 1.10) ──
+  // ── Haptics (Story 1.10) and sound (Story 8.8) ──
+  // The Audio service is silent until sound is on AND a gesture has unlocked it;
+  // every cue's moment also shows on screen (SOUND_EVENTS in platform/feedback.ts).
   bindHapticFeedback(bus, platform.haptics);
-  bindSoundSetting(audio, platform.settings.settings);
-
-  // ── Audio: wire sound effects to game events ──
-  bus.subscribe('prestige_triggered', () => {
-    audio.play('prestige');
-  });
-  bus.subscribe('battle_completed', () => {
-    audio.play('battle');
-  });
-  bus.subscribe('battle_engage', () => {
-    audio.play('battle');
-  });
-  // A laid egg: the key click (the light haptic is bound above, Story 1.22).
-  bus.subscribe('egg_clicked', () => {
-    audio.play('click');
-  });
-  bus.subscribe('expedition_return', () => {
-    audio.play('discovery');
-  });
-  bus.subscribe('exploration_return', () => {
-    audio.play('discovery');
-  });
-  bus.subscribe('spaceship_return', () => {
-    audio.play('discovery');
-  });
+  const atBind = gameState.peek().resources;
+  bindSoundFeedback(bus, platform.audio, { workers: atBind.workers, larvae: atBind.larvae });
 
   // The offline summary opens once the UI is mounted. Its priority puts it ahead
   // of any decision sheet the first ticks request (Story 1.14).
@@ -755,7 +734,7 @@ export function bootstrap(): {
     onError: (error) => log.warn('pwa', 'service worker registration failed; offline play is off', error),
   });
 
-  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, panels, audio, actions, platform, sheets, overlays, chronicle, toasts, telemetry, cheatsLoaded };
+  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, panels, audio: platform.audio, actions, platform, sheets, overlays, chronicle, toasts, telemetry, cheatsLoaded };
 }
 
 // processTick lives in engine/processTick.ts; re-exported for existing callers.

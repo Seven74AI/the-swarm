@@ -27,6 +27,7 @@ const caps = (over: Partial<Capabilities> = {}): Capabilities => ({
   reducedMotion: false,
   moreContrast: false,
   mobile: false,
+  audio: true,
   ...over,
 });
 
@@ -134,6 +135,21 @@ describe('settings screen', () => {
     open();
     expect(sheet().querySelector('[data-setting="notifications"]')).toBeNull();
     expect(sheet().textContent).not.toMatch(/NOTIF/i);
+  });
+
+  it('says when the device cannot play sound (Story 8.8)', () => {
+    open({}, caps({ audio: false }));
+    expect(row('sound').querySelector('[data-setting-note]')?.textContent).toMatch(/CAN.T PLAY SOUND/);
+  });
+
+  it('says the silent mode still applies where sound can play (Story 8.8)', () => {
+    open({}, caps({ audio: true }));
+    expect(row('sound').querySelector('[data-setting-note]')?.textContent).toMatch(/SILENT/);
+  });
+
+  it('keeps sound off by default (Story 8.8)', () => {
+    open();
+    expect(row('sound').querySelector('[data-option="false"]')?.getAttribute('aria-pressed')).toBe('true');
   });
 
   it('says when the device cannot vibrate', () => {

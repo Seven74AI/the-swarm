@@ -6,7 +6,7 @@ const media = (matching: string[]) => (q: string) => ({ matches: matching.includ
 describe('detectCapabilities (Story 1.10)', () => {
   it('reports nothing on an environment without navigator or matchMedia', () => {
     const caps = detectCapabilities({});
-    expect(caps).toEqual({ vibrate: false, standalone: false, reducedMotion: false, moreContrast: false, mobile: false });
+    expect(caps).toEqual({ vibrate: false, standalone: false, reducedMotion: false, moreContrast: false, mobile: false, audio: false });
   });
 
   it('detects vibrate only when navigator.vibrate is a function', () => {
@@ -30,6 +30,12 @@ describe('detectCapabilities (Story 1.10)', () => {
     expect(detectCapabilities({ matchMedia: media(['(pointer: fine)']) }).mobile).toBe(false);
   });
 
+  it('detects Web Audio, prefixed or not (Story 8.8)', () => {
+    expect(detectCapabilities({ AudioContext: class {} }).audio).toBe(true);
+    expect(detectCapabilities({ webkitAudioContext: class {} }).audio).toBe(true);
+    expect(detectCapabilities({ AudioContext: 'no' }).audio).toBe(false);
+  });
+
   it('degrades to false and never throws when a probe throws', () => {
     const env: CapabilityEnv = {
       navigator: {
@@ -42,7 +48,7 @@ describe('detectCapabilities (Story 1.10)', () => {
       },
     };
     expect(() => detectCapabilities(env)).not.toThrow();
-    expect(detectCapabilities(env)).toEqual({ vibrate: false, standalone: false, reducedMotion: false, moreContrast: false, mobile: false });
+    expect(detectCapabilities(env)).toEqual({ vibrate: false, standalone: false, reducedMotion: false, moreContrast: false, mobile: false, audio: false });
   });
 
   it('is a snapshot taken once: later environment changes do not alter it', () => {

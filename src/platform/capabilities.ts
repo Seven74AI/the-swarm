@@ -15,12 +15,16 @@ export interface Capabilities {
   readonly moreContrast: boolean;
   /** A touch-first device (`(pointer: coarse)`): a phone or tablet (Story 2.12's home-screen hint). */
   readonly mobile: boolean;
+  /** Web Audio exists (`AudioContext`, or Safari's prefixed one): sound can play (Story 8.8). */
+  readonly audio: boolean;
 }
 
 /** The parts of `window` the probes read; a plain object in tests. */
 export interface CapabilityEnv {
   readonly navigator?: { readonly vibrate?: unknown; readonly standalone?: unknown };
   readonly matchMedia?: (query: string) => { readonly matches: boolean };
+  readonly AudioContext?: unknown;
+  readonly webkitAudioContext?: unknown;
 }
 
 function probe(read: () => boolean): boolean {
@@ -44,5 +48,6 @@ export function detectCapabilities(env: CapabilityEnv = typeof window === 'undef
     reducedMotion: mediaMatches(env, '(prefers-reduced-motion: reduce)'),
     moreContrast: mediaMatches(env, '(prefers-contrast: more)'),
     mobile: mediaMatches(env, '(pointer: coarse)'),
+    audio: probe(() => typeof (env.AudioContext ?? env.webkitAudioContext) === 'function'),
   });
 }

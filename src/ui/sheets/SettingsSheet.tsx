@@ -70,7 +70,13 @@ export const HOLD_DURATIONS_MS = [500, 1000, 1500, 2000, 3000] as const;
 const row = <K extends ChoiceKey>(r: ChoiceRow<K>): ChoiceRow => r as unknown as ChoiceRow;
 
 const ROWS: readonly ChoiceRow[] = [
-  row({ key: 'sound', title: 'SOUND', options: ON_OFF }),
+  row({
+    key: 'sound',
+    title: 'SOUND',
+    options: ON_OFF,
+    // Story 8.8: Web Audio, so the device's silent mode applies where the browser honours it.
+    note: (caps) => (caps.audio ? 'SILENT MODE STILL MUTES IT WHERE THE BROWSER ALLOWS.' : 'THIS DEVICE CAN’T PLAY SOUND.'),
+  }),
   row({
     key: 'haptics',
     title: 'HAPTICS',

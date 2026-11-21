@@ -44,8 +44,20 @@ describe('createWebPlatform (Story 1.10)', () => {
     expect(persist).toHaveBeenCalledTimes(1);
   });
 
+  it('builds an Audio service that follows the sound setting, off by default (Story 8.8)', () => {
+    const p = createWebPlatform({ AudioContext: class {}, addEventListener: () => {} });
+    expect(p.audio.available).toBe(true);
+    expect(p.audio.muted).toBe(true);
+    p.settings.update({ sound: true });
+    expect(p.audio.muted).toBe(false);
+    p.settings.update({ sound: false });
+    expect(p.audio.muted).toBe(true);
+  });
+
   it('boots on an environment with no browser APIs at all', () => {
     const p = createWebPlatform({});
+    expect(p.audio.available).toBe(false);
+    expect(() => p.audio.play('key')).not.toThrow();
     expect(p.capabilities.vibrate).toBe(false);
     expect(p.settings.settings.value.haptics).toBe(false);
     expect(() => p.haptics.play('double')).not.toThrow();
