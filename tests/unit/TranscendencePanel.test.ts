@@ -35,7 +35,7 @@ describe('TranscendencePanel', () => {
     const el = panel.getElement();
     const text = el.textContent || '';
     // Default state has victoryAchieved = false
-    expect(text).toContain('Reach the stars');
+    expect(text).toContain('THE STARS ARE STILL OUT OF REACH');
   });
 
   it('shows victory achieved message when victoryAchieved is true', () => {
@@ -46,7 +46,7 @@ describe('TranscendencePanel', () => {
     panel.refresh();
     const el = panel.getElement();
     const text = el.textContent || '';
-    expect(text).toContain('transcended');
+    expect(text).toContain('THE SWARM TRANSCENDS');
   });
 
   it('shows Legacy Stats section', () => {
@@ -95,7 +95,7 @@ describe('TranscendencePanel', () => {
     const el = panel.getElement();
     const text = el.textContent || '';
     // Should contain both victory message and prestige stats
-    expect(text).toContain('transcended');
+    expect(text).toContain('THE SWARM TRANSCENDS');
     expect(text).toContain('Legacy Stats');
     expect(text).toContain('10');
   });

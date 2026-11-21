@@ -2,6 +2,7 @@ import { effect } from '@preact/signals-core';
 import { getDecision, timeoutLine, type DecisionId } from '../../data/content/decisions';
 import type { EventBus } from '../../engine/EventBus';
 import type { PanelId } from '../../data/content/tabs';
+import { COLONY_LINES, colonyLine } from '../../data/content/colonyLines';
 import { createChronicle, type Chronicle, type ChronicleEntry } from '../../state/chronicle';
 import type { LineJump } from '../log/jump';
 
@@ -9,9 +10,9 @@ import type { LineJump } from '../log/jump';
 export type LogEntry = ChronicleEntry;
 
 /** The first line of a new chronicle. */
-export const OPENING_LINE = 'You are an ant queen. Your purpose is clear.';
+export const OPENING_LINE = COLONY_LINES.opening.text;
 /** The first line after a prestige (EXPERIENCE.md Flow 7). */
-export const PRESTIGE_LINE = 'A queen, again. The colony begins anew.';
+export const PRESTIGE_LINE = COLONY_LINES.prestige.text;
 
 export interface EventLogOptions {
   /** Where the lines go (main passes the saved one); default: a new chronicle. */
@@ -22,11 +23,19 @@ export interface EventLogOptions {
 
 /** "Now available" lines, written once per run when a panel is first revealed. */
 const PANEL_LINES: Readonly<Record<string, string>> = {
-  soldier_panel: '⚔️ Soldier Command is now available — recruit and equip your army.',
-  building_panel: '🏗️ Construction unlocked — buildings strengthen the colony.',
-  expedition_panel: '🗺️ Expeditions are now available — send scouts to gather resources.',
-  spaceship_panel: '🚀 Spaceship construction unlocked — build your vessel to the stars.',
+  soldier_panel: colonyLine('panel_soldier'),
+  building_panel: colonyLine('panel_building'),
+  expedition_panel: colonyLine('panel_expedition'),
+  spaceship_panel: colonyLine('panel_spaceship'),
 };
+
+/** `2 SCOUTS AND 1 WARRIOR`, or `NO ONE`. */
+function partyOf(scouts: number, warriors: number): string {
+  const party: string[] = [];
+  if (scouts > 0) party.push(`${scouts} scout${scouts > 1 ? 's' : ''}`);
+  if (warriors > 0) party.push(`${warriors} warrior${warriors > 1 ? 's' : ''}`);
+  return party.length > 0 ? party.join(' and ') : 'no one';
+}
 
 /** NEST shows this many newest lines; CSS keeps only the newest below 560 px viewport height (UX-DR30). */
 export const NEST_LINES = 3;
@@ -108,31 +117,29 @@ export class EventLog {
 
     const onScoutCb = (payload: unknown) => {
       const p = payload as { enemyType: string; enemyName: string };
-      this.addEntry(`Scouts report a ${p.enemyName} in the territory.`, { target: 'battle_panel' });
+      this.addEntry(colonyLine('enemy_scouted', { enemy: p.enemyName }), { target: 'battle_panel' });
     };
     bus.subscribe('enemy_scouted', onScoutCb);
     this.unsubscribeHandles.push(() => bus.unsubscribe('enemy_scouted', onScoutCb));
 
     const onEngageCb = (payload: unknown) => {
       const p = payload as { enemyType: string };
-      this.addEntry(`The soldiers march to meet the ${p.enemyType}.`, { target: 'battle_panel' });
+      this.addEntry(colonyLine('battle_engage', { enemy: p.enemyType }), { target: 'battle_panel' });
     };
     bus.subscribe('battle_engage', onEngageCb);
     this.unsubscribeHandles.push(() => bus.unsubscribe('battle_engage', onEngageCb));
 
     const onBattleDoneCb = (payload: unknown) => {
       const p = payload as { narrative: string };
-      this.addEntry(p.narrative || 'The battle is over.', { target: 'battle_panel' });
+      this.addEntry(p.narrative || colonyLine('battle_over'), { target: 'battle_panel' });
     };
     bus.subscribe('battle_completed', onBattleDoneCb);
     this.unsubscribeHandles.push(() => bus.unsubscribe('battle_completed', onBattleDoneCb));
 
     const onExpeditionLaunchCb = (payload: unknown) => {
       const p = payload as { scouts: number; warriors: number; destination: string };
-      const party = [];
-      if (p.scouts > 0) party.push(`${p.scouts} scout${p.scouts > 1 ? 's' : ''}`);
-      if (p.warriors > 0) party.push(`${p.warriors} warrior${p.warriors > 1 ? 's' : ''}`);
-      this.addEntry(`An expedition departs for ${p.destination} — ${party.join(' and ')} march into the unknown.`, { target: 'expedition_panel' });
+      const party = partyOf(p.scouts, p.warriors);
+      this.addEntry(colonyLine('expedition_launch', { destination: p.destination, party }), { target: 'expedition_panel' });
     };
     bus.subscribe('expedition_launch', onExpeditionLaunchCb);
     this.unsubscribeHandles.push(() => bus.unsubscribe('expedition_launch', onExpeditionLaunchCb));
@@ -149,10 +156,7 @@ export class EventLog {
       const wood = p.wood as number;
       const tiles = p.tilesDiscovered as number;
 
-      const returned = [];
-      if (scouts > 0) returned.push(`${scouts} scout${scouts > 1 ? 's' : ''}`);
-      if (warriors > 0) returned.push(`${warriors} warrior${warriors > 1 ? 's' : ''}`);
-      const returnedStr = returned.length > 0 ? returned.join(' and ') : 'None';
+      const party = partyOf(scouts, warriors);
 
       const loot: string[] = [];
       if (food > 0) loot.push(`${food} food`);
@@ -161,12 +165,11 @@ export class EventLog {
       if (wood > 0) loot.push(`${wood} wood`);
       const lootStr = loot.length > 0 ? loot.join(', ') : 'nothing';
 
-      if (result === 'success') {
-        this.addEntry(`Expedition returns triumphant from ${dest}! ${returnedStr} came back with ${lootStr}.`, { target: 'expedition_panel' });
-      } else if (result === 'partial') {
-        this.addEntry(`Expedition returns from ${dest} — battered but alive. ${returnedStr} made it back. Loot: ${lootStr}.`, { target: 'expedition_panel' });
+      if (result === 'success' || result === 'partial') {
+        const id = result === 'success' ? 'expedition_success' : 'expedition_partial';
+        this.addEntry(colonyLine(id, { destination: dest, party, loot: lootStr }), { target: 'expedition_panel' });
       } else {
-        this.addEntry(`The expedition to ${dest} has been lost. No one returned. The colony mourns.`, { target: 'expedition_panel' });
+        this.addEntry(colonyLine('expedition_lost', { destination: dest }), { target: 'expedition_panel' });
       }
     };
     bus.subscribe('expedition_return', onExpeditionReturnCb);
@@ -174,11 +177,11 @@ export class EventLog {
 
     const onBuildingCb = (payload: unknown) => {
       const p = payload as { building: string; level: number };
-      const label = p.building.charAt(0).toUpperCase() + p.building.slice(1);
+      const building = p.building.replace(/[_-]+/g, ' ');
       if (p.level === 1) {
-        this.addEntry(`${label} constructed — a new building rises in the colony.`, { target: 'building_panel' });
+        this.addEntry(colonyLine('building_built', { building }), { target: 'building_panel' });
       } else {
-        this.addEntry(`${label} upgraded to level ${p.level}. The colony grows stronger.`, { target: 'building_panel' });
+        this.addEntry(colonyLine('building_upgraded', { building, level: p.level }), { target: 'building_panel' });
       }
     };
     bus.subscribe('building_complete', onBuildingCb);
@@ -196,11 +199,12 @@ export class EventLog {
       if (p.voidCrystals > 0) resources.push(`${p.voidCrystals} void crystals`);
       if (p.antimatter > 0) resources.push(`${p.antimatter} antimatter`);
       if (p.darkMatter > 0) resources.push(`${p.darkMatter} dark matter`);
-      const resStr = resources.length > 0 ? ` with ${resources.join(', ')}` : '';
-      if (p.result === 'success' || p.result === 'partial') {
-        this.addEntry(`Scouts return from ${p.destination}${resStr}.`, { target: 'exploration_panel' });
+      if ((p.result === 'success' || p.result === 'partial') && resources.length > 0) {
+        this.addEntry(colonyLine('exploration_return', { destination: p.destination, loot: resources.join(', ') }), {
+          target: 'exploration_panel',
+        });
       } else {
-        this.addEntry(`Scouts return from ${p.destination} — the mission yielded nothing.`, { target: 'exploration_panel' });
+        this.addEntry(colonyLine('exploration_empty', { destination: p.destination }), { target: 'exploration_panel' });
       }
     };
     bus.subscribe('exploration_return', onExplorationReturnCb);
@@ -208,7 +212,7 @@ export class EventLog {
 
     const onProbeLaunchCb = (payload: unknown) => {
       const p = payload as { destination: string };
-      this.addEntry(`Probe launched toward ${p.destination}.`, { target: 'exploration_panel' });
+      this.addEntry(colonyLine('probe_launch', { destination: p.destination }), { target: 'exploration_panel' });
     };
     bus.subscribe('probe_launch', onProbeLaunchCb);
     this.unsubscribeHandles.push(() => bus.unsubscribe('probe_launch', onProbeLaunchCb));
@@ -240,9 +244,12 @@ export class EventLog {
         accessibility?: string; requirement?: string; discovered?: boolean;
       };
       if (p.discovered === false) {
-        this.addEntry(`Planet ${p.name}: undiscovered. ${p.requirement || 'Requires further exploration.'}`, { target: 'starmap_panel' });
+        const requirement = p.requirement || 'it needs more exploration';
+        this.addEntry(colonyLine('planet_uncharted', { name: p.name, requirement }), { target: 'starmap_panel' });
       } else {
-        this.addEntry(`Planet ${p.name} (${p.type}): ${p.yields}. ${p.accessibility || ''}`, { target: 'starmap_panel' });
+        this.addEntry(colonyLine('planet_charted', { name: p.name, type: p.type, yields: p.yields ?? 'nothing' }), {
+          target: 'starmap_panel',
+        });
       }
     };
     bus.subscribe('planet_clicked', onPlanetClickCb);
@@ -335,37 +342,37 @@ export class EventLog {
   }
 
   private onClick(): void {
-    this.once('first_egg', 'You lay your first egg. It is small, white, and perfect.');
+    this.once('first_egg', colonyLine('first_egg'));
   }
 
   private onWorkersChanged(): void {
-    this.once('first_worker', 'The first worker emerges. She looks at you with absolute devotion.', {
+    this.once('first_worker', colonyLine('first_worker'), {
       target: 'worker_assignment',
     });
   }
 
   notifyWorkerCount(count: number): void {
     if (count >= 10) {
-      this.once('tenth_worker', 'The colony hums. You feel it through the soil.', { target: 'worker_assignment' });
+      this.once('tenth_worker', colonyLine('tenth_worker'), { target: 'worker_assignment' });
     }
   }
 
   private onSoldiersChanged(count: number): void {
     if (count > 0) {
-      this.once('first_soldier', 'The first soldier ant emerges. Her mandibles gleam with purpose.', {
+      this.once('first_soldier', colonyLine('first_soldier'), {
         target: 'soldier_panel',
       });
     }
   }
 
   private onWeaponUpgraded(): void {
-    this.once('first_weapon', "The soldiers' mandibles are honed sharper. Nature's design, perfected.", {
+    this.once('first_weapon', colonyLine('first_weapon'), {
       target: 'soldier_panel',
     });
   }
 
   private onArmorUpgraded(): void {
-    this.once('first_armor', 'Chitin plates are strapped to soldier thoraxes. The colony armors itself.', {
+    this.once('first_armor', colonyLine('first_armor'), {
       target: 'soldier_panel',
     });
   }
@@ -373,22 +380,22 @@ export class EventLog {
   private onPhaseChanged(phase: string): void {
     const before = this.added;
     if (phase === 'colony') {
-      this.once('phase_colony', 'The colony takes shape. Worker ants now serve a purpose — assign them.', {
+      this.once('phase_colony', colonyLine('phase_colony'), {
         target: 'worker_assignment',
       });
     }
     if (phase === 'combat') {
-      this.once('phase_combat', '⚔️ Danger lurks beyond the nest. Train soldiers, forge weapons, defend the colony.', {
+      this.once('phase_combat', colonyLine('phase_combat'), {
         target: 'soldier_panel',
       });
     }
     if (phase === 'expansion') {
-      this.once('phase_expansion', '🗺️ The world beyond the nest calls. Build, explore, expand your territory.', {
+      this.once('phase_expansion', colonyLine('phase_expansion'), {
         target: 'map_panel',
       });
     }
     if (phase === 'space') {
-      this.once('phase_space', '🚀 The swarm looks to the stars. New resources await in the void.', {
+      this.once('phase_space', colonyLine('phase_space'), {
         target: 'spaceship_panel',
       });
     }

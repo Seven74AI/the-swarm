@@ -2,7 +2,7 @@
  * OnboardingTooltip — A positioned tooltip overlay for onboarding.
  *
  * Creates a backdrop overlay with a tooltip near the target element.
- * The user dismisses it via the "Got it!" button.
+ * The user dismisses it via the "GOT IT" button.
  *
  * DOM structure:
  *   <div class="onboarding-overlay">
@@ -60,7 +60,7 @@ export class OnboardingTooltip {
 
     const dismissBtn = document.createElement('button');
     dismissBtn.className = 'onboarding-tooltip-dismiss btn';
-    dismissBtn.textContent = 'Got it!';
+    dismissBtn.textContent = 'GOT IT';
     dismissBtn.addEventListener('click', () => this.dismiss());
 
     tooltip.appendChild(arrow);

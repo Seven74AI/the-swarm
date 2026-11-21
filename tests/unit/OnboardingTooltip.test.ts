@@ -25,7 +25,7 @@ describe('OnboardingTooltip', () => {
   const baseConfig: TooltipConfig = {
     id: 'click_egg',
     targetSelector: '#click-egg',
-    text: 'Click to lay an egg!',
+    text: 'Tap to lay an egg.',
     position: 'below',
   };
 
@@ -52,7 +52,7 @@ describe('OnboardingTooltip', () => {
       tooltip.mount();
 
       const text = document.querySelector('.onboarding-tooltip-text');
-      expect(text?.textContent).toBe('Click to lay an egg!');
+      expect(text?.textContent).toBe('Tap to lay an egg.');
     });
 
     it('has a dismiss button', () => {
@@ -61,7 +61,7 @@ describe('OnboardingTooltip', () => {
 
       const btn = document.querySelector('.onboarding-tooltip-dismiss');
       expect(btn).not.toBeNull();
-      expect(btn?.textContent).toBe('Got it!');
+      expect(btn?.textContent).toBe('GOT IT');
     });
   });
 

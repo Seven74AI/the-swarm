@@ -21,7 +21,7 @@ export interface TickFailureHandlers {
 export function TickFailureSheet({ onExport, onReload }: TickFailureHandlers) {
   return (
     <ModalSheet
-      headline="THE COLONY STOPPED."
+      headline="THE NEST STOPPED."
       dismissible={false}
       passthrough={false}
       data-tick-failure=""

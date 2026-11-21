@@ -297,8 +297,8 @@ test.describe('Buildings', () => {
     expect(after.food).toBeLessThan(before.food);
     expect(after.wood).toBeLessThan(before.wood);
 
-    // Activity log should show construction event (first unlock)
-    await expect(page.locator('#activity-log')).toContainText('constructed', { timeout: 3000 });
+    // Activity log should show the construction line (first unlock)
+    await expect(page.locator('#activity-log')).toContainText('STANDS.', { timeout: 3000 });
   });
 
   test('build Walls — verify defense bonus displayed', async ({ page }) => {

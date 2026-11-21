@@ -13,6 +13,17 @@ export interface Stripped {
   noComments: string;
   /** Comments and the text of every string/template literal blanked; `${}` code kept. */
   code: string;
+  /**
+   * Every string and template literal, in source order of its end. A template's
+   * `${…}` parts read as `{}`; escapes are kept as written.
+   */
+  literals: Literal[];
+}
+
+export interface Literal {
+  /** Index of the opening quote or backtick. */
+  start: number;
+  text: string;
 }
 
 const REGEX_PREFIX_KEYWORDS = /\b(return|typeof|instanceof|in|of|new|delete|void|throw|case|do|else|yield|await)$/;
@@ -27,6 +38,9 @@ export function strip(src: string): Stripped {
   let braceDepth = 0;
   let lastSignificant = '';
   let i = 0;
+  const literals: Literal[] = [];
+  // Open template literals (nested ones live inside `${}` of an outer one).
+  const templates: Literal[] = [];
 
   const emit = (ch: string, keepInNoComments: boolean, keepInCode: boolean): void => {
     noComments.push(keepInNoComments ? ch : blank(ch));
@@ -34,6 +48,7 @@ export function strip(src: string): Stripped {
   };
 
   const readString = (quote: string): void => {
+    const start = i;
     emit(src[i], true, true); // opening quote
     i++;
     while (i < src.length && src[i] !== quote && src[i] !== '\n') {
@@ -44,6 +59,7 @@ export function strip(src: string): Stripped {
       emit(src[i], true, false);
       i++;
     }
+    literals.push({ start, text: src.slice(start + 1, i) });
     if (i < src.length) {
       emit(src[i], true, true); // closing quote
       i++;
@@ -52,21 +68,25 @@ export function strip(src: string): Stripped {
 
   // Reads template text up to the closing backtick or a `${`.
   const readTemplateText = (): void => {
+    const current = templates[templates.length - 1];
     while (i < src.length) {
       const ch = src[i];
       if (ch === '\\' && i + 1 < src.length) {
+        current.text += src.slice(i, i + 2);
         emit(ch, true, false);
         emit(src[i + 1], true, false);
         i += 2;
         continue;
       }
       if (ch === '`') {
+        literals.push(templates.pop()!);
         emit(ch, true, true);
         i++;
         lastSignificant = '`';
         return;
       }
       if (ch === '$' && src[i + 1] === '{') {
+        current.text += '{}';
         emit('$', true, true);
         emit('{', true, true);
         i += 2;
@@ -75,9 +95,12 @@ export function strip(src: string): Stripped {
         lastSignificant = '{';
         return;
       }
+      current.text += ch;
       emit(ch, true, false);
       i++;
     }
+    // Unterminated template: keep what was read.
+    if (templates.length > 0 && templates[templates.length - 1] === current) literals.push(templates.pop()!);
   };
 
   const regexMayStart = (): boolean => {
@@ -113,6 +136,7 @@ export function strip(src: string): Stripped {
       continue;
     }
     if (ch === '`') {
+      templates.push({ start: i, text: '' });
       emit(ch, true, true);
       i++;
       readTemplateText();
@@ -160,7 +184,8 @@ export function strip(src: string): Stripped {
     i++;
   }
 
-  return { noComments: noComments.join(''), code: code.join('') };
+  literals.sort((a, b) => a.start - b.start);
+  return { noComments: noComments.join(''), code: code.join(''), literals };
 }
 
 export interface ImportRef {
@@ -385,4 +410,23 @@ export function findPhaseWrites(src: string): Hit[] {
     }
   }
   return hits.sort((a, b) => a.line - b.line);
+}
+
+/**
+ * Text children of JSX elements in a `.tsx` file (`<p>HELLO</p>` → `HELLO`),
+ * found between a tag's `>` and the next `<` or `{` in code with comments and
+ * strings blanked. Runs that look like code (`;`, `=`, parentheses, `&&`, `||`)
+ * are skipped, so generics and comparisons don't count.
+ */
+export function findJsxText(src: string): Literal[] {
+  const { code } = strip(src);
+  const out: Literal[] = [];
+  const run = />([^<>{}]*)(?=[<{])/g;
+  let m: RegExpExecArray | null;
+  while ((m = run.exec(code)) !== null) {
+    const text = m[1].replace(/\s+/g, ' ').trim();
+    if (!/[A-Za-z]/.test(text) || /[;=()]|&&|\|\|/.test(m[1])) continue;
+    out.push({ start: m.index + 1, text });
+  }
+  return out;
 }

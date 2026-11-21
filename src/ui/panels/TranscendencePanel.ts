@@ -67,14 +67,14 @@ export class TranscendencePanel {
     const statusLabel = document.createElement('div');
     statusLabel.className = 'transcendence-status-label';
     statusLabel.textContent = victoryAchieved
-      ? '✨ You have transcended! ✨'
-      : 'Reach the stars to transcend...';
+      ? 'THE SWARM TRANSCENDS.'
+      : 'THE STARS ARE STILL OUT OF REACH.';
 
     const statusDesc = document.createElement('div');
     statusDesc.className = 'transcendence-status-desc';
     statusDesc.textContent = victoryAchieved
-      ? 'The swarm has collapsed into a singularity of pure thought. All boundaries have dissolved.'
-      : 'Accumulate cosmic resources to achieve transcendence victory.';
+      ? 'ALL BOUNDARIES DISSOLVE.'
+      : 'Gather void crystals, antimatter and dark matter.';
 
     statusSection.appendChild(statusLabel);
     statusSection.appendChild(statusDesc);

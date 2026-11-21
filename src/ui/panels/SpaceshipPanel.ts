@@ -71,7 +71,7 @@ export class SpaceshipPanel {
 
     const info = document.createElement('div');
     info.className = 'spaceship-info';
-    info.textContent = 'No spaceship built yet. Build one to explore the cosmos!';
+    info.textContent = 'No spaceship yet. Build one to explore the cosmos.';
     this.container.appendChild(info);
 
     const costEl = document.createElement('div');
@@ -113,7 +113,7 @@ export class SpaceshipPanel {
       const costEl = document.createElement('div');
       costEl.className = 'spaceship-cost';
       costEl.textContent =
-        `Upgrade cost: ${cost.voidCrystals} voidC, ${cost.antimatter} antimatter, ${cost.darkMatter} darkM`;
+        `Upgrade cost: ${cost.voidCrystals} void crystals, ${cost.antimatter} antimatter, ${cost.darkMatter} dark matter`;
       this.container.appendChild(costEl);
 
       const btn = document.createElement('button');
@@ -130,7 +130,7 @@ export class SpaceshipPanel {
     } else {
       const maxed = document.createElement('div');
       maxed.className = 'spaceship-maxed';
-      maxed.textContent = 'Spaceship fully upgraded!';
+      maxed.textContent = 'Spaceship fully upgraded.';
       this.container.appendChild(maxed);
     }
   }

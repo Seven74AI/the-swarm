@@ -12,6 +12,7 @@ import {
 } from '../../state/selectors';
 import { formatFull, formatTime } from '../../utils/format';
 import { Sep } from '../primitives/Deco';
+import { PHASE_TITLES } from '../../data/content/phaseReveal';
 import { Meter } from '../primitives/Meter';
 import './GoalMeter.css';
 
@@ -33,15 +34,8 @@ import './GoalMeter.css';
  * and reads `<now> now, reached <value> at <time>` (game time).
  */
 
-/** The current phase's name on the phase line (kept from PhaseIndicator; E2E specs read it). */
-export const PHASE_TITLES: Readonly<Record<Phase, string>> = {
-  [Phase.EGG_LAYING]: 'The Lonely Queen',
-  [Phase.COLONY]: 'The Colony',
-  [Phase.COMBAT]: 'The War',
-  [Phase.EXPANSION]: 'The Expansion',
-  [Phase.SPACE]: 'The Space Age',
-  [Phase.TRANSCENDENCE]: 'Transcendence',
-};
+/** The current phase's name on the phase line (content in `data/content/phaseReveal.ts`). */
+export { PHASE_TITLES };
 
 /** `50 WORKERS`, or the singular when the target is 1 (`1 GUARD`). */
 function goalPart(c: GoalCondition): string {

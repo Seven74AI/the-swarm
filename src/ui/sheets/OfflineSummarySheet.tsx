@@ -8,7 +8,7 @@ import { ModalSheet } from '../shell/Sheet';
  * Shown after offline catch-up through the SheetController at `offline`
  * priority, so it opens ahead of anything else requested at boot. Same content as
  * the legacy popup: time away, catch-up efficiency, and one button back to the
- * colony. The `.offline-summary-popup` (panel) and `.offline-overlay` (scrim)
+ * nest (copy in the colony voice, UX-DR42: it can show in any phase). The `.offline-summary-popup` (panel) and `.offline-overlay` (scrim)
  * classes stay as E2E hooks. Story 2.x replaces the body with the summary of
  * gains and the one next action.
  */
@@ -27,13 +27,13 @@ export function formatAway(ms: number): string {
 export function OfflineSummarySheet({ info }: { info: OfflineLoadInfo }) {
   return (
     <ModalSheet
-      headline="Welcome Back!"
+      headline="THE NEST KEPT WORKING."
       class="offline-summary-popup"
       scrimClass="offline-overlay"
-      closeLabel="Return to the colony"
+      closeLabel="BACK TO THE NEST"
     >
-      <p class="offline-duration">You were gone for {formatAway(info.elapsedMs)}.</p>
-      <p class="offline-efficiency">Catch-up efficiency: {Math.round(info.efficiency * 100)}%</p>
+      <p class="offline-duration">YOU WERE GONE {formatAway(info.elapsedMs).toUpperCase()}.</p>
+      <p class="offline-efficiency">CATCH-UP EFFICIENCY: {Math.round(info.efficiency * 100)}%</p>
     </ModalSheet>
   );
 }

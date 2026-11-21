@@ -1,6 +1,7 @@
 import type { GameState } from '../state/GameState';
 import type { EventSink } from '../engine/events';
 import { Phase } from './phases';
+import { colonyLine } from '../data/content/colonyLines';
 
 /**
  * One condition of a phase goal (Story 1.18, AR5, ADR 0003). The goal meter
@@ -70,8 +71,7 @@ export const COLONY_TO_COMBAT: Transition = transition({
   ],
   onEnter: (state, eventBus) => {
     eventBus.emit('narrative', {
-      message:
-        'The colony faces its first threat. Guards are posted. The age of innocence is over.',
+      message: colonyLine('enter_combat'),
     });
     return state;
   },
@@ -92,8 +92,7 @@ export const COMBAT_TO_EXPANSION: Transition = transition({
   ],
   onEnter: (state, eventBus) => {
     eventBus.emit('narrative', {
-      message:
-        'The battles have been won. The colony has proven its strength. Now it is time to expand beyond the nest.',
+      message: colonyLine('enter_expansion'),
     });
     return state;
   },
@@ -114,8 +113,7 @@ export const EXPANSION_TO_SPACE: Transition = transition({
   ],
   onEnter: (state, eventBus) => {
     eventBus.emit('narrative', {
-      message:
-        'The colony looks to the heavens. Rockets thunder skyward. The age of space has begun.',
+      message: colonyLine('enter_space'),
     });
     return state;
   },
@@ -140,8 +138,7 @@ export const SPACE_TO_TRANSCENDENCE: Transition = transition({
     const newState = { ...state, victoryAchieved: true };
     eventBus.emit('victory', {});
     eventBus.emit('narrative', {
-      message:
-        'The swarm collapses into a singularity of pure consciousness. Space, time, matter — all dissolve. The colony has transcended physical existence. Victory.',
+      message: colonyLine('enter_transcendence'),
     });
     return newState;
   },

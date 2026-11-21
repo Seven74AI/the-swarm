@@ -20,8 +20,8 @@ test.describe('Narrative Event Log', () => {
     const logText = await log.textContent();
     expect(logText).toBeTruthy();
 
-    // EventLog says "swarm looks to the stars" on space phase
-    const hasNarrative = logText?.includes('swarm looks to the stars') ?? false;
+    // EventLog says "THE SWARM LOOKS TO THE STARS." on space phase
+    const hasNarrative = logText?.includes('THE SWARM LOOKS TO THE STARS') ?? false;
     expect(hasNarrative).toBe(true);
   });
 
@@ -32,7 +32,7 @@ test.describe('Narrative Event Log', () => {
     const log = page.locator('#activity-log');
     await expect(log).toBeVisible({ timeout: 5000 });
 
-    // Emit workers_changed — EventLog shows "The first worker emerges" on first call
+    // Emit workers_changed — EventLog shows "THE FIRST WORKER STIRS." on first call
     await page.evaluate(() => {
       const swarm = (window as unknown as Record<string, unknown>).__swarm as Record<string, unknown>;
       const bus = swarm.bus as { emit: (event: string, payload: unknown) => void };
@@ -45,7 +45,7 @@ test.describe('Narrative Event Log', () => {
     expect(logText).toBeTruthy();
 
     // EventLog should have some worker-related entry
-    const hasWorkerNarrative = logText?.includes('worker') || logText?.includes('Worker') || logText?.includes('colony') || false;
+    const hasWorkerNarrative = logText?.includes('WORKER') ?? false;
     expect(hasWorkerNarrative).toBe(true);
   });
 
@@ -67,8 +67,8 @@ test.describe('Narrative Event Log', () => {
     const logText = await log.textContent();
     expect(logText).toBeTruthy();
 
-    // EventLog says "Barracks upgraded to level 2. The colony grows stronger."
-    const hasBuildingNarrative = logText?.includes('upgraded') || logText?.includes('Barracks') || false;
+    // EventLog says "THE BARRACKS REACHES LEVEL 2."
+    const hasBuildingNarrative = logText?.includes('BARRACKS REACHES LEVEL 2') ?? false;
     expect(hasBuildingNarrative).toBe(true);
   });
 
@@ -79,6 +79,6 @@ test.describe('Narrative Event Log', () => {
     await expect(log).toBeVisible({ timeout: 5000 });
 
     // The initial message should always be present
-    await expect(log).toContainText('You are an ant queen');
+    await expect(log).toContainText('A QUEEN WAKES ALONE IN THE DARK.');
   });
 });
