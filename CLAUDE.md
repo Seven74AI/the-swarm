@@ -66,6 +66,7 @@ Not sure which skill to use? Run `bmad-help`. **Plan in BMAD, build through GitH
    invariants, plus a link to the story file. Label it `needs-triage`. The owner promotes it to `ready-for-agent`.
 3. **Build:** the nightly sweep implements `ready-for-agent` issues as usual and treats the linked story file as the spec.
    Don't run `gds-dev-story` / `gds-quick-dev` / `bmad-build` unattended. They don't follow the issue → PR → CI flow.
+   The owner can also start a long run that builds every MVP story in order (`/goal`): `docs/agents/run-all-stories.md`.
 4. **Status lives in GitHub, not BMAD.** Don't maintain BMAD's sprint-status files. Open/closed issues are the truth.
    If a plan changes, update the artifact in a PR (`gds-correct-course`) and edit the affected issues.
 
