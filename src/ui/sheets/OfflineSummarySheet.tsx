@@ -1,0 +1,44 @@
+import type { OfflineLoadInfo } from '../../persistence/SaveManager';
+import type { SheetController } from '../shell/SheetController';
+import { ModalSheet } from '../shell/Sheet';
+
+/**
+ * The offline-summary sheet (Story 1.14; was `OfflineSummaryPopup`, GM-8).
+ *
+ * Shown after offline catch-up through the SheetController at `offline`
+ * priority, so it opens ahead of anything else requested at boot. Same content as
+ * the legacy popup: time away, catch-up efficiency, and one button back to the
+ * colony. The `.offline-summary-popup` (panel) and `.offline-overlay` (scrim)
+ * classes stay as E2E hooks. Story 2.x replaces the body with the summary of
+ * gains and the one next action.
+ */
+
+/** "45s", "12m 30s", "3h 14m", "8h": a zero minor unit is dropped. */
+export function formatAway(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  if (minutes > 0) return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+  return `${seconds}s`;
+}
+
+export function OfflineSummarySheet({ info }: { info: OfflineLoadInfo }) {
+  return (
+    <ModalSheet
+      headline="Welcome Back!"
+      class="offline-summary-popup"
+      scrimClass="offline-overlay"
+      closeLabel="Return to the colony"
+    >
+      <p class="offline-duration">You were gone for {formatAway(info.elapsedMs)}.</p>
+      <p class="offline-efficiency">Catch-up efficiency: {Math.round(info.efficiency * 100)}%</p>
+    </ModalSheet>
+  );
+}
+
+/** Request the offline-summary sheet; returns its sheet id. */
+export function openOfflineSummary(sheets: SheetController, info: OfflineLoadInfo, onDismiss?: () => void): number {
+  return sheets.open({ priority: 'offline', render: () => <OfflineSummarySheet info={info} />, onClose: onDismiss });
+}
