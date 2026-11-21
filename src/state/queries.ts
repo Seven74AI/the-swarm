@@ -58,6 +58,7 @@ export {
   isLegacyRevealed,
   isPrestigeAvailable,
   isPrestigeUpgradePurchased,
+  legacyPointsAward,
   PRESTIGE_REQUIREMENTS,
   type PrestigeRequirement,
   type PrestigeRequirementId,

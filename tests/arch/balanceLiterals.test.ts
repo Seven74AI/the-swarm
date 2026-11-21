@@ -43,8 +43,7 @@ const PENDING_BALANCE_LITERALS: Readonly<Record<string, number>> = {
   'systems/TerritorySystem.ts': 4, // Epic 5 (expansion)
   'systems/ExplorationSystem.ts': 28, // Epic 6 (space)
   'systems/SpaceshipSystem.ts': 75, // Epic 6 (space)
-  'systems/EntropySystem.ts': 24, // Epic 6 (transcendence)
-  'systems/PrestigeSystem.ts': 12, // Epic 7 (Legacy)
+  'systems/EntropySystem.ts': 22, // Epic 6 (transcendence)
 };
 
 const NUMBER = /(?<![\w$.])(?:\d[\d_]*(?:\.\d[\d_]*)?(?:e[+-]?\d+)?|\.\d[\d_]*(?:e[+-]?\d+)?)(?![\w.])/gi;

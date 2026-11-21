@@ -231,8 +231,15 @@ export interface GameState {
   prestige: {
     /** Number of times the player has prestiged. */
     count: number;
-    /** Accumulated Legacy Points across all prestiges. */
+    /** Legacy Points held: earned by prestiges, minus what Legacy upgrades cost. */
     legacyPoints: number;
+    /**
+     * Every Legacy Point ever earned, spent or not (Story 5.2, FR29): a
+     * prestige adds its award here and to `legacyPoints`; a Legacy purchase
+     * spends only `legacyPoints`. The production bonus reads this, so buying
+     * an upgrade never lowers it.
+     */
+    lifetimeLpEarned: number;
     /** Lifetime total food produced (never reset). */
     totalFoodProduced: number;
     /** Lifetime total wood produced (never reset). */
@@ -471,6 +478,7 @@ export function createInitialState(): GameState {
     prestige: {
       count: 0,
       legacyPoints: 0,
+      lifetimeLpEarned: 0,
       totalFoodProduced: 0,
       totalWoodProduced: 0,
       totalStoneProduced: 0,

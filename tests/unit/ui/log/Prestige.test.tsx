@@ -7,7 +7,10 @@ import { gameState } from '../../../../src/state/gameSignal';
 import { EventBus } from '../../../../src/engine/EventBus';
 import { createInitialState, type GameState } from '../../../../src/state/GameState';
 import { PHASE_ORDER } from '../../../../src/phases/phases';
-import { calculateLegacyPoints, getPhaseScore } from '../../../../src/state/queries';
+import { calculateLegacyPoints, getPhaseScore, legacyPointsAward } from '../../../../src/state/queries';
+import { ENTROPY_MAX } from '../../../../src/systems/EntropySystem';
+import { progressionBalance } from '../../../../src/data/balance/progression';
+import { PERCENT } from '../../../../src/data/constants';
 import { PRESTIGE_UPGRADES } from '../../../../src/data/prestigeTree';
 import { PrestigeCard, PrestigeTree } from '../../../../src/ui/log/Prestige';
 import { getUnmetRequirements } from '../../../../src/state/queries';
@@ -124,6 +127,41 @@ describe('PrestigeCard', () => {
       expect(value).toBe(`+${calculateLegacyPoints(s.prestige.totalFoodProduced, getPhaseScore(phase))} LP`);
     });
   }
+
+  it('previews the whole award, entropy bonus included (Story 5.2)', () => {
+    const s = { ...ready(1_000_000_000), phase: PHASE_ORDER[PHASE_ORDER.length - 1], entropy: ENTROPY_MAX };
+    gameState.value = s;
+    const { panel } = card();
+    const value = panel().querySelector('.stat-row.projected .stat-value')?.textContent;
+    expect(legacyPointsAward(s)).toBeGreaterThan(calculateLegacyPoints(s.prestige.totalFoodProduced, getPhaseScore(s.phase)));
+    expect(value).toBe(`+${legacyPointsAward(s)} LP`);
+  });
+
+  describe('the production bonus counts lifetime LP (Story 5.2, FR29)', () => {
+    const bonusPercent = (lp: number) => Math.round(lp * progressionBalance.productionPerLegacyPoint * PERCENT);
+
+    it('shows +percent of the LP ever earned, not the LP held', () => {
+      const s = createInitialState();
+      gameState.value = { ...s, prestige: { ...s.prestige, legacyPoints: 2, lifetimeLpEarned: 9 } };
+      const { stat } = card();
+      expect(stat('Production Bonus')).toBe(`+${bonusPercent(9)}%`);
+    });
+
+    it('does not drop when LP is spent', () => {
+      const s = createInitialState();
+      gameState.value = { ...s, prestige: { ...s.prestige, legacyPoints: 9, lifetimeLpEarned: 9 } };
+      const { stat } = card();
+      const before = stat('Production Bonus');
+      set({ ...gameState.value, prestige: { ...gameState.value.prestige, legacyPoints: 0 } });
+      expect(stat('Production Bonus')).toBe(before);
+    });
+
+    it('is hidden until any LP has been earned, and the tip names the per-LP share', () => {
+      const { stat, panel } = card();
+      expect(stat('Production Bonus')).toBeUndefined();
+      expect(panel().getAttribute('data-tooltip')).toContain(`+${bonusPercent(1)}%`);
+    });
+  });
 
   it('keeps the same PRESTIGE node when a tick changes nothing it shows (#186)', () => {
     const { btn } = card();

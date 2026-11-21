@@ -708,6 +708,45 @@ function migrateV26toV27(data: SaveData): SaveData {
   return { ...data, version: 27, gameState: { ...gs, nextEnemy } as unknown as GameState };
 }
 
+/**
+ * What each Legacy node cost when lifetime LP was added (v28). Frozen here so
+ * a later price change can't rewrite what an old save spent.
+ */
+const V28_LEGACY_COSTS: Readonly<Record<string, number>> = {
+  egg_laying_bonus: 3,
+  hatching_bonus: 3,
+  food_bonus: 3,
+  soldier_training_bonus: 5,
+  worker_efficiency_bonus: 5,
+  auto_egg_laying: 10,
+  starting_resources: 8,
+  phase_skip: 12,
+  temporal_resonance: 10,
+  chrono_synchronization: 8,
+  long_dormancy: 12,
+};
+
+/**
+ * v27 → v28 (Story 5.2, FR29): `prestige.lifetimeLpEarned`, every Legacy
+ * Point ever earned. The production bonus now reads it instead of the LP
+ * held, so an old save starts it at the LP held plus what its bought Legacy
+ * nodes cost: the bonus never drops on load. A value already at least that
+ * is kept; a save without a prestige block is left for SaveManager's defaults.
+ */
+function migrateV27toV28(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  const prestige = gs.prestige;
+  if (prestige === null || typeof prestige !== 'object') return { ...data, version: 28 };
+  const p = prestige as Record<string, unknown>;
+  const held = wholeCount(p.legacyPoints);
+  const tree = gs.prestigeTree as { purchased?: unknown } | undefined;
+  const bought = Array.isArray(tree?.purchased) ? new Set(tree.purchased.filter((id): id is string => typeof id === 'string')) : new Set<string>();
+  let spent = 0;
+  for (const id of bought) spent += V28_LEGACY_COSTS[id] ?? 0;
+  const lifetimeLpEarned = Math.max(held + spent, wholeCount(p.lifetimeLpEarned));
+  return { ...data, version: 28, gameState: { ...gs, prestige: { ...p, lifetimeLpEarned } } as unknown as GameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -736,6 +775,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   24: migrateV24toV25,
   25: migrateV25toV26,
   26: migrateV26toV27,
+  27: migrateV27toV28,
 };
 
 /**
