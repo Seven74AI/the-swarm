@@ -1,0 +1,84 @@
+/*
+ * THE SWARM — design tokens (Story 1.8, UX-DR1).
+ *
+ * Source: DESIGN.md front matter (ux-designs/ux-the-swarm-2026-11-20).
+ * One phosphor palette per phase, 7 values each. The active phase is one
+ * attribute on the root (`<html data-phase="…">`, set by ui/theme/phaseTheme.ts);
+ * it rebinds the runtime aliases below. Components reference ONLY the aliases
+ * (`var(--color-accent)` …), never a phase hex: tests/unit/phaseTokens.test.ts
+ * greps ui/ CSS for them and recomputes the DESIGN.md contrast table from here.
+ *
+ * Each phase's colors appear only inside its own block, so no later palette
+ * is reachable before its phase is entered. `on-accent` is the phase `bg`.
+ */
+
+:root {
+  --color-scrim: #000000b3;
+}
+
+:root,
+:root[data-phase="egg"] {
+  --color-bg: #0d0a04;
+  --color-raised: #201704;
+  --color-line: #4a3403;
+  --color-edge: #7c5602;
+  --color-dim: #bb8201;
+  --color-accent: #ffb000;
+  --color-warn: #ffdb8c;
+  --color-on-accent: #0d0a04;
+}
+
+:root[data-phase="colony"] {
+  --color-bg: #0b0d08;
+  --color-raised: #1a2014;
+  --color-line: #3a482e;
+  --color-edge: #516440;
+  --color-dim: #7e9c65;
+  --color-accent: #c8f7a0;
+  --color-warn: #e6fbd4;
+  --color-on-accent: #0b0d08;
+}
+
+:root[data-phase="combat"] {
+  --color-bg: #0f0807;
+  --color-raised: #22110e;
+  --color-line: #4b241c;
+  --color-edge: #934736;
+  --color-dim: #db694f;
+  --color-accent: #ff7a5c;
+  --color-warn: #ffc4b7;
+  --color-on-accent: #0f0807;
+}
+
+:root[data-phase="expansion"] {
+  --color-bg: #060d09;
+  --color-raised: #102016;
+  --color-line: #244a33;
+  --color-edge: #336948;
+  --color-dim: #4fa16f;
+  --color-accent: #7dffb0;
+  --color-warn: #c4ffdb;
+  --color-on-accent: #060d09;
+}
+
+:root[data-phase="space"] {
+  --color-bg: #050a0f;
+  --color-raised: #0e1a22;
+  --color-line: #223d4b;
+  --color-edge: #376276;
+  --color-dim: #5595b2;
+  --color-accent: #7ad7ff;
+  --color-warn: #c3edff;
+  --color-on-accent: #050a0f;
+}
+
+:root[data-phase="transcendence"] {
+  --color-bg: #000000;
+  --color-raised: #141414;
+  --color-line: #404040;
+  --color-edge: #5c5c5c;
+  --color-dim: #8a8a8a;
+  --color-accent: #ffffff;
+  --color-warn: #ffffff;
+  --color-on-accent: #000000;
+}

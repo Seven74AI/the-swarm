@@ -33,7 +33,7 @@ colors:
   combat-edge: '#934736'
   combat-dim: '#db694f'
   combat-accent: '#ff7a5c'
-  combat-warn: '#ffc3b6'
+  combat-warn: '#ffc4b7'
   expansion-bg: '#060d09'
   expansion-raised: '#102016'
   expansion-line: '#244a33'
