@@ -5,7 +5,13 @@ name: Auto-merge
 #
 # Skipped for: PRs from forks, drafts (armed when marked ready).
 # Dependabot PRs get their own job: patch and minor updates are armed, major
-# updates are left for the owner to merge.
+# updates are not.
+#
+# Adding the `automerge` label arms any open, non-draft, non-fork PR. The
+# nightly Claude sweep uses it (docs/agents/pr-sweep.md) once it has fixed a
+# stuck PR, such as a Dependabot major, because its sessions can't call the
+# GraphQL API that arming needs. Arming only queues the merge: GitHub still
+# waits for the required checks.
 #
 # Needs the AUTOMERGE_TOKEN secret: a fine-grained personal access token for
 # this repo with "Contents: read and write" and "Pull requests: read and write".
@@ -19,7 +25,7 @@ name: Auto-merge
 
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review]
+    types: [opened, reopened, ready_for_review, labeled]
 
 permissions:
   contents: read
@@ -27,6 +33,7 @@ permissions:
 jobs:
   enable-auto-merge:
     if: >-
+      github.event.action != 'labeled' &&
       github.event.pull_request.user.login != 'dependabot[bot]' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       !github.event.pull_request.draft
@@ -49,6 +56,7 @@ jobs:
 
   dependabot-auto-merge:
     if: >-
+      github.event.action != 'labeled' &&
       github.event.pull_request.user.login == 'dependabot[bot]' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
@@ -89,6 +97,29 @@ jobs:
         if: >-
           steps.meta.outputs.update-type == 'version-update:semver-patch' ||
           steps.meta.outputs.update-type == 'version-update:semver-minor'
+        env:
+          GH_TOKEN: ${{ secrets.AUTOMERGE_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --squash "$PR_URL"
+
+  label-auto-merge:
+    if: >-
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'automerge' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔑 Check token
+        env:
+          TOKEN: ${{ secrets.AUTOMERGE_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::AUTOMERGE_TOKEN secret is not set. See the header of .github/workflows/auto-merge.yml."
+            exit 1
+          fi
+
+      - name: 🔀 Enable squash auto-merge
         env:
           GH_TOKEN: ${{ secrets.AUTOMERGE_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}

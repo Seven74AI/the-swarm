@@ -15,7 +15,9 @@ name: Dependency audit
 
 on:
   schedule:
-    - cron: '23 5 * * *'
+    # 23:07 UTC = 00:07 Paris in winter, 01:07 in summer: either way ahead
+    # of the nightly Claude sweep (01:42 Paris), which picks up a red run.
+    - cron: '7 23 * * *'
   workflow_dispatch:
 
 permissions:

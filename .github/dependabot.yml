@@ -1,6 +1,9 @@
 # Dependabot version updates. Patch and minor PRs merge themselves once CI is
 # green (see the dependabot-auto-merge job in workflows/auto-merge.yml); major
-# bumps wait for the owner.
+# bumps are handled by the nightly Claude sweep (docs/agents/pr-sweep.md).
+#
+# 23:37 Paris, ahead of the sweep (01:42 Paris), so a PR that gets stuck is
+# picked up the same night.
 #
 # Dependabot does not raise security alerts or security-update PRs for pnpm 11
 # lockfiles, so vulnerable transitive packages are handled by
@@ -11,8 +14,8 @@ updates:
     directory: /
     schedule:
       interval: daily
-      time: '04:37'
-      timezone: Etc/UTC
+      time: '23:37'
+      timezone: Europe/Paris
     # pnpm 11 can refuse versions published in the last day, which would fail
     # `pnpm install --frozen-lockfile` in CI. Waiting a few days also avoids
     # picking up a release that gets yanked.
@@ -34,8 +37,8 @@ updates:
     directory: /
     schedule:
       interval: daily
-      time: '04:37'
-      timezone: Etc/UTC
+      time: '23:37'
+      timezone: Europe/Paris
     cooldown:
       default-days: 3
     commit-message:
