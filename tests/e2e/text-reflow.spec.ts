@@ -239,6 +239,24 @@ for (const setup of SETUPS) {
       expect((await layoutProblems(page)).map((p) => `offline summary: ${p}`)).toEqual([]);
     });
 
+    test('the battle summary with its cause line and > CHANGE fits the screen too (Story 4.3)', async ({ page }) => {
+      // One soldier cannot beat the beetle: the summary shows a cause, and a counter with its shortfall.
+      await seed(page, setup, {
+        ...SPACE,
+        combatSoldiers: 1,
+        nextEnemy: 'beetle',
+        buildings: { ...SPACE.buildings, chitin_armory: { level: 1 }, silk_weaving: { level: 1 } },
+        combatResources: { chitin: 0, silk: 0, venom: 0 },
+      });
+      await openTab(page, 'front', 'war');
+      await page.locator('[data-primary-for="front"] [data-action="fight"]').click();
+      const sheet = page.locator('[data-battle-summary]');
+      await expect(sheet).toBeVisible({ timeout: 5000 });
+      await expect(sheet.locator('[data-cause]')).toBeVisible();
+      await expect(sheet.locator('button[data-action="change"]')).toBeVisible();
+      expect((await layoutProblems(page)).map((p) => `battle summary: ${p}`)).toEqual([]);
+    });
+
     test('the settings sheet and the import sheets fit the screen too (Story 2.11)', async ({ page }) => {
       await seed(page, setup);
       const openSettings = async () => {

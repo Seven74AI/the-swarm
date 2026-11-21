@@ -122,6 +122,20 @@ test.describe('sheets', () => {
     expect(await axe(page)).toEqual([]);
   });
 
+  test('the battle summary with its cause and > CHANGE passes axe and reads no decoration (Story 4.3)', async ({ page }) => {
+    // One soldier cannot beat the beetle: the summary shows a cause and a counter to change to.
+    await seed(page, { ...COMBAT, combatSoldiers: 1, buildings: { chitin_armory: { level: 1 }, silk_weaving: { level: 1 } } });
+    await openTab(page, 'front', 'war');
+    await page.locator('[data-primary-for="front"] [data-action="fight"]').click();
+    const sheet = page.locator('[data-battle-summary]');
+    await expect(sheet).toBeVisible({ timeout: 5000 });
+    await expect(sheet.locator('[data-cause]')).toBeVisible();
+    await expect(sheet.locator('button[data-action="change"]')).toBeVisible();
+    await expect(sheet.locator('[data-sheet-headline]')).toBeFocused();
+    expect(await axe(page)).toEqual([]);
+    expect((await spokenTree(page)).split('\n').filter((l) => DECORATION.test(l))).toEqual([]);
+  });
+
   test('the offline summary passes axe, takes focus and reads no decoration (Story 2.9)', async ({ page }) => {
     // Two hours away, with upkeep outrunning food: gains, losses, a warn line and the next move.
     const away = Date.now() - 2 * 3_600_000;

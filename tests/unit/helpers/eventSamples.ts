@@ -29,6 +29,7 @@ export const EVENT_SAMPLES: { [K in keyof SwarmEvents]: SwarmEvents[K] } = {
     victory: true,
     outcome: 'victory',
     rounds: 3,
+    cause: { kind: 'outfought', trait: 'thick_shell' },
     soldiersLost: 0,
     enemyType: 'beetle',
     foodGained: 0,

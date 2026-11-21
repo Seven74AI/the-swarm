@@ -147,6 +147,11 @@ export type Matchup = 'favoured' | 'even' | 'dangerous';
 /** Every roll at the hint's fixed value. */
 const hintRolls: RngStream = { state: 0, float: () => enemyBalance.matchup.roll };
 
+/** The rounds played out once with every roll at its middle (the matchup hint, Story 4.3's battle cause). */
+export function playOut(army: Army, enemy: EnemyDef): RoundsResult {
+  return fightRounds(army, enemy, hintRolls);
+}
+
 /**
  * A read of the fight before committing (Story 4.1): the rounds played out
  * once with fixed rolls, the trait included. A hint, never a promise
@@ -154,7 +159,7 @@ const hintRolls: RngStream = { state: 0, float: () => enemyBalance.matchup.roll 
  */
 export function assessMatchup(state: GameState, enemy: EnemyDef, soldiers: number = state.combatSoldiers): Matchup {
   if (soldiers <= 0) return 'dangerous';
-  const r = fightRounds(armyOf(state, soldiers), enemy, hintRolls);
+  const r = playOut(armyOf(state, soldiers), enemy);
   if (r.outcome !== 'victory') return 'dangerous';
   return r.armyHpLeft >= r.armyHp * enemyBalance.matchup.favouredHpShare ? 'favoured' : 'even';
 }

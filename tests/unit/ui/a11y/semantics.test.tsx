@@ -107,6 +107,7 @@ describe('Battle summary', () => {
     victory: true,
     outcome: 'draw',
     rounds: 4,
+    cause: { kind: 'outnumbered', trait: 'thick_shell' },
     soldiersLost: 5,
     enemyType: 'beetle',
     foodGained: 3,

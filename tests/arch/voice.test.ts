@@ -18,6 +18,8 @@ import { SEGMENTS, TABS } from '../../src/data/content/tabs';
 import { ROLES } from '../../src/data/content/roles';
 import { TRAITS } from '../../src/data/content/enemies';
 import { RESOURCES } from '../../src/ui/shell/resourceCatalog';
+import { causeLine, LOSS_CAUSES, WIN_CAUSES } from '../../src/systems/BattleCauses';
+import { CAUSE_UPGRADE_WORDS } from '../../src/data/content/battleCauses';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const SRC = join(ROOT, 'src');
@@ -115,6 +117,21 @@ describe('colony lines: short, upper case, present tense', () => {
       const problem = colonyVoiceProblem(REVEAL_LINES[p]);
       return problem ? [`${p}: "${REVEAL_LINES[p]}" ${problem}`] : [];
     });
+    expect(bad).toEqual([]);
+  });
+
+  it('every battle cause line keeps the colony voice (Story 4.3)', () => {
+    const traits = Object.keys(TRAITS) as (keyof typeof TRAITS)[];
+    const upgrades = [undefined, ...Object.keys(CAUSE_UPGRADE_WORDS)];
+    const bad = traits.flatMap((trait) =>
+      [...WIN_CAUSES, ...LOSS_CAUSES].flatMap((kind) =>
+        upgrades.flatMap((upgrade) => {
+          const line = causeLine({ kind, trait, upgrade });
+          const problem = colonyVoiceProblem(line);
+          return problem ? [`${kind}/${trait}/${upgrade}: "${line}" ${problem}`] : [];
+        }),
+      ),
+    );
     expect(bad).toEqual([]);
   });
 

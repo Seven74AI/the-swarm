@@ -270,6 +270,11 @@ export function itemPrice(s: GameState, ref: ItemRef): ItemCost {
   return defOf(ref).cost(s);
 }
 
+/** The item as its button names it, upper case (`TOUGH SHELLS`, `ARMOR LV.2`). */
+export function itemTarget(s: GameState, ref: ItemRef): string {
+  return defOf(ref).target(s);
+}
+
 /** Whether the player can buy the item now, from a panel open in this phase. */
 export function isItemAffordable(s: GameState, ref: ItemRef): boolean {
   const def = defOf(ref);
