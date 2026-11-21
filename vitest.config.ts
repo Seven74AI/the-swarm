@@ -4,7 +4,7 @@ import { configDefaults, defineConfig } from 'vitest/config';
  * Tests that run a real Vite build. The bundler's native bindings fail type checks
  * inside a vmThreads VM context, so these run in plain child processes instead.
  */
-const BUILD_TESTS = ['tests/unit/debug/productionBuild.test.ts'];
+const BUILD_TESTS = ['tests/unit/debug/productionBuild.test.ts', 'tests/unit/build/pwaBuild.test.ts'];
 
 export default defineConfig({
   test: {

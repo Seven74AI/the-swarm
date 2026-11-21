@@ -14,6 +14,7 @@ import { createLocalSaveStore, type RemovableStore, type SaveStore } from './sto
 import { createIntroFlag, type IntroFlag } from './storage/introFlag';
 import { createDurability, type Durability, type StorageManagerLike } from './storage/durability';
 import { createLifecycle, type Lifecycle, type LifecycleEnv } from './lifecycle';
+import { createServiceWorker, type ServiceWorkerControl, type ServiceWorkerEnv } from './serviceWorker';
 
 export interface Platform {
   readonly capabilities: Capabilities;
@@ -31,6 +32,8 @@ export interface Platform {
   readonly lifecycle: Lifecycle;
   /** Persistent storage and the one-time add-to-home-screen hint (Story 2.12, D4). */
   readonly durability: Durability;
+  /** Offline play: registers the precaching service worker; updates wait for a cold start (Story 2.13, D10). */
+  readonly serviceWorker: ServiceWorkerControl;
 }
 
 export interface WebPlatformEnv extends CapabilityEnv, BrowserEnv, Omit<LifecycleEnv, 'document'> {
@@ -69,5 +72,6 @@ export function createWebPlatform(env: WebPlatformEnv = typeof window === 'undef
   const introFlag = createIntroFlag(storage);
   const lifecycle = createLifecycle(env as LifecycleEnv);
   const durability = createDurability({ storageManager: storageManagerOf(env), storage, capabilities });
-  return Object.freeze({ capabilities, settings, haptics, browser, viewport, saves, introFlag, lifecycle, durability });
+  const serviceWorker = createServiceWorker(env as ServiceWorkerEnv);
+  return Object.freeze({ capabilities, settings, haptics, browser, viewport, saves, introFlag, lifecycle, durability, serviceWorker });
 }

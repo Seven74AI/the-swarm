@@ -53,6 +53,12 @@ describe('createWebPlatform (Story 1.10)', () => {
     expect(p.durability.wantsHomeScreenHint()).toBe(false);
   });
 
+  it('has a service worker service that registers nothing where service workers are missing (Story 2.13)', async () => {
+    const p = createWebPlatform({});
+    const status = await p.serviceWorker.register({ enabled: true, url: '/the-swarm/sw.js', scope: '/the-swarm/', onUpdateReady: vi.fn() });
+    expect(status).toBe('unsupported');
+  });
+
   it('survives storage that throws on access', () => {
     const env = {
       get localStorage(): never {
