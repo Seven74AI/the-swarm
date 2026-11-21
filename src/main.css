@@ -66,7 +66,7 @@ html, body {
   height: 100%;
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'Courier New', Courier, monospace;
+  font-family: var(--font-mono);
   /* The player's text size, not a fixed 16 px (Story 1.31, NFR7). */
   font-size: 100%;
   line-height: 1.5;
@@ -98,7 +98,7 @@ html, body {
 
 .panel-title {
   color: var(--accent);
-  font-size: 0.85rem;
+  font-size: var(--type-body);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin-bottom: 0.5rem;
@@ -129,7 +129,7 @@ html, body {
   padding: 0.5rem 1rem;
   cursor: pointer;
   font-family: inherit;
-  font-size: 0.9rem;
+  font-size: var(--type-body);
   transition: background var(--anim-micro), border-color var(--anim-micro);
 }
 
@@ -161,7 +161,7 @@ html, body {
   color: #e0e0ff;
   padding: 0.4rem 0.7rem;
   border-radius: 4px;
-  font-size: 0.75rem;
+  font-size: var(--type-meta);
   white-space: nowrap;
   visibility: hidden;
   opacity: 0;
@@ -216,13 +216,13 @@ html, body {
 
 .game-title {
   color: var(--accent-glow);
-  font-size: 1.2rem;
+  font-size: var(--type-title);
   font-weight: bold;
 }
 
 .game-phase {
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: var(--type-aside);
 }
 
 /* ── Pause Button ── */
@@ -233,7 +233,7 @@ html, body {
   border-radius: 4px;
   width: 32px;
   height: 32px;
-  font-size: 1rem;
+  font-size: var(--type-value);
   line-height: 1;
   cursor: pointer;
   display: flex;
@@ -301,14 +301,14 @@ html, body {
 }
 
 .phase-indicator .phase-text {
-  font-size: 0.9rem;
+  font-size: var(--type-body);
   color: var(--text-muted);
   font-style: italic;
   transition: font-size var(--anim-slow) ease, color var(--anim-slow) ease;
 }
 
 .phase-indicator.phase-colony .phase-text {
-  font-size: 1.1rem;
+  font-size: var(--type-title);
   color: var(--accent-glow);
   font-style: normal;
   font-weight: bold;
@@ -326,12 +326,12 @@ html, body {
 .worker-role-label {
   font-weight: bold;
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: var(--type-body);
 }
 
 .worker-role-desc {
   color: var(--text-muted);
-  font-size: 0.7rem;
+  font-size: var(--type-meta);
 }
 
 .worker-assignment-panel .role-controls {
@@ -349,7 +349,7 @@ html, body {
   width: 28px;
   height: 28px;
   padding: 0;
-  font-size: 1rem;
+  font-size: var(--type-value);
   line-height: 1;
   display: flex;
   align-items: center;
@@ -360,7 +360,7 @@ html, body {
 .capacity-line {
   margin-top: 0.4rem;
   padding: 0.3rem 0;
-  font-size: 0.8rem;
+  font-size: var(--type-aside);
   color: var(--text-secondary);
   border-top: 1px solid var(--border);
 }
@@ -387,7 +387,7 @@ html, body {
 
 .map-summary {
   color: var(--accent-glow);
-  font-size: 0.8rem;
+  font-size: var(--type-aside);
   margin-bottom: 0.5rem;
   text-align: center;
 }
@@ -410,7 +410,7 @@ html, body {
 
 .panel-header .panel-sub {
   color: var(--text-muted);
-  font-size: 0.7rem;
+  font-size: var(--type-meta);
   display: block;
   margin-top: 0.15rem;
 }
@@ -435,22 +435,22 @@ html, body {
 }
 
 .expedition-card-icon {
-  font-size: 1.5rem;
+  font-size: var(--type-display);
 }
 
 .expedition-card-name {
   font-weight: bold;
-  font-size: 0.85rem;
+  font-size: var(--type-body);
   color: var(--text-primary);
 }
 
 .expedition-card-type {
-  font-size: 0.65rem;
+  font-size: var(--type-meta);
   color: var(--text-muted);
 }
 
 .expedition-card-loot {
-  font-size: 0.65rem;
+  font-size: var(--type-meta);
   color: var(--accent-glow);
   margin-bottom: 0.2rem;
 }
@@ -482,30 +482,30 @@ html, body {
 
 .expedition-row-info strong {
   color: var(--text-primary);
-  font-size: 0.85rem;
+  font-size: var(--type-body);
 }
 
 .text-muted {
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: var(--type-meta);
 }
 
 .expedition-row-status {
   color: var(--text-secondary);
-  font-size: 0.75rem;
+  font-size: var(--type-meta);
   display: flex;
   gap: 0.5rem;
 }
 
 .expedition-list-title {
   color: var(--text-secondary);
-  font-size: 0.8rem;
+  font-size: var(--type-aside);
   margin: 0.5rem 0 0.25rem 0;
 }
 
 .exploration-hint {
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: var(--type-aside);
   font-style: italic;
   text-align: center;
   padding: 1rem 0;
@@ -632,9 +632,9 @@ body.phase-space .panel {
   box-shadow: 0 0 15px rgba(0, 204, 255, 0.1), inset 0 0 15px rgba(0, 204, 255, 0.03);
 }
 
+/* No glow: section titles are under 15 px (Story 8.1). */
 body.phase-space .panel-title {
   color: var(--accent);
-  text-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
 }
 
 body.phase-space .btn {
@@ -655,13 +655,14 @@ body.phase-space .btn:active {
 body.phase-space .phase-indicator .phase-text {
   color: var(--accent-glow);
   text-shadow: 0 0 12px rgba(64, 221, 255, 0.6);
-  font-size: 1.1rem;
+  font-size: var(--type-title);
   font-style: normal;
   font-weight: bold;
 }
 
 body.phase-space .game-title {
   color: var(--accent);
+  font-size: var(--type-title);
   text-shadow: 0 0 15px rgba(0, 204, 255, 0.5);
 }
 
@@ -672,32 +673,32 @@ body.phase-space .top-bar {
 /* ── Spaceship Panel ── */
 .spaceship-panel .spaceship-info {
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: var(--type-body);
   margin-bottom: 0.75rem;
 }
 
 .spaceship-panel .spaceship-cost {
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: var(--type-meta);
   margin-bottom: 0.5rem;
 }
 
 .spaceship-panel .spaceship-level {
   color: var(--accent-glow);
-  font-size: 1.1rem;
+  font-size: var(--type-title);
   font-weight: bold;
   margin-bottom: 0.5rem;
 }
 
 .spaceship-panel .spaceship-fuel {
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: var(--type-body);
   margin-bottom: 0.5rem;
 }
 
 .spaceship-panel .spaceship-maxed {
   color: var(--success);
-  font-size: 0.9rem;
+  font-size: var(--type-body);
   font-weight: bold;
 }
 
@@ -745,7 +746,7 @@ body.phase-space .top-bar {
   border-radius: 6px;
   background: var(--bg-secondary);
   color: var(--text-muted);
-  font-size: 1rem;
+  font-size: var(--type-value);
   font-weight: bold;
   cursor: pointer;
   transition: all var(--anim-ui) ease;
@@ -811,7 +812,7 @@ body.phase-space .top-bar {
   border-radius: 4px;
   background: rgba(34, 197, 94, 0.1);
   color: #22c55e;
-  font-size: 0.85rem;
+  font-size: var(--type-body);
   font-weight: bold;
   cursor: pointer;
   transition: background var(--anim-fast);
@@ -830,13 +831,13 @@ body.phase-space .top-bar {
 }
 
 .mutation-panel .panel-title {
-  font-size: 1.1rem;
+  font-size: var(--type-title);
   margin-bottom: 0.25rem;
 }
 
 .mutation-panel .panel-subtitle {
   color: #94a3b8;
-  font-size: 0.8rem;
+  font-size: var(--type-aside);
   margin-bottom: 0.75rem;
 }
 
@@ -875,7 +876,7 @@ body.phase-space .top-bar {
 
 .prestige-tree-points .stat-value {
   color: #22c55e;
-  font-size: 1.1rem;
+  font-size: var(--type-title);
 }
 
 /* Card grid — reuses the expedition grid pattern */
@@ -922,22 +923,22 @@ body.phase-space .top-bar {
 }
 
 .prestige-tree-card-icon {
-  font-size: 1.5rem;
+  font-size: var(--type-display);
 }
 
 .prestige-tree-card-name {
   font-weight: bold;
-  font-size: 0.78rem;
+  font-size: var(--type-aside);
   color: var(--text-primary);
 }
 
 .prestige-tree-card-type {
-  font-size: 0.6rem;
+  font-size: var(--type-meta);
   color: var(--text-muted);
 }
 
 .prestige-tree-card-desc {
-  font-size: 0.65rem;
+  font-size: var(--type-meta);
   color: var(--accent-glow);
   margin-bottom: 0.2rem;
 }
@@ -951,13 +952,13 @@ body.phase-space .top-bar {
 }
 
 .prestige-tree-card-cost {
-  font-size: 0.8rem;
+  font-size: var(--type-aside);
   color: #22c55e;
   font-weight: bold;
 }
 
 .prestige-tree-purchased-badge {
-  font-size: 0.8rem;
+  font-size: var(--type-aside);
   color: #22c55e;
   font-weight: bold;
 }
@@ -970,7 +971,7 @@ body.phase-space .top-bar {
   background: rgba(34, 197, 94, 0.15);
   color: #22c55e;
   cursor: pointer;
-  font-size: 0.75rem;
+  font-size: var(--type-meta);
   font-weight: bold;
   transition: background var(--anim-fast);
 }
@@ -989,7 +990,7 @@ body.phase-space .top-bar {
 /* Completion message when all upgrades bought */
 .prestige-tree-complete {
   color: #22c55e;
-  font-size: 0.85rem;
+  font-size: var(--type-body);
   font-style: italic;
   text-align: center;
   padding: 0.75rem 0;
@@ -1043,7 +1044,7 @@ body.phase-space .top-bar {
 .onboarding-tooltip-text {
   margin: 0 0 0.75rem 0;
   color: var(--text-primary);
-  font-size: 0.95rem;
+  font-size: var(--type-value);
   line-height: 1.5;
 }
 
@@ -1056,7 +1057,7 @@ body.phase-space .top-bar {
   border: none;
   border-radius: 6px;
   font-weight: bold;
-  font-size: 0.85rem;
+  font-size: var(--type-body);
   cursor: pointer;
   transition: background var(--anim-fast);
 }

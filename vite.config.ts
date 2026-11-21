@@ -46,8 +46,9 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Every emitted file (the plugin adds the manifest itself), harness pages and the debug chunk included.
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2,json}'],
+        // Every emitted file (the plugin adds the manifest itself), harness pages and the debug chunk included,
+        // and the font licence beside Swarm Mono (public/fonts/OFL.txt, Story 8.1).
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2,json,txt}'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
         skipWaiting: false,

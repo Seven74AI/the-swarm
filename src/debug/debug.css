@@ -8,7 +8,7 @@
   background: var(--color-bg);
   color: var(--color-dim);
   font-family: inherit;
-  font-size: 0.875rem;
+  font-size: var(--type-body);
   overflow-wrap: anywhere;
 }
 
@@ -23,7 +23,7 @@
 .debug-overlay__title,
 .debug-overlay__subtitle {
   margin: 0.75rem 0 0.5rem;
-  font-size: 1rem;
+  font-size: var(--type-value);
   color: var(--color-accent);
 }
 
@@ -65,14 +65,14 @@
   margin: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font-size: 0.75rem;
+  font-size: var(--type-meta);
 }
 
 .debug-overlay__log {
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 0.75rem;
+  font-size: var(--type-meta);
 }
 
 .debug-overlay__log [data-level='error'],

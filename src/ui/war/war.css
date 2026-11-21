@@ -1,10 +1,10 @@
 /* FRONT → WAR (Story 1.25). Colors only from the phase aliases in ui/styles/tokens.css. */
 .war-section { display: flex; flex-direction: column; gap: 0.5rem; }
-.war-line { margin: 0; font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+.war-line { margin: 0; font-size: var(--type-aside); font-variant-numeric: tabular-nums; }
 .war-dim { color: var(--color-dim); }
-.war-status { font-size: 0.8125rem; }
+.war-status { font-size: var(--type-aside); }
 .war-round { margin: 0.25rem 0 0; font-weight: 700; color: var(--color-accent); font-variant-numeric: tabular-nums; }
-.war-log { list-style: none; margin: 0; padding: 0; font-size: 0.8125rem; color: var(--color-dim); }
+.war-log { list-style: none; margin: 0; padding: 0; font-size: var(--type-aside); color: var(--color-dim); }
 .war-log-line[data-newest] { color: var(--color-accent); }
 .battle-summary__lines { list-style: none; margin: 0; padding: 0; font-variant-numeric: tabular-nums; }
 .battle-summary__lines [data-losses] { color: var(--color-warn); }
