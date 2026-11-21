@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { openTab } from './helpers/tabs';
 import { readResource } from './helpers/resources';
+import { tapContinue } from './helpers/phase';
 
 /**
  * Worker Management & Resource Loop E2E Tests
@@ -90,7 +91,7 @@ test.describe('Worker Management', () => {
   });
 
   test('worker panel visible in colony phase', async ({ page }) => {
-    // Seed egg_laying with 10 workers → transitions to colony on tick
+    // Seed egg_laying with 10 workers → the goal latches on the first tick
     await page.addInitScript(() => {
       const data = {
         version: 11,
@@ -139,7 +140,8 @@ test.describe('Worker Management', () => {
       localStorage.setItem('the_swarm_save', JSON.stringify(data));
     });
     await page.goto('/');
-    // Wait for phase transition (egg_laying → colony)
+    // The goal latches; CONTINUE enters Colony (Story 1.19)
+    await tapContinue(page);
     await expect(page.locator('#phase-indicator')).toContainText('The Colony', { timeout: 5000 });
 
     // Worker panel should become visible after transition
@@ -152,13 +154,14 @@ test.describe('Worker Management', () => {
   });
 
   test('assign worker to Gather increases food over time', async ({ page }) => {
-    // Seed egg_laying with 10 workers → transitions to colony on first tick
+    // Seed egg_laying with 10 workers → the goal latches on the first tick
     await seedAndGoto(page, {
       phase: 'egg_laying',
       resources: { eggs: 0, larvae: 0, workers: 10, food: 50, nestCapacity: 25 },
     }, 2500);
 
-    // Should be in colony now
+    // The goal latched; CONTINUE enters Colony (Story 1.19)
+    await tapContinue(page);
     await expect(page.locator('#phase-indicator')).toContainText('The Colony', { timeout: 5000 });
     await openTab(page, 'wrkr');
     await expect(page.locator('#worker-assignment')).toBeVisible({ timeout: 5000 });

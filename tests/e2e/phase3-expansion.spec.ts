@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { tapContinue } from './helpers/phase';
 
 /**
  * Phase 3 E2E: Expansion phase — Map, Expeditions, Buildings, Territory.
@@ -86,7 +87,8 @@ test.describe('Phase 3 — Expansion', () => {
     // Wait for the app to mount and render panels
     await page.waitForSelector('#panels', { timeout: 10000 });
 
-    // Wait for phase transition — COMBAT → EXPANSION (the seed satisfies its guard)
+    // The seed meets COMBAT → EXPANSION's goal; the phase changes on CONTINUE (Story 1.19)
+    await tapContinue(page);
     const indicator = page.locator('#phase-indicator');
     await expect(indicator).toContainText('The Expansion', { timeout: 15000 });
   });

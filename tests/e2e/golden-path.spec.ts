@@ -1,13 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { openTab } from './helpers/tabs';
 import { readResource } from './helpers/resources';
+import { tapContinue } from './helpers/phase';
 
 /**
  * Golden Path E2E: Full progression seed → all panels unlock → save/load.
  *
  * Seeds a rich COMBAT-phase state on the verge of EXPANSION (it satisfies
- * COMBAT → EXPANSION in src/phases/transitions.ts), verifies every panel
- * becomes visible after the phase transition, tests core interactions
+ * COMBAT → EXPANSION in src/phases/transitions.ts), taps CONTINUE (Story 1.19),
+ * verifies every panel becomes visible after the phase transition, tests core interactions
  * (egg click, scout, build), and validates save/load fidelity.
  */
 
@@ -109,7 +110,8 @@ test.describe('Golden Path — Full Progression', () => {
     // Wait for panels container to render
     await page.waitForSelector('#panels', { timeout: 10000 });
 
-    // Wait for phase transition: COMBAT → EXPANSION (the seed satisfies its guard)
+    // The seed meets COMBAT → EXPANSION's goal; the phase changes on CONTINUE (Story 1.19).
+    await tapContinue(page);
     const indicator = page.locator('#phase-indicator');
     await expect(indicator).toContainText('The Expansion', { timeout: 15000 });
   });
@@ -333,7 +335,8 @@ test.describe('Golden Path — Full Progression', () => {
     // Wait for panels to render on reload
     await page.waitForSelector('#panels', { timeout: 10000 });
 
-    // Give the game a moment to transition through phases
+    // The init script re-seeds the COMBAT save on reload: commit its goal again (Story 1.19)
+    await tapContinue(page);
     const indicator = page.locator('#phase-indicator');
     await expect(indicator).toContainText('The Expansion', { timeout: 15000 });
 

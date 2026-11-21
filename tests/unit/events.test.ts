@@ -21,11 +21,11 @@ describe('EventQueue', () => {
     const bus = new EventBus();
     const order: string[] = [];
     bus.subscribe('eggs_changed', () => order.push('eggs'));
-    bus.subscribe('phase_changed', () => order.push('phase'));
+    bus.subscribe('phase_committed', () => order.push('phase'));
     bus.subscribe('narrative', () => order.push('narrative'));
 
     const queue = new EventQueue();
-    queue.emit('phase_changed', { phase: 'COLONY' as never });
+    queue.emit('phase_committed', { from: 'egg_laying' as never, to: 'colony' as never });
     queue.emit('eggs_changed', { eggs: 2 });
     queue.emit('narrative', { message: 'x' });
     queue.flushTo(bus);

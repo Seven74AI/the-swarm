@@ -347,3 +347,42 @@ export function findCallArguments(src: string, callee: RegExp): CallArgs[] {
   }
   return out;
 }
+
+/**
+ * Writes of a `phase` field (Story 1.19, AR23): a member assignment
+ * (`x.phase = …`, `x['phase'] = …` is not detected since string text is
+ * blanked; `dataset.phase` is skipped) or an object literal that rebuilds a state, meaning it has both a
+ * spread (`...s`) and a `phase` key (`phase: …` or shorthand `phase`) at its
+ * own top level. Event payloads and type literals have no spread, so they
+ * don't count.
+ */
+export function findPhaseWrites(src: string): Hit[] {
+  const { code } = strip(src);
+  const hits: Hit[] = [];
+  // `el.dataset.phase = …` is a DOM attribute (the phase palette), not game state.
+  const member = /(?<!\bdataset\s*)(?:\.|\?\.)\s*phase\s*=(?![=>])/g;
+  let m: RegExpExecArray | null;
+  while ((m = member.exec(code)) !== null) hits.push({ line: lineAt(code, m.index), text: m[0] });
+
+  const stack: number[] = [];
+  for (let i = 0; i < code.length; i++) {
+    const ch = code[i];
+    if (ch === '{') stack.push(i);
+    else if (ch === '}' && stack.length > 0) {
+      const open = stack.pop()!;
+      // Keep only this literal's own top level: blank nested braces, brackets and parens.
+      let depth = 0;
+      let top = '';
+      for (let j = open + 1; j < i; j++) {
+        const c = code[j];
+        if (c === '{' || c === '[' || c === '(') depth++;
+        else if (c === '}' || c === ']' || c === ')') depth--;
+        else top += depth === 0 ? c : ' ';
+      }
+      const hasSpread = /(?:^|,)\s*\.\.\./.test(top);
+      const key = /(?:^|,)\s*phase\s*(?::|,|$)/.exec(top);
+      if (hasSpread && key) hits.push({ line: lineAt(code, open), text: `{ …, phase }` });
+    }
+  }
+  return hits.sort((a, b) => a.line - b.line);
+}

@@ -20,10 +20,21 @@ export type { LegacyUi } from './shell/Shell';
  * `sheets` is the one SheetController (Story 1.14): its open sheet is drawn
  * after the shell, so sheets sit above the panels.
  */
-export function App({ legacy, shell, sheets }: { legacy: LegacyUi; shell: TabShell; sheets?: SheetController }) {
+export function App({
+  legacy,
+  shell,
+  sheets,
+  onContinue,
+}: {
+  legacy: LegacyUi;
+  shell: TabShell;
+  sheets?: SheetController;
+  /** CONTINUE on NEST (Story 1.19): `actions.continuePhase`. */
+  onContinue?: () => { readonly ok: boolean } | void;
+}) {
   return (
     <>
-      <Shell shell={shell} legacy={legacy} />
+      <Shell shell={shell} legacy={legacy} onContinue={onContinue} />
       {sheets && <SheetHost sheets={sheets} />}
     </>
   );

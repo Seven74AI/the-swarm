@@ -8,11 +8,11 @@ test.describe('Narrative Event Log', () => {
     const log = page.locator('#activity-log');
     await expect(log).toBeVisible({ timeout: 5000 });
 
-    // Emit phase_changed with lowercase phase name to match EventLog handler
+    // Emit phase_committed (Story 1.19) with lowercase phase names to match the EventLog handler
     await page.evaluate(() => {
       const swarm = (window as unknown as Record<string, unknown>).__swarm as Record<string, unknown>;
       const bus = swarm.bus as { emit: (event: string, payload: unknown) => void };
-      bus.emit('phase_changed', { phase: 'space' });
+      bus.emit('phase_committed', { from: 'expansion', to: 'space' });
     });
 
     await page.waitForTimeout(500);

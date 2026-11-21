@@ -53,7 +53,6 @@ export const EGG_TO_COLONY: Transition = transition({
   to: Phase.COLONY,
   conditions: [workers(10)],
   onEnter: (state, eventBus) => {
-    eventBus.emit('phase_changed', { phase: Phase.COLONY });
     return state;
   },
 });
@@ -70,7 +69,6 @@ export const COLONY_TO_COMBAT: Transition = transition({
     { id: 'guard', label: 'guards', one: 'guard', current: (s) => s.workersAssigned.guard, target: () => 1 },
   ],
   onEnter: (state, eventBus) => {
-    eventBus.emit('phase_changed', { phase: Phase.COMBAT });
     eventBus.emit('narrative', {
       message:
         'The colony faces its first threat. Guards are posted. The age of innocence is over.',
@@ -93,7 +91,6 @@ export const COMBAT_TO_EXPANSION: Transition = transition({
     { id: 'battlesWon', label: 'battles won', one: 'battle won', current: (s) => s.battlesWon, target: () => 5 },
   ],
   onEnter: (state, eventBus) => {
-    eventBus.emit('phase_changed', { phase: Phase.EXPANSION });
     eventBus.emit('narrative', {
       message:
         'The battles have been won. The colony has proven its strength. Now it is time to expand beyond the nest.',
@@ -116,7 +113,6 @@ export const EXPANSION_TO_SPACE: Transition = transition({
     { id: 'food', label: 'food', current: (s) => s.resources.food, target: () => 5000 },
   ],
   onEnter: (state, eventBus) => {
-    eventBus.emit('phase_changed', { phase: Phase.SPACE });
     eventBus.emit('narrative', {
       message:
         'The colony looks to the heavens. Rockets thunder skyward. The age of space has begun.',
@@ -142,7 +138,6 @@ export const SPACE_TO_TRANSCENDENCE: Transition = transition({
   ],
   onEnter: (state, eventBus) => {
     const newState = { ...state, victoryAchieved: true };
-    eventBus.emit('phase_changed', { phase: Phase.TRANSCENDENCE });
     eventBus.emit('victory', {});
     eventBus.emit('narrative', {
       message:

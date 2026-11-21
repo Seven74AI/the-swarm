@@ -6,10 +6,11 @@ import {
   selectConditionTarget,
   selectGoal,
   selectGoalPercent,
+  selectLatchedGoal,
   selectPhase,
   type GoalCondition,
 } from '../../state/selectors';
-import { formatFull } from '../../utils/format';
+import { formatFull, formatTime } from '../../utils/format';
 import { Meter } from '../primitives/Meter';
 import './GoalMeter.css';
 
@@ -25,6 +26,10 @@ import './GoalMeter.css';
  * `ul[data-goal-conditions] > li[data-condition=<id>][data-met]` with
  * `[data-condition-value]`, `[data-condition-state]` (met/need) and
  * `[data-condition-mark]` (✓/✗); `[data-phase-name]`.
+ *
+ * Latched (Story 1.19): `[data-goal-met]` and `GOAL MET · NEXT: …`, a full
+ * meter, and every row met; a row that dipped since carries `[data-dipped]`
+ * and reads `<now> now, reached <value> at <time>` (game time).
  */
 
 /** The current phase's name on the phase line (kept from PhaseIndicator; E2E specs read it). */
@@ -49,14 +54,20 @@ function valueText(pct: number): string {
 }
 
 function ConditionRow({ c }: { c: GoalCondition }) {
-  const met = selectConditionMet(c).value;
+  const latch = selectLatchedGoal.value;
+  const metNow = selectConditionMet(c).value;
   const now = selectConditionCurrent(c).value;
   const target = selectConditionTarget(c).value;
+  // A latched goal stays met through dips (UX-DR13); the dipped row says why.
+  const met = metNow || latch !== null;
+  const dipped = latch !== null && !metNow;
   return (
-    <li class="goal-meter__row" data-condition={c.id} data-met={met ? 'true' : 'false'}>
+    <li class="goal-meter__row" data-condition={c.id} data-met={met ? 'true' : 'false'} data-dipped={dipped ? 'true' : undefined}>
       <span class="goal-meter__label">{c.label}</span>{' '}
       <span class="goal-meter__value" data-condition-value="">
-        {formatFull(now)}/{formatFull(target)}
+        {dipped
+          ? `${formatFull(now)} now, reached ${formatFull(latch.reached[c.id] ?? target)} at ${formatTime(latch.atMs)}`
+          : `${formatFull(now)}/${formatFull(target)}`}
       </span>{' '}
       <span class="goal-meter__state" data-condition-state="" aria-hidden="true">
         {met ? 'met' : 'need'}
@@ -73,10 +84,12 @@ function ConditionRow({ c }: { c: GoalCondition }) {
 export function GoalMeter() {
   const goal = selectGoal.value;
   const pct = selectGoalPercent.value;
+  const met = selectLatchedGoal.value !== null;
   if (!goal) return null;
   return (
-    <div class="goal-meter" data-goal-meter="full">
-      <p class="goal-meter__next" data-goal-next="">
+    <div class="goal-meter" data-goal-meter="full" data-goal-met={met ? '' : undefined}>
+      <p class="goal-meter__next" data-goal-next="" aria-live="polite">
+        {met && <b class="goal-meter__met">GOAL MET · </b>}
         NEXT: {goal.conditions.map(goalPart).join(' + ')}
       </p>
       <Meter value={pct} max={100} valueText={valueText(pct)} />

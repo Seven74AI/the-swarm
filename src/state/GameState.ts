@@ -32,6 +32,17 @@ export interface Mutation {
   purchased: boolean;
 }
 
+/** A met phase goal, latched until CONTINUE (Story 1.19). */
+export interface PhaseGoal {
+  /** The phase CONTINUE leads to (the `to` of the transition out of the current phase). */
+  phase: string;
+  latched: true;
+  /** Game time (`stats.playTimeMs`) when the goal was first met. */
+  atMs: number;
+  /** Each condition's value when the goal was first met, by condition id (for `reached <value> at <time>`). */
+  reached: Readonly<Record<string, number>>;
+}
+
 export interface GameState {
   phase: string;
   /** Whether the game is paused. Paused games stop all systems but save normally. */
@@ -131,6 +142,13 @@ export interface GameState {
   battlesLost: number;
   /** Whether the colony has achieved transcendence victory. */
   victoryAchieved: boolean;
+  /**
+   * The goal latch (Story 1.19, D3, ADR 0003). Written once by
+   * `PhaseStateMachine.latch` when the guard out of the current phase first
+   * holds; it survives dips and saves, and only `commit` (CONTINUE) or
+   * prestige clears it. Null while the goal is not met.
+   */
+  phaseGoal: PhaseGoal | null;
   /** Spaceship state (SPACE phase). */
   spaceship: {
     level: number;
@@ -361,6 +379,7 @@ export function createInitialState(): GameState {
     soldierPipeline: { count: 0, progress: 0 },
     capacityAccumulator: 0,
     victoryAchieved: false,
+    phaseGoal: null,
     spaceship: {
       level: 0,
       fuel: 0,

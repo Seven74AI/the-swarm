@@ -22,6 +22,7 @@ import {
   findCallArguments,
   findImports,
   findInCode,
+  findPhaseWrites,
   layerOf,
   listSources,
   resolveInSrc,
@@ -188,6 +189,18 @@ function listenerGameStateWrites(files: SourceFile[]): Violation[] {
   return out;
 }
 
+/**
+ * AR23 (Story 1.19): the phase changes only through `PhaseStateMachine.commit`
+ * (CONTINUE), or prestige. Nothing else writes `state.phase`.
+ */
+const PHASE_WRITERS = ['phases/PhaseStateMachine.ts', 'systems/PrestigeSystem.ts'];
+
+function phaseWriteViolations(files: SourceFile[]): Violation[] {
+  return files
+    .filter((f) => !PHASE_WRITERS.includes(f.rel))
+    .flatMap((f) => findPhaseWrites(f.text).map((h) => `${f.rel}:${h.line} writes phase; only PhaseStateMachine.commit or prestige may`));
+}
+
 const fake = (rel: string, text: string): SourceFile => ({ rel, text });
 
 describe('architecture boundaries (AR21)', () => {
@@ -261,6 +274,15 @@ describe('architecture boundaries (AR21)', () => {
         : `${rel} no longer exists; remove the entry`,
     );
     expect(stale).toEqual([]);
+  });
+
+  it('only PhaseStateMachine.commit and prestige write state.phase', () => {
+    expect(phaseWriteViolations(files)).toEqual([]);
+    // Both writers really do write it, or the rule is pointing at the wrong files.
+    for (const rel of PHASE_WRITERS) {
+      const f = files.find((x) => x.rel === rel);
+      expect(f && findPhaseWrites(f.text).length).toBeGreaterThan(0);
+    }
   });
 
   // The rules must fire on a violation, or a green run proves nothing.
@@ -401,6 +423,30 @@ describe('architecture boundaries (AR21)', () => {
         ),
       ]);
       expect(v.map((x) => x.split(' ')[0])).toEqual(['main.ts:1', 'ui/a.ts:1', 'engine/b.ts:1']);
+    });
+
+    it('flags phase writes outside the phase machine and prestige, not payloads or types', () => {
+      const v = phaseWriteViolations([
+        fake('main.ts', 'newState = { ...tickResult.state, phase: tickResult.phase };'),
+        fake('actions/a.ts', 'const next = { ...s, resources: { ...s.resources }, phase };'),
+        fake('systems/b.ts', 'state.phase = Phase.COLONY;'),
+        fake('ui/c.ts', 's.phase = x;'),
+        fake(
+          'engine/ok.ts',
+          [
+            "bus.emit('phase_committed', { from: Phase.COLONY, to: Phase.COMBAT });",
+            'interface X { phase: string; paused: boolean }',
+            'const goal = { ...g, phaseGoal: null };',
+            'if (s.phase === Phase.COLONY) {}',
+            'const t = { ...a, inner: { phase: 1 } };',
+            '// { ...s, phase: x }',
+            "if (root.dataset.phase !== token) root.dataset.phase = token;",
+          ].join('\n'),
+        ),
+        fake('phases/PhaseStateMachine.ts', 'return { ...entered, phase: t.to };'),
+        fake('systems/PrestigeSystem.ts', 'return { ...s, phase: basePhase };'),
+      ]);
+      expect(v.map((x) => x.split(':')[0])).toEqual(['main.ts', 'actions/a.ts', 'systems/b.ts', 'ui/c.ts']);
     });
 
     it('finds gameState.value readers under ui/ only', () => {

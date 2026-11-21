@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { tapContinue } from './helpers/phase';
 
 /**
  * E2E: Phase-Based Panel Reveal + Phase Theme Shifting (UX-10).
@@ -139,7 +140,9 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
       await page.goto('/');
       await page.waitForSelector('#panels', { timeout: 10000 });
 
-      // Fast-forward past the first tick + transition
+      // First tick latches the goal; CONTINUE commits it (Story 1.19). Then fast-forward the transition.
+      await page.clock.runFor(500);
+      await tapContinue(page);
       await page.clock.runFor(4000);
       await expect(page.locator('#phase-transition-overlay.active')).not.toBeVisible({ timeout: 5000 });
 
@@ -159,7 +162,9 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
       await page.goto('/');
       await page.waitForSelector('#panels', { timeout: 10000 });
 
-      // Wait for real game tick + phase transition (PANEL_REVEAL_DELAY_MS + TRANSITION_DURATION_MS)
+      // The goal latches on the first tick; CONTINUE commits it (Story 1.19)
+      await tapContinue(page);
+      // Wait for the phase transition (PANEL_REVEAL_DELAY_MS + TRANSITION_DURATION_MS)
       await page.waitForTimeout(3500);
 
       // worker_assignment should now exist with panel-revealed class
@@ -200,7 +205,9 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
       await page.goto('/');
       await page.waitForSelector('#panels', { timeout: 10000 });
 
-      // Fast-forward past the first tick + transition (PANEL_REVEAL_DELAY_MS + TRANSITION_DURATION_MS)
+      // First tick latches the goal; CONTINUE commits it (Story 1.19). Then fast-forward the transition.
+      await page.clock.runFor(500);
+      await tapContinue(page);
       await page.clock.runFor(4000);
 
       // Wait for transition to complete (overlay disappears)
@@ -233,7 +240,9 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
       });
       expect(phaseClass).toBe('phase-egg');
 
-      // Trigger colony transition
+      // Trigger colony transition: latch, CONTINUE (Story 1.19), then the animation
+      await page.clock.runFor(500);
+      await tapContinue(page);
       await page.clock.runFor(4000);
 
       // Wait for transition overlay to clear
@@ -261,7 +270,9 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
       });
       expect(colorBefore).toBeTruthy();
 
-      // Wait for game loop tick + phase transition + CSS theme transition to complete
+      // The goal latches on the first tick; CONTINUE commits it (Story 1.19)
+      await tapContinue(page);
+      // Wait for the phase transition + CSS theme transition to complete
       await page.waitForTimeout(5000);
 
       // Wait for transition overlay to clear

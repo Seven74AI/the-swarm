@@ -329,17 +329,17 @@ describe('Phase transitions — property-based (no dead ends)', () => {
     );
   });
 
-  it('PhaseStateMachine.tick returns a phase that exists in the enum', () => {
-    const validPhases = new Set(Object.values(Phase));
+  it('PhaseStateMachine.evaluate only offers a transition out of the current phase into a real phase', () => {
+    const validPhases = new Set<string>(Object.values(Phase));
+    const sm = new PhaseStateMachine(TRANSITIONS);
 
     fc.assert(
       fc.property(arbitraryPhaseState(), (state) => {
-        // Create FSM starting from each phase to test
         for (const startPhase of Object.values(Phase)) {
-          const sm = new PhaseStateMachine(startPhase, TRANSITIONS);
-          const bus = new EventBus();
-          const result = sm.tick(state, bus);
-          expect(validPhases.has(result.phase)).toBe(true);
+          const t = sm.evaluate({ ...state, phase: startPhase });
+          if (t === null) continue;
+          expect(t.from).toBe(startPhase);
+          expect(validPhases.has(t.to)).toBe(true);
         }
       }),
       { numRuns: 100 },
@@ -360,9 +360,13 @@ describe('Phase transitions — property-based (no dead ends)', () => {
       fc.property(arbitraryPhaseState(), (state) => {
         for (const startPhase of Object.values(Phase)) {
           if (startPhase === Phase.TRANSCENDENCE) continue; // Terminal
-          const sm = new PhaseStateMachine(startPhase, TRANSITIONS);
-          const bus = new EventBus();
-          const result = sm.tick(state, bus);
+          const sm = new PhaseStateMachine(TRANSITIONS);
+          const from = { ...state, phase: startPhase };
+          // Latching never changes the phase; committing the latch only moves forward.
+          const latched = sm.latch(from);
+          expect(latched.phase).toBe(startPhase);
+          const t = sm.pending(latched);
+          const result = t ? sm.commit(t, latched, new EventBus()) : latched;
           const fromOrder = phaseOrder[startPhase] ?? 0;
           const toOrder = phaseOrder[result.phase] ?? 0;
           expect(toOrder).toBeGreaterThanOrEqual(fromOrder);
@@ -376,9 +380,10 @@ describe('Phase transitions — property-based (no dead ends)', () => {
     // EGG_LAYING → COLONY is the simplest: workers >= 10
     const state = createInitialState();
     state.resources.workers = 10;
-    const sm = new PhaseStateMachine(Phase.EGG_LAYING, TRANSITIONS);
-    const bus = new EventBus();
-    const result = sm.tick(state, bus);
+    const sm = new PhaseStateMachine(TRANSITIONS);
+    const latched = sm.latch(state);
+    expect(latched.phase).toBe(Phase.EGG_LAYING);
+    const result = sm.commit(sm.pending(latched)!, latched, new EventBus());
     expect(result.phase).toBe(Phase.COLONY);
   });
 });

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { openTab } from './helpers/tabs';
+import { tapContinue } from './helpers/phase';
 
 /**
  * E2E: Space Phase UI — Neon Theme, Spaceship & Exploration Panels.
@@ -96,6 +97,8 @@ async function readGameState(page: Page, path: string): Promise<unknown> {
  * these tests past the 30s test timeout.
  */
 async function waitForSpacePanels(page: Page) {
+  // The seed meets EXPANSION → SPACE's goal; SPACE is entered on CONTINUE (Story 1.19).
+  await tapContinue(page);
   await expect(page.locator('#phase-indicator')).toContainText('Space', { timeout: 10000 });
   // Space panels live in FRONT → STARS (Story 1.15).
   await openTab(page, 'front', 'stars');
@@ -361,7 +364,7 @@ test.describe('Space Phase — Neon Theme & Panels', () => {
     await page.goto('/');
     await page.waitForSelector('#panels', { timeout: 10000 });
 
-    // Run a few ticks but not enough to trigger SPACE transition
+    // Run a few ticks; nothing taps CONTINUE, so the phase stays in EXPANSION
     await page.clock.runFor(1000);
 
     // Verify expansion-phase panels exist

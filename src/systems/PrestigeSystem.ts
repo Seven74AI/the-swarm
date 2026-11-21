@@ -109,6 +109,8 @@ export function prestige(state: GameState): GameState {
   return {
     ...afterEntropyReset,
     phase: basePhase,
+    // A new run starts with no met goal (Story 1.19).
+    phaseGoal: null,
     resources: {
       eggs: 0,
       larvae: 0,

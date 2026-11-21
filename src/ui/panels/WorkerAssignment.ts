@@ -82,8 +82,7 @@ export class WorkerAssignment {
     this.container.appendChild(summary);
 
     // Phase reveal (event-driven — stays on bus)
-    bus.subscribe('phase_changed', (payload: unknown) => {
-      const phase = (payload as { phase: string }).phase;
+    bus.subscribe('phase_committed', ({ to: phase }) => {
       if (phase === 'colony') {
         this.container.style.display = '';
       }

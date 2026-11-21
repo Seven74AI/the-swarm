@@ -60,19 +60,13 @@ describe('Transition COLONY → COMBAT', () => {
     expect(COLONY_TO_COMBAT.guard(state)).toBe(true);
   });
 
-  it('onEnter emits phase_changed event with COMBAT phase', () => {
-    const state = createInitialState();
-    state.resources.workers = 50;
+  it('committing it emits phase_committed into COMBAT', () => {
+    const state = { ...createInitialState(), phase: Phase.COLONY };
     const bus = new EventBus();
-    let emitted = false;
-    let phasePayload: string | null = null;
-    bus.subscribe('phase_changed', (payload: unknown) => {
-      emitted = true;
-      phasePayload = (payload as { phase: string }).phase;
-    });
-    COLONY_TO_COMBAT.onEnter!(state, bus);
-    expect(emitted).toBe(true);
-    expect(phasePayload).toBe(Phase.COMBAT);
+    const heard: Phase[] = [];
+    bus.subscribe('phase_committed', ({ to }) => heard.push(to));
+    new PhaseStateMachine().commit(COLONY_TO_COMBAT, state, bus);
+    expect(heard).toEqual([Phase.COMBAT]);
   });
 });
 
@@ -83,54 +77,37 @@ describe('PhaseStateMachine — COLONY → COMBAT', () => {
 
   beforeEach(() => {
     bus = new EventBus();
-    // Start in COLONY so we can test COLONY→COMBAT
-    fsm = new PhaseStateMachine(Phase.COLONY, [...TRANSITIONS]);
-    state = createInitialState();
+    fsm = new PhaseStateMachine([...TRANSITIONS]);
+    state = { ...createInitialState(), phase: Phase.COLONY };
   });
 
-  it('does NOT transition when workers < 50', () => {
+  it('does not latch when workers < 50', () => {
     state.resources.workers = 49;
     state.workersAssigned.guard = 1;
-    const result = fsm.tick(state, bus);
-    expect(result.phase).toBe(Phase.COLONY);
-    expect(fsm.getCurrent()).toBe(Phase.COLONY);
+    expect(fsm.latch(state).phaseGoal).toBeNull();
   });
 
-  it('does NOT transition when guard === 0', () => {
+  it('does not latch when guard === 0', () => {
     state.resources.workers = 50;
     state.workersAssigned.guard = 0;
-    const result = fsm.tick(state, bus);
-    expect(result.phase).toBe(Phase.COLONY);
-    expect(fsm.getCurrent()).toBe(Phase.COLONY);
+    expect(fsm.latch(state).phaseGoal).toBeNull();
   });
 
-  it('transitions to COMBAT when workers >= 50 AND guard >= 1', () => {
+  it('latches the COMBAT goal when workers >= 50 AND guard >= 1, without changing phase', () => {
     state.resources.workers = 50;
     state.workersAssigned.guard = 1;
-    const result = fsm.tick(state, bus);
-    expect(result.phase).toBe(Phase.COMBAT);
-    expect(fsm.getCurrent()).toBe(Phase.COMBAT);
+    const latched = fsm.latch(state);
+    expect(latched.phase).toBe(Phase.COLONY);
+    expect(latched.phaseGoal?.phase).toBe(Phase.COMBAT);
   });
 
-  it('only fires one transition per tick', () => {
+  it('CONTINUE commits COMBAT once; COMBAT has its own goal', () => {
     state.resources.workers = 50;
     state.workersAssigned.guard = 1;
-    fsm.tick(state, bus);
-    expect(fsm.getCurrent()).toBe(Phase.COMBAT);
-    // Second tick with same state should stay in COMBAT
-    const result = fsm.tick(state, bus);
-    expect(result.phase).toBe(Phase.COMBAT);
-  });
-
-  it('onEnter fires on COMBAT transition', () => {
-    state.resources.workers = 50;
-    state.workersAssigned.guard = 1;
-    let phasePayload: string | null = null;
-    bus.subscribe('phase_changed', (payload: unknown) => {
-      phasePayload = (payload as { phase: string }).phase;
-    });
-    fsm.tick(state, bus);
-    expect(phasePayload).toBe(Phase.COMBAT);
+    const latched = fsm.latch(state);
+    const next = fsm.commit(fsm.pending(latched)!, latched, bus);
+    expect(next.phase).toBe(Phase.COMBAT);
+    expect(fsm.pending(next)).toBeNull();
   });
 });
 
