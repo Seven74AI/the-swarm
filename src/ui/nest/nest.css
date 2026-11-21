@@ -15,7 +15,7 @@
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  padding: 7px var(--shell-margin, 14px);
+  padding: 6.5px var(--shell-margin, 14px); /* 50 px button + 13 px + the zone's 1 px rule = 64 px */
 }
 
 .nest-primary .lay-egg,
@@ -31,7 +31,7 @@
 
 .shell-primary [data-primary-continue] {
   box-sizing: border-box;
-  padding: 7px var(--shell-margin, 14px);
+  padding: 6.5px var(--shell-margin, 14px); /* 50 px button + 13 px + the zone's 1 px rule = 64 px */
 }
 
 .next-affordable {
@@ -121,4 +121,11 @@
   .event-line[data-newest="false"] {
     display: none;
   }
+}
+
+/* The event lines are a real list (Story 1.32); no markers, the prefixes are typed. */
+.event-lines__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }

@@ -36,6 +36,19 @@ The phase never changes on its own (Story 1.19, ADR 0003). Each tick `PhaseState
 ### Phase reveal and overlays
 Committing a phase plays the **phase reveal** (Story 1.20, ADR 0014): a full-screen overlay from the one overlay layer (`ui/shell/OverlayController`, drawn by `OverlayHost`) that blocks input for at most 3.5 s, cross-fades the palette, shows the phase name and types one line. Sheets and decision events wait while an overlay is up. A reveal can be skipped (tap, Enter, Esc) only once its phase is in `state.lifetime.revealsSeen`, which survives prestige.
 
+### Character grid and reflow
+
+Story 1.31 (ADR 0022): text panels sit on a computed **character grid**, `cols = floor(contentWidth / advanceWidth(body))`, marked on `<html data-grid="full|medium|narrow">` (≥ 36, 28–35, < 28 columns). Below 36 meters shrink to `cols − 8` cells and two-column rows stack; below 28 text wraps, box-drawing becomes 1 px borders, meters read `74 % ████····` and aligned tables stack label over value. Nothing clips text. The primary zone un-pins below 480 px of height; NEST shows one event line below 560 px.
+
+### Accessibility floor
+Typed decoration (`·`, `→`, brackets, glyphs, 4-letter labels) is visual only: `Deco.tsx` (`Abbr`, `Sep`, `Arrow`, `decorate`) hides it and gives the words. One polite announcer (`[data-announcer]`) says goal met, phase entered, battle result, decision arrived, starving and capacity reached, on their edge, never values per tick. Reduced motion is `:root[data-reduced-motion="true"]` (`motion.css`); CRT in effect is `<html data-crt>`. ADR 0023.
+
+### Voice
+The colony speaks in short, present-tense, upper-case lines ending in a full stop; the interface speaks plainly; nothing has an exclamation mark, and no copy names a phase before it is entered (UX-DR42, Story 1.33). **Colony lines** (event lines and narrative beats) live in `src/data/content/colonyLines.ts`, each with the first phase it can be written in; `colonyLine(id, values)` fills them. Decision titles end with a full stop (`OVERCROWDING.`). Short forms (`LV.`, `STR`, `CHTN`) are registered in `src/data/content/abbreviations.ts`, and `decorate()` reads them in full. `tests/arch/voice.test.ts` scans every literal in `src/` for these rules; `tests/e2e/voice.spec.ts` reads the rendered game in every phase.
+
+### Debug overlay, cheats and the seed
+Story 1.34 (ADR 0024): `state.seed` (an unsigned 32-bit integer, save v19) is the game's seed; Story 3.1 seeds the generator from it. The **debug overlay** (`src/debug/`, loaded by main as its own chunk in dev builds or with `?debug=1`) opens with the backtick key or a 3-finger long-press: FPS, tick time p50/p95, catch-up time, seed, save version, build, a read-only state inspector, the log ring buffer and EXPORT DIAGNOSTICS. **Cheats** (`window.__swarm.cheats`: `addResources`, `setPhase`, `timeSkip`, `setSeed`) exist only in dev builds; a production build contains none of their code. E2E tests keep seeding saves and don't depend on cheats.
+
 ### Keyboard shortcuts
 
 Story 1.30 (ADR 0021): `ui/shell/shortcuts.ts` acts on the player's key bindings (settings, Story 1.27). The **primary** key (Space) presses the active tab's primary-zone button as a tap would, only with focus on the page or that button; tab keys (1–5) press the tab-bar buttons; **pause** (P) toggles pause; **close** (Esc) dismisses a non-decision sheet through `SheetController.dismiss()`. Off in settings means no shortcut fires, Esc included. Hover tips show on tap too and Esc dismisses them (`ui/shell/tips.ts`).

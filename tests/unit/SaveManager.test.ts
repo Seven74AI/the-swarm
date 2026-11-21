@@ -67,7 +67,7 @@ describe('SaveManager', () => {
       const raw = localStorage.getItem('the_swarm_save');
       expect(raw).not.toBeNull();
       const parsed = JSON.parse(raw!);
-      expect(parsed.version).toBe(18);
+      expect(parsed.version).toBe(SaveManager.SAVE_VERSION);
       expect(parsed.timestamp).toBeGreaterThanOrEqual(before);
     });
   });
@@ -445,6 +445,27 @@ describe('SaveManager', () => {
       expect(loaded!.gameState.resources.eggs).toBe(999);
 
       vi.useRealTimers();
+    });
+  });
+
+  describe('save failure (Story 1.32)', () => {
+    it('tells its failure listener once when saving starts failing, and again only after a save succeeds', () => {
+      const failed = vi.fn();
+      saveManager.onSaveFailed(failed);
+      const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('QuotaExceededError');
+      });
+      expect(saveManager.save(createInitialState(), 0, true)).toBe(false);
+      expect(saveManager.save(createInitialState(), 0, true)).toBe(false);
+      expect(failed).toHaveBeenCalledTimes(1);
+      spy.mockRestore();
+      expect(saveManager.save(createInitialState(), 0, true)).toBe(true);
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('QuotaExceededError');
+      });
+      saveManager.save(createInitialState(), 0, true);
+      expect(failed).toHaveBeenCalledTimes(2);
+      vi.restoreAllMocks();
     });
   });
 });

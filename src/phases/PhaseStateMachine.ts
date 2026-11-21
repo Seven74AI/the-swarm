@@ -48,6 +48,11 @@ export class PhaseStateMachine {
     return this.transitions.find((t) => t.from === state.phase && t.to === goal.phase) ?? null;
   }
 
+  /** The transition out of `phase` (whether or not its guard holds), or null for the last phase. */
+  transitionFrom(phase: string): Transition | null {
+    return this.transitions.find((t) => t.from === phase) ?? null;
+  }
+
   /** Enter `transition.to`: run `onEnter`, clear the latch, raise `phase_committed`. */
   commit(transition: Transition, state: GameState, events: EventSink): GameState {
     events.emit('phase_committed', { from: transition.from, to: transition.to });

@@ -6,6 +6,7 @@ import type { SheetController } from '../shell/SheetController';
 import { GEAR_GLYPH, RESOURCE_BY_ID } from '../shell/resourceCatalog';
 import type { ResourceFeed } from '../shell/resourceFeed';
 import './ResourceSheet.css';
+import { decorate } from '../primitives/Deco';
 
 /**
  * The resource sheet (Story 1.16; UX-DR8, DESIGN.md → Resource sheet).
@@ -52,7 +53,7 @@ function ResourceSheet({ feed, close, onOpenSettings }: { feed: ResourceFeed; cl
   return (
     <ModalSheet headline="RESOURCES" class="resource-sheet" data-resource-sheet="" action={settings}>
       <p class="resource-sheet__header" data-resource-header="">
-        AMOUNT · RATE /s · CAP · SOURCE
+        {decorate('AMOUNT · RATE /s · CAP · SOURCE')}
       </p>
       <ul class="resource-sheet__list" data-resource-list="">
         {rows.map((row) => {

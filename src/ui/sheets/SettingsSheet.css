@@ -23,7 +23,7 @@
 }
 
 .settings-row__title {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--color-dim);
 }
 
@@ -35,7 +35,7 @@
 
 .settings-row__note {
   margin: 0;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--color-dim);
 }
 

@@ -80,4 +80,20 @@ describe('EventLog writes the chronicle', () => {
     btn!.click();
     expect(jumps).toEqual(['building_panel']);
   });
+
+  it('NEST lines are a real list, and a new line leaves the others in place, so the log region reads only the new one (Story 1.32)', () => {
+    const c = createChronicle();
+    const bus = new EventBus();
+    const log = new EventLog(bus, { chronicle: c });
+    bus.emit('narrative', { message: 'one' });
+    const list = log.getElement().querySelector('[role="log"] > ol')!;
+    expect(list).not.toBeNull();
+    const before = [...list.children];
+    expect(before.every((li) => li.tagName === 'LI')).toBe(true);
+    bus.emit('narrative', { message: 'two' });
+    const after = [...list.children];
+    expect(after[0].textContent).toContain('two');
+    // The lines that were there are the same nodes, not redrawn copies.
+    expect(after.slice(1)).toEqual(before.slice(0, after.length - 1));
+  });
 });

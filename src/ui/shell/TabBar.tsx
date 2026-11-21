@@ -1,5 +1,6 @@
 import { TABS, type TabId } from '../../data/content/tabs';
 import type { TabShell } from './tabShell';
+import { Abbr } from '../primitives/Deco';
 
 /**
  * Bottom tab bar (Story 1.15, UX-DR9): the active tab in inverse video, `•`
@@ -53,7 +54,10 @@ export function TabBar({
               {rail ? (
                 <span class="tab-bar-name" data-tab-name="">{t.railLabel}</span>
               ) : (
-                <span class="tab-bar-label">{t.label}</span>
+                // The phone bar's short label is decoration; the full word is read (UX-DR40).
+                <span class="tab-bar-label">
+                  <Abbr shown={t.label} full={t.railLabel} />
+                </span>
               )}
               {dots.has(t.id) && (
                 <>

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'preact/hooks';
 import { formatDelta, formatStrip } from '../../utils/format';
 import { RESOURCE_BY_ID } from './resourceCatalog';
+import { Abbr } from '../primitives/Deco';
 import { stripCells, STRIP_CELLS, type ResourceFeed, type ResourceRow } from './resourceFeed';
 import type { SheetController } from './SheetController';
 import { openResourceSheet } from '../sheets/ResourceSheet';
+import { gridClass, useGridCols } from '../primitives/charGrid';
 import './ResourceStrip.css';
 
 /**
@@ -13,7 +15,8 @@ import './ResourceStrip.css';
  * accessible name), value (`formatStrip`, at most 5 characters) and delta
  * (`formatDelta`: no `/s`, negatives in `warn` with `−`). A capped value turns
  * `warn` with ▲. Values come from the shared `ResourceFeed`, so the strip
- * redraws at most 4 times a second. Above about 125% text scale it shows 3
+ * redraws at most 4 times a second. Above about 125% text scale, or below 28
+ * columns of the character grid (Story 1.31), it shows 3
  * cells (capped or falling first) plus a `+N ▸` cell. The whole strip is one
  * button that opens the resource sheet.
  *
@@ -83,8 +86,8 @@ function Cell({ row }: { row: ResourceRow }) {
           {formatStrip(row.amount)}
         </span>
         {row.capped && (
-          <span class="strip-cell__cap" aria-label="capped">
-            {'▲'}
+          <span class="strip-cell__cap">
+            <Abbr shown="▲" full="capped" />
           </span>
         )}
       </span>
@@ -97,7 +100,9 @@ function Cell({ row }: { row: ResourceRow }) {
 
 export function ResourceStrip({ feed, sheets, onOpenSettings, compact }: ResourceStripProps) {
   const large = useLargeText();
-  const narrow = compact ?? large;
+  // Below 28 columns of the character grid (Story 1.31) the strip narrows too.
+  const narrowGrid = gridClass(useGridCols()) === 'narrow';
+  const narrow = compact ?? (large || narrowGrid);
   useEffect(() => feed.retain(), [feed]);
 
   const snapshot = feed.snapshot.value;

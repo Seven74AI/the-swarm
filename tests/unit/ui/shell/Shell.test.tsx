@@ -8,6 +8,7 @@ import { Shell } from '../../../../src/ui/shell/Shell';
 import type { ShellHosts } from '../../../../src/ui/shell/hosts';
 import { PANEL_PLACEMENT, TABS } from '../../../../src/data/content/tabs';
 import { MAX_TABS } from '../../../../src/data/constants';
+import { visibleText } from '../../helpers/a11y';
 
 function setup(phase: Phase = Phase.COLONY) {
   const ph = signal(phase);
@@ -280,7 +281,7 @@ describe('Shell: desktop columns (Story 1.29)', () => {
   it('the phone tab bar keeps its short labels and no key hints', () => {
     const { tab, q } = setupWide({ wide: false });
     expect(q('[data-tab-bar]')!.getAttribute('data-rail')).toBe('false');
-    expect(tab('wrkr').textContent).toBe('WRKR');
+    expect(visibleText(tab('wrkr'))).toBe('WRKR');
     expect(q('[data-tab-key]')).toBeNull();
   });
 

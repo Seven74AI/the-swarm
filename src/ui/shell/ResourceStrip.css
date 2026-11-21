@@ -39,7 +39,7 @@
 
 .strip-cell__head,
 .strip-cell__delta {
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1.2;
   color: var(--color-dim);
   white-space: nowrap;
@@ -52,7 +52,7 @@
 }
 
 .strip-cell__value {
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
@@ -65,6 +65,6 @@
 }
 
 .strip-cell--more {
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 700;
 }

@@ -7,7 +7,7 @@
  * downloaded on the device; nothing is sent anywhere (NFR10).
  *
  * Only main imports debug/ (tests/arch/architecture.test.ts). The debug
- * overlay (Story 1.34) offers the same export.
+ * overlay (Story 1.34) offers the same export, and the seed is named at the top.
  */
 import type { LogEntry } from '../utils/log';
 
@@ -21,6 +21,8 @@ export interface DiagnosticsInput {
   readonly userAgent: string;
   /** The save text (`SaveManager.serialize`). */
   readonly save: string;
+  /** The game's seed (Story 1.34), also inside the save; repeated at the top for bug reports. */
+  readonly seed?: number;
   readonly settings: unknown;
   readonly capabilities: unknown;
   readonly log: readonly LogEntry[];
@@ -55,6 +57,7 @@ export function buildDiagnostics(input: DiagnosticsInput): string {
       build: input.build,
       exportedAt: new Date(input.now).toISOString(),
       userAgent: input.userAgent,
+      seed: input.seed ?? null,
       settings: input.settings,
       capabilities: input.capabilities,
       log: input.log.map((e) => ({ ...e, detail: e.detail.map(plainDetail) })),

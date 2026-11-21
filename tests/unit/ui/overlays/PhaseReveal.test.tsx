@@ -48,7 +48,7 @@ describe('PhaseReveal', () => {
 
   it('types its one line in, then shows all of it', () => {
     show();
-    const line = q('[data-reveal-line]')!;
+    const line = q('[data-reveal-line] [data-reveal-typed]')!;
     const full = REVEAL_LINES[Phase.COLONY];
     expect(line.textContent!.length).toBeLessThan(full.length);
     act(() => void vi.advanceTimersByTime(REVEAL_MS / 2));
@@ -60,7 +60,7 @@ describe('PhaseReveal', () => {
 
   it('shows the whole line at once under reduced motion', () => {
     show({ reducedMotion: true });
-    expect(q('[data-reveal-line]')!.textContent).toBe(REVEAL_LINES[Phase.COLONY]);
+    expect(q('[data-reveal-line] [data-reveal-typed]')!.textContent).toBe(REVEAL_LINES[Phase.COLONY]);
   });
 
   it('ends by itself within the reveal time, once', () => {

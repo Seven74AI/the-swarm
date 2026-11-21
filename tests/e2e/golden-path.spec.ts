@@ -1,3 +1,4 @@
+import { visibleText } from './helpers/text';
 import { test, expect } from '@playwright/test';
 import { openTab } from './helpers/tabs';
 import { readResource } from './helpers/resources';
@@ -408,6 +409,6 @@ test.describe('Golden Path — building with resources to spare', () => {
         ),
       )
       .toBe(levelBefore + 1);
-    await expect(barracksRow.locator('.card__level')).toContainText(`LV.${levelBefore + 1}`);
+    await expect.poll(() => visibleText(barracksRow.locator('.card__level'))).toContain(`LV.${levelBefore + 1}`);
   });
 });

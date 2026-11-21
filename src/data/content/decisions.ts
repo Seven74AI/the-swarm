@@ -54,6 +54,7 @@ export interface DecisionDef {
   readonly ignorePolicy: IgnorePolicy;
   /** Countdown in game-time ms (free and costly only). */
   readonly timerMs?: number;
+  /** The event's name, upper case with a full stop (`OVERCROWDING.`, UX-DR42). */
   readonly title: string;
   /** The situation. */
   readonly situation: string;
@@ -72,7 +73,7 @@ export const DECISIONS: readonly DecisionDef[] = [
     phases: COLONY_ON,
     ignorePolicy: 'free',
     timerMs: 30_000,
-    title: 'BEETLE SIGHTING',
+    title: 'BEETLE SIGHTING.',
     situation: 'A WORKER FOUND A DEAD BEETLE NEAR THE NEST. ITS SHELL HOLDS A LOT OF FOOD, BUT SOMETHING ELSE IS FEEDING ON IT.',
     ignoreLine: 'THE BEETLE IS LEFT TO OTHERS',
     choices: [
@@ -96,7 +97,7 @@ export const DECISIONS: readonly DecisionDef[] = [
     phases: COLONY_ON,
     ignorePolicy: 'costly',
     timerMs: 45_000,
-    title: 'OVERCROWDING',
+    title: 'OVERCROWDING.',
     situation: 'THE NEST IS CRAMPED. WORKERS CLIMB OVER EACH OTHER AND THE STORES ARE TRAMPLED.',
     ignoreLine: 'THE CRUSH SPOILS 10% OF THE FOOD',
     choices: [
@@ -123,7 +124,7 @@ export const DECISIONS: readonly DecisionDef[] = [
     id: 'scout_report',
     phases: [Phase.EXPANSION, Phase.SPACE],
     ignorePolicy: 'unavoidable',
-    title: 'SCOUT REPORT',
+    title: 'SCOUT REPORT.',
     situation: 'SCOUTS SAW MOVEMENT BEYOND THE MAPPED GROUND. SOMETHING IS OUT THERE, AND IT HAS SEEN THEM TOO.',
     ignoreLine: 'NOT POSSIBLE. THE SCOUTS WAIT FOR AN ORDER',
     choices: [
@@ -161,5 +162,5 @@ export function getDecision(id: DecisionId): DecisionDef {
 
 /** The log line and toast for a costly timeout (Story 1.28): what ignoring cost. */
 export function timeoutLine(def: DecisionDef): string {
-  return `${def.title} IGNORED: ${def.ignoreLine}`;
+  return `${def.title.replace(/\.$/, '')} IGNORED: ${def.ignoreLine}.`;
 }

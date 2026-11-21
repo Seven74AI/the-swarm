@@ -43,7 +43,7 @@ function App() {
         addDisabled="no free workers"
         data-role="gatherer"
       />
-      <Meter value={value} max={AVAILABLE} valueText={`Gatherers ${value} of ${AVAILABLE}`} />
+      <Meter label="Gatherers" value={value} max={AVAILABLE} valueText={`Gatherers ${value} of ${AVAILABLE}`} />
       <Card
         id="nursery"
         title="NURSERY"

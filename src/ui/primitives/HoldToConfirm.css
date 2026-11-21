@@ -15,7 +15,7 @@
   display: inline-grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
-  font-size: 7px;
+  font-size: 0.4375rem;
   line-height: 1;
 }
 

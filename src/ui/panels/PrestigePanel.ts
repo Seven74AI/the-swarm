@@ -218,10 +218,10 @@ export class PrestigePanel {
     // ── Legacy button: irreversible, so it needs a hold or two taps (Story 1.13) ──
     const tooltip = available
       ? undefined
-      : `Your colony has reached the limits of physics. Only transcendence can break these bonds.\n\nRequirements:\n${unmet.map((u) => `  ✗ ${u}`).join('\n')}`;
+      : `Prestige needs:\n${unmet.map((u) => `  ✗ ${u}`).join('\n')}`;
     renderPreact(
       h(HoldToConfirm, {
-        verb: 'Transcend',
+        verb: 'PRESTIGE',
         onConfirm: () => {
           // The action raises prestige_triggered after its write.
           const el = this.confirmHost.querySelector('button');

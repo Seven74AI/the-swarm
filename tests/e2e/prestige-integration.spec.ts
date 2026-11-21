@@ -379,7 +379,7 @@ test.describe('Prestige Integration — Slice 5', () => {
 
     await evalClick(page, '#prestige-panel .btn-prestige');
     await expect(btn).toHaveAttribute('data-armed', 'true');
-    await expect(btn).toContainText('> TAP AGAIN TO TRANSCEND');
+    await expect(btn).toContainText('> TAP AGAIN TO PRESTIGE');
     await expect(page.locator('[data-stat="resources.food"] .critical-value')).not.toHaveText('0');
 
     await evalClick(page, '#prestige-panel .btn-prestige');

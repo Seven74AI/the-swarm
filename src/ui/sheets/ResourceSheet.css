@@ -5,7 +5,7 @@
 
 .resource-sheet__header {
   margin: 0;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--color-dim);
 }
 
@@ -22,7 +22,7 @@
 /* Two lines per resource: glyph, name, amount, rate; then cap and source. */
 .resource-row {
   display: grid;
-  grid-template-columns: 30px 1fr auto auto;
+  grid-template-columns: 1.875rem 1fr auto auto;
   grid-template-areas:
     "glyph name amount rate"
     "glyph cap source source";
@@ -31,7 +31,7 @@
 }
 .resource-row__glyph {
   grid-area: glyph;
-  font-size: 30px;
+  font-size: 1.875rem;
   line-height: 1;
   align-self: center;
 }
@@ -40,7 +40,7 @@
 .resource-row__rate { grid-area: rate; text-align: right; min-width: 4ch; }
 .resource-row__cap,
 .resource-row__source {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--color-dim);
 }
 .resource-row__cap { grid-area: cap; }

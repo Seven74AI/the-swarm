@@ -10,6 +10,7 @@ import {
   repeatDelay,
 } from '../../../../src/ui/primitives/holdRepeat';
 import { OK, refuse, type ActionResult } from '../../../../src/actions/result';
+import { spoken } from '../../helpers/a11y';
 
 /**
  * Story 1.11 (FR45, UX-DR11, UX-DR20, UX-DR38, NFR1): the Button primitive.
@@ -206,7 +207,7 @@ describe('Button primitive (Story 1.11)', () => {
     expect(prefix?.getAttribute('aria-hidden')).toBe('true');
     expect(cursor?.getAttribute('aria-hidden')).toBe('true');
     // Accessible name is the verb and its target only, never the prompt glyphs.
-    expect(el.getAttribute('aria-label')).toBe('LAY EGG');
+    expect(spoken(el)).toBe('LAY EGG');
   });
 
   it('a secondary action has neither prefix nor cursor', () => {

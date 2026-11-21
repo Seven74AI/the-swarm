@@ -1,6 +1,7 @@
 import { selectCombatResources, selectResources } from '../../state/selectors';
 import { formatFull } from '../../utils/format';
 import type { Shortfall } from '../primitives/Card';
+import { Abbr, Sep } from '../primitives/Deco';
 import { RESOURCE_BY_ID, type ResourceId } from '../shell/resourceCatalog';
 
 /** A price: resource id → amount (zero and unknown entries are skipped). */
@@ -27,7 +28,7 @@ export function stockOf(id: ResourceId): number {
 export function shortfallOf(price: Price): Shortfall | null {
   for (const [id, need] of priceEntries(price)) {
     const short = Math.ceil(need - stockOf(id));
-    if (short > 0) return { amount: short, glyph: RESOURCE_BY_ID[id].glyph };
+    if (short > 0) return { amount: short, glyph: <Abbr shown={RESOURCE_BY_ID[id].glyph} full={RESOURCE_BY_ID[id].name} /> };
   }
   return null;
 }
@@ -39,9 +40,9 @@ export function PriceText({ price, sign = '' }: { price: Price; sign?: string })
     <>
       {entries.map(([id, amount], i) => (
         <span key={id} data-price={id}>
-          {i > 0 ? ' · ' : ''}
+          {i > 0 ? <Sep /> : ''}
           {sign}
-          {formatFull(Math.floor(amount))} <span aria-label={RESOURCE_BY_ID[id].name}>{RESOURCE_BY_ID[id].glyph}</span>
+          {formatFull(Math.floor(amount))} <Abbr shown={RESOURCE_BY_ID[id].glyph} full={RESOURCE_BY_ID[id].name} />
         </span>
       ))}
     </>

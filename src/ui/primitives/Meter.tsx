@@ -5,7 +5,12 @@
  * typed cells and the percentage are decoration, hidden from assistive tech;
  * the element itself is a `progressbar` whose `aria-valuetext` the caller
  * writes in words ("Workers 37 of 50").
+ *
+ * On a reduced character grid (Story 1.31, UX-DR4) it shrinks to `cols − 8`
+ * cells; below 28 columns it reads `74 % ████····` (`data-meter-form="short"`):
+ * percentage first, no brackets, free to wrap.
  */
+import { gridClass, meterCellsFor, useGridCols } from './charGrid';
 import './Meter.css';
 export const METER_CELLS = 14;
 
@@ -18,6 +23,8 @@ export function meterCells(value: number, max: number, cells: number = METER_CEL
 }
 
 export interface MeterProps {
+  /** What the meter measures, its accessible name ("Phase goal", "Time left"). Required: an unnamed progressbar fails axe. */
+  readonly label: string;
   readonly value: number;
   readonly max: number;
   /** The words a screen reader says, e.g. "Workers 37 of 50". */
@@ -30,32 +37,52 @@ export interface MeterProps {
   readonly class?: string;
 }
 
-export function Meter({ value, max, valueText, cells = METER_CELLS, warn = false, brackets = true, class: cls }: MeterProps) {
+export function Meter({ label, value, max, valueText, cells = METER_CELLS, warn = false, brackets = true, class: cls }: MeterProps) {
+  const cols = useGridCols();
+  const short = gridClass(cols) === 'narrow';
   const top = Math.max(0, Math.floor(max));
   const now = Math.min(top, Math.max(0, Math.floor(Number.isFinite(value) ? value : 0)));
-  const { filled, empty } = meterCells(now, top, cells);
+  const { filled, empty } = meterCells(now, top, meterCellsFor(cols, cells));
   const pct = top > 0 ? Math.floor((now / top) * 100) : 0;
+  const bar = (
+    <span data-meter-cells="" class="meter__cells">
+      <span class="meter__fill">{'█'.repeat(filled)}</span>
+      <span class="meter__empty">{'·'.repeat(empty)}</span>
+    </span>
+  );
   return (
     <div
       class={cls ? `meter ${cls}` : 'meter'}
       role="progressbar"
+      aria-label={label}
       aria-valuemin={0}
       aria-valuemax={top}
       aria-valuenow={now}
       aria-valuetext={valueText}
       data-warn={warn ? '' : undefined}
+      data-meter-form={short ? 'short' : 'bar'}
     >
-      <span aria-hidden="true" class="meter__bar">
-        {brackets ? '[' : null}
-        <span data-meter-cells="" class="meter__cells">
-          <span class="meter__fill">{'█'.repeat(filled)}</span>
-          <span class="meter__empty">{'·'.repeat(empty)}</span>
-        </span>
-        {brackets ? ']' : null}
-      </span>{' '}
-      <span aria-hidden="true" data-meter-pct="" class="meter__pct">
-        {pct}%
-      </span>
+      {short ? (
+        <>
+          <span aria-hidden="true" data-meter-pct="" class="meter__pct">
+            {`${pct} %`}
+          </span>{' '}
+          <span aria-hidden="true" class="meter__bar">
+            {bar}
+          </span>
+        </>
+      ) : (
+        <>
+          <span aria-hidden="true" class="meter__bar">
+            {brackets ? '[' : null}
+            {bar}
+            {brackets ? ']' : null}
+          </span>{' '}
+          <span aria-hidden="true" data-meter-pct="" class="meter__pct">
+            {pct}%
+          </span>
+        </>
+      )}
     </div>
   );
 }

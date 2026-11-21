@@ -14,13 +14,13 @@ describe('EventLog — Combat Events', () => {
   it('logs enemy_scouted event with enemy name', () => {
     bus.emit('enemy_scouted', { enemyType: 'red_ant', enemyName: 'Red Ant' });
     const el = log.getElement();
-    expect(el.textContent).toContain('Scouts report a Red Ant in the territory');
+    expect(el.textContent).toContain('SCOUTS SPOT A RED ANT');
   });
 
   it('logs battle_engage event with enemy type', () => {
     bus.emit('battle_engage', { enemyType: 'spider' });
     const el = log.getElement();
-    expect(el.textContent).toContain('soldiers march to meet the spider');
+    expect(el.textContent).toContain('SOLDIERS MARCH ON THE SPIDER');
   });
 
   it('logs battle_completed event with narrative', () => {

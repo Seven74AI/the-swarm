@@ -62,7 +62,8 @@ export class SaveManager {
   private static SAVE_KEY = 'the_swarm_save';
   private static BACKUP1_KEY = 'the_swarm_save_bak1';
   private static BACKUP2_KEY = 'the_swarm_save_bak2';
-  private static SAVE_VERSION = 18;
+  /** The save format's version; each step up has a migration in migrations.ts. */
+  static readonly SAVE_VERSION = 19;
   private static AUTOSAVE_INTERVAL_MS = 30_000;
   /** Minimum interval between action-triggered saves (5 seconds). */
   private static ACTION_SAVE_INTERVAL_MS = 5_000;
@@ -72,6 +73,16 @@ export class SaveManager {
   private lastActionSaveTimestamp = 0;
   /** Where the event lines come from (main: the chronicle, Story 1.26). */
   private chronicleSource: (() => ChronicleSave) | null = null;
+
+  /** Told when saving starts failing (Story 1.32: the player hears and sees "save failed"). */
+  private saveFailedListener: (() => void) | null = null;
+  /** The last save attempt failed; the listener is told again only after a save succeeds. */
+  private failing = false;
+
+  /** Call `listener` each time saving goes from working to failing (storage full or blocked). */
+  onSaveFailed(listener: () => void): void {
+    this.saveFailedListener = listener;
+  }
 
   /** Every save from now on writes the chronicle this returns (Story 1.26). */
   setChronicleSource(source: () => ChronicleSave): void {
@@ -108,9 +119,14 @@ export class SaveManager {
       }
 
       localStorage.setItem(SaveManager.SAVE_KEY, json);
+      this.failing = false;
       return true;
     } catch (e) {
       log.warn('save', 'failed to save', e);
+      if (!this.failing) {
+        this.failing = true;
+        this.saveFailedListener?.();
+      }
       return false;
     }
   }

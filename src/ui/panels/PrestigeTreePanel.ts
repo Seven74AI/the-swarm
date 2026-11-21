@@ -96,7 +96,7 @@ export class PrestigeTreePanel {
     if (purchased.length >= PRESTIGE_UPGRADES.length) {
       const complete = document.createElement('div');
       complete.className = 'prestige-tree-complete';
-      complete.textContent = '✨ All upgrades purchased. The swarm transcends all limits.';
+      complete.textContent = 'All upgrades owned.';
       this.container.appendChild(complete);
     }
   }

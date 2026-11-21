@@ -54,7 +54,7 @@ export class CosmicPanel {
     if (discoveries.length === 0) {
       const hint = document.createElement('div');
       hint.className = 'cosmic-hint';
-      hint.textContent = 'No cosmic discoveries yet. Explore the cosmos to find wonders!';
+      hint.textContent = 'No cosmic discoveries yet. Explorations find them.';
       this.container.appendChild(hint);
       return;
     }

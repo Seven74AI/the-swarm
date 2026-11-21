@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { openTab } from './helpers/tabs';
+import { visibleText } from './helpers/text';
 
 /**
  * Story 1.29 (FR47 layout, UX-DR6): the same game in columns on desktop.
@@ -148,7 +149,7 @@ test.describe('Single column below 1024 px', () => {
     expect(Math.round(bar.width)).toBe(600);
     expect(bar.y + bar.height).toBeLessThanOrEqual(vp.height + 1);
     expect(bar.y).toBeGreaterThanOrEqual(vp.height * 0.6);
-    await expect(page.locator('[data-tab="wrkr"]')).toHaveText('WRKR');
+    await expect.poll(() => visibleText(page.locator('[data-tab="wrkr"]'))).toBe('WRKR');
     await expect(page.locator('[data-tab-key]')).toHaveCount(0);
     // One tab at a time.
     await expect(page.locator('[data-tab-panel="build"]')).toBeHidden();

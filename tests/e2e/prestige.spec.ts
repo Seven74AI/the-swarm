@@ -95,7 +95,7 @@ test.describe('Prestige System — Legacy Layer', () => {
 
     // Verify button text
     const btnText = await prestigeBtn.textContent();
-    expect(btnText).toContain('Transcend');
+    expect(btnText).toContain('PRESTIGE');
 
     // Verify button is enabled (requirements met)
     const disabled = await prestigeBtn.isDisabled();

@@ -11,6 +11,8 @@ import {
   type GoalCondition,
 } from '../../state/selectors';
 import { formatFull, formatTime } from '../../utils/format';
+import { Sep } from '../primitives/Deco';
+import { PHASE_TITLES } from '../../data/content/phaseReveal';
 import { Meter } from '../primitives/Meter';
 import './GoalMeter.css';
 
@@ -32,15 +34,8 @@ import './GoalMeter.css';
  * and reads `<now> now, reached <value> at <time>` (game time).
  */
 
-/** The current phase's name on the phase line (kept from PhaseIndicator; E2E specs read it). */
-export const PHASE_TITLES: Readonly<Record<Phase, string>> = {
-  [Phase.EGG_LAYING]: 'The Lonely Queen',
-  [Phase.COLONY]: 'The Colony',
-  [Phase.COMBAT]: 'The War',
-  [Phase.EXPANSION]: 'The Expansion',
-  [Phase.SPACE]: 'The Space Age',
-  [Phase.TRANSCENDENCE]: 'Transcendence',
-};
+/** The current phase's name on the phase line (content in `data/content/phaseReveal.ts`). */
+export { PHASE_TITLES };
 
 /** `50 WORKERS`, or the singular when the target is 1 (`1 GUARD`). */
 function goalPart(c: GoalCondition): string {
@@ -88,11 +83,17 @@ export function GoalMeter() {
   if (!goal) return null;
   return (
     <div class="goal-meter" data-goal-meter="full" data-goal-met={met ? '' : undefined}>
-      <p class="goal-meter__next" data-goal-next="" aria-live="polite">
-        {met && <b class="goal-meter__met">GOAL MET · </b>}
+      {/* Goal met is announced by the live region (Story 1.32), not by this line. */}
+      <p class="goal-meter__next" data-goal-next="">
+        {met && (
+          <b class="goal-meter__met">
+            GOAL MET
+            <Sep />
+          </b>
+        )}
         NEXT: {goal.conditions.map(goalPart).join(' + ')}
       </p>
-      <Meter value={pct} max={100} valueText={valueText(pct)} />
+      <Meter label="Phase goal" value={pct} max={100} valueText={valueText(pct)} />
       <ul class="goal-meter__conditions" data-goal-conditions="">
         {goal.conditions.map((c) => (
           <ConditionRow key={c.id} c={c} />
@@ -112,7 +113,7 @@ export function CondensedGoalMeter() {
       <span class="goal-line__next" aria-hidden="true">
         NEXT
       </span>{' '}
-      <Meter value={pct} max={100} valueText={valueText(pct)} brackets={false} />
+      <Meter label="Phase goal" value={pct} max={100} valueText={valueText(pct)} brackets={false} />
     </div>
   );
 }

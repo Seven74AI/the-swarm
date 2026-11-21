@@ -13,6 +13,7 @@ import './Card.css';
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { formatFull } from '../../utils/format';
+import { decorate, Sep } from './Deco';
 
 export const CARD_HIGHLIGHT_MS = 2000;
 
@@ -80,15 +81,15 @@ export function Card(props: CardProps) {
           </span>
         )}
         <span class="card__name">{title}</span>
-        {level && <span class="card__level">{level}</span>}
+        {level && <span class="card__level">{decorate(level)}</span>}
       </h3>
-      {effect && <p class="card__effect">{effect}</p>}
+      {effect && <p class="card__effect">{decorate(effect)}</p>}
       {(cost || short > 0) && (
         <p class="card__cost">
-          {cost}
+          {decorate(cost)}
           {short > 0 && (
             <span class="card__shortfall" data-shortfall="">
-              {cost ? ' · ' : ''}needs {formatFull(short)} more
+              {cost ? <Sep /> : ''}needs {formatFull(short)} more
               {shortfall?.glyph && <> {shortfall.glyph}</>}
             </span>
           )}

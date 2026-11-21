@@ -68,6 +68,16 @@ describe('settings store (Story 1.10)', () => {
     expect(osOff.reducedMotion.value).toBe(true);
   });
 
+  it('CRT effects are off in effect under reduced motion, whatever the CRT choice (Story 1.32)', () => {
+    const store = createSettingsStore({ storage: memoryStore(), capabilities: caps({ reducedMotion: false }) });
+    store.update({ crt: 'full' });
+    expect(store.crt.value).toBe('full');
+    store.update({ reducedMotion: 'on' });
+    expect(store.crt.value).toBe('off');
+    // The choice itself is kept for when motion comes back.
+    expect(store.settings.value.crt).toBe('full');
+  });
+
   it('writes every change to its key at once, with its version', () => {
     const storage = memoryStore();
     const store = createSettingsStore({ storage, capabilities: caps() });

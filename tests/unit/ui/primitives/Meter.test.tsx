@@ -1,13 +1,15 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, cleanup } from '@testing-library/preact';
+import { signal } from '@preact/signals-core';
 import { Meter, meterCells } from '../../../../src/ui/primitives/Meter';
+import { BOX_DRAWING_MIN_COLS, CharGridContext, DESIGN_COLS } from '../../../../src/ui/primitives/charGrid';
 
 /** Story 1.12 (UX-DR29 accessibility floor): a meter is a progressbar; its typed cells are decoration. */
 describe('Meter', () => {
   afterEach(() => cleanup());
 
   it('is a progressbar whose value text is supplied by the caller', () => {
-    const { getByRole } = render(<Meter value={37} max={50} valueText="Workers 37 of 50" />);
+    const { getByRole } = render(<Meter label="Workers" value={37} max={50} valueText="Workers 37 of 50" />);
     const bar = getByRole('progressbar');
     expect(bar.getAttribute('aria-valuetext')).toBe('Workers 37 of 50');
     expect(Number(bar.getAttribute('aria-valuenow'))).toBe(37);
@@ -16,7 +18,7 @@ describe('Meter', () => {
   });
 
   it('hides its cells and percentage from assistive tech', () => {
-    const { container } = render(<Meter value={3} max={4} valueText="3 of 4" />);
+    const { container } = render(<Meter label="Workers" value={3} max={4} valueText="3 of 4" />);
     const cells = container.querySelector('[data-meter-cells]');
     expect(cells).not.toBeNull();
     expect(cells!.closest('[aria-hidden="true"]')).not.toBeNull();
@@ -37,25 +39,58 @@ describe('Meter', () => {
   });
 
   it('keeps aria values inside 0..max and integer', () => {
-    const { getByRole } = render(<Meter value={77.8} max={50} valueText="over" />);
+    const { getByRole } = render(<Meter label="Workers" value={77.8} max={50} valueText="over" />);
     const now = Number(getByRole('progressbar').getAttribute('aria-valuenow'));
     expect(Number.isInteger(now)).toBe(true);
     expect(now).toBeLessThanOrEqual(50);
   });
 
   it('marks a warn meter so it can be drawn in warn', () => {
-    const { getByRole } = render(<Meter value={80} max={100} valueText="Entropy 80 percent" warn />);
+    const { getByRole } = render(<Meter label="Workers" value={80} max={100} valueText="Entropy 80 percent" warn />);
     expect(getByRole('progressbar').hasAttribute('data-warn')).toBe(true);
   });
 
   it('draws brackets around the cells by default, and none when bare (condensed goal meter, Story 1.18)', () => {
-    const framed = render(<Meter value={1} max={2} valueText="1 of 2" />);
+    const framed = render(<Meter label="Workers" value={1} max={2} valueText="1 of 2" />);
     expect(framed.container.querySelector('.meter__bar')!.textContent).toMatch(/^\[.*\]$/);
     cleanup();
-    const bare = render(<Meter value={1} max={2} valueText="1 of 2" brackets={false} />);
+    const bare = render(<Meter label="Workers" value={1} max={2} valueText="1 of 2" brackets={false} />);
     const text = bare.container.querySelector('.meter__bar')!.textContent!;
     expect(text).not.toContain('[');
     expect(text).not.toContain(']');
     expect(bare.container.querySelector('[data-meter-cells]')).not.toBeNull();
+  });
+});
+
+/** Story 1.31 (UX-DR4): meters follow the character grid. */
+describe('Meter on a computed grid', () => {
+  afterEach(() => cleanup());
+
+  const withCols = (cols: number, ui: preact.ComponentChildren) =>
+    render(<CharGridContext.Provider value={signal(cols)}>{ui}</CharGridContext.Provider>);
+
+  it('draws its designed cells on the full grid', () => {
+    const { container } = withCols(DESIGN_COLS, <Meter label="Workers" value={1} max={2} valueText="half" cells={14} />);
+    expect(container.querySelector('[data-meter-cells]')!.textContent!.length).toBe(14);
+    expect(container.querySelector('.meter')!.getAttribute('data-meter-form')).toBe('bar');
+  });
+
+  it('shrinks to cols − 8 cells from 28 to 35 columns', () => {
+    for (let cols = BOX_DRAWING_MIN_COLS; cols < DESIGN_COLS; cols++) {
+      const { container, unmount } = withCols(cols, <Meter label="Workers" value={1} max={2} valueText="half" cells={30} />);
+      expect(container.querySelector('[data-meter-cells]')!.textContent!.length).toBeLessThanOrEqual(cols - 8);
+      unmount();
+    }
+  });
+
+  it('below 28 columns reads `74 % ████····`: percentage first, no brackets, fitting the grid', () => {
+    const cols = BOX_DRAWING_MIN_COLS - 4;
+    const { container } = withCols(cols, <Meter label="Workers" value={3} max={4} valueText="3 of 4" />);
+    const meter = container.querySelector('.meter')!;
+    expect(meter.getAttribute('data-meter-form')).toBe('short');
+    const text = meter.textContent!.trim();
+    expect(text).toMatch(/^\d+ % [█·]+$/);
+    expect(text.length).toBeLessThanOrEqual(cols);
+    expect(meter.getAttribute('role')).toBe('progressbar');
   });
 });
