@@ -191,6 +191,17 @@ describe('Ticker', () => {
       expect(gap).toHaveBeenCalledTimes(1);
     });
 
+    it('without a gap handler a long gap is still never ticked through: no frame cap turns it into ticks (Story 2.4)', () => {
+      const ticker = new Ticker();
+      const tick = vi.fn();
+      ticker.onTick(tick);
+      ticker.start();
+      frame(5_000);
+      expect(tick).not.toHaveBeenCalled();
+      frame(5_100);
+      expect(tick).toHaveBeenCalledTimes(2);
+    });
+
     it('a frame gap of 1 s or less is ordinary ticks', () => {
       const ticker = new Ticker();
       const tick = vi.fn();

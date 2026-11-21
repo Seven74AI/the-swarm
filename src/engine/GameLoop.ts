@@ -112,11 +112,6 @@ export class GameLoop {
     return this.ticker.isPaused();
   }
 
-  /** Pre-fill accumulator for offline catch-up (in milliseconds, capped at 8h) */
-  setOfflineAccumulator(ms: number): void {
-    this.ticker.setAccumulator(Math.min(ms, 8 * 60 * 60 * 1000));
-  }
-
   /**
    * Get the current production multiplier for the given game state.
    * Combines phase progression (×1.12 per phase) and legacy point bonuses (+50% per LP).

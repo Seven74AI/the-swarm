@@ -12,8 +12,9 @@ const TICK_MS = 50;
  *
  * A frame gap over FRAME_GAP_MS (a stall, or a throttled tab that never fired
  * `visibilitychange`) is not ticked through: it goes whole to the gap handler,
- * which main wires to the one resume path (Story 2.3, D1). Without a handler,
- * the old 1 s frame cap applies.
+ * which main wires to the one resume path (Story 2.3, D1), where the offline
+ * cap applies (Story 2.4). There is no frame cap: without a handler the gap
+ * is simply not simulated.
  */
 export class Ticker {
   private rafId: number | null = null;
@@ -78,7 +79,7 @@ export class Ticker {
     return this._paused;
   }
 
-  /** Public for offline catch-up: pre-fill accumulator with elapsed wall-clock time */
+  /** Pre-fill the accumulator (a test hook; offline time goes through resume, Story 2.3). */
   setAccumulator(ms: number): void {
     this.accumulator = ms;
   }
@@ -88,14 +89,14 @@ export class Ticker {
 
     const raw = now - this.lastTime;
     this.lastTime = now;
-    if (raw > FRAME_GAP_MS && this.gapHandler) {
-      // The gap goes to resume(gap) (Story 2.3), never ticked frame by frame.
-      this.gapHandler(raw);
+    if (raw > FRAME_GAP_MS) {
+      // The gap goes to resume(gap) (Story 2.3), never ticked frame by frame,
+      // so no frame cap limits resumed time: the offline cap does (Story 2.4).
+      this.gapHandler?.(raw);
       if (this.running) this.rafId = requestAnimationFrame(this.loop);
       return;
     }
-    const dt = Math.min(raw, FRAME_GAP_MS); // no handler: cap at 1s to prevent spiral
-    this.accumulator += dt;
+    this.accumulator += raw;
 
     while (this.accumulator >= TICK_MS) {
       this.tickOnce(TICK_MS / 1000); // pass delta in seconds

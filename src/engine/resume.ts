@@ -1,17 +1,15 @@
 import type { GameState } from '../state/GameState';
 import { RESUME_FULL_EFFICIENCY_MS } from '../data/constants';
-import { calculateOfflineTicks } from '../systems/OfflineProgression';
+import { planOffline, type OfflinePlan } from '../systems/OfflineProgression';
 import { log } from '../utils/log';
 import { catchUp, type CatchUpDeps } from './catchUp';
 
-/** What an offline resume (60 s or more) simulated: the offline summary's numbers. */
-export interface OfflineLoadInfo {
-  /** Raw wall-clock ms away (before the cap). */
-  elapsedMs: number;
-  /** Wall-clock ms after the offline cap. */
-  effectiveMs: number;
-  /** Game ticks simulated (efficiency-reduced). */
-  offlineTicks: number;
+/**
+ * What an offline resume (60 s or more) simulated: the offline summary's numbers.
+ * The `OfflinePlan` from `planOffline` (time away, ms simulated, ticks, the cap
+ * that applied and whether it was reached, Story 2.4) plus the efficiency.
+ */
+export interface OfflineLoadInfo extends OfflinePlan {
   /** The offline efficiency used (from the state, default 0.5). */
   efficiency: number;
 }
@@ -40,7 +38,8 @@ const DEFAULT_OFFLINE_EFFICIENCY = 0.5;
  * - 60 s or more: the offline path at the state's offline efficiency; `offline`
  *   holds the summary's numbers.
  *
- * The cap (Story 2.4), macro-steps (2.6), offline-only rules (2.7) and the
+ * The offline cap (Story 2.4, `getOfflineCapMs`) bounds every gap here and in
+ * `catchUp`. Macro-steps (2.6), offline-only rules (2.7) and the
  * efficiency curve (2.8) build on this function; it stays the only entry point.
  */
 export function resume(state: GameState, elapsedMs: number, deps: CatchUpDeps): ResumeResult {
@@ -54,12 +53,13 @@ export function resume(state: GameState, elapsedMs: number, deps: CatchUpDeps): 
   }
 
   const efficiency = typeof state.offlineEfficiency === 'number' ? state.offlineEfficiency : DEFAULT_OFFLINE_EFFICIENCY;
-  const { effectiveMs, offlineTicks } = calculateOfflineTicks(elapsed, efficiency, TICK_MS);
+  // At most getOfflineCapMs(state) of the gap is simulated (Story 2.4).
+  const plan = planOffline(state, elapsed, efficiency);
   return {
-    state: catchUp(state, effectiveMs, offlineTicks, deps),
+    state: catchUp(state, plan.effectiveMs, plan.offlineTicks, deps),
     elapsedMs: elapsed,
     efficiency,
-    offline: { elapsedMs: elapsed, effectiveMs, offlineTicks, efficiency },
+    offline: { ...plan, efficiency },
   };
 }
 

@@ -3,7 +3,7 @@ import type { ResourceSystem } from '../systems/ResourceSystem';
 import type { SoldierSystem } from '../systems/SoldierSystem';
 import type { MapSystem } from '../systems/MapSystem';
 import type { TerritorySystem } from '../systems/TerritorySystem';
-import { computeOfflineResourceDeltas } from '../systems/OfflineProgression';
+import { capOfflineMs, computeOfflineResourceDeltas } from '../systems/OfflineProgression';
 import { EventQueue } from './events';
 import { processTick } from './processTick';
 
@@ -28,8 +28,13 @@ const TICK_SEC = 50 / 1000;
  * parts (pipelines, battles, expeditions …) with those resources skipped.
  * Simulated ticks raise events into a collecting queue that is never flushed:
  * nothing plays or animates for catch-up (AR18).
+ *
+ * At most `getOfflineCapMs(state)` is simulated, whatever the caller asks for
+ * (Story 2.4): `ms` is cut to the cap, and `ticks` to the ticks the cut time holds.
  */
-export function catchUp(state: GameState, effectiveMs: number, ticks: number, deps: CatchUpDeps): GameState {
+export function catchUp(state: GameState, ms: number, ticks: number, deps: CatchUpDeps): GameState {
+  const effectiveMs = capOfflineMs(state, ms);
+  const tickCount = Math.min(ticks, Math.floor(effectiveMs / (TICK_SEC * 1000)));
   const totalDtSec = effectiveMs / 1000;
   const territoryBonuses = deps.territorySystem.getBonuses(state);
   const d = computeOfflineResourceDeltas(state, totalDtSec, territoryBonuses);
@@ -50,7 +55,7 @@ export function catchUp(state: GameState, effectiveMs: number, ticks: number, de
   };
 
   const events = new EventQueue();
-  for (let i = 0; i < ticks; i++) {
+  for (let i = 0; i < tickCount; i++) {
     s = processTick(
       s, deps.resourceSystem, deps.soldierSystem, deps.mapSystem, deps.territorySystem, events, TICK_SEC,
       true, // skipDeterministicResources: added above in closed form

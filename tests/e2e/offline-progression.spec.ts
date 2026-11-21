@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { openTab } from './helpers/tabs';
+import { OFFLINE_CAP_BASE_MS } from '../../src/data/constants';
 
 /**
  * Offline Progression E2E tests (GM-8).
@@ -10,7 +11,7 @@ import { openTab } from './helpers/tabs';
  *   - Offline with combat phase state
  *   - Offline with expeditions mid-flight
  *   - Offline with spaceship missions
- *   - 8h cap enforcement
+ *   - The one offline cap (Story 2.4)
  *   - Popup lifecycle (appearance, dismiss, duration)
  *   - Efficiency multiplier effects
  *   - Edge cases (starvation, fresh save, deep offline)
@@ -168,18 +169,18 @@ test.describe('Offline Progression — Closed-Form Deltas', () => {
     expect(foodValue).toBeGreaterThanOrEqual(0);
   });
 
-  test('8h cap enforced: 10h offline ≈ same effective ticks as 8h', async ({ page }) => {
-    const tenHoursAgo = Date.now() - 10 * 3600_000;
+  test('the offline cap holds: an absence past it runs no more ticks than the cap (Story 2.4)', async ({ page }) => {
+    const pastTheCap = Date.now() - OFFLINE_CAP_BASE_MS - 2 * 3600_000;
     const logs: string[] = [];
     page.on('console', (msg) => logs.push(msg.text()));
 
-    await setupOfflineTest(page, tenHoursAgo, {}, 4000);
+    await setupOfflineTest(page, pastTheCap, {}, 4000);
 
     const tickLog = logs.find(l => l.includes('Ticks to simulate:'));
     expect(tickLog, 'the offline tick log line (printed with ?debug=1)').toBeTruthy();
     const ticks = parseInt(tickLog!.match(/Ticks to simulate:\s*(\d+)/)?.[1] ?? 'NaN', 10);
-    // 8h cap at 50% efficiency: 8 * 3600 * 1000 / 50 * 0.5 = 288000 max ticks
-    expect(ticks).toBeLessThanOrEqual(288000);
+    // At 50% efficiency the cap holds at most half its 50 ms ticks.
+    expect(ticks).toBeLessThanOrEqual(Math.floor(OFFLINE_CAP_BASE_MS / 50 * 0.5));
     expect(ticks).toBeGreaterThan(0);
   });
 
@@ -681,15 +682,22 @@ test.describe('Offline Progression — Edge Cases', () => {
     await expect(page.locator('.resource-panel')).toBeVisible({ timeout: 5000 });
   });
 
-  test('offline with very deep offline time (capped at 8h) shows popup', async ({ page }) => {
-    // 24 hours offline — should be capped at 8h effective
-    await setupOfflineTest(page, Date.now() - 24 * 3600_000, {}, 4000);
+  test('offline past the cap shows the popup and says which cap applied (Story 2.4)', async ({ page }) => {
+    await setupOfflineTest(page, Date.now() - OFFLINE_CAP_BASE_MS * 2, {}, 4000);
 
     const popup = page.locator('.offline-summary-popup');
     await expect(popup).toBeVisible({ timeout: 5000 });
     const text = await popup.textContent();
-    // Duration in popup shows raw elapsed (24h), but effective is capped at 8h
+    // The popup shows the raw time away; the cap line names the cap that applied.
     expect(text).toContain('THE NEST KEPT WORKING.');
+    await expect(popup.locator('[data-offline-cap]')).toHaveAttribute('data-offline-cap', String(OFFLINE_CAP_BASE_MS));
+  });
+
+  test('a short absence says nothing about the cap', async ({ page }) => {
+    await setupOfflineTest(page, Date.now() - 120_000);
+    const popup = page.locator('.offline-summary-popup');
+    await expect(popup).toBeVisible({ timeout: 5000 });
+    await expect(popup.locator('[data-offline-cap]')).toHaveCount(0);
   });
 
   test('popup shows efficiency percentage correctly', async ({ page }) => {
