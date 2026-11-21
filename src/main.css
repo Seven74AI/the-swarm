@@ -2047,3 +2047,17 @@ body.phase-space .progress-fill {
   transform: translate(-50%, -50%) !important;
 }
 
+
+/* Story 1.6: a refused action flashes its control; the reason is in its title / data-refusal. */
+.action-refused {
+  animation: action-refused-shake 0.3s ease-in-out;
+  outline: 2px solid var(--color-danger, #c0392b);
+}
+@keyframes action-refused-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .action-refused { animation: none; }
+}

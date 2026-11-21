@@ -1,5 +1,5 @@
 import type { EventBus } from '../../engine/EventBus';
-import type { DecisionEvent } from '../../systems/DecisionSystem';
+import type { DecisionEvent } from '../../state/queries';
 
 const AUTO_DISMISS_MS = 30_000;
 

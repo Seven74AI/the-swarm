@@ -2,7 +2,7 @@ import { log } from './utils/log';
 import { EventBus } from './engine/EventBus';
 import { EventQueue, type EventSink } from './engine/events';
 import { createTickContext } from './engine/TickContext';
-import { chooseDecision } from './actions/decisions';
+import { createActions, type Actions } from './actions';
 import { Ticker } from './engine/Ticker';
 import { GameLoop } from './engine/GameLoop';
 import { gameState } from './state/gameSignal';
@@ -60,6 +60,7 @@ export function bootstrap(): {
   ui: UIRoot;
   decisionSystem: DecisionSystem;
   audio: AudioSystem;
+  actions: Actions;
 } {
   const bus = new EventBus();
   const ticker = new Ticker();
@@ -222,9 +223,9 @@ export function bootstrap(): {
     }
 
     // Expedition system: tick timers and resolve completed ones
-    newState = tickExpeditions(newState);
+    newState = tickExpeditions(newState, dtSec);
     for (const exp of newState.expeditions) {
-      if (exp.ticksRemaining <= 0) {
+      if (exp.remainingMs <= 0) {
         newState = resolveExpedition(newState, exp);
         // Emit expedition return event with result details
         const totalSent = exp.scouts + exp.warriors;
@@ -260,9 +261,9 @@ export function bootstrap(): {
     }
 
     // Space exploration system: tick timers and resolve completed ones
-    newState = tickExplorations(newState);
+    newState = tickExplorations(newState, dtSec);
     for (const exp of newState.spaceExplorations) {
-      if (exp.ticksRemaining <= 0) {
+      if (exp.remainingMs <= 0) {
         newState = resolveExploration(newState, exp);
         // Emit exploration return event with result details
         const oldResources = workingState.resources;
@@ -312,7 +313,7 @@ export function bootstrap(): {
     }
 
     // Research system: tick research progress
-    newState = tickResearch(newState);
+    newState = tickResearch(newState, dtSec);
 
     // Resource conversions: tick DAG (GM-4)
     newState = tickConversions(newState, dtSec);
@@ -356,20 +357,18 @@ export function bootstrap(): {
   // Mount UI
   const app = document.getElementById('app');
 
+  // Every player intent goes through an action (Story 1.6): the UI never
+  // writes state or touches a system. Decision choices are an action too,
+  // not a listener: no listener writes state (AR18).
+  const actions = createActions({ bus, resourceSystem, soldierSystem, battleSystem, decisionSystem, territorySystem });
+
   const ui = new UIRoot({
     bus,
-    resourceSystem,
-    soldierSystem,
-    battleSystem,
+    actions,
     saveManager,
-    mapSystem,
-    territorySystem,
     getState: () => gameState.value,
-    setState: (state: GameState) => { gameState.value = state; },
     audio,
     loop,
-    // Decision choices are an action, not a listener: no listener writes state.
-    chooseDecision: (type, choice) => chooseDecision(decisionSystem, type, choice),
   });
   if (app) {
     ui.mount(app);
@@ -461,7 +460,7 @@ export function bootstrap(): {
 
   loop.start();
 
-  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, ui, decisionSystem, audio };
+  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, ui, decisionSystem, audio, actions };
 }
 
 /**
@@ -531,17 +530,17 @@ export function processTick(
   }
 
   // Tick expedition timers
-  newState = tickExpeditions(newState);
+  newState = tickExpeditions(newState, dtSec);
   for (const exp of newState.expeditions) {
-    if (exp.ticksRemaining <= 0) {
+    if (exp.remainingMs <= 0) {
       newState = resolveExpedition(newState, exp);
     }
   }
 
   // Tick space exploration timers
-  newState = tickExplorations(newState);
+  newState = tickExplorations(newState, dtSec);
   for (const exp of newState.spaceExplorations) {
-    if (exp.ticksRemaining <= 0) {
+    if (exp.remainingMs <= 0) {
       newState = resolveExploration(newState, exp);
     }
   }
@@ -558,7 +557,7 @@ export function processTick(
   }
 
   // Tick research progress
-  newState = tickResearch(newState);
+  newState = tickResearch(newState, dtSec);
 
   // Resource conversions
   newState = tickConversions(newState, dtSec);

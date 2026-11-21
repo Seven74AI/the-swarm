@@ -118,9 +118,9 @@ describe('Save Version Compatibility', () => {
     });
 
     it('has research system initialized', () => {
-      expect(gameState.research.projects.voidCrystalSynthesis.state).toBeDefined();
-      expect(gameState.research.projects.antimatterContainment.state).toBeDefined();
-      expect(gameState.research.projects.darkMatterDetection.state).toBeDefined();
+      expect(gameState.research.projects.voidCrystalSynthesis.status).toBeDefined();
+      expect(gameState.research.projects.antimatterContainment.status).toBeDefined();
+      expect(gameState.research.projects.darkMatterDetection.status).toBeDefined();
     });
 
     it('has conversions initialized', () => {
@@ -238,9 +238,9 @@ describe('Save Version Compatibility', () => {
     });
 
     it('has research system with project states', () => {
-      expect(gameState.research.projects.voidCrystalSynthesis.state).toBeDefined();
-      expect(gameState.research.projects.antimatterContainment.state).toBeDefined();
-      expect(gameState.research.projects.darkMatterDetection.state).toBeDefined();
+      expect(gameState.research.projects.voidCrystalSynthesis.status).toBeDefined();
+      expect(gameState.research.projects.antimatterContainment.status).toBeDefined();
+      expect(gameState.research.projects.darkMatterDetection.status).toBeDefined();
     });
   });
 

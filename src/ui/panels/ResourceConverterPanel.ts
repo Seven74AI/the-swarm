@@ -12,9 +12,10 @@ import {
   getConversionDefs,
   isConversionUnlocked,
   getConversionRate,
-  tickConversions,
   type ConversionDef,
-} from '../../systems/ResourceConversionSystem';
+} from '../../state/queries';
+import type { Actions } from '../../actions';
+import { explain } from '../components/refusal';
 
 /** Resources whose amounts change what the converter shows (each tracked as its own slice). */
 const TRACKED_RESOURCES = ['stone', 'nectar', 'voidCrystals', 'antimatter', 'darkMatter'] as const;
@@ -29,7 +30,7 @@ const CONVERSION_ICONS: Record<string, string> = {
 /** Human-readable requirement descriptions for locked conversions. */
 function getUnlockHint(def: ConversionDef, state: GameState): string {
   if (!state.research.projects[def.requiredResearch] ||
-    state.research.projects[def.requiredResearch].state !== 'completed') {
+    state.research.projects[def.requiredResearch].status !== 'done') {
     return 'Research required';
   }
   if (!def.isReady(state)) {
@@ -57,7 +58,7 @@ export class ResourceConverterPanel {
   constructor(
     private bus: EventBus,
     private getState: () => GameState,
-    private setState: (state: GameState) => void,
+    private actions: Actions,
   ) {
     this.container = document.createElement('div');
     this.container.id = 'resource-converter-panel';
@@ -137,12 +138,8 @@ export class ResourceConverterPanel {
     btn.textContent = '⚡ Process Conversions (1 tick)';
     btn.disabled = !anyUnlocked;
     btn.addEventListener('click', () => {
-      const s = this.getState();
-      const result = tickConversions(s, 1);
-      if (result !== s) {
-        this.bus.emit('conversion_tick', { tick: 1 });
-      }
-      this.setState(result);
+      // The action raises conversion_tick after its write.
+      explain(btn, this.actions.runConversions());
     });
     btnRow.appendChild(btn);
     this.container.appendChild(btnRow);

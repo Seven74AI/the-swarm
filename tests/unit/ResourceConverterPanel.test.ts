@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { testActions } from './helpers/actions';
 import { gameState } from '../../src/state/gameSignal';
 import { ResourceConverterPanel } from '../../src/ui/panels/ResourceConverterPanel';
 import { EventBus } from '../../src/engine/EventBus';
@@ -12,11 +13,7 @@ describe('ResourceConverterPanel', () => {
   beforeEach(() => {
     bus = new EventBus();
     currentState = createInitialState();
-    panel = new ResourceConverterPanel(
-      bus,
-      () => currentState,
-      (s: GameState) => { currentState = s; },
-    );
+    panel = new ResourceConverterPanel(bus, () => currentState, testActions(bus, () => currentState, (s: GameState) => { currentState = s; }));
   });
 
   it('creates a panel element with correct className', () => {
@@ -74,7 +71,7 @@ describe('ResourceConverterPanel', () => {
 
   it('shows unlocked status when research is completed', () => {
     // Complete voidCrystalSynthesis research and provide resources
-    currentState.research.projects.voidCrystalSynthesis = { state: 'completed', progress: 600 };
+    currentState.research.projects.voidCrystalSynthesis = { status: 'done' };
     currentState.workersAssigned.researchers = 40;
     currentState.resources.stone = 50;
     currentState.resources.nectar = 20;
@@ -93,7 +90,7 @@ describe('ResourceConverterPanel', () => {
     expect(btn.disabled).toBe(true);
 
     // Unlock void crystal synthesis
-    currentState.research.projects.voidCrystalSynthesis = { state: 'completed', progress: 600 };
+    currentState.research.projects.voidCrystalSynthesis = { status: 'done' };
     currentState.workersAssigned.researchers = 40;
     currentState.resources.stone = 50;
     currentState.resources.nectar = 20;
@@ -110,9 +107,9 @@ describe('ResourceConverterPanel', () => {
       ...currentState,
       research: {
         projects: {
-          voidCrystalSynthesis: { state: 'completed', progress: 600 },
-          antimatterContainment: { state: 'locked', progress: 0 },
-          darkMatterDetection: { state: 'locked', progress: 0 },
+          voidCrystalSynthesis: { status: 'done' },
+          antimatterContainment: { status: 'idle' },
+          darkMatterDetection: { status: 'idle' },
         },
       },
       workersAssigned: {
@@ -156,7 +153,7 @@ describe('ResourceConverterPanel', () => {
 
   it('shows antimatter containment as locked without particle lab', () => {
     // Complete research but no particle lab
-    currentState.research.projects.antimatterContainment = { state: 'completed', progress: 1500 };
+    currentState.research.projects.antimatterContainment = { status: 'done' };
     currentState.conversions.particleLab = 0;
 
     panel.refresh();
@@ -167,7 +164,7 @@ describe('ResourceConverterPanel', () => {
 
   it('shows darkMatter detection as locked without space explorations', () => {
     // Complete research but no exploration
-    currentState.research.projects.darkMatterDetection = { state: 'completed', progress: 3000 };
+    currentState.research.projects.darkMatterDetection = { status: 'done' };
     currentState.spaceExplorations = [];
 
     panel.refresh();

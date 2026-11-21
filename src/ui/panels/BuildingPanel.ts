@@ -6,8 +6,9 @@ import {
 } from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
-import { canBuild, build, getBuildCost, getEffects } from '../../systems/BuildingSystem';
-import type { BuildingType } from '../../systems/BuildingSystem';
+import { canBuild, getBuildCost, getEffects, type BuildingType } from '../../state/queries';
+import type { Actions } from '../../actions';
+import { explain } from '../components/refusal';
 
 interface BuildingDef {
   type: BuildingType;
@@ -91,7 +92,7 @@ export class BuildingPanel {
   constructor(
     private bus: EventBus,
     private getState: () => GameState,
-    private setState: (state: GameState) => void,
+    private actions: Actions,
   ) {
     this.container = document.createElement('div');
     this.container.id = 'building-panel';
@@ -147,13 +148,8 @@ export class BuildingPanel {
       btn.setAttribute('data-tooltip', this.buildCostTooltip(def.type, state));
     }
     btn.addEventListener('click', () => {
-      const s = this.getState();
-      const oldLevel = s.buildings[def.type].level;
-      const updated = build(def.type, s);
-      if (updated.buildings[def.type].level > oldLevel) {
-        this.bus.emit('building_complete', { building: def.type, level: updated.buildings[def.type].level });
-      }
-      this.setState(updated);
+      // The action raises building_complete after its write.
+      explain(btn, this.actions.buyBuilding(def.type));
     });
     row.appendChild(btn);
 

@@ -27,7 +27,69 @@ export interface Cost {
 const MAX_LEVEL = 5;
 
 function generateId(state: GameState): string {
-  return `ship_${Date.now()}_${state.nextIds.spaceship}`;
+  return `ship_${state.nextIds.spaceship}`;
+}
+
+// ─── THE COLONY SHIP (state.spaceship) ──────────────────
+
+/** Colony ship build costs per level. Lv.1 uses only basic resources.
+ *  Costs flattened for smoother progression: T1→T4 ratio ~2.5-3x (was 4-5x).
+ *  See ADR-004 for cost cliff rationale. Moved here from SpaceshipPanel (Story 1.6). */
+const SHIP_COSTS: readonly Cost[] = [
+  { food: 2000, wood: 500, stone: 500, nectar: 200, voidCrystals: 0, antimatter: 0, darkMatter: 0 },
+  { food: 2800, wood: 700, stone: 700, nectar: 320, voidCrystals: 40, antimatter: 20, darkMatter: 4 },
+  { food: 3800, wood: 1000, stone: 1000, nectar: 450, voidCrystals: 80, antimatter: 40, darkMatter: 8 },
+  { food: 5000, wood: 1400, stone: 1400, nectar: 600, voidCrystals: 120, antimatter: 60, darkMatter: 12 },
+];
+
+/** Highest colony ship level. */
+export const MAX_SHIP_LEVEL = 5;
+
+/**
+ * Cost of the colony ship's next step from `level` (0 = build it). Upgrades
+ * charge only the space resources of that row, as the panel always did.
+ */
+export function getShipCost(level: number): Cost {
+  const row = SHIP_COSTS[Math.min(level, SHIP_COSTS.length - 1)];
+  return level === 0 ? row : { ...row, food: 0, wood: 0, stone: 0, nectar: 0 };
+}
+
+/** Whether `state` holds at least `cost`. */
+export function canAffordShipCost(state: GameState, cost: Cost): boolean {
+  const r = state.resources;
+  return (Object.keys(cost) as (keyof Cost)[]).every((k) => r[k] >= cost[k]);
+}
+
+function payShipCost(state: GameState, cost: Cost): GameState['resources'] {
+  const r = { ...state.resources };
+  for (const k of Object.keys(cost) as (keyof Cost)[]) r[k] = r[k] - cost[k];
+  return r;
+}
+
+/** Build the colony ship (level 0 → 1). Same state when built or unaffordable. */
+export function buildShip(state: GameState): GameState {
+  if (state.spaceship.level > 0) return state;
+  const cost = getShipCost(0);
+  if (!canAffordShipCost(state, cost)) return state;
+  return {
+    ...state,
+    resources: payShipCost(state, cost),
+    spaceship: { level: 1, fuel: 100, maxFuel: 100 },
+  };
+}
+
+/** Upgrade the colony ship one level. Same state when not built, maxed or unaffordable. */
+export function upgradeShip(state: GameState): GameState {
+  const ship = state.spaceship;
+  if (ship.level <= 0 || ship.level >= MAX_SHIP_LEVEL) return state;
+  const cost = getShipCost(ship.level);
+  if (!canAffordShipCost(state, cost)) return state;
+  const level = ship.level + 1;
+  return {
+    ...state,
+    resources: payShipCost(state, cost),
+    spaceship: { level, fuel: ship.fuel, maxFuel: 100 + (level - 1) * 100 },
+  };
 }
 
 // ─── BASE COSTS ─────────────────────────────────────────

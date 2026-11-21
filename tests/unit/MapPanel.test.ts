@@ -12,7 +12,7 @@ describe('MapPanel', () => {
     state = createInitialState();
     mapSystem = new MapSystem();
     state = mapSystem.generateMap(state, 42);
-    panel = new MapPanel(mapSystem, () => state, (s) => { state = s; });
+    panel = new MapPanel(() => state);
   });
 
   describe('getElement', () => {

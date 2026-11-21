@@ -13,6 +13,11 @@ export const MAX_EQUIPMENT_LEVEL = 5;
  * SoldierSystem handles soldier recruitment, training, and equipment upgrades.
  * Uses rate-based pipeline for training (O(1) per tick instead of O(n)).
  */
+/** Chitin (weapon) or silk (armour) to raise equipment from `level`. */
+export function getEquipmentUpgradeCost(level: number): number {
+  return upgradeCost(10, 1.2, level);
+}
+
 export class SoldierSystem {
   constructor(private bus: EventBus) {}
 
@@ -84,7 +89,7 @@ export class SoldierSystem {
     // Gate: requires Chitin Armory
     if ((state.buildings.chitin_armory?.level ?? 0) < 1) return state;
 
-    const cost = upgradeCost(10, 1.2, weapon);
+    const cost = getEquipmentUpgradeCost(weapon);
     if (state.combatResources.chitin < cost) return state;
 
     const result: GameState = {
@@ -107,7 +112,7 @@ export class SoldierSystem {
     // Gate: requires Silk Weaving
     if ((state.buildings.silk_weaving?.level ?? 0) < 1) return state;
 
-    const cost = upgradeCost(10, 1.2, armor);
+    const cost = getEquipmentUpgradeCost(armor);
     if (state.combatResources.silk < cost) return state;
 
     const result: GameState = {

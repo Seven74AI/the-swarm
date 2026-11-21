@@ -156,7 +156,7 @@ describe('createInitialState — combat fields', () => {
 
   it('initializes lastBattle to null', () => {
     const state = createInitialState();
-    expect(state.lastBattle).toBeNull();
+    expect(state.lastBattle).toEqual({ status: 'idle' });
   });
 
   it('initializes combatResources to zero', () => {

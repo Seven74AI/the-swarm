@@ -4,9 +4,16 @@ import {
   selectSoldiers,
 } from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
-import type { GameState } from '../../state/GameState';
-import { launchExpedition, MAX_ACTIVE_EXPEDITIONS } from '../../systems/ExpeditionSystem';
+import type { Expedition, GameState } from '../../state/GameState';
+import { MAX_ACTIVE_EXPEDITIONS } from '../../state/queries';
+import type { Actions } from '../../actions';
+import { explain } from '../components/refusal';
 import { formatNumber } from '../../utils/format';
+
+/** Whole seconds of game time left on a timer. */
+function secondsLeft(remainingMs: number): number {
+  return Math.max(0, Math.ceil(remainingMs / 1000));
+}
 
 interface Destination {
   name: string;
@@ -27,7 +34,7 @@ export class ExpeditionPanel {
   constructor(
     private bus: EventBus,
     private getState: () => GameState,
-    private setState: (state: GameState) => void,
+    private actions: Actions,
   ) {
     this.container = document.createElement('div');
     this.container.id = 'expedition-panel';
@@ -52,7 +59,7 @@ export class ExpeditionPanel {
 
     // Compute hash of expedition state to skip re-render when unchanged
     const expHash = state.expeditions.map(e =>
-      `${e.id}:${e.scouts}:${e.warriors}:${e.destination}:${e.ticksRemaining}:${e.risk}`
+      `${e.id}:${e.scouts}:${e.warriors}:${e.destination}:${secondsLeft(e.remainingMs)}:${e.risk}`
     ).join(',');
     const hash = `scouts:${state.soldiers.scouts}|warriors:${state.soldiers.warriors}|canLaunch:${canLaunch}|exps:${expHash}`;
 
@@ -91,11 +98,8 @@ export class ExpeditionPanel {
         const s = this.getState();
         const scouts = Math.min(1, s.soldiers.scouts);
         const warriors = Math.min(1, s.soldiers.warriors);
-        const updated = launchExpedition(s, scouts, warriors, dest.name);
-        if (updated !== s) {
-          this.bus.emit('expedition_launch', { scouts, warriors, destination: dest.name });
-        }
-        this.setState(updated);
+        // The action raises expedition_launch after its write.
+        explain(btn, this.actions.startExpedition(scouts, warriors, dest.name));
       });
       card.appendChild(btn);
       grid.appendChild(card);
@@ -115,10 +119,7 @@ export class ExpeditionPanel {
     }
   }
 
-  private createExpeditionRow(exp: {
-    id: string; scouts: number; warriors: number;
-    destination: string; ticksRemaining: number; risk: number;
-  }): HTMLDivElement {
+  private createExpeditionRow(exp: Expedition): HTMLDivElement {
     const row = document.createElement('div');
     row.className = 'expedition-row';
 
@@ -141,7 +142,7 @@ export class ExpeditionPanel {
     status.className = 'expedition-row-status';
     const riskPct = Math.round(exp.risk * 100);
     const timeSpan = document.createElement('span');
-    timeSpan.textContent = `⏳ ${exp.ticksRemaining}s`;
+    timeSpan.textContent = `⏳ ${secondsLeft(exp.remainingMs)}s`;
     status.appendChild(timeSpan);
     status.appendChild(document.createTextNode(' '));
     const riskSpan = document.createElement('span');

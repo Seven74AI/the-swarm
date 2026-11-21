@@ -310,6 +310,82 @@ function migrateV12toV13(data: SaveData): SaveData {
   return { ...data, version: 13, gameState };
 }
 
+/** Frozen at v14: game-time length of a tick and of each research project. */
+const V14_TICK_MS = 50;
+const V14_RESEARCH_DURATION_MS: Record<string, number> = {
+  voidCrystalSynthesis: 30_000,
+  antimatterContainment: 75_000,
+  darkMatterDetection: 150_000,
+};
+
+type V13Timer = { ticksRemaining?: number } & Record<string, unknown>;
+
+function v14Running(entry: V13Timer): Record<string, unknown> {
+  const { ticksRemaining, ...rest } = entry;
+  const remainingMs = Math.max(0, Math.floor((ticksRemaining ?? 0) * V14_TICK_MS));
+  return { ...rest, status: 'running', remainingMs, durationMs: remainingMs };
+}
+
+/**
+ * v13 → v14 (Story 1.6, AR23): lifecycles become discriminated unions on
+ * `status` timed in game-time ms. Research `{ state, progress }` becomes
+ * idle / running / done; tick timers on expeditions, explorations and probes
+ * become `remainingMs`; the last battle drops its wall-clock timestamp for
+ * game time (`atMs`), and `null` becomes `{ status: 'idle' }`.
+ */
+function migrateV13toV14(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  const out: Record<string, unknown> = { ...gs };
+  const stats = gs.stats as { playTimeMs?: number } | undefined;
+  const playTimeMs = stats?.playTimeMs ?? data.playTimeMs ?? 0;
+
+  const research = gs.research as { projects?: Record<string, { state?: string; progress?: number; status?: string }> } | undefined;
+  if (research?.projects) {
+    const projects: Record<string, unknown> = {};
+    for (const [id, p] of Object.entries(research.projects)) {
+      if (p.status) {
+        projects[id] = p;
+      } else if (p.state === 'completed') {
+        projects[id] = { status: 'done' };
+      } else if (p.state === 'in_progress') {
+        const durationMs = V14_RESEARCH_DURATION_MS[id] ?? 0;
+        const progressMs = Math.min(durationMs, Math.floor((p.progress ?? 0) * V14_TICK_MS));
+        projects[id] = { status: 'running', progressMs, durationMs };
+      } else {
+        projects[id] = { status: 'idle' };
+      }
+    }
+    out.research = { ...research, projects };
+  }
+
+  for (const key of ['expeditions', 'spaceExplorations', 'spaceProbes']) {
+    const list = gs[key];
+    if (Array.isArray(list)) out[key] = (list as V13Timer[]).map(v14Running);
+  }
+
+  const battle = gs.lastBattle as
+    | { enemyType?: string | null; result?: string; soldiersLost?: number; foodGained?: number; status?: string }
+    | null
+    | undefined;
+  if (!battle) {
+    out.lastBattle = { status: 'idle' };
+  } else if (!battle.status) {
+    out.lastBattle = {
+      status: 'done',
+      enemyType: battle.enemyType ?? 'unknown',
+      result: battle.result === 'victory' || battle.result === 'defeat' ? battle.result : 'draw',
+      soldiersLost: battle.soldiersLost ?? 0,
+      foodGained: battle.foodGained ?? 0,
+      atMs: playTimeMs,
+    };
+  }
+
+  const nextIds = gs.nextIds as Record<string, number> | undefined;
+  out.nextIds = { expedition: 1, exploration: 1, spaceship: 1, ...nextIds, probe: nextIds?.probe ?? 1 };
+
+  return { ...data, version: 14, gameState: out as unknown as GameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -324,6 +400,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   10: migrateV10toV11,
   11: migrateV11toV12,
   12: migrateV12toV13,
+  13: migrateV13toV14,
 };
 
 /**

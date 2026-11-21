@@ -15,7 +15,6 @@ describe('TranscendencePanel', () => {
     panel = new TranscendencePanel(
       bus,
       () => currentState,
-      (s: GameState) => { currentState = s; },
     );
   });
 

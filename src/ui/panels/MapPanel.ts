@@ -1,5 +1,4 @@
 import { TileType, type GameState } from '../../state/GameState';
-import type { MapSystem } from '../../systems/MapSystem';
 
 /** Color map for each tile type. */
 const TILE_COLORS: Record<string, string> = {
@@ -30,9 +29,7 @@ export class MapPanel {
   onTileClick: ((x: number, y: number) => void) | null = null;
 
   constructor(
-    private mapSystem: MapSystem,
     private getState: () => GameState,
-    private setState: (s: GameState) => void,
   ) {}
 
   getElement(): HTMLElement {

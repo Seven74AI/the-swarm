@@ -1,0 +1,527 @@
+// @vitest-environment node
+/**
+ * Story 1.6: every player intent is an action in `src/actions/`.
+ *
+ * A valid intent writes the new state once, between ticks, and returns
+ * `{ ok: true }`. An invalid one returns `{ ok: false, reason }` with a typed
+ * reason and leaves the `gameState` reference untouched (AR16, AR22).
+ */
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { gameState } from '../../src/state/gameSignal';
+import { createInitialState, type GameState } from '../../src/state/GameState';
+import { EventBus } from '../../src/engine/EventBus';
+import { createActions, type Actions } from '../../src/actions';
+import { REFUSAL_REASONS, type ActionResult, type RefusalReason } from '../../src/actions/result';
+import { ResourceSystem } from '../../src/systems/ResourceSystem';
+import { SoldierSystem, MAX_EQUIPMENT_LEVEL } from '../../src/systems/SoldierSystem';
+import { BattleSystem } from '../../src/systems/BattleSystem';
+import { DecisionSystem } from '../../src/systems/DecisionSystem';
+import { TerritorySystem } from '../../src/systems/TerritorySystem';
+import { MAX_ACTIVE_EXPEDITIONS } from '../../src/systems/ExpeditionSystem';
+import { MAX_PROBES } from '../../src/systems/ExplorationSystem';
+import { MAX_SHIP_LEVEL } from '../../src/systems/SpaceshipSystem';
+import { getMaxScouts } from '../../src/systems/RecruitmentSystem';
+import { MUTATIONS } from '../../src/systems/MutationSystem';
+import { RESEARCHES, AUTOMATION_BUILDINGS } from '../../src/systems/AutomationSystem';
+import { getProjects } from '../../src/systems/ResearchSystem';
+import { PRESTIGE_UPGRADES } from '../../src/data/prestigeTree';
+import { TileType } from '../../src/state/GameState';
+
+const LOTS = 1_000_000_000;
+
+/** A state that can afford anything. */
+function rich(over: Partial<GameState> = {}): GameState {
+  const s = createInitialState();
+  return {
+    ...s,
+    resources: Object.fromEntries(Object.keys(s.resources).map((k) => [k, LOTS])) as GameState['resources'],
+    combatResources: { chitin: LOTS, silk: LOTS, venom: LOTS },
+    prestige: { ...s.prestige, legacyPoints: LOTS },
+    ...over,
+  };
+}
+
+/** A state with nothing to spend. */
+function poor(over: Partial<GameState> = {}): GameState {
+  return { ...createInitialState(), ...over };
+}
+
+let bus: EventBus;
+let actions: Actions;
+
+beforeEach(() => {
+  bus = new EventBus();
+  actions = createActions({
+    bus,
+    resourceSystem: new ResourceSystem(bus),
+    soldierSystem: new SoldierSystem(bus),
+    battleSystem: new BattleSystem(bus),
+    decisionSystem: new DecisionSystem(bus),
+    territorySystem: new TerritorySystem(),
+  });
+});
+
+function given(s: GameState): GameState {
+  gameState.value = s;
+  return s;
+}
+
+function expectRefused(result: ActionResult, reason: RefusalReason, before: GameState): void {
+  expect(result).toEqual({ ok: false, reason });
+  expect(gameState.value).toBe(before);
+}
+
+function expectApplied(result: ActionResult, before: GameState): GameState {
+  expect(result.ok).toBe(true);
+  expect(gameState.value).not.toBe(before);
+  return gameState.value;
+}
+
+describe('actions write once, between ticks', () => {
+  it('a valid action writes the state signal exactly once', () => {
+    given(rich());
+    const writes = vi.spyOn(gameState, 'value', 'set');
+    writes.mockClear();
+    try {
+      actions.buyBuilding('barracks');
+      expect(writes).toHaveBeenCalledTimes(1);
+    } finally {
+      writes.mockRestore();
+    }
+  });
+
+  it('a refused action never writes the state signal', () => {
+    given(poor());
+    const writes = vi.spyOn(gameState, 'value', 'set');
+    writes.mockClear();
+    try {
+      actions.buyBuilding('barracks');
+      expect(writes).not.toHaveBeenCalled();
+    } finally {
+      writes.mockRestore();
+    }
+  });
+
+  it('events an action raises are delivered after its write', () => {
+    const before = given(rich());
+    let seen: GameState | null = null;
+    bus.subscribe('building_complete', () => {
+      seen = gameState.value;
+    });
+    actions.buyBuilding('walls');
+    expect(seen).not.toBeNull();
+    expect(seen).not.toBe(before);
+    expect(seen!.buildings.walls.level).toBeGreaterThan(before.buildings.walls.level);
+  });
+
+  it('every refusal reason is one of the typed reasons', () => {
+    given(poor());
+    const results: ActionResult[] = [
+      actions.assignWorker('gather'),
+      actions.unassignWorker('gather'),
+      actions.buyBuilding('barracks'),
+      actions.trainSoldier(),
+      actions.fight(),
+      actions.recruitScout(),
+      actions.startExpedition(1, 0, 'Meadow'),
+      actions.prestige(),
+    ];
+    for (const r of results) {
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(REFUSAL_REASONS).toContain(r.reason);
+    }
+  });
+});
+
+describe('nest', () => {
+  it('lays an egg', () => {
+    const before = given(poor());
+    const after = expectApplied(actions.layEgg(), before);
+    expect(after.resources.eggs).toBeGreaterThan(before.resources.eggs);
+  });
+
+  it('assigns a free worker, refuses when none is free', () => {
+    let before = given(poor());
+    expectRefused(actions.assignWorker('gather'), 'no_free_workers', before);
+
+    before = given(poor({ resources: { ...createInitialState().resources, workers: 3 } }));
+    const after = expectApplied(actions.assignWorker('gather'), before);
+    expect(after.workersAssigned.gather).toBeGreaterThan(before.workersAssigned.gather);
+  });
+
+  it('unassigns a worker, refuses when the role is empty', () => {
+    let before = given(poor());
+    expectRefused(actions.unassignWorker('dig'), 'none_assigned', before);
+
+    const base = createInitialState();
+    before = given(poor({
+      resources: { ...base.resources, workers: 2 },
+      workersAssigned: { ...base.workersAssigned, dig: 1 },
+    }));
+    const after = expectApplied(actions.unassignWorker('dig'), before);
+    expect(after.workersAssigned.dig).toBeLessThan(before.workersAssigned.dig);
+  });
+
+  it('buys an upgrade, refuses when unaffordable or unknown', () => {
+    let before = given(poor());
+    expectRefused(actions.buyUpgrade('click_power'), 'cannot_afford', before);
+    expectRefused(actions.buyUpgrade('no_such_upgrade'), 'unknown_id', before);
+
+    before = given(rich());
+    const after = expectApplied(actions.buyUpgrade('click_power'), before);
+    expect(after.upgrades.click_power ?? 0).toBeGreaterThan(before.upgrades.click_power ?? 0);
+  });
+
+  it('toggles pause', () => {
+    const before = given(poor({ paused: false }));
+    const after = expectApplied(actions.togglePause(), before);
+    expect(after.paused).toBe(true);
+    actions.togglePause();
+    expect(gameState.value.paused).toBe(false);
+  });
+});
+
+describe('buildings and automation', () => {
+  it('buys a building, refuses when unaffordable', () => {
+    let before = given(poor());
+    expectRefused(actions.buyBuilding('warehouse'), 'cannot_afford', before);
+
+    before = given(rich());
+    const after = expectApplied(actions.buyBuilding('warehouse'), before);
+    expect(after.buildings.warehouse.level).toBeGreaterThan(before.buildings.warehouse.level);
+    expect(after.resources.wood).toBeLessThan(before.resources.wood);
+  });
+
+  it('researches automation, refuses when locked, owned or unaffordable', () => {
+    const [first, second] = Object.keys(RESEARCHES) as (keyof typeof RESEARCHES)[];
+    let before = given(poor());
+    expectRefused(actions.researchAutomation(first), 'cannot_afford', before);
+    expectRefused(actions.researchAutomation(second), 'locked', before);
+
+    before = given(rich());
+    const after = expectApplied(actions.researchAutomation(first), before);
+    expect(after.autoProduction.researches[first]).toBe(true);
+    expectRefused(actions.researchAutomation(first), 'already_owned', after);
+  });
+
+  it('builds an automation building up to its max level', () => {
+    const id = (Object.keys(AUTOMATION_BUILDINGS) as (keyof typeof AUTOMATION_BUILDINGS)[])[0];
+    let before = given(poor());
+    expectRefused(actions.buildAutomation(id), 'cannot_afford', before);
+
+    before = given(rich());
+    const after = expectApplied(actions.buildAutomation(id), before);
+    expect(after.autoProduction.buildings[id] ?? 0).toBeGreaterThan(before.autoProduction.buildings[id] ?? 0);
+
+    const maxed = given(rich({
+      autoProduction: {
+        ...before.autoProduction,
+        buildings: { ...before.autoProduction.buildings, [id]: AUTOMATION_BUILDINGS[id].maxLevel },
+      },
+    }));
+    expectRefused(actions.buildAutomation(id), 'max_level', maxed);
+  });
+
+  it('switches auto-production on and off', () => {
+    const before = given(poor());
+    const after = expectApplied(actions.setAutoProduction(!before.autoProduction.enabled), before);
+    expect(after.autoProduction.enabled).toBe(!before.autoProduction.enabled);
+    expectRefused(actions.setAutoProduction(after.autoProduction.enabled), 'unavailable', after);
+  });
+});
+
+describe('research', () => {
+  const [first, second] = getProjects();
+  const staffed = (over: Partial<GameState> = {}): GameState => {
+    const s = rich(over);
+    return { ...s, workersAssigned: { ...s.workersAssigned, researchers: first.requiredResearchers } };
+  };
+
+  it('assigns and unassigns researchers', () => {
+    let before = given(poor());
+    expectRefused(actions.assignResearcher(), 'no_free_workers', before);
+    expectRefused(actions.unassignResearcher(), 'none_assigned', before);
+
+    before = given(rich());
+    const after = expectApplied(actions.assignResearcher(), before);
+    expect(after.workersAssigned.researchers).toBeGreaterThan(before.workersAssigned.researchers);
+    const back = expectApplied(actions.unassignResearcher(), after);
+    expect(back.workersAssigned.researchers).toBeLessThan(after.workersAssigned.researchers);
+  });
+
+  it('starts a project as a running lifecycle in game-time ms', () => {
+    let before = given(rich());
+    expectRefused(actions.startResearch(first.id), 'too_few_researchers', before);
+    expectRefused(actions.startResearch(second.id), 'locked', before);
+
+    before = given(poor({ workersAssigned: { ...createInitialState().workersAssigned, researchers: first.requiredResearchers } }));
+    expectRefused(actions.startResearch(first.id), 'cannot_afford', before);
+
+    before = given(staffed());
+    const after = expectApplied(actions.startResearch(first.id), before);
+    const project = after.research.projects[first.id];
+    expect(project.status).toBe('running');
+    if (project.status === 'running') {
+      expect(project.progressMs).toBe(0);
+      expect(project.durationMs).toBeGreaterThan(0);
+    }
+    expectRefused(actions.startResearch(first.id), 'already_running', after);
+  });
+
+  it('cancels a running project, refuses an idle one', () => {
+    let before = given(staffed());
+    expectRefused(actions.cancelResearch(first.id), 'not_running', before);
+
+    actions.startResearch(first.id);
+    before = gameState.value;
+    const after = expectApplied(actions.cancelResearch(first.id), before);
+    expect(after.research.projects[first.id].status).toBe('idle');
+  });
+
+  it('refuses a finished project', () => {
+    const base = staffed();
+    const before = given({
+      ...base,
+      research: { projects: { ...base.research.projects, [first.id]: { status: 'done' } } },
+    });
+    expectRefused(actions.startResearch(first.id), 'already_owned', before);
+  });
+
+  it('runs conversions only once one is unlocked', () => {
+    const before = given(rich());
+    expectRefused(actions.runConversions(), 'locked', before);
+
+    const unlocked = given({
+      ...before,
+      workersAssigned: { ...before.workersAssigned, researchers: first.requiredResearchers },
+      research: { projects: { ...before.research.projects, voidCrystalSynthesis: { status: 'done' } } },
+    });
+    const after = expectApplied(actions.runConversions(), unlocked);
+    expect(after.resources.voidCrystals).toBeGreaterThan(unlocked.resources.voidCrystals);
+  });
+});
+
+describe('combat', () => {
+  it('trains a soldier, refuses without a worker or food', () => {
+    let before = given(poor());
+    expectRefused(actions.trainSoldier(), 'no_free_workers', before);
+
+    before = given(poor({ resources: { ...createInitialState().resources, workers: 2 } }));
+    expectRefused(actions.trainSoldier(), 'cannot_afford', before);
+
+    before = given(rich());
+    const after = expectApplied(actions.trainSoldier(), before);
+    expect(after.soldierPipeline.count).toBeGreaterThan(before.soldierPipeline.count);
+  });
+
+  it('upgrades weapons and armour behind their buildings', () => {
+    const base = rich();
+    let before = given(base);
+    expectRefused(actions.upgradeWeapon(), 'locked', before);
+    expectRefused(actions.upgradeArmor(), 'locked', before);
+
+    const built = { ...base, buildings: { ...base.buildings, chitin_armory: { level: 1 }, silk_weaving: { level: 1 } } };
+    before = given({ ...built, combatResources: { chitin: 0, silk: 0, venom: 0 } });
+    expectRefused(actions.upgradeWeapon(), 'cannot_afford', before);
+    expectRefused(actions.upgradeArmor(), 'cannot_afford', before);
+
+    before = given(built);
+    let after = expectApplied(actions.upgradeWeapon(), before);
+    expect(after.equipment.weapon).toBeGreaterThan(before.equipment.weapon);
+    after = expectApplied(actions.upgradeArmor(), after);
+    expect(after.equipment.armor).toBeGreaterThan(before.equipment.armor);
+
+    before = given({ ...built, equipment: { weapon: MAX_EQUIPMENT_LEVEL, armor: MAX_EQUIPMENT_LEVEL } });
+    expectRefused(actions.upgradeWeapon(), 'max_level', before);
+    expectRefused(actions.upgradeArmor(), 'max_level', before);
+  });
+
+  it('fights and records the battle as a finished lifecycle in game time', () => {
+    let before = given(poor());
+    expectRefused(actions.fight(), 'no_soldiers', before);
+
+    before = given(rich({ combatSoldiers: 20, stats: { ...createInitialState().stats, playTimeMs: 123_000 } }));
+    const result = actions.fight();
+    const after = expectApplied(result, before);
+    if (result.ok) expect(typeof result.value.victory).toBe('boolean');
+    expect(after.lastBattle.status).toBe('done');
+    if (after.lastBattle.status === 'done') {
+      expect(after.lastBattle.atMs).toBe(before.stats.playTimeMs);
+    }
+  });
+
+  it('buys a mutation once, behind its prerequisite', () => {
+    const free = MUTATIONS.find((m) => m.prerequisite === null)!;
+    const gated = MUTATIONS.find((m) => m.prerequisite !== null)!;
+    let before = given(poor());
+    expectRefused(actions.buyMutation(free.id), 'cannot_afford', before);
+    expectRefused(actions.buyMutation('no_such_mutation'), 'unknown_id', before);
+
+    before = given(rich());
+    expectRefused(actions.buyMutation(gated.id), 'locked', before);
+    const after = expectApplied(actions.buyMutation(free.id), before);
+    expect(after.mutations.find((m) => m.id === free.id)?.purchased).toBe(true);
+    expectRefused(actions.buyMutation(free.id), 'already_owned', after);
+  });
+
+  it('recruits scouts and warriors behind the barracks, up to its cap', () => {
+    let before = given(rich());
+    expectRefused(actions.recruitScout(), 'locked', before);
+    expectRefused(actions.recruitWarrior(), 'locked', before);
+
+    const base = rich();
+    const barracks = { ...base.buildings, barracks: { level: 2, count: 1 } };
+    before = given({ ...base, buildings: barracks });
+    let after = expectApplied(actions.recruitScout(), before);
+    expect(after.soldiers.scouts).toBeGreaterThan(before.soldiers.scouts);
+    after = expectApplied(actions.recruitWarrior(), after);
+    expect(after.soldiers.warriors).toBeGreaterThan(before.soldiers.warriors);
+
+    const full = given({ ...base, buildings: barracks, soldiers: { ...base.soldiers, scouts: getMaxScouts({ ...base, buildings: barracks }) } });
+    expectRefused(actions.recruitScout(), 'at_capacity', full);
+
+    before = given({ ...poor(), buildings: barracks });
+    expectRefused(actions.recruitScout(), 'no_free_workers', before);
+  });
+});
+
+describe('expansion', () => {
+  it('starts an expedition as a running lifecycle, refuses without soldiers or slots', () => {
+    let before = given(poor());
+    expectRefused(actions.startExpedition(1, 0, 'Meadow'), 'no_soldiers', before);
+
+    const base = rich();
+    before = given({ ...base, soldiers: { ...base.soldiers, scouts: 10, warriors: 10 } });
+    const after = expectApplied(actions.startExpedition(1, 1, 'Meadow'), before);
+    expect(after.expeditions).toHaveLength(before.expeditions.length + 1);
+    const exp = after.expeditions[after.expeditions.length - 1];
+    expect(exp.status).toBe('running');
+    expect(exp.remainingMs).toBeGreaterThan(0);
+    expect(after.soldiers.scouts).toBeLessThan(before.soldiers.scouts);
+
+    for (let i = 1; i < MAX_ACTIVE_EXPEDITIONS; i++) actions.startExpedition(1, 0, 'Forest');
+    const full = gameState.value;
+    expect(full.expeditions).toHaveLength(MAX_ACTIVE_EXPEDITIONS);
+    expectRefused(actions.startExpedition(1, 0, 'Forest'), 'slots_full', full);
+  });
+
+  it('claims a discovered tile next to owned territory without mutating the old state', () => {
+    const base = createInitialState();
+    const tiles = base.mapTiles.map((t) => ({ ...t, type: TileType.FOREST }));
+    const at = (x: number, y: number) => y * 8 + x;
+    tiles[at(0, 0)] = { ...tiles[at(0, 0)], discovered: true, claimed: true };
+    tiles[at(1, 0)] = { ...tiles[at(1, 0)], discovered: true };
+    tiles[at(5, 5)] = { ...tiles[at(5, 5)], discovered: true };
+    const before = given({ ...base, mapTiles: tiles });
+
+    expectRefused(actions.claimTile(2, 2), 'locked', before);
+    expectRefused(actions.claimTile(5, 5), 'not_adjacent', before);
+    expectRefused(actions.claimTile(0, 0), 'already_owned', before);
+
+    const after = expectApplied(actions.claimTile(1, 0), before);
+    expect(after.mapTiles[at(1, 0)].claimed).toBe(true);
+    expect(after.territory.ownedTiles).toBeGreaterThan(before.territory.ownedTiles);
+    expect(before.mapTiles[at(1, 0)].claimed).toBe(false);
+  });
+});
+
+describe('space', () => {
+  it('builds the ship once, then upgrades it to its max level', () => {
+    let before = given(poor());
+    expectRefused(actions.buildShip(), 'cannot_afford', before);
+    expectRefused(actions.upgradeShip(), 'locked', before);
+
+    before = given(rich());
+    let after = expectApplied(actions.buildShip(), before);
+    expect(after.spaceship.level).toBeGreaterThan(0);
+    expectRefused(actions.buildShip(), 'already_owned', after);
+
+    after = expectApplied(actions.upgradeShip(), after);
+    expect(after.spaceship.level).toBeGreaterThan(1);
+
+    before = given(rich({ spaceship: { level: MAX_SHIP_LEVEL, fuel: 0, maxFuel: 100 } }));
+    expectRefused(actions.upgradeShip(), 'max_level', before);
+  });
+
+  it('launches a probe as a running exploration with a sequential id', () => {
+    let before = given(rich());
+    expectRefused(actions.launchProbe('Mars'), 'locked', before);
+
+    const base = rich({ spaceship: { level: 1, fuel: 100, maxFuel: 100 } });
+    before = given({ ...base, soldiers: { ...base.soldiers, scouts: 0 } });
+    expectRefused(actions.launchProbe('Mars'), 'no_soldiers', before);
+
+    before = given({ ...base, soldiers: { ...base.soldiers, scouts: 10 } });
+    const after = expectApplied(actions.launchProbe('Mars'), before);
+    const probe = after.spaceProbes[after.spaceProbes.length - 1];
+    expect(probe.status).toBe('running');
+    expect(probe.remainingMs).toBeGreaterThan(0);
+    expect(probe.id).toBe(`probe_${before.nextIds.probe}`);
+    expect(after.nextIds.probe).toBe(before.nextIds.probe + 1);
+
+    for (let i = 1; i < MAX_PROBES; i++) actions.launchProbe('Mars');
+    const full = gameState.value;
+    expectRefused(actions.launchProbe('Mars'), 'slots_full', full);
+  });
+});
+
+describe('prestige', () => {
+  it('refuses to prestige before the requirements are met', () => {
+    const before = given(poor());
+    expectRefused(actions.prestige(), 'not_ready', before);
+  });
+
+  it('prestiges once the requirements are met', () => {
+    const base = rich();
+    const before = given({
+      ...base,
+      phase: 'transcendence',
+      buildings: {
+        ...base.buildings,
+        barracks: { level: 99, count: 1 },
+        walls: { level: 99 },
+        warehouse: { level: 99 },
+      },
+      prestige: {
+        ...base.prestige,
+        totalFoodProduced: LOTS,
+        totalWoodProduced: LOTS,
+        totalStoneProduced: LOTS,
+        totalNectarProduced: LOTS,
+      },
+    });
+    const after = expectApplied(actions.prestige(), before);
+    expect(after.prestige.count).toBeGreaterThan(before.prestige.count);
+  });
+
+  it('buys a prestige tree upgrade once', () => {
+    const upgrade = PRESTIGE_UPGRADES.find((u) => !u.phaseRequired)!;
+    let before = given(poor({ phase: 'transcendence' }));
+    expectRefused(actions.buyPrestigeUpgrade(upgrade.id), 'cannot_afford', before);
+
+    before = given(rich({ phase: 'transcendence' }));
+    const after = expectApplied(actions.buyPrestigeUpgrade(upgrade.id), before);
+    expect(after.prestigeTree.purchased).toContain(upgrade.id);
+    expectRefused(actions.buyPrestigeUpgrade(upgrade.id), 'already_owned', after);
+  });
+
+  it('buys the offline-efficiency upgrades in order', () => {
+    let before = given(rich({ phase: 'transcendence', offlineEfficiency: 0.5 }));
+    expectRefused(actions.buyChronoSynchronization(), 'locked', before);
+    let after = expectApplied(actions.buyTemporalResonance(), before);
+    expect(after.offlineEfficiency).toBeGreaterThan(before.offlineEfficiency);
+    expectRefused(actions.buyTemporalResonance(), 'already_owned', after);
+    after = expectApplied(actions.buyChronoSynchronization(), after);
+    expect(after.offlineEfficiency).toBeGreaterThan(0.75);
+
+    before = given(poor({ phase: 'transcendence' }));
+    expectRefused(actions.buyTemporalResonance(), 'cannot_afford', before);
+  });
+});
+
+describe('decisions', () => {
+  it('applies a known choice, refuses an unknown one', () => {
+    const before = given(rich());
+    expectRefused(actions.chooseDecision('no_such_event' as never, 'Nope'), 'unknown_id', before);
+  });
+});

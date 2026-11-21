@@ -201,11 +201,12 @@ export class BattleSystem {
       battlesWon: workingState.battlesWon + (victory ? 1 : 0),
       battlesLost: workingState.battlesLost + (defeat ? 1 : 0),
       lastBattle: {
+        status: 'done',
         enemyType: enemy.type,
-        result: victory ? 'victory' : defeat ? 'defeat' : 'pending',
+        result: victory ? 'victory' : defeat ? 'defeat' : 'draw',
         soldiersLost,
         foodGained,
-        timestamp: Date.now(),
+        atMs: state.stats.playTimeMs,
       },
     };
 

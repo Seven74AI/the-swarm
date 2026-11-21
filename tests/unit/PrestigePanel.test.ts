@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { testActions } from './helpers/actions';
 import { gameState } from '../../src/state/gameSignal';
 import { PrestigePanel } from '../../src/ui/panels/PrestigePanel';
 import { EventBus } from '../../src/engine/EventBus';
@@ -14,11 +15,7 @@ describe('PrestigePanel', () => {
   beforeEach(() => {
     bus = new EventBus();
     currentState = createInitialState();
-    panel = new PrestigePanel(
-      bus,
-      () => currentState,
-      (s: GameState) => { currentState = s; },
-    );
+    panel = new PrestigePanel(bus, () => currentState, testActions(bus, () => currentState, (s: GameState) => { currentState = s; }));
   });
 
   it('creates a panel element', () => {
@@ -204,7 +201,7 @@ describe('PrestigePanel LP preview matches PrestigeSystem scoring (#188)', () =>
           totalNectarProduced: 25_000,
         },
       };
-      const panel = new PrestigePanel(new EventBus(), () => state, (s) => { state = s; });
+      const panel = new PrestigePanel(new EventBus(), () => state, testActions(new EventBus(), () => state, (s) => { state = s; }));
       panel.refresh();
       const value = panel.getElement().querySelector('.stat-row.projected .stat-value')?.textContent;
       const expected = calculateLegacyPoints(totalFoodProduced, getPhaseScore(phase));
@@ -219,7 +216,7 @@ describe('PrestigePanel render stability (#186)', () => {
 
   beforeEach(() => {
     currentState = createInitialState();
-    panel = new PrestigePanel(new EventBus(), () => currentState, (s: GameState) => { currentState = s; });
+    panel = new PrestigePanel(new EventBus(), () => currentState, testActions(new EventBus(), () => currentState, (s: GameState) => { currentState = s; }));
   });
 
   it('keeps the same button nodes when a tick changes nothing the panel shows (#186)', () => {

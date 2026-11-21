@@ -26,9 +26,9 @@ describe('ResourceConversionSystem', () => {
     state.resources.antimatter = 5;
     state.resources.workers = 50;
     // Set up research completions for testing
-    state.research.projects.voidCrystalSynthesis = { state: 'completed', progress: 600 };
-    state.research.projects.antimatterContainment = { state: 'completed', progress: 1500 };
-    state.research.projects.darkMatterDetection = { state: 'completed', progress: 3000 };
+    state.research.projects.voidCrystalSynthesis = { status: 'done' };
+    state.research.projects.antimatterContainment = { status: 'done' };
+    state.research.projects.darkMatterDetection = { status: 'done' };
     // Assign researchers
     state.workersAssigned.researchers = 10;
     // Build particle lab
@@ -69,7 +69,7 @@ describe('ResourceConversionSystem', () => {
 
   describe('isConversionUnlocked', () => {
     it('returns false when research is not completed', () => {
-      state.research.projects.voidCrystalSynthesis = { state: 'available', progress: 0 };
+      state.research.projects.voidCrystalSynthesis = { status: 'idle' };
       expect(isConversionUnlocked(state, 'voidCrystalSynthesis')).toBe(false);
     });
 
@@ -89,14 +89,14 @@ describe('ResourceConversionSystem', () => {
       state.spaceExplorations = [];
       expect(isConversionUnlocked(state, 'darkMatterDetection')).toBe(false);
       // With active exploration
-      state.spaceExplorations = [{ id: 'spc_1', destination: 'MARS', ticksRemaining: 50, risk: 0.3 }];
+      state.spaceExplorations = [{ id: 'spc_1', destination: 'MARS', status: 'running' as const, remainingMs: 2500, durationMs: 2500, risk: 0.3 }];
       expect(isConversionUnlocked(state, 'darkMatterDetection')).toBe(true);
     });
   });
 
   describe('getConversionRate', () => {
     it('returns 0 when conversion is not unlocked', () => {
-      state.research.projects.voidCrystalSynthesis = { state: 'available', progress: 0 };
+      state.research.projects.voidCrystalSynthesis = { status: 'idle' };
       expect(getConversionRate(state, 'voidCrystalSynthesis')).toBe(0);
     });
 
@@ -119,8 +119,8 @@ describe('ResourceConversionSystem', () => {
       state.spaceExplorations = [];
       expect(getConversionRate(state, 'darkMatterDetection')).toBe(0);
       state.spaceExplorations = [
-        { id: 'a', destination: 'MARS', ticksRemaining: 50, risk: 0.3 },
-        { id: 'b', destination: 'EUROPA', ticksRemaining: 30, risk: 0.5 },
+        { id: 'a', destination: 'MARS', status: 'running' as const, remainingMs: 2500, durationMs: 2500, risk: 0.3 },
+        { id: 'b', destination: 'EUROPA', status: 'running' as const, remainingMs: 1500, durationMs: 1500, risk: 0.5 },
       ];
       expect(getConversionRate(state, 'darkMatterDetection')).toBeGreaterThan(0);
     });
@@ -135,8 +135,8 @@ describe('ResourceConversionSystem', () => {
   describe('tickConversions', () => {
     it('produces voidCrystals and consumes stone/nectar when only VC synthesis is unlocked', () => {
       // Disable antimatter and darkMatter so VC production is isolated
-      state.research.projects.antimatterContainment = { state: 'locked', progress: 0 };
-      state.research.projects.darkMatterDetection = { state: 'locked', progress: 0 };
+      state.research.projects.antimatterContainment = { status: 'idle' };
+      state.research.projects.darkMatterDetection = { status: 'idle' };
       // Need ≥20 researchers for void crystal rate (researchers/20)
       state.workersAssigned.researchers = 40;
 
@@ -153,7 +153,7 @@ describe('ResourceConversionSystem', () => {
 
     it('produces antimatter from voidCrystals when research and particleLab present', () => {
       // Disable darkMatter so antimatter production is isolated
-      state.research.projects.darkMatterDetection = { state: 'locked', progress: 0 };
+      state.research.projects.darkMatterDetection = { status: 'idle' };
       // Need particleLab≥3 for antimatter rate (lab/3), and ≥20 researchers for voidCrystals
       state.conversions.particleLab = 3;
       state.workersAssigned.researchers = 40;
@@ -179,11 +179,11 @@ describe('ResourceConversionSystem', () => {
 
     it('produces darkMatter from antimatter when expeditions active', () => {
       // Disable antimatter containment so it doesn't add antimatter during tick
-      state.research.projects.antimatterContainment = { state: 'locked', progress: 0 };
+      state.research.projects.antimatterContainment = { status: 'idle' };
       // Need ≥2 space explorations for darkMatter rate (explorations/2)
       state.spaceExplorations = [
-        { id: 'spc_1', destination: 'SATURN', ticksRemaining: 50, risk: 0.3 },
-        { id: 'spc_2', destination: 'MARS', ticksRemaining: 80, risk: 0.2 },
+        { id: 'spc_1', destination: 'SATURN', status: 'running' as const, remainingMs: 2500, durationMs: 2500, risk: 0.3 },
+        { id: 'spc_2', destination: 'MARS', status: 'running' as const, remainingMs: 4000, durationMs: 4000, risk: 0.2 },
       ];
       const beforeDM = state.resources.darkMatter;
       const beforeAM = state.resources.antimatter;
@@ -195,9 +195,9 @@ describe('ResourceConversionSystem', () => {
     });
 
     it('no production when research is not completed', () => {
-      state.research.projects.voidCrystalSynthesis = { state: 'available', progress: 0 };
-      state.research.projects.antimatterContainment = { state: 'locked', progress: 0 };
-      state.research.projects.darkMatterDetection = { state: 'locked', progress: 0 };
+      state.research.projects.voidCrystalSynthesis = { status: 'idle' };
+      state.research.projects.antimatterContainment = { status: 'idle' };
+      state.research.projects.darkMatterDetection = { status: 'idle' };
 
       const beforeVC = state.resources.voidCrystals;
       const beforeAM = state.resources.antimatter;
@@ -212,8 +212,8 @@ describe('ResourceConversionSystem', () => {
 
     it('rate cap: never produces more than the rate cap per tick', () => {
       // Disable antimatter and darkMatter for isolated VC test
-      state.research.projects.antimatterContainment = { state: 'locked', progress: 0 };
-      state.research.projects.darkMatterDetection = { state: 'locked', progress: 0 };
+      state.research.projects.antimatterContainment = { status: 'idle' };
+      state.research.projects.darkMatterDetection = { status: 'idle' };
       // Boost researchers for meaningful rate: floor(40/20) = 2
       state.workersAssigned.researchers = 40;
 
@@ -227,8 +227,8 @@ describe('ResourceConversionSystem', () => {
 
     it('handles partial resource availability gracefully', () => {
       // Disable antimatter and darkMatter for isolated test
-      state.research.projects.antimatterContainment = { state: 'locked', progress: 0 };
-      state.research.projects.darkMatterDetection = { state: 'locked', progress: 0 };
+      state.research.projects.antimatterContainment = { status: 'idle' };
+      state.research.projects.darkMatterDetection = { status: 'idle' };
       // Just barely enough stone for 1 conversion (needs 5 stone, 2 nectar)
       state.resources.stone = 5;
       state.resources.nectar = 2;
@@ -239,8 +239,8 @@ describe('ResourceConversionSystem', () => {
 
     it('dtSec parameter scales production', () => {
       // Disable antimatter and darkMatter for isolated test
-      state.research.projects.antimatterContainment = { state: 'locked', progress: 0 };
-      state.research.projects.darkMatterDetection = { state: 'locked', progress: 0 };
+      state.research.projects.antimatterContainment = { status: 'idle' };
+      state.research.projects.darkMatterDetection = { status: 'idle' };
       // Need ≥20 researchers for meaningful rate
       state.workersAssigned.researchers = 40;
 

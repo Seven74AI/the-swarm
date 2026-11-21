@@ -1,11 +1,6 @@
 import type { EventBus } from '../engine/EventBus';
-import type { ResourceSystem } from '../systems/ResourceSystem';
-import type { SoldierSystem } from '../systems/SoldierSystem';
-import type { BattleSystem } from '../systems/BattleSystem';
 import type { SaveManager } from '../persistence/SaveManager';
 import type { GameState } from '../state/GameState';
-import type { MapSystem } from '../systems/MapSystem';
-import type { TerritorySystem } from '../systems/TerritorySystem';
 import type { GameLoop } from '../engine/GameLoop';
 import { Phase } from '../phases/phases';
 import { ClickButton } from './components/ClickButton';
@@ -32,8 +27,10 @@ import { TranscendencePanel } from './panels/TranscendencePanel';
 import { ResearchPanel } from './panels/ResearchPanel';
 import { MutationPanel } from './panels/MutationPanel';
 import { FoodDisplay } from './panels/FoodDisplay';
-import { DecisionPopup, type ChooseDecision } from './components/DecisionPopup';
+import { DecisionPopup } from './components/DecisionPopup';
 import type { AudioSystem } from './AudioSystem';
+import type { Actions } from '../actions';
+import { explain } from './components/refusal';
 
 /**
  * Root UI controller. Mounts all panels into #app.
@@ -42,14 +39,10 @@ import type { AudioSystem } from './AudioSystem';
  */
 export class UIRoot {
   private bus: EventBus;
-  private resourceSystem: ResourceSystem;
-  private soldierSystem: SoldierSystem;
-  private battleSystem: BattleSystem;
+  /** Every player intent; panels call these instead of writing state (Story 1.6). */
+  private actions: Actions;
   private saveManager: SaveManager;
-  private mapSystem: MapSystem;
-  private territorySystem: TerritorySystem;
   private getState: () => GameState;
-  private setState: (state: GameState) => void;
   private eventLog: EventLog;
   private panelElements: Map<string, HTMLElement> = new Map();
   private transitionOverlay: HTMLElement | null = null;
@@ -77,39 +70,27 @@ export class UIRoot {
 
   constructor(deps: {
     bus: EventBus;
-    resourceSystem: ResourceSystem;
-    soldierSystem: SoldierSystem;
-    battleSystem: BattleSystem;
+    actions: Actions;
     saveManager: SaveManager;
-    mapSystem: MapSystem;
-    territorySystem: TerritorySystem;
     getState: () => GameState;
-    setState: (state: GameState) => void;
     audio?: AudioSystem;
     loop: GameLoop;
-    /** Action that applies a decision choice to the game state. */
-    chooseDecision?: ChooseDecision;
   }) {
     this.bus = deps.bus;
-    this.resourceSystem = deps.resourceSystem;
-    this.soldierSystem = deps.soldierSystem;
-    this.battleSystem = deps.battleSystem;
+    this.actions = deps.actions;
     this.saveManager = deps.saveManager;
-    this.mapSystem = deps.mapSystem;
-    this.territorySystem = deps.territorySystem;
     this.getState = deps.getState;
-    this.setState = deps.setState;
     this.eventLog = new EventLog(this.bus);
-    this.decisionPopup = new DecisionPopup(this.bus, deps.chooseDecision);
+    this.decisionPopup = new DecisionPopup(this.bus, (type, choice) => { this.actions.chooseDecision(type, choice); });
     this.audio = deps.audio;
     this.loop = deps.loop;
 
     // ── Populate panel registry with factory functions ──
     // Phase 1 panels (mounted at boot for always-visible UI)
-    this.panelRegistry.set('resource_panel', () => new ResourcePanel(this.resourceSystem).getElement());
+    this.panelRegistry.set('resource_panel', () => new ResourcePanel().getElement());
     this.panelRegistry.set('phase_indicator', () => new PhaseIndicator(this.bus, this.getState().phase as Phase).getElement());
     this.panelRegistry.set('click_button', () => new ClickButton(
-      this.bus, this.resourceSystem, this.saveManager, this.getState, this.setState, deps.audio,
+      this.bus, this.actions, this.saveManager, this.getState, deps.audio,
     ).getElement());
     this.panelRegistry.set('event_log', () => {
       const el = this.eventLog.getElement();
@@ -119,51 +100,47 @@ export class UIRoot {
 
     // Phase 2 panels (lazy — created on demand when colony phase is entered)
     this.panelRegistry.set('worker_assignment', () => new WorkerAssignment(
-      this.bus, this.resourceSystem, this.getState, this.setState,
+      this.bus, this.actions, this.getState,
     ).getElement());
     this.panelRegistry.set('food_display', () => new FoodDisplay().getElement());
 
     // Phase 3 panels (lazy — created on demand when combat/expansion phase is entered)
     this.panelRegistry.set('soldier_panel', () => new SoldierPanel(
-      this.bus, this.soldierSystem, this.getState, this.setState,
+      this.bus, this.actions, this.getState,
     ).getElement());
     this.panelRegistry.set('battle_panel', () => new BattlePanel(
-      this.bus, this.soldierSystem, this.battleSystem, this.getState, this.setState,
+      this.bus, this.actions, this.getState,
     ).getElement());
     this.panelRegistry.set('combat_log', () => new CombatLogPanel().getElement());
     this.panelRegistry.set('building_panel', () => new BuildingPanel(
-      this.bus, this.getState, this.setState,
+      this.bus, this.getState, this.actions,
     ).getElement());
     this.panelRegistry.set('mutation_panel', () => new MutationPanel(
-      this.bus, this.getState, this.setState,
+      this.bus, this.getState, this.actions,
     ).getElement());
     this.panelRegistry.set('expedition_panel', () => new ExpeditionPanel(
-      this.bus, this.getState, this.setState,
+      this.bus, this.getState, this.actions,
     ).getElement());
     this.panelRegistry.set('map_panel', () => {
-      const mapPanel = new MapPanel(this.mapSystem, this.getState, this.setState);
+      const mapPanel = new MapPanel(this.getState);
       mapPanel.onTileClick = (x: number, y: number) => {
-        const state = this.getState();
-        if (this.territorySystem.claimTile(x, y, state)) {
-          // Force signal update with a new reference (claimTile mutates in-place)
-          this.setState({ ...state });
-        }
+        explain(mapPanel.getElement(), this.actions.claimTile(x, y));
       };
       return mapPanel.getElement();
     });
 
     // Phase 4 panels (lazy — created on demand)
     this.panelRegistry.set('spaceship_panel', () => new SpaceshipPanel(
-      this.bus, this.getState, this.setState,
+      this.bus, this.getState, this.actions,
     ).getElement());
     this.panelRegistry.set('cosmic_panel', () => new CosmicPanel(
-      this.bus, this.getState, this.setState,
+      this.bus, this.getState,
     ).getElement());
     this.panelRegistry.set('exploration_panel', () => new ExplorationPanel(
-      this.bus, this.getState, this.setState,
+      this.bus, this.getState, this.actions,
     ).getElement());
     this.panelRegistry.set('starmap_panel', () => {
-      const starmapPanel = new StarmapPanel(this.bus, this.getState, this.setState);
+      const starmapPanel = new StarmapPanel(this.bus, this.getState);
       starmapPanel.onPlanetClick = (planet, discovered) => {
         if (discovered) {
           this.bus.emit('planet_clicked', {
@@ -184,29 +161,29 @@ export class UIRoot {
       return starmapPanel.getElement();
     });
     this.panelRegistry.set('resource_converter_panel', () => new ResourceConverterPanel(
-      this.bus, this.getState, this.setState,
+      this.bus, this.getState, this.actions,
     ).getElement());
 
     // Phase 5 panels (lazy — created on demand)
     this.panelRegistry.set('tech_tree_panel', () => new TechTreePanel(
-      this.bus, this.getState, this.setState,
+      this.bus, this.getState, this.actions,
     ).getElement());
     this.panelRegistry.set('automation_panel', () => new AutoProductionPanel(
-      this.bus, this.getState, this.setState,
+      this.bus, this.getState, this.actions,
     ).getElement());
     this.panelRegistry.set('prestige_panel', () => new PrestigePanel(
-      this.bus, this.getState, this.setState,
+      this.bus, this.getState, this.actions,
     ).getElement());
     this.panelRegistry.set('prestige_tree_panel', () => new PrestigeTreePanel(
-      this.bus, this.getState, this.setState,
+      this.bus, this.getState, this.actions,
     ).getElement());
     this.panelRegistry.set('transcendence_panel', () => new TranscendencePanel(
-      this.bus, this.getState, this.setState,
+      this.bus, this.getState,
     ).getElement());
 
     // Phase 4+ research panel (lazy — created on demand)
     this.panelRegistry.set('research_panel', () => new ResearchPanel(
-      this.bus, this.getState, this.setState,
+      this.bus, this.getState, this.actions,
     ).getElement());
   }
 
@@ -219,12 +196,12 @@ export class UIRoot {
     const state = this.getState();
     if (state.paused) {
       this.loop.resume();
-      this.setState({ ...state, paused: false });
+      this.actions.togglePause();
       document.body.classList.remove('game-paused');
       if (btn) btn.textContent = '⏸';
     } else {
       this.loop.pause();
-      this.setState({ ...state, paused: true });
+      this.actions.togglePause();
       document.body.classList.add('game-paused');
       if (btn) btn.textContent = '▶';
     }
@@ -274,10 +251,9 @@ export class UIRoot {
     // Click button (always visible) — boot panel (Phase 1)
     const clickBtn = new ClickButton(
       this.bus,
-      this.resourceSystem,
+      this.actions,
       this.saveManager,
       this.getState,
-      this.setState,
       this.audio,
     );
     container.appendChild(clickBtn.getElement());
@@ -295,7 +271,7 @@ export class UIRoot {
     this.panelsContainer = panels;
 
     // ── Phase 1 panels: mount at boot (always visible) ──
-    const resourcePanel = new ResourcePanel(this.resourceSystem);
+    const resourcePanel = new ResourcePanel();
     panels.appendChild(resourcePanel.getElement());
     this.panelElements.set('resource_panel', resourcePanel.getElement());
 

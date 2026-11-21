@@ -1,7 +1,8 @@
 import { effect } from '@preact/signals-core';
 import { selectEffectiveNestCapacity, selectTotalClicks, selectWorkers } from '../../state/selectors';
 import type { EventBus } from '../../engine/EventBus';
-import type { ResourceSystem } from '../../systems/ResourceSystem';
+import type { Actions } from '../../actions';
+import { explain } from './refusal';
 import type { SaveManager } from '../../persistence/SaveManager';
 import type { GameState } from '../../state/GameState';
 import { formatNumber } from '../../utils/format';
@@ -33,10 +34,9 @@ export class ClickButton {
 
   constructor(
     private bus: EventBus,
-    private resourceSystem: ResourceSystem,
+    private actions: Actions,
     private saveManager: SaveManager,
     private getState: () => GameState,
-    private setState: (state: GameState) => void,
     private audio?: AudioSystem,
   ) {
     this.container = document.createElement('div');
@@ -73,10 +73,9 @@ export class ClickButton {
   }
 
   private onClick(): void {
-    const state = this.getState();
-    const newState = this.resourceSystem.clickEgg(state);
-    this.setState(newState);
-    this.bus.emit('egg_clicked', {});
+    // The action raises egg_clicked after its write.
+    if (!explain(this.button, this.actions.layEgg()).ok) return;
+    const newState = this.getState();
     this.saveManager.save(newState, newState.stats.playTimeMs);
     this.spawnClickParticle();
     this.spawnBurstParticles();

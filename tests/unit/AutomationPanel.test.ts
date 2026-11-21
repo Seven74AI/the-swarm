@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { testActions } from './helpers/actions';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 import { EventBus } from '../../src/engine/EventBus';
 import { AutoProductionPanel } from '../../src/ui/panels/AutoProductionPanel';
@@ -25,14 +26,14 @@ describe('AutoProductionPanel', () => {
   });
 
   it('creates panel with automation-panel class', () => {
-    const panel = new AutoProductionPanel(bus, () => state, (s) => { state = s; });
+    const panel = new AutoProductionPanel(bus, () => state, testActions(bus, () => state, (s) => { state = s; }));
     const el = panel.getElement();
     expect(el).toBeInstanceOf(HTMLDivElement);
     expect(el.className).toContain('automation-panel');
   });
 
   it('shows the enabled toggle', () => {
-    const panel = new AutoProductionPanel(bus, () => state, (s) => { state = s; });
+    const panel = new AutoProductionPanel(bus, () => state, testActions(bus, () => state, (s) => { state = s; }));
     const el = panel.getElement();
     const toggleLabel = el.querySelector('.auto-toggle-label');
     expect(toggleLabel).toBeTruthy();
@@ -41,7 +42,7 @@ describe('AutoProductionPanel', () => {
   it('shows current auto egg rate', () => {
     state.autoProduction.enabled = true;
     state.autoProduction.researches['basic_incubation'] = true;
-    const panel = new AutoProductionPanel(bus, () => state, (s) => { state = s; });
+    const panel = new AutoProductionPanel(bus, () => state, testActions(bus, () => state, (s) => { state = s; }));
     const el = panel.getElement();
     const rateEl = el.querySelector('.auto-rate');
     expect(rateEl).toBeTruthy();
@@ -49,14 +50,14 @@ describe('AutoProductionPanel', () => {
   });
 
   it('renders research rows for all researches', () => {
-    const panel = new AutoProductionPanel(bus, () => state, (s) => { state = s; });
+    const panel = new AutoProductionPanel(bus, () => state, testActions(bus, () => state, (s) => { state = s; }));
     const el = panel.getElement();
     const researchRows = el.querySelectorAll('.research-row');
     expect(researchRows.length).toBe(Object.keys(RESEARCHES).length);
   });
 
   it('research button is disabled when cost not affordable', () => {
-    const panel = new AutoProductionPanel(bus, () => state, (s) => { state = s; });
+    const panel = new AutoProductionPanel(bus, () => state, testActions(bus, () => state, (s) => { state = s; }));
     const el = panel.getElement();
     // Basic incubation costs 100 food, 50 workers — not affordable
     const basicRow = el.querySelector('[data-research="basic_incubation"]');
@@ -67,7 +68,7 @@ describe('AutoProductionPanel', () => {
   it('research button is enabled when cost affordable', () => {
     state.resources.food = 100;
     state.resources.workers = 50;
-    const panel = new AutoProductionPanel(bus, () => state, (s) => { state = s; });
+    const panel = new AutoProductionPanel(bus, () => state, testActions(bus, () => state, (s) => { state = s; }));
     const el = panel.getElement();
     const basicRow = el.querySelector('[data-research="basic_incubation"]');
     const btn = basicRow?.querySelector('button');
@@ -78,7 +79,7 @@ describe('AutoProductionPanel', () => {
     state.resources.food = 100;
     state.resources.workers = 50;
     let captured: GameState | null = null;
-    const panel = new AutoProductionPanel(bus, () => state, (s) => { state = s; captured = s; });
+    const panel = new AutoProductionPanel(bus, () => state, testActions(bus, () => state, (s) => { state = s; captured = s; }));
     const el = panel.getElement();
     const basicRow = el.querySelector('[data-research="basic_incubation"]');
     const btn = basicRow?.querySelector('button') as HTMLButtonElement;
@@ -91,7 +92,7 @@ describe('AutoProductionPanel', () => {
   });
 
   it('shows building rows', () => {
-    const panel = new AutoProductionPanel(bus, () => state, (s) => { state = s; });
+    const panel = new AutoProductionPanel(bus, () => state, testActions(bus, () => state, (s) => { state = s; }));
     const el = panel.getElement();
     const buildingRows = el.querySelectorAll('.auto-building-row');
     expect(buildingRows.length).toBe(3); // Nursery, Hatchery, Queen's Chamber
@@ -100,7 +101,7 @@ describe('AutoProductionPanel', () => {
   it('refresh() rebuilds the panel DOM', () => {
     state.resources.food = 100;
     state.resources.workers = 50;
-    const panel = new AutoProductionPanel(bus, () => state, (s) => { state = s; });
+    const panel = new AutoProductionPanel(bus, () => state, testActions(bus, () => state, (s) => { state = s; }));
     const el = panel.getElement();
     const oldBtn = el.querySelector('[data-research="basic_incubation"] button') as HTMLButtonElement;
 
@@ -115,7 +116,7 @@ describe('AutoProductionPanel', () => {
 
   it('toggle enables/disables auto production', () => {
     let captured: GameState | null = null;
-    const panel = new AutoProductionPanel(bus, () => state, (s) => { state = s; captured = s; });
+    const panel = new AutoProductionPanel(bus, () => state, testActions(bus, () => state, (s) => { state = s; captured = s; }));
     const el = panel.getElement();
     const toggle = el.querySelector('.auto-toggle') as HTMLInputElement;
     expect(toggle).toBeTruthy();

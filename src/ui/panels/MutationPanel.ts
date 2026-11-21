@@ -4,12 +4,13 @@ import type { EventBus } from '../../engine/EventBus';
 import type { GameState } from '../../state/GameState';
 import {
   MUTATIONS,
-  purchaseMutation,
   canPurchaseMutation,
   isMutationUnlocked,
   type MutationDef,
   type MutationCost,
-} from '../../systems/MutationSystem';
+} from '../../state/queries';
+import type { Actions } from '../../actions';
+import { explain } from '../components/refusal';
 
 /**
  * MutationPanel — lets the player purchase colony mutations.
@@ -27,7 +28,7 @@ export class MutationPanel {
   constructor(
     private bus: EventBus,
     private getState: () => GameState,
-    private setState: (state: GameState) => void,
+    private actions: Actions,
   ) {
     this.container = document.createElement('div');
     this.container.id = 'mutation-panel';
@@ -113,12 +114,8 @@ export class MutationPanel {
     buyBtn.className = 'btn btn-sm mutation-buy-btn';
     buyBtn.style.display = 'none';
     buyBtn.addEventListener('click', () => {
-      const currentState = this.getState();
-      const updated = purchaseMutation(currentState, def.id);
-      if (updated !== currentState) {
-        this.setState(updated);
-        this.bus.emit('mutation_purchased', { mutationId: def.id, name: def.name });
-      }
+      // The action raises mutation_purchased after its write.
+      explain(buyBtn, this.actions.buyMutation(def.id));
     });
     card.appendChild(buyBtn);
     this.buyButtons.set(def.id, buyBtn);

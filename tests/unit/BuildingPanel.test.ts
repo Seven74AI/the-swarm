@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { testActions } from './helpers/actions';
 import { gameState } from '../../src/state/gameSignal';
 import { BuildingPanel } from '../../src/ui/panels/BuildingPanel';
 import { EventBus } from '../../src/engine/EventBus';
@@ -12,11 +13,7 @@ describe('BuildingPanel', () => {
   beforeEach(() => {
     bus = new EventBus();
     currentState = createInitialState();
-    panel = new BuildingPanel(
-      bus,
-      () => currentState,
-      (s: GameState) => { currentState = s; },
-    );
+    panel = new BuildingPanel(bus, () => currentState, testActions(bus, () => currentState, (s: GameState) => { currentState = s; }));
   });
 
   it('creates a panel element', () => {

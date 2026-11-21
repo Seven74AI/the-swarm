@@ -8,9 +8,10 @@ import type { GameState } from '../../state/GameState';
 import { PRESTIGE_UPGRADES, type PrestigeUpgrade, type PrestigeUpgradeId } from '../../data/prestigeTree';
 import {
   canPurchasePrestigeUpgrade,
-  purchasePrestigeUpgrade,
   isPrestigeUpgradePurchased,
-} from '../../systems/PrestigeSystem';
+} from '../../state/queries';
+import type { Actions } from '../../actions';
+import { explain } from '../components/refusal';
 
 /**
  * TechTreePanel — tree visualization of the prestige tree.
@@ -46,7 +47,7 @@ export class TechTreePanel {
   constructor(
     private bus: EventBus,
     private getState: () => GameState,
-    private setState: (state: GameState) => void,
+    private actions: Actions,
   ) {
     this.container = document.createElement('div');
     this.container.id = 'tech-tree-panel';
@@ -367,14 +368,8 @@ export class TechTreePanel {
 
       if (canPurchase) {
         btn.addEventListener('click', () => {
-          const result = purchasePrestigeUpgrade(this.getState(), upgrade.id);
-          if (result) {
-            this.bus.emit('prestige_upgrade_purchased', {
-              upgradeId: upgrade.id,
-              upgradeName: upgrade.name,
-            });
-            this.setState(result);
-          }
+          // The action raises prestige_upgrade_purchased after its write.
+          explain(btn, this.actions.buyPrestigeUpgrade(upgrade.id));
         });
       } else if (insufficientPoints) {
         btn.setAttribute(

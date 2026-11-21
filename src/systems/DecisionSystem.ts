@@ -165,6 +165,11 @@ export class DecisionSystem {
    * Apply a decision choice and return the new game state.
    * Emits 'decision_applied' event on the bus.
    */
+  /** Whether `choiceLabel` is a known choice of decision `eventType`. */
+  hasChoice(eventType: string, choiceLabel: string): boolean {
+    return Boolean(CONSEQUENCES[eventType]?.[choiceLabel]);
+  }
+
   applyChoice(state: GameState, eventType: string, choiceLabel: string): GameState {
     const consequencesForType = CONSEQUENCES[eventType];
     if (!consequencesForType) return state;

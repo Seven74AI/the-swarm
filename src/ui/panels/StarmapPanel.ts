@@ -19,7 +19,6 @@ export class StarmapPanel {
   constructor(
     private bus: EventBus,
     private getState: () => GameState,
-    private setState: (state: GameState) => void,
   ) {
     this.container = document.createElement('div');
     this.container.id = 'starmap-panel';
@@ -50,7 +49,7 @@ export class StarmapPanel {
       .map((s) => `${s.id}:${s.status}:${s.destinationName}:${s.missionTicksRemaining}:${s.type}:${s.level}`)
       .join(',');
     const probesHash = state.spaceProbes
-      .map((p) => `${p.destination}:${p.scouts}:${p.ticksRemaining}`)
+      .map((p) => `${p.destination}:${p.scouts}:${Math.ceil(p.remainingMs / 1000)}`)
       .join(',');
 
     const hash = `hasShip:${hasShip}|planets:${planetsHash}|ships:${shipsHash}|probes:${probesHash}`;
@@ -164,7 +163,7 @@ export class StarmapPanel {
           <strong>${probe.destination}</strong>
           <span class="text-muted">${probe.scouts} scouts</span>
         </div>
-        <div class="expedition-row-status">⏳ ${probe.ticksRemaining}s</div>`;
+        <div class="expedition-row-status">⏳ ${Math.max(0, Math.ceil(probe.remainingMs / 1000))}s</div>`;
         probeSection.appendChild(row);
       }
       this.container.appendChild(probeSection);

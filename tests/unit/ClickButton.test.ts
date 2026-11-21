@@ -1,15 +1,14 @@
+import { testActions } from './helpers/actions';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { gameState } from '../../src/state/gameSignal';
 import { ClickButton } from '../../src/ui/components/ClickButton';
 import { EventBus } from '../../src/engine/EventBus';
-import { ResourceSystem } from '../../src/systems/ResourceSystem';
 import { SaveManager } from '../../src/persistence/SaveManager';
 import type { GameState } from '../../src/state/GameState';
 
 describe('ClickButton - floating "+N" particles', () => {
   let container: HTMLElement;
   let bus: EventBus;
-  let resourceSystem: ResourceSystem;
   let saveManager: SaveManager;
 
   beforeEach(() => {
@@ -39,7 +38,6 @@ describe('ClickButton - floating "+N" particles', () => {
       saveVersion: 0,
     } as unknown as GameState;
 
-    resourceSystem = new ResourceSystem(bus);
     saveManager = {
       save: vi.fn(),
       load: vi.fn(),
@@ -60,9 +58,8 @@ describe('ClickButton - floating "+N" particles', () => {
 
   it('spawns a floating "+1 🥚" particle on click', () => {
     const cb = new ClickButton(
-      bus, resourceSystem, saveManager,
+      bus, testActions(bus), saveManager,
       () => gameState.value as GameState,
-      (s: GameState) => { gameState.value = s; },
     );
 
     const el = cb.getElement();
@@ -86,9 +83,8 @@ describe('ClickButton - floating "+N" particles', () => {
 
   it('particle has CSS class click-particle', () => {
     const cb = new ClickButton(
-      bus, resourceSystem, saveManager,
+      bus, testActions(bus), saveManager,
       () => gameState.value as GameState,
-      (s: GameState) => { gameState.value = s; },
     );
 
     const el = cb.getElement();
@@ -104,9 +100,8 @@ describe('ClickButton - floating "+N" particles', () => {
 
   it('particle self-removes after animation end', () => {
     const cb = new ClickButton(
-      bus, resourceSystem, saveManager,
+      bus, testActions(bus), saveManager,
       () => gameState.value as GameState,
-      (s: GameState) => { gameState.value = s; },
     );
 
     const el = cb.getElement();
@@ -129,9 +124,8 @@ describe('ClickButton - floating "+N" particles', () => {
 
   it('multiple clicks spawn multiple particles', () => {
     const cb = new ClickButton(
-      bus, resourceSystem, saveManager,
+      bus, testActions(bus), saveManager,
       () => gameState.value as GameState,
-      (s: GameState) => { gameState.value = s; },
     );
 
     const el = cb.getElement();
@@ -149,9 +143,8 @@ describe('ClickButton - floating "+N" particles', () => {
 
   it('spawns burst particles on click', () => {
     const cb = new ClickButton(
-      bus, resourceSystem, saveManager,
+      bus, testActions(bus), saveManager,
       () => gameState.value as GameState,
-      (s: GameState) => { gameState.value = s; },
     );
 
     const el = cb.getElement();
@@ -177,9 +170,8 @@ describe('ClickButton - floating "+N" particles', () => {
 
   it('burst particles self-remove after animation end', () => {
     const cb = new ClickButton(
-      bus, resourceSystem, saveManager,
+      bus, testActions(bus), saveManager,
       () => gameState.value as GameState,
-      (s: GameState) => { gameState.value = s; },
     );
 
     const el = cb.getElement();

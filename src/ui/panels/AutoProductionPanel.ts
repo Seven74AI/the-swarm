@@ -11,13 +11,13 @@ import {
   RESEARCHES,
   AUTOMATION_BUILDINGS,
   canResearch,
-  research,
   canBuildAuto,
-  buildAuto,
   getAutoEggRate,
   getAutoBuildCost,
   getBuildingEffect,
-} from '../../systems/AutomationSystem';
+} from '../../state/queries';
+import type { Actions } from '../../actions';
+import { explain } from '../components/refusal';
 
 /**
  * AutoProductionPanel — Paperclip-style automation UI.
@@ -36,7 +36,7 @@ export class AutoProductionPanel {
   constructor(
     private bus: EventBus,
     private getState: () => GameState,
-    private setState: (state: GameState) => void,
+    private actions: Actions,
   ) {
     this.container = document.createElement('div');
     this.container.id = 'automation-panel';
@@ -80,14 +80,7 @@ export class AutoProductionPanel {
     toggle.className = 'auto-toggle';
     toggle.checked = state.autoProduction.enabled;
     toggle.addEventListener('change', () => {
-      const s = this.getState();
-      this.setState({
-        ...s,
-        autoProduction: {
-          ...s.autoProduction,
-          enabled: toggle.checked,
-        },
-      });
+      explain(toggle, this.actions.setAutoProduction(toggle.checked));
     });
     toggleRow.appendChild(toggle);
     toggleRow.appendChild(document.createTextNode(' Auto-produce eggs'));
@@ -156,12 +149,8 @@ export class AutoProductionPanel {
           btn.setAttribute('data-tooltip', this.researchTooltip(researchId, state));
         }
         btn.addEventListener('click', () => {
-          const s = this.getState();
-          const result = research(researchId, s);
-          if (result.autoProduction.researches[researchId]) {
-            this.bus.emit('research_complete', { research: researchId });
-          }
-          this.setState(result);
+          // The action raises research_complete after its write.
+          explain(btn, this.actions.researchAutomation(researchId));
         });
         row.appendChild(btn);
       } else {
@@ -238,13 +227,8 @@ export class AutoProductionPanel {
           btn.setAttribute('data-tooltip', this.autoBuildTooltip(buildingId, state));
         }
         btn.addEventListener('click', () => {
-          const s = this.getState();
-          const oldLevel = s.autoProduction.buildings[buildingId] ?? 0;
-          const result = buildAuto(buildingId, s);
-          if ((result.autoProduction.buildings[buildingId] ?? 0) > oldLevel) {
-            this.bus.emit('auto_building_complete', { building: buildingId, level: result.autoProduction.buildings[buildingId] });
-          }
-          this.setState(result);
+          // The action raises auto_building_complete after its write.
+          explain(btn, this.actions.buildAutomation(buildingId));
         });
         row.appendChild(btn);
       } else {

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { testActions } from './helpers/actions';
 import { gameState } from '../../src/state/gameSignal';
 import { ResearchPanel } from '../../src/ui/panels/ResearchPanel';
 import { EventBus } from '../../src/engine/EventBus';
@@ -23,11 +24,7 @@ describe('ResearchPanel', () => {
     currentState.resources.antimatter = 1;
     currentState.resources.workers = 100;
 
-    panel = new ResearchPanel(
-      bus,
-      () => currentState,
-      (s: GameState) => { currentState = s; gameState.value = s; },
-    );
+    panel = new ResearchPanel(bus, () => currentState, testActions(bus, () => currentState, (s: GameState) => { currentState = s; gameState.value = s; }));
   });
 
   it('creates a panel element', () => {
@@ -130,7 +127,7 @@ describe('ResearchPanel', () => {
     startBtn.click();
 
     // State should have changed
-    expect(currentState.research.projects.voidCrystalSynthesis.state).toBe('in_progress');
+    expect(currentState.research.projects.voidCrystalSynthesis.status).toBe('running');
   });
 
   it('shows progress bar for in-progress projects', () => {
@@ -152,9 +149,9 @@ describe('ResearchPanel', () => {
       ...currentState,
       research: {
         projects: {
-          voidCrystalSynthesis: { state: 'completed', progress: 600 },
-          antimatterContainment: { state: 'locked', progress: 0 },
-          darkMatterDetection: { state: 'locked', progress: 0 },
+          voidCrystalSynthesis: { status: 'done' },
+          antimatterContainment: { status: 'idle' },
+          darkMatterDetection: { status: 'idle' },
         },
       },
     };
@@ -198,7 +195,7 @@ describe('ResearchPanel', () => {
 
     // Should have refunded 50% (250 stone back)
     expect(currentState.resources.stone).toBeGreaterThan(stoneAfterStart);
-    expect(currentState.research.projects.voidCrystalSynthesis.state).toBe('available');
+    expect(currentState.research.projects.voidCrystalSynthesis.status).toBe('idle');
   });
 
   it('shows researcher assignment controls', () => {
@@ -220,9 +217,9 @@ describe('ResearchPanel', () => {
       ...currentState,
       research: {
         projects: {
-          voidCrystalSynthesis: { state: 'completed', progress: 600 },
-          antimatterContainment: { state: 'locked', progress: 0 },
-          darkMatterDetection: { state: 'locked', progress: 0 },
+          voidCrystalSynthesis: { status: 'done' },
+          antimatterContainment: { status: 'idle' },
+          darkMatterDetection: { status: 'idle' },
         },
       },
     };
@@ -233,9 +230,9 @@ describe('ResearchPanel', () => {
     expect(vcsEl!.textContent || '').toContain('voidCrystal');
   });
 
-  it('shows tick count requirement', () => {
+  it('shows the project length', () => {
     const el = panel.getElement();
     const text = el.textContent || '';
-    expect(text).toContain('600'); // ticks for VCS
+    expect(text).toContain('30s'); // game-time length of VCS (600 ticks)
   });
 });

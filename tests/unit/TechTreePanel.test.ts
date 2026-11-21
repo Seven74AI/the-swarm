@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { testActions } from './helpers/actions';
 import { gameState } from '../../src/state/gameSignal';
 import { TechTreePanel } from '../../src/ui/panels/TechTreePanel';
 import { EventBus } from '../../src/engine/EventBus';
@@ -13,11 +14,7 @@ describe('TechTreePanel', () => {
   beforeEach(() => {
     bus = new EventBus();
     currentState = createInitialState();
-    panel = new TechTreePanel(
-      bus,
-      () => currentState,
-      (s: GameState) => { currentState = s; },
-    );
+    panel = new TechTreePanel(bus, () => currentState, testActions(bus, () => currentState, (s: GameState) => { currentState = s; }));
   });
 
   it('creates a panel element', () => {

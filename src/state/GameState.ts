@@ -85,20 +85,10 @@ export interface GameState {
     bonuses: Record<string, number>;
   };
   mapTiles: Tile[];
-  expeditions: Array<{
-    id: string;
-    scouts: number;
-    warriors: number;
-    destination: string;
-    ticksRemaining: number;
-    risk: number;
-  }>;
-  spaceExplorations: Array<{
-    id: string;
-    destination: string;
-    ticksRemaining: number;
-    risk: number;
-  }>;
+  /** Expeditions out in the field (AR23 lifecycle, game-time ms). */
+  expeditions: Expedition[];
+  /** Space explorations in flight (AR23 lifecycle, game-time ms). */
+  spaceExplorations: SpaceExploration[];
   discoveredPlanets: string[];
   spaceships: Array<{
     id: string;
@@ -130,13 +120,8 @@ export interface GameState {
     weapon: number;
     armor: number;
   };
-  lastBattle: {
-    enemyType: string | null;
-    result: 'pending' | 'victory' | 'defeat';
-    soldiersLost: number;
-    foodGained: number;
-    timestamp: number;
-  } | null;
+  /** The most recent battle (AR23 lifecycle). */
+  lastBattle: Battle;
   combatResources: {
     chitin: number;
     silk: number;
@@ -152,13 +137,8 @@ export interface GameState {
     fuel: number;
     maxFuel: number;
   };
-  /** Active space probes (SPACE phase). */
-  spaceProbes: Array<{
-    id: string;
-    destination: string;
-    ticksRemaining: number;
-    scouts: number;
-  }>;
+  /** Active space probes (SPACE phase, AR23 lifecycle). */
+  spaceProbes: SpaceProbe[];
   /** Cosmic discoveries log (SPACE phase). */
   discoveries: string[];
   /** Monotonic ID counters to avoid module-level collision. */
@@ -166,6 +146,7 @@ export interface GameState {
     expedition: number;
     exploration: number;
     spaceship: number;
+    probe: number;
   };
   /** Prestige system — Legacy Layer (Phase 5+). */
   prestige: {
@@ -215,14 +196,71 @@ export interface GameState {
 
 export type ResearchProjectId = 'voidCrystalSynthesis' | 'antimatterContainment' | 'darkMatterDetection';
 
+/** Display status of a research project. `locked`/`available` are derived from prerequisites. */
 export type ResearchProjectStatus = 'locked' | 'available' | 'in_progress' | 'completed';
 
+/*
+ * Lifecycle state (AR23). Anything that starts, runs and ends is a
+ * discriminated union on `status`, timed in game-time milliseconds (never
+ * wall clock), made by pure factories with sequential or content IDs, and
+ * plain JSON. A collection entry that resolves in the tick it ends (an
+ * expedition, an exploration) is removed then, so only `running` is stored.
+ */
+
+/** A research project: not started, running, or finished. */
+export type ResearchProject =
+  | { status: 'idle' }
+  | { status: 'running'; progressMs: number; durationMs: number }
+  | { status: 'done' };
+
 export interface ResearchState {
-  projects: Record<ResearchProjectId, {
-    state: ResearchProjectStatus;
-    progress: number;
-  }>;
+  projects: Record<ResearchProjectId, ResearchProject>;
 }
+
+/** An expedition of scouts and warriors (Expansion). */
+export interface Expedition {
+  id: string;
+  status: 'running';
+  scouts: number;
+  warriors: number;
+  destination: string;
+  remainingMs: number;
+  durationMs: number;
+  risk: number;
+}
+
+/** A space exploration (Space). */
+export interface SpaceExploration {
+  id: string;
+  status: 'running';
+  destination: string;
+  remainingMs: number;
+  durationMs: number;
+  risk: number;
+}
+
+/** A probe sent to a planet (Space). */
+export interface SpaceProbe {
+  id: string;
+  status: 'running';
+  destination: string;
+  scouts: number;
+  remainingMs: number;
+  durationMs: number;
+}
+
+/** The most recent battle. Battles resolve instantly, so there is no running state. */
+export type Battle =
+  | { status: 'idle' }
+  | {
+      status: 'done';
+      enemyType: string;
+      result: 'victory' | 'defeat' | 'draw';
+      soldiersLost: number;
+      foodGained: number;
+      /** Game time (stats.playTimeMs) when the battle was fought. */
+      atMs: number;
+    };
 
 export interface ConversionState {
   /** Level of particle lab used for antimatter production (0 = not built) */
@@ -312,7 +350,7 @@ export function createInitialState(): GameState {
       weapon: 0,
       armor: 0,
     },
-    lastBattle: null,
+    lastBattle: { status: 'idle' },
     combatResources: {
       chitin: 0,
       silk: 0,
@@ -334,6 +372,7 @@ export function createInitialState(): GameState {
       expedition: 1,
       exploration: 1,
       spaceship: 1,
+      probe: 1,
     },
     prestige: {
       count: 0,
@@ -356,9 +395,9 @@ export function createInitialState(): GameState {
     offlineEfficiency: 0.5,
     research: {
       projects: {
-        voidCrystalSynthesis: { state: 'available', progress: 0 },
-        antimatterContainment: { state: 'locked', progress: 0 },
-        darkMatterDetection: { state: 'locked', progress: 0 },
+        voidCrystalSynthesis: { status: 'idle' },
+        antimatterContainment: { status: 'idle' },
+        darkMatterDetection: { status: 'idle' },
       },
     },
     conversions: {
