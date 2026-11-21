@@ -5,7 +5,7 @@ import '@preact/signals';
 import { createSheetController, type SheetController } from '../../../../src/ui/shell/SheetController';
 import { SheetHost } from '../../../../src/ui/shell/SheetHost';
 import { bindDecisionSheets, TIMER_HINT, TIMER_HINT_CONCEPT, type DecisionSheets } from '../../../../src/ui/sheets/DecisionSheet';
-import { DECISIONS, type DecisionDef } from '../../../../src/data/content/decisions';
+import { DECISIONS, DECISION_STOCKS, type DecisionDef } from '../../../../src/data/content/decisions';
 import type { OpenDecision } from '../../../../src/state/GameState';
 import type { DecisionTimerMode } from '../../../../src/state/queries';
 import { visibleText } from '../../helpers/a11y';
@@ -120,6 +120,18 @@ describe('decision sheet', () => {
     expect(btn.getAttribute('aria-disabled')).toBe('true');
     act(() => btn.click());
     expect(choose).not.toHaveBeenCalled();
+  });
+
+  it('a choice that needs a stock names the stock and the amount it needs (Story 4.5)', () => {
+    affordable.value = false;
+    for (const def of DECISIONS) {
+      for (const c of def.choices.filter((x) => x.requires)) {
+        show(def);
+        const btn = popup()!.querySelector<HTMLButtonElement>(`button[data-choice="${c.id}"]`)!;
+        expect(btn.textContent).toContain(`NEEDS ${c.requires!.amount} ${DECISION_STOCKS[c.requires!.stock].name}`);
+        act(() => void (open.value = null));
+      }
+    }
   });
 
   it('is shown only when drawn: not while it waits behind a higher sheet or an overlay', () => {

@@ -38,7 +38,7 @@ export const EVENT_SAMPLES: { [K in keyof SwarmEvents]: SwarmEvents[K] } = {
     narrative: 'sample',
   },
   decision_spawned: { id: 'beetle_sighting' },
-  decision_resolved: { id: 'overcrowding', choice: 'ignore', timedOut: true, policy: 'costly' },
+  decision_resolved: { id: 'beetle_sighting', choice: 'ignore', timedOut: true, policy: 'costly' },
   phase_committed: { from: Phase.EGG_LAYING, to: Phase.COLONY },
   narrative: { message: 'sample' },
   victory: {},

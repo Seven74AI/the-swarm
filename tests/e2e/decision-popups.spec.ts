@@ -19,12 +19,12 @@ import { gameTimePasses } from './helpers/time';
  */
 
 interface OpenSeed {
-  id: 'beetle_sighting' | 'overcrowding' | 'scout_report';
+  id: string;
   remainingMs: number | null;
 }
 
 type Swarm = {
-  manager: { getState(): { decision: { open: { id: string; remainingMs: number | null } | null }; resources: { food: number }; stats: { playTimeMs: number; totalClicks: number } } };
+  manager: { getState(): { decision: { open: { id: string; remainingMs: number | null } | null }; resources: { food: number; workers: number }; stats: { playTimeMs: number; totalClicks: number } } };
   platform: { settings: { update(patch: Record<string, unknown>): void } };
 };
 
@@ -62,7 +62,7 @@ test.describe('Decision events (Story 1.28)', () => {
   });
 
   test('an open event from the save shows its situation, two choices, the timer and the IGNORE line', async ({ page }) => {
-    await seed(page, { id: 'overcrowding', remainingMs: 40_000 });
+    await seed(page, { id: 'beetle_sighting', remainingMs: 25_000 });
     await expect(popup(page)).toBeVisible({ timeout: 10_000 });
     await expect(popup(page).locator('.decision-popup-title')).not.toBeEmpty();
     await expect(popup(page).locator('.decision-popup-desc')).not.toBeEmpty();
@@ -75,7 +75,7 @@ test.describe('Decision events (Story 1.28)', () => {
   });
 
   test('the first timed event says timers can be slowed, once', async ({ page }) => {
-    await seed(page, { id: 'overcrowding', remainingMs: 40_000 });
+    await seed(page, { id: 'beetle_sighting', remainingMs: 25_000 });
     await expect(popup(page).locator('[data-timer-hint]')).toHaveText('TIMERS CAN BE SLOWED IN SETTINGS', { timeout: 10_000 });
     await page.reload();
     await expect(popup(page)).toBeVisible({ timeout: 10_000 });
@@ -90,27 +90,28 @@ test.describe('Decision events (Story 1.28)', () => {
     const before = await playTime();
     await expect.poll(playTime, { timeout: 5_000 }).toBeGreaterThan(before);
 
-    await popup(page).locator('button[data-choice]').first().click();
+    // SEAL THE ENTRANCE needs nothing; SEND GUARDS needs 2 guards and this colony has 1.
+    await popup(page).locator('button[data-choice]:not([aria-disabled="true"])').first().click();
     await expect(popup(page)).toHaveCount(0);
     expect(await openDecision(page)).toBeNull();
   });
 
   test('an open event survives a reload with its time left', async ({ page }) => {
-    await seed(page, { id: 'overcrowding', remainingMs: 40_000 });
+    await seed(page, { id: 'beetle_sighting', remainingMs: 25_000 });
     await expect(popup(page)).toBeVisible({ timeout: 10_000 });
     const before = (await openDecision(page))!.remainingMs!;
-    expect(before).toBeLessThanOrEqual(40_000);
+    expect(before).toBeLessThanOrEqual(25_000);
     await page.reload();
     await expect(popup(page)).toBeVisible({ timeout: 10_000 });
     const after = (await openDecision(page))!;
-    expect(after.id).toBe('overcrowding');
+    expect(after.id).toBe('beetle_sighting');
     expect(after.remainingMs!).toBeGreaterThan(0);
     // Saved on unload and paused while away: at most the foreground seconds since then are gone.
     expect(after.remainingMs!).toBeGreaterThan(before - 5_000);
   });
 
   test('the decision-timer setting OFF stops the countdown', async ({ page }) => {
-    await seed(page, { id: 'overcrowding', remainingMs: 40_000 });
+    await seed(page, { id: 'beetle_sighting', remainingMs: 25_000 });
     await expect(popup(page)).toBeVisible({ timeout: 10_000 });
     await page.evaluate(() => (window as unknown as { __swarm: Swarm }).__swarm.platform.settings.update({ decisionTimers: 'off' }));
     await expect(popup(page).locator('[data-decision-timer]')).toHaveCount(0);
@@ -124,22 +125,51 @@ test.describe('Decision events (Story 1.28)', () => {
     // the popup expire before it has been seen.
     await page.clock.install();
     await page.clock.pauseAt(Date.now() + 1000);
-    await seed(page, { id: 'overcrowding', remainingMs: 600 });
-    const food = () => page.evaluate(() => (window as unknown as { __swarm: Swarm }).__swarm.manager.getState().resources.food);
+    await seed(page, { id: 'beetle_sighting', remainingMs: 600 });
+    const workers = () => page.evaluate(() => (window as unknown as { __swarm: Swarm }).__swarm.manager.getState().resources.workers);
     await page.clock.runFor(100);
     await expect(popup(page)).toBeVisible();
+    const before = await workers();
     await page.clock.runFor(1500);
     await expect(popup(page)).toHaveCount(0);
     expect(await openDecision(page)).toBeNull();
     await expect(page.locator('[data-toast]')).toContainText('IGNORED');
     await expect(page.locator('#activity-log')).toContainText('IGNORED');
-    expect(await food()).toBeGreaterThanOrEqual(0);
+    // THE BEETLE TAKES 3 WORKERS: the colony visibly loses ants, but never all of them.
+    const after = await workers();
+    expect(after).toBeLessThan(before);
+    expect(after).toBeGreaterThan(0);
   });
 
-  test('an unavoidable event has no timer and no IGNORE line', async ({ page }) => {
-    await seed(page, { id: 'scout_report', remainingMs: null }, { phase: 'expansion' });
-    await expect(popup(page)).toBeVisible({ timeout: 10_000 });
-    await expect(popup(page).locator('[data-decision-timer]')).toHaveCount(0);
-    await expect(popup(page).locator('[data-ignore-line]')).toHaveCount(0);
-  });
+  for (const [id, phase] of [['scout_report', 'expansion'], ['overcrowding', 'colony']] as const) {
+    test(`an unavoidable event has no timer and no IGNORE line (${id})`, async ({ page }) => {
+      await seed(page, { id, remainingMs: null }, { phase });
+      await expect(popup(page)).toBeVisible({ timeout: 10_000 });
+      await expect(popup(page)).toHaveAttribute('data-policy', 'unavoidable');
+      await expect(popup(page).locator('[data-decision-timer]')).toHaveCount(0);
+      await expect(popup(page).locator('[data-ignore-line]')).toHaveCount(0);
+      await expect(popup(page).locator('button[data-choice]')).toHaveCount(2);
+    });
+  }
+
+  // Story 4.5: each MVP phase has its own events, each with two choices and their cost or risk on the sheet.
+  for (const [id, phase, resources] of [
+    ['cold_snap', 'egg_laying', { workers: 3 }],
+    ['aphids', 'colony', {}],
+    ['wounded_return', 'combat', {}],
+  ] as const) {
+    test(`an event of ${phase} shows two choices, each with its cost or risk (${id})`, async ({ page }) => {
+      await seed(page, { id, remainingMs: 25_000 }, {
+        phase,
+        resources: { eggs: 0, larvae: 0, workers: 10, food: 400, nestCapacity: 50, ...resources },
+        combatSoldiers: 5,
+      });
+      await expect(popup(page)).toBeVisible({ timeout: 10_000 });
+      await expect(popup(page)).toHaveAttribute('data-decision', id);
+      const choices = popup(page).locator('button[data-choice]');
+      await expect(choices).toHaveCount(2);
+      for (const i of [0, 1]) await expect(choices.nth(i).locator('[data-cost]')).not.toBeEmpty();
+      await expect(popup(page).locator('[data-ignore-line]')).toContainText('IGNORE:');
+    });
+  }
 });

@@ -8,7 +8,9 @@ import {
   isDecisionId,
   type DecisionDef,
   type DecisionEffect,
+  type DecisionStock,
 } from '../data/content/decisions';
+import { getEffects } from './BuildingSystem';
 
 /**
  * Decision events (Story 1.28, D8, N3): pure rules, no class, no hidden state.
@@ -95,7 +97,7 @@ export function tickDecisions(state: GameState, input: DecisionTickInput): GameS
   }
   if (input.sessionMs < nextSpawnSessionMs || !input.canSpawn) return state;
 
-  const pool = DECISIONS.filter((d) => (d.phases as readonly string[]).includes(state.phase));
+  const pool = DECISIONS.filter((d) => (d.phases as readonly string[]).includes(state.phase) && isEligible(state, d));
   if (pool.length === 0) {
     return withDecision(state, { open: null, nextSpawnSessionMs: input.sessionMs + spawnDelay(input.rand) });
   }
@@ -110,12 +112,110 @@ export function tickDecisions(state: GameState, input: DecisionTickInput): GameS
   return withDecision(state, { open: opened, nextSpawnSessionMs });
 }
 
+/** The nest is near its capacity (warehouse included): `decisionBalance.crowdedShare` of it is filled. */
+export function isCrowded(state: GameState): boolean {
+  const cap = state.resources.nestCapacity + (getEffects('warehouse', state.buildings.warehouse.level).nestCapacity ?? 0);
+  return cap > 0 && state.resources.workers >= cap * decisionBalance.crowdedShare;
+}
+
+/** Whether `def` may spawn in this state, beyond its phase (Story 4.5: OVERCROWDING. needs a crowded nest). */
+export function isEligible(state: GameState, def: DecisionDef): boolean {
+  return def.spawnsWhen !== 'crowded' || isCrowded(state);
+}
+
+/** How much of a decision stock the colony holds. */
+export function stockOf(state: GameState, stock: DecisionStock): number {
+  switch (stock) {
+    case 'guards':
+      return state.workersAssigned.guard;
+    case 'soldiers':
+      return state.combatSoldiers;
+    case 'chitin':
+      return state.combatResources.chitin;
+    case 'scouts':
+      return state.soldiers.scouts;
+    default:
+      return state.resources[stock];
+  }
+}
+
 /** Whether `choice` of `def` can be taken now (its `requires` is met). */
 export function canChoose(state: GameState, def: DecisionDef, choice: DecisionChoice): boolean {
   if (choice === 'ignore') return def.ignorePolicy !== 'unavoidable';
   const c = def.choices.find((x) => x.id === choice);
   if (!c) return false;
-  return !c.requires || state.resources[c.requires.resource] >= c.requires.amount;
+  return !c.requires || stockOf(state, c.requires.stock) >= c.requires.amount;
+}
+
+/** The job roles, in the order a worker loss empties them: the guard role last (it holds the Colony goal). */
+const JOB_ORDER = ['gather', 'forage', 'tend', 'dig', 'guard'] as const;
+
+/**
+ * Remove up to `count` workers, never below `floor` (Story 4.5: no outcome
+ * wipes the colony). Free workers go first, then workers off their roles in
+ * `JOB_ORDER`; `fromRole` takes them off that role first (a guard loss).
+ * Researchers are outside `resources.workers` and are never lost here.
+ */
+function removeWorkers(state: GameState, count: number, floor: number, fromRole?: (typeof JOB_ORDER)[number]): GameState {
+  const have = state.resources.workers;
+  const lost = Math.max(0, Math.min(Math.floor(count), have - floor));
+  if (lost === 0) return state;
+  const assigned = { ...state.workersAssigned };
+  let left = lost;
+  if (fromRole) {
+    const off = Math.min(left, assigned[fromRole]);
+    assigned[fromRole] -= off;
+    left -= off;
+  }
+  const jobs = JOB_ORDER.reduce((a, j) => a + assigned[j], 0);
+  // Free workers cover what is left first; the roles give up only the rest.
+  let owed = Math.max(0, jobs - (have - lost));
+  for (const j of JOB_ORDER) {
+    const off = Math.min(owed, assigned[j]);
+    assigned[j] -= off;
+    owed -= off;
+  }
+  return { ...state, resources: { ...state.resources, workers: have - lost }, workersAssigned: assigned };
+}
+
+/** Set a stock to `value` (whole, ≥ 0); eggs and larvae move their pipeline with them. */
+function setStock(state: GameState, stock: DecisionStock, value: number, floor: number): GameState {
+  const v = Math.max(0, Math.floor(value));
+  const delta = v - stockOf(state, stock);
+  if (delta === 0) return state;
+  switch (stock) {
+    case 'workers':
+      return delta < 0 ? removeWorkers(state, -delta, floor) : { ...state, resources: { ...state.resources, workers: v } };
+    case 'guards':
+      // Guards are workers on the guard role: a loss leaves the colony; a gain is a free worker put on guard.
+      return delta < 0
+        ? removeWorkers(state, -delta, floor, 'guard')
+        : {
+            ...state,
+            resources: { ...state.resources, workers: state.resources.workers + delta },
+            workersAssigned: { ...state.workersAssigned, guard: v },
+          };
+    case 'soldiers':
+      return { ...state, combatSoldiers: v };
+    case 'chitin':
+      return { ...state, combatResources: { ...state.combatResources, chitin: v } };
+    case 'scouts':
+      return { ...state, soldiers: { ...state.soldiers, scouts: v } };
+    case 'eggs':
+      return {
+        ...state,
+        resources: { ...state.resources, eggs: v },
+        eggPipeline: { ...state.eggPipeline, count: Math.max(0, state.eggPipeline.count + delta) },
+      };
+    case 'larvae':
+      return {
+        ...state,
+        resources: { ...state.resources, larvae: v },
+        larvaPipeline: { ...state.larvaPipeline, count: Math.max(0, state.larvaPipeline.count + delta) },
+      };
+    default:
+      return { ...state, resources: { ...state.resources, [stock]: v } };
+  }
 }
 
 function revealTiles(state: GameState, count: number): GameState {
@@ -132,32 +232,34 @@ function revealTiles(state: GameState, count: number): GameState {
   return { ...state, mapTiles: tiles.map((t) => (pick.has(t) ? { ...t, discovered: true } : t)) };
 }
 
-function applyEffect(state: GameState, e: DecisionEffect): GameState {
+function applyEffect(state: GameState, e: DecisionEffect, floor: number): GameState {
   switch (e.kind) {
-    case 'add': {
-      const v = Math.max(0, Math.floor(state.resources[e.resource] + e.amount));
-      return { ...state, resources: { ...state.resources, [e.resource]: v } };
-    }
+    case 'add':
+      return setStock(state, e.stock, stockOf(state, e.stock) + e.amount, floor);
     case 'lose_percent': {
-      const have = state.resources[e.resource];
-      const v = Math.max(0, have - Math.floor((have * e.percent) / PERCENT));
-      return { ...state, resources: { ...state.resources, [e.resource]: Math.floor(v) } };
+      const have = stockOf(state, e.stock);
+      return setStock(state, e.stock, have - Math.floor((have * e.percent) / PERCENT), floor);
     }
     case 'reveal_tiles':
       return revealTiles(state, e.count);
-    case 'lose_scouts':
-      return { ...state, soldiers: { ...state.soldiers, scouts: Math.max(0, state.soldiers.scouts - e.count) } };
   }
+}
+
+/** The fewest workers an outcome may leave: a share of the workers on hand, and never the last one. */
+function workerFloor(state: GameState): number {
+  return Math.ceil(state.resources.workers * decisionBalance.workerFloorShare);
 }
 
 /**
  * Apply a choice (or `'ignore'`: a timeout) and close the event. Pure: the
  * outcome depends only on the state, including the roll drawn at spawn.
- * A choice that can't be taken returns `state` unchanged (same reference).
+ * A choice that can't be taken (or ignoring an unavoidable event) returns
+ * `state` unchanged (same reference).
  */
 export function applyChoice(state: GameState, def: DecisionDef, choice: DecisionChoice): GameState {
   let effects: readonly DecisionEffect[];
   if (choice === 'ignore') {
+    if (!canChoose(state, def, choice)) return state;
     effects = def.ignorePolicy === 'costly' ? (def.ignore ?? []) : [];
   } else {
     const c = def.choices.find((x) => x.id === choice);
@@ -166,7 +268,8 @@ export function applyChoice(state: GameState, def: DecisionDef, choice: Decision
     const roll = open && open.id === def.id ? open.roll : 1;
     effects = c.risk && roll < c.risk.chance ? [...c.effects, ...c.risk.effects] : c.effects;
   }
-  let next = effects.reduce(applyEffect, state);
+  const floor = workerFloor(state);
+  let next = effects.reduce((acc, e) => applyEffect(acc, e, floor), state);
   next = withDecision(next, { open: null, nextSpawnSessionMs: null });
   return next;
 }

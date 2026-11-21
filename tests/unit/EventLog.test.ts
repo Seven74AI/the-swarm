@@ -25,14 +25,14 @@ describe('EventLog', () => {
   // ── Decision events (Story 1.28) ──
   describe('decision events', () => {
     it('logs a costly timeout with its outcome', () => {
-      const def = getDecision('overcrowding');
+      const def = getDecision('beetle_sighting');
       bus.emit('decision_resolved', { id: def.id, choice: 'ignore', timedOut: true, policy: 'costly' });
       expect(getLatestEntry()).toContain(def.ignoreLine);
     });
 
     it('does not log a free timeout as a loss', () => {
       const before = getEntries().length;
-      bus.emit('decision_resolved', { id: 'beetle_sighting', choice: 'ignore', timedOut: true, policy: 'free' });
+      bus.emit('decision_resolved', { id: 'fallen_seed', choice: 'ignore', timedOut: true, policy: 'free' });
       expect(getEntries().length).toBe(before);
     });
   });

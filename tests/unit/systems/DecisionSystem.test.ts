@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   applyChoice,
   canChoose,
+  isEligible,
   startDecisionSession,
   tickDecisions,
   type DecisionTickInput,
@@ -22,8 +23,15 @@ import { makeState, type StateOverrides } from '../helpers/makeState';
 
 const STEP_MS = 1000;
 
+const BASE_RESOURCES = { workers: 20, food: 500, nestCapacity: 100, eggs: 100, larvae: 100 };
 const colony = (over: StateOverrides = {}): GameState =>
-  makeState({ phase: Phase.COLONY, resources: { workers: 20, food: 500, nestCapacity: 100 }, ...over });
+  makeState({
+    phase: Phase.COLONY,
+    eggPipeline: { count: BASE_RESOURCES.eggs, progress: 0 },
+    larvaPipeline: { count: BASE_RESOURCES.larvae, progress: 0 },
+    ...over,
+    resources: { ...BASE_RESOURCES, ...(over.resources as object | undefined) },
+  });
 
 const byPolicy = (p: DecisionDef['ignorePolicy']): DecisionDef => DECISIONS.find((d) => d.ignorePolicy === p)!;
 
@@ -93,8 +101,30 @@ describe('spawning on the session clock', () => {
   });
 
   it('spawns nothing in a phase without events', () => {
-    const s = startDecisionSession(colony({ phase: Phase.EGG_LAYING }));
+    expect(DECISIONS.some((d) => d.phases.includes(Phase.TRANSCENDENCE))).toBe(false);
+    const s = startDecisionSession(colony({ phase: Phase.TRANSCENDENCE }));
     expect(run(s, decisionBalance.spawnMaxMs * 2).state.decision.open).toBeNull();
+  });
+
+  it("spawns in Egg Laying too, from that phase's own events (Story 4.5)", () => {
+    const { state } = run(startDecisionSession(colony({ phase: Phase.EGG_LAYING })), decisionBalance.spawnMaxMs + STEP_MS, { shown: false });
+    expect(getDecision(state.decision.open!.id).phases).toContain(Phase.EGG_LAYING);
+  });
+
+  it('an event that needs a crowded nest spawns only when the nest is crowded', () => {
+    const crowdedOnly = DECISIONS.filter((d) => d.spawnsWhen === 'crowded');
+    expect(crowdedOnly.length).toBeGreaterThan(0);
+    for (const def of crowdedOnly) {
+      const phase = def.phases[0];
+      const roomy = colony({ phase, resources: { workers: 10, nestCapacity: 1000 } });
+      const full = colony({ phase, resources: { workers: 1000, nestCapacity: 1000 } });
+      expect(isEligible(roomy, def)).toBe(false);
+      expect(isEligible(full, def)).toBe(true);
+      for (const r of [0, 0.25, 0.5, 0.75, 0.999]) {
+        const { state } = run(startDecisionSession(roomy), decisionBalance.spawnMaxMs + STEP_MS, { rand: () => r, shown: false });
+        expect(state.decision.open?.id).not.toBe(def.id);
+      }
+    }
   });
 
   it('a new session draws a new spawn time: the old one does not carry over', () => {
@@ -168,12 +198,23 @@ describe('the countdown (game time, only while shown)', () => {
 });
 
 describe('applyChoice (pure)', () => {
-  const allOutcomes = DECISIONS.flatMap((d) => [...d.choices.map((c) => [d, c.id] as const), [d, 'ignore'] as const]);
+  // Every choice, and the ignore outcome of every event that can be ignored.
+  const allOutcomes = DECISIONS.flatMap((d) => [
+    ...d.choices.map((c) => [d, c.id] as const),
+    ...(d.ignorePolicy === 'unavoidable' ? [] : [[d, 'ignore'] as const]),
+  ]);
+
+  it('an unavoidable event cannot be ignored: ignoring changes nothing, not even the event', () => {
+    for (const def of DECISIONS.filter((d) => d.ignorePolicy === 'unavoidable')) {
+      const s = withOpen(def);
+      expect(applyChoice(s, def, 'ignore')).toBe(s);
+    }
+  });
 
   it('closes the event, never mutates its input, and leaves resources whole and non-negative', () => {
     for (const roll of [0, 0.99]) {
       for (const [def, choice] of allOutcomes) {
-        const s = withOpen(def, { soldiers: { scouts: 3 } }, def.timerMs ?? null, roll);
+        const s = withOpen(def, { soldiers: { scouts: 3 }, workersAssigned: { guard: 4 }, resources: { stone: 1000 }, combatSoldiers: 10 }, def.timerMs ?? null, roll);
         const frozen = JSON.stringify(s);
         const out = applyChoice(s, def, choice);
         expect(JSON.stringify(s)).toBe(frozen);
@@ -210,10 +251,10 @@ describe('applyChoice (pure)', () => {
     const paid = DECISIONS.flatMap((d) => d.choices.filter((c) => c.requires).map((c) => [d, c] as const));
     expect(paid.length).toBeGreaterThan(0);
     for (const [def, c] of paid) {
-      const broke = withOpen(def, { resources: { food: 0 } });
+      const broke = withOpen(def, { resources: { food: 0, stone: 0 }, workersAssigned: { guard: 0 }, combatSoldiers: 0 });
       expect(canChoose(broke, def, c.id)).toBe(false);
       expect(applyChoice(broke, def, c.id)).toBe(broke);
-      expect(canChoose(withOpen(def), def, c.id)).toBe(true);
+      expect(canChoose(withOpen(def, { resources: { stone: 1000 }, workersAssigned: { guard: 4 }, combatSoldiers: 10 }), def, c.id)).toBe(true);
     }
   });
 });
