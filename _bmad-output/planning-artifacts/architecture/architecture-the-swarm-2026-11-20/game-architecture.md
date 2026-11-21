@@ -321,7 +321,8 @@ D4–D13 accepted as recommended.
 - `Transition` gains `conditions: { id, label, current(s), target(s) }[]`; `guard` is derived as
   all-met. `transitions.ts` stays the only source of thresholds.
 - `PhaseStateMachine` splits into `evaluate(state) → Transition | null` (pure, every tick) and
-  `commit(transition, state, bus)` (runs `onEnter`, emits `phase_changed`), called only from CONTINUE.
+  `commit(transition, state, bus)` (runs `onEnter`, emits `phase_committed`, which replaces today's
+  `phase_changed`; see Event System), called only from CONTINUE.
 - **Latch:** when `evaluate` first returns a transition, `state.phaseGoal = { phase, latched: true }`
   is written. It survives dips and saves and is cleared by `commit` and by prestige.
 - Order: remove `COLONY_TO_EXPANSION` → add conditions → split the FSM → migrate the E2E seeds to

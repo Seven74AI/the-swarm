@@ -115,7 +115,7 @@ NFR15: Accessibility floor: reduced motion, live regions, full keyboard operatio
 - AR4 (Catch-up, D2): macro-steps through the same `processTick` (initial `dt` 10 s); every system correct for any step length; offline-only rules inside catch-up (efficiency, starvation floor, no decision events, no phase commits; the latch may set); a property test compares macro-step with fine-step results; CI asserts a 24 h catch-up uses at most a fixed number of `processTick` calls (from `data/constants.ts`); `pnpm perf` reports timing on the reference phone.
 - AR5 (Phase flow, D3/ADR 0003): `Transition.conditions: { id, label, current(s), target(s) }[]`, guard derived as all-met; `PhaseStateMachine` splits into pure `evaluate()` and `commit()` (only from CONTINUE); `state.phaseGoal = { phase, latched }` survives dips and saves, cleared by commit and prestige; order: remove `COLONY_TO_EXPANSION` → add conditions → split FSM → migrate E2E seeds to tap `[data-action="continue"]` (~7 E2E specs, 4 unit files assume auto-transition).
 - AR6 (Persistence, D4): a `SaveStore` interface over localStorage (current key, 2-slot rotating backup); `load() → { status: 'ok' | 'recoveredFromBackup' | 'unreadable' | 'empty', state? }`; `navigator.storage.persist()` after first meaningful play; a one-time add-to-home-screen hint; export/import. Inside the save: state, `phaseGoal`, the open decision event with remaining time, the event log (last 100 lines), `lifetime.revealsSeen`, `lifetime.phasesCompleted`, PRNG state. Outside the save (own keys, survive prestige and import, not exported): settings, intro flag.
-- AR7 (Migrations): one numbered step per schema change, two branches claiming one version merge into one function, never renumber; a fixture per shipped version under `tests/saves/` (only v5–v7 exist today) and a test that every fixture migrates to current and loads. Current save version: 13.
+- AR7 (Migrations): one numbered step per schema change, two branches claiming one version merge into one function, never renumber; a fixture per shipped version under `tests/saves/` (v5–v7 there today, plus v1–v11 snapshots in `tests/snapshots/`) and a test that every fixture migrates to current and loads. Current save version: 13.
 - AR8 (State, D5/ADR 0001): one `signal<GameState>`, one spread write per tick, user actions write between ticks; `src/state/selectors.ts` exports `computed` slices; components and effects read selectors only; delete `StateManager`, `Store`, `GameStatePool` (#186).
 - AR9 (Randomness, D6/ADR 0005): a seeded 32-bit PRNG with its state in `GameState`; systems take and return it; no `Math.random` in `src/systems` or `src/sim` (11 files under `src/` use it today); UI-only randomness may.
 - AR10 (UI shell, D7): a tab registry as data (`{ panelId → tab, segment?, unlockPhase }`) replacing `PHASE_PANELS` in `PhaseContent.ts`, with a test that no phase shows a sixth tab; one `SheetController` signal with a queue and priority (offline summary > decision event > battle summary > other modal > peek); modal sheets never stack, opening a modal closes any peek; an overlay layer (phase reveal, title cinematic, ending) blocks input and holds decision events.
@@ -670,7 +670,7 @@ So that a reveal never happens while I'm not looking.
 
 **Acceptance Criteria:**
 
-**Given** `PhaseStateMachine` split into a pure `evaluate(state) → Transition | null` (run every tick) and `commit(transition, state, bus)` (runs `onEnter`, emits `phase_committed`)
+**Given** `PhaseStateMachine` split into a pure `evaluate(state) → Transition | null` (run every tick) and `commit(transition, state, bus)` (runs `onEnter`, emits `phase_committed`, which replaces today's `phase_changed` in every emitter and listener)
 **When** a guard becomes true
 **Then** the phase does not change; `state.phaseGoal = { phase, latched: true }` is written once, NEST gets `•`, and its primary action becomes `> CONTINUE` (`data-action="continue"`)
 **And** only `commit` (or prestige) assigns `state.phase` (asserted in the boundary test)
@@ -1024,7 +1024,7 @@ So that the rework never costs me progress.
 
 **Acceptance Criteria:**
 
-**Given** `tests/saves/` with one fixture per shipped save version (v1–v13; only v5–v7 exist today), each a real save shape for that version
+**Given** `tests/saves/` with one fixture per shipped save version (v1 up to the version before the current one, including the versions Epic 1 adds; today `tests/saves/` holds v5–v7 and `tests/snapshots/` holds v1–v11 for `saveCompatibility.test.ts`, so reuse those and add v12 onward), each a real save shape for that version
 **When** the migration test runs
 **Then** every fixture migrates step by step to the current version, loads through `SaveManager`, and the result passes the state invariants (integer resources ≥ 0, a valid phase, pipeline counts ≥ 0)
 **And** a test fails if `SAVE_VERSION` is raised without a fixture for the previous version
@@ -1170,7 +1170,8 @@ So that coming back is rewarded before my first prestige.
 
 **Given** a save that owns Temporal Resonance or Chrono Synchronization
 **When** it loads
-**Then** a numbered migration grants the matching new Legacy nodes (Temporal Resonance → the 75% → 100% efficiency node; Chrono Synchronization → its matching node, as the story file maps it), nothing the player bought is lost, and neither old node remains buyable (owner decision 2026-11-21: grant, not refund)
+**Then** a numbered migration grants the matching new Legacy nodes, nothing the player bought is lost, and neither old node remains buyable (owner decision 2026-11-21: grant, not refund). Today neither node has an ownership flag: ownership is read from `state.offlineEfficiency` (0.75 = Temporal Resonance, 1.0 = both). Temporal Resonance → the Legacy efficiency node (+25 points, so the save keeps 75% without the research); Chrono Synchronization → the first Legacy cap-raise node, and the current run's offline-efficiency research is marked complete so the save stays at 100% until its next prestige
+**And** efficiency is computed as 50% plus 25 points for the run research plus 25 points for the Legacy node, so the research and the Legacy node can be bought in either order
 **And** efficiency is never above 100% and the cap never above 24 h
 
 **Covers:** FR21
@@ -1414,7 +1415,7 @@ So that pacing and soft-locks can be measured automatically.
 **Given** `src/sim/` with `SimRunner`, `CheckInSchedule`, `PlayerPolicy` and `Probes`
 **When** a run starts from a seed and an initial state
 **Then** it advances time only through `resume(elapsedMs)` and applies moves only through `actions/`, with no DOM, no sim-only shortcuts and no mocked systems (boundary test: `sim/` imports no `ui/`, `platform/` or DOM)
-**And** the default policy follows `getNextAction`, rebalances roles and taps CONTINUE when the goal is met; decision events do not fire
+**And** the default policy follows `getNextAction`, rebalances roles and taps CONTINUE when the goal is met; it also performs the goal verbs that are not purchases, through the same actions a player uses: in Egg Laying it lays eggs during each check-in (tapping is the only egg source before automation), it assigns a GUARD when a goal condition needs one, and in Combat it trains soldiers and fights; decision events do not fire
 
 **Given** the probes
 **When** a run ends
@@ -1680,7 +1681,7 @@ So that allocation stays the skill and tapping doesn't.
 
 **Acceptance Criteria:**
 
-**Given** each automatable verb (hatching, soldier training, recruitment)
+**Given** each automatable verb the player performs by hand (egg laying, soldier training, recruitment; hatching has no manual action, and the automation research Basic Incubation, Queen's Pheromones and Thermal Regulation already add an automatic egg-laying rate in the code today, so "hatching" automation means egg laying)
 **When** the player has performed it manually N times (N in `data/balance/`, starting at 10) or has reached the following phase
 **Then** an automation target row appears under that verb: `KEEP [−] N [+] IN TRAINING` with an `[AUTO]` toggle (inverse when on)
 
