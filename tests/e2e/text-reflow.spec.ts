@@ -29,6 +29,9 @@ const SPACE = {
   stats: { totalEggsLaid: 5000, totalClicks: 800, playTimeMs: 0 },
 };
 
+/** BUILD cards added by Story 4.7: they must fit with the rest. */
+const COLONY_CHOICES = ['fungus_garden', 'tunnels'] as const;
+
 interface Setup {
   readonly name: string;
   readonly width: number;
@@ -157,6 +160,10 @@ for (const setup of SETUPS) {
       for (const place of PLACES) {
         await openTab(page, place.tab, place.segment);
         const where = `${place.tab}${place.segment ? `/${place.segment}` : ''}`;
+        // The Colony's nectar buildings (Story 4.7) are among BUILD's cards.
+        if (place.tab === 'build') {
+          for (const id of COLONY_CHOICES) await expect(page.locator(`[data-building="${id}"]`)).toBeVisible();
+        }
         found.push(...(await layoutProblems(page)).map((p) => `${where}: ${p}`));
       }
       // The resource sheet: its aligned table stacks below 28 columns.

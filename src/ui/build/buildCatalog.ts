@@ -20,6 +20,8 @@ export const BUILDING_CARDS: readonly BuildingCardDef[] = [
   { id: 'warehouse', name: 'WAREHOUSE', glyph: '⌂' },
   { id: 'barracks', name: 'BARRACKS', glyph: '⊓' },
   { id: 'walls', name: 'WALLS', glyph: '▤' },
+  { id: 'tunnels', name: 'TUNNELS', glyph: '⋔' },
+  { id: 'fungus_garden', name: 'FUNGUS GARDEN', glyph: '⁂' },
   { id: 'silk_weaving', name: 'SILK WEAVING', glyph: '≋' },
   { id: 'chitin_armory', name: 'CHITIN ARMORY', glyph: '⛉' },
   { id: 'venom_lab', name: 'VENOM LAB', glyph: '⚗' },

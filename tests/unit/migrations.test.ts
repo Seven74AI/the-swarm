@@ -834,3 +834,40 @@ describe('v26 → v27: the next enemy is in the save (Story 4.1, FR12)', () => {
     expect(out.gameState).toEqual({ phase: 'combat' });
   });
 });
+
+describe('v27 → v28: the Colony buildings (Story 4.7, FR19)', () => {
+  const v27 = (gs: unknown): SaveData => ({
+    version: 27,
+    timestamp: 1_700_000_000_000,
+    playTimeMs: 0,
+    gameState: gs as GameState,
+  });
+  /** A v27 state: the buildings had no Fungus Garden or Tunnels. */
+  const withoutColonyBuildings = () => {
+    const gs = structuredClone(createInitialState()) as unknown as Record<string, unknown>;
+    const { fungus_garden: _f, tunnels: _t, ...rest } = gs.buildings as Record<string, unknown>;
+    gs.buildings = { ...rest, warehouse: { level: 3 }, walls: { level: 1 } };
+    return gs;
+  };
+
+  it('adds both at level 0 and keeps every other building', () => {
+    const before = withoutColonyBuildings();
+    const out = migrateSave(v27(structuredClone(before)), 27, 28);
+    expect(out.version).toBe(28);
+    expect(out.gameState.buildings.fungus_garden).toEqual({ level: 0 });
+    expect(out.gameState.buildings.tunnels).toEqual({ level: 0 });
+    expect(out.gameState.buildings).toMatchObject(before.buildings as object);
+  });
+
+  it('keeps levels the save already holds', () => {
+    const gs = structuredClone(createInitialState());
+    gs.buildings = { ...gs.buildings, fungus_garden: { level: 2 }, tunnels: { level: 1 } };
+    expect(migrateSave(v27(structuredClone(gs)), 27, 28).gameState).toEqual(gs);
+  });
+
+  it('a partial save without buildings is left for the defaults', () => {
+    const out = migrateSave(v27({ phase: 'colony' }), 27, 28);
+    expect(out.version).toBe(28);
+    expect(out.gameState).toEqual({ phase: 'colony' });
+  });
+});

@@ -123,6 +123,10 @@ export interface GameState {
     barracks: { level: number; count: number };
     walls: { level: number };
     warehouse: { level: number };
+    /** Story 4.7: gatherers bring in more food. */
+    fungus_garden: { level: number };
+    /** Story 4.7: diggers dig rooms faster. */
+    tunnels: { level: number };
     silk_weaving: { level: number };
     chitin_armory: { level: number };
     venom_lab: { level: number };
@@ -406,6 +410,8 @@ export function createInitialState(): GameState {
       barracks: { level: 0, count: 0 },
       walls: { level: 0 },
       warehouse: { level: 0 },
+      fungus_garden: { level: 0 },
+      tunnels: { level: 0 },
       silk_weaving: { level: 0 },
       chitin_armory: { level: 0 },
       venom_lab: { level: 0 },

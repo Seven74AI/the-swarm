@@ -205,7 +205,7 @@ test.describe('Golden Path — Full Progression', () => {
     await expect(mapPanel).toBeVisible();
   });
 
-  test('building panel shows six building rows', async ({ page }) => {
+  test('building panel shows every building row', async ({ page }) => {
     await openTab(page, 'build');
     const buildingPanel = page.locator('#building-panel');
     await expect(buildingPanel).toBeVisible();
@@ -226,9 +226,12 @@ test.describe('Golden Path — Full Progression', () => {
     const venomRow = buildingPanel.locator('[data-building="venom_lab"]');
     await expect(venomRow).toBeVisible();
 
+    // The Colony's nectar buildings (Story 4.7)
+    for (const id of ['fungus_garden', 'tunnels']) await expect(buildingPanel.locator(`[data-building="${id}"]`)).toBeVisible();
+
     // Each card has its own BUY button (Story 1.24)
     const buildBtns = buildingPanel.locator('[data-action="buy-building"]');
-    await expect(buildBtns).toHaveCount(6);
+    await expect(buildBtns).toHaveCount(8);
   });
 
   test('expedition panel shows launch form', async ({ page }) => {

@@ -10,6 +10,7 @@ import {
   type SuggestedAction,
 } from '../../../src/systems/NextAction';
 import { CRITICAL_PATH } from '../../../src/data/content/criticalPath';
+import { PANEL_PLACEMENT, isUnlocked } from '../../../src/data/content/tabs';
 import { nextActionBalance } from '../../../src/data/balance/nextAction';
 import { MS_PER_SEC } from '../../../src/data/constants';
 import { Phase, PHASE_ORDER } from '../../../src/phases/phases';
@@ -302,13 +303,16 @@ describe('getNextAction (Story 1.21)', () => {
     });
 
     it('never suggests an item whose panel is not open in this phase', () => {
-      // Resources for everything, in Colony: BUILD has no buildings yet, research and automation are later.
-      const rich = listItems().reduce((acc, r) => withCost(acc, r), colony());
-      const n = getNextAction(rich);
-      if (n.kind === 'act') {
-        expect(n.intent.action).not.toBe('buyBuilding');
-        expect(n.intent.action).not.toBe('startResearch');
-        expect(n.intent.action).not.toBe('buildShip');
+      // Resources for everything, in Colony: the space research, the ship and automation are later.
+      let s = listItems().reduce((acc, r) => withCost(acc, r), colony());
+      for (let i = 0; i < 12; i++) {
+        const n = getNextAction(s);
+        expect(n.kind).toBe('act');
+        if (n.kind !== 'act' || n.rule === 'goal') break;
+        expect(isUnlocked(PANEL_PLACEMENT[n.panel].unlockPhase, Phase.COLONY), n.key).toBe(true);
+        expect(n.intent.action, n.key).not.toBe('buildShip');
+        expect(n.intent.action, n.key).not.toBe('researchAutomation');
+        s = perform(s, n);
       }
     });
 

@@ -7,7 +7,15 @@ import { FIRST_PRODUCED_IN } from '../data/content/producers';
 import { isUnlocked } from '../data/content/tabs';
 import type { Phase } from '../phases/phases';
 
-export type BuildingType = 'barracks' | 'walls' | 'warehouse' | 'silk_weaving' | 'chitin_armory' | 'venom_lab';
+export type BuildingType =
+  | 'barracks'
+  | 'walls'
+  | 'warehouse'
+  | 'fungus_garden'
+  | 'tunnels'
+  | 'silk_weaving'
+  | 'chitin_armory'
+  | 'venom_lab';
 
 interface Cost {
   food: number;
@@ -153,6 +161,10 @@ function getRawEffects(
       return { defenseBonus: level * B.wallsDefensePerLevel };
     case 'warehouse':
       return { nestCapacity: level * B.warehouseNestCapacityPerLevel };
+    case 'fungus_garden':
+      return { gatherFoodBonus: level * B.fungusGardenGatherFoodPerLevel };
+    case 'tunnels':
+      return { digSpeedBonus: level * B.tunnelsDigSpeedPerLevel };
     case 'silk_weaving':
       return { armorUnlocked: level >= 1 ? 1 : 0 };
     case 'chitin_armory':

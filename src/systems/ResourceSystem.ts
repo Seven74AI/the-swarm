@@ -78,8 +78,10 @@ export function computeResourceRates(
   const prodMult = productionMultiplier(state.phase, state.prestige.legacyPoints);
   const workerEff = workerEfficiency(workers);
 
+  // The Fungus Garden feeds gatherers only (Story 4.7).
+  const gardenBonus = getEffects('fungus_garden', state.buildings.fungus_garden?.level ?? 0).gatherFoodBonus ?? 0;
   const foodProducedPerSec = (
-    (gatherCount * roleBalance.gatherFoodPerSec + Math.max(0, unassignedCount) * roleBalance.idleFoodPerSec)
+    (gatherCount * roleBalance.gatherFoodPerSec * (1 + gardenBonus) + Math.max(0, unassignedCount) * roleBalance.idleFoodPerSec)
     * prodMult * workerEff * prestigeBonuses.food * prestigeBonuses.workerEfficiency
     * (1 + mutationEffects.gatherRate)
   );
@@ -268,7 +270,9 @@ export class ResourceSystem {
     let capacityAccumulator = state.capacityAccumulator;
     let nestCapacity = state.resources.nestCapacity;
     if (digCount > 0) {
-      capacityAccumulator += digCount * (Math.round(dtSec * MS_PER_SEC) / TICK_MS);
+      // Tunnels make every digger dig faster (Story 4.7); the room still costs `digMsPerRoom` of digging.
+      const digSpeed = 1 + (getEffects('tunnels', state.buildings.tunnels?.level ?? 0).digSpeedBonus ?? 0);
+      capacityAccumulator += digCount * digSpeed * (Math.round(dtSec * MS_PER_SEC) / TICK_MS);
       const rooms = Math.floor(capacityAccumulator / stepsPerRoom);
       capacityAccumulator -= rooms * stepsPerRoom;
       nestCapacity += rooms;

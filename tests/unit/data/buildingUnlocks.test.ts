@@ -21,13 +21,13 @@ import { testActions } from '../helpers/actions';
 import { makeState } from '../helpers/makeState';
 
 /**
- * Story 3.5 (FR7): Barracks, Walls and Warehouse are on BUILD from Colony; Silk
+ * Story 3.5 (FR7): Barracks, Walls and Warehouse (and Story 4.7's Fungus Garden and Tunnels) are on BUILD from Colony; Silk
  * Weaving, Chitin Armory and Venom Lab from Combat. Every resource a building
  * costs in a phase has a producer open in that phase or earlier.
  * Invariants only: amounts come from `getBuildCost`, never restated.
  */
 
-const COLONY_BUILDINGS: readonly BuildingType[] = ['barracks', 'walls', 'warehouse'];
+const COLONY_BUILDINGS: readonly BuildingType[] = ['barracks', 'walls', 'warehouse', 'fungus_garden', 'tunnels'];
 const COMBAT_BUILDINGS: readonly BuildingType[] = ['silk_weaving', 'chitin_armory', 'venom_lab'];
 const ALL_BUILDINGS = Object.keys(BUILDING_UNLOCK_PHASE) as BuildingType[];
 /** Far enough up the levels to pass the Lv.5 surcharge a few times over. */

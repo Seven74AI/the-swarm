@@ -3,17 +3,17 @@ import { Phase, PHASE_ORDER } from '../phases/phases';
 import { CRITICAL_PATH, type ItemRef } from '../data/content/criticalPath';
 import { PANEL_PLACEMENT, isUnlocked, type PanelId } from '../data/content/tabs';
 import { nextActionBalance } from '../data/balance/nextAction';
-import { MS_PER_SEC, PERCENT } from '../data/constants';
+import { MS_PER_SEC, OFFLINE_EFFICIENCY_STEP_POINTS, PERCENT } from '../data/constants';
 import { canBuild, getBuildCost, getEffects, isBuildingOpen, type BuildingType } from './BuildingSystem';
 import { computeResourceRates, getAssignedWorkers, getUpgradeCost, isUpgradeOpen, type WorkerRole } from './ResourceSystem';
-import { NEST_UPGRADE_IDS, upgradeBalance, type UpgradeEffects } from '../data/balance/upgrades';
+import { NEST_UPGRADE_IDS, upgradeBalance } from '../data/balance/upgrades';
 import { UPGRADE_COPY } from '../data/content/upgrades';
 import { TerritorySystem } from './TerritorySystem';
 import { MUTATIONS, canPurchaseMutation } from './MutationSystem';
 import { getEquipmentUpgradeCost } from './SoldierSystem';
 import { soldierBalance } from '../data/balance/soldiers';
 import { MAX_SHIP_LEVEL, canAffordShipCost, getShipCost } from './SpaceshipSystem';
-import { canStartProject, getAssignedResearchers, getProjectStatus, getProjects } from './ResearchSystem';
+import { OFFLINE_RESEARCH_ID, canStartProject, getAssignedResearchers, getProjectStatus, getProjects } from './ResearchSystem';
 import { canBuildParticleLab, getParticleLabCost, isParticleLabOpen } from './ResourceConversionSystem';
 import {
   AUTOMATION_BUILDINGS,
@@ -234,13 +234,36 @@ export function itemKey(ref: ItemRef): string {
   return 'id' in ref ? `${ref.kind}:${ref.id}` : ref.kind;
 }
 
+/** What one more level or purchase of an item gives, by effect name (Story 4.7, FR19): every value a gain. */
+export type ItemEffects = Readonly<Record<string, number>>;
+
 /**
- * What one level of an item gives, as data (Story 4.6, FR19), for the
- * "none strictly dominant" check; null for items whose effects are not yet
- * described this way.
+ * An item's effects as data, for the "none strictly dominant" checks (FR19,
+ * Stories 4.6–4.8): what buying it once more adds in this state. An upgrade's
+ * is one level's `perLevel` (Story 4.6); a building's is its next level's
+ * effects less its current ones; null for items not yet described this way.
  */
-export function itemEffects(ref: ItemRef): UpgradeEffects | null {
-  return ref.kind === 'upgrade' ? upgradeBalance[ref.id].perLevel : null;
+export function itemEffects(s: GameState, ref: ItemRef): ItemEffects | null {
+  switch (ref.kind) {
+    case 'upgrade': {
+      // Click Power and the egg-chamber upgrades (Story 4.6): one level's effects, from their balance.
+      const gain: Record<string, number> = {};
+      for (const [k, v] of Object.entries(upgradeBalance[ref.id].perLevel)) if (v !== undefined && v > 0) gain[k] = v;
+      return gain;
+    }
+    case 'building': {
+      const level = s.buildings[ref.id].level;
+      const now = getEffects(ref.id, level);
+      const next = getEffects(ref.id, level + 1);
+      const gain: Record<string, number> = {};
+      for (const [k, v] of Object.entries(next)) if (v - (now[k] ?? 0) > 0) gain[k] = v - (now[k] ?? 0);
+      return gain;
+    }
+    case 'research':
+      return ref.id === OFFLINE_RESEARCH_ID ? { offlineEfficiencyPoints: OFFLINE_EFFICIENCY_STEP_POINTS } : null;
+    default:
+      return null;
+  }
 }
 
 /** Every item the rule knows, in the order the "any affordable item" rule tries them. */
@@ -250,7 +273,7 @@ export function listItems(): ItemRef[] {
     ...NEST_UPGRADE_IDS.map((id): ItemRef => ({ kind: 'upgrade', id })),
     ...(Object.keys(RESEARCHES) as ResearchType[]).map((id): ItemRef => ({ kind: 'auto_research', id })),
     ...(Object.keys(AUTOMATION_BUILDINGS) as AutomationBuildingType[]).map((id): ItemRef => ({ kind: 'auto_building', id })),
-    ...(['warehouse', 'barracks', 'walls', 'silk_weaving', 'chitin_armory', 'venom_lab'] as const).map(
+    ...(['warehouse', 'tunnels', 'fungus_garden', 'barracks', 'walls', 'silk_weaving', 'chitin_armory', 'venom_lab'] as const).map(
       (id): ItemRef => ({ kind: 'building', id }),
     ),
     ...MUTATIONS.map((m): ItemRef => ({ kind: 'mutation', id: m.id })),

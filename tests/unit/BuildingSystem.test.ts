@@ -40,7 +40,7 @@ describe('BuildingSystem', () => {
 
   describe('getBuildCost', () => {
     it('returns positive costs for all building types', () => {
-      const types: BuildingType[] = ['barracks', 'walls', 'warehouse', 'silk_weaving', 'chitin_armory', 'venom_lab'];
+      const types: BuildingType[] = ['barracks', 'walls', 'warehouse', 'fungus_garden', 'tunnels', 'silk_weaving', 'chitin_armory', 'venom_lab'];
       for (const type of types) {
         const cost = getBuildCost(type, 1);
         expect(cost.food + cost.wood + cost.stone + cost.nectar + cost.chitin + cost.silk + cost.venom).toBeGreaterThan(0);
@@ -54,7 +54,7 @@ describe('BuildingSystem', () => {
     });
 
     it('every cost at every level is a non-negative whole number, and never falls level to level', () => {
-      const types: BuildingType[] = ['barracks', 'walls', 'warehouse', 'silk_weaving', 'chitin_armory', 'venom_lab'];
+      const types: BuildingType[] = ['barracks', 'walls', 'warehouse', 'fungus_garden', 'tunnels', 'silk_weaving', 'chitin_armory', 'venom_lab'];
       for (const type of types) {
         let prev = getBuildCost(type, 1);
         for (let level = 1; level <= 10; level++) {

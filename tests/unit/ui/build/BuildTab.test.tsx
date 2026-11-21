@@ -46,7 +46,7 @@ describe('Building cards (Story 1.24)', () => {
   it('draws one card per building: glyph, level change, effect and cost line', () => {
     gameState.value = makeState({ phase: Phase.EXPANSION });
     const { container } = render(<BuildingCards buy={() => ({ ok: true })} />);
-    for (const id of ['barracks', 'walls', 'warehouse', 'silk_weaving', 'chitin_armory', 'venom_lab']) {
+    for (const id of ['barracks', 'walls', 'warehouse', 'fungus_garden', 'tunnels', 'silk_weaving', 'chitin_armory', 'venom_lab']) {
       const el = building(container, id)!;
       expect(el, id).not.toBeNull();
       expect(el.querySelector('[data-card]'), id).not.toBeNull();
@@ -97,7 +97,7 @@ describe('Building cards (Story 1.24)', () => {
 });
 
 describe('Building cards by phase (Story 3.5)', () => {
-  const colonyOwn = ['barracks', 'walls', 'warehouse'];
+  const colonyOwn = ['barracks', 'walls', 'warehouse', 'fungus_garden', 'tunnels'];
   const workshops = ['silk_weaving', 'chitin_armory', 'venom_lab'];
 
   it('Colony lists Barracks, Walls and Warehouse; Combat adds the workshops', () => {
@@ -141,6 +141,13 @@ describe('Building cards by phase (Story 3.5)', () => {
       gameState.value = { ...gameState.value, phase: Phase.COMBAT };
     });
     expect(btn.getAttribute('aria-disabled')).toBeNull();
+  });
+
+  it("the Colony's nectar buildings name what their next level adds (Story 4.7)", () => {
+    gameState.value = makeState({ phase: Phase.COLONY });
+    const { container } = render(<BuildingCards buy={() => ({ ok: true })} />);
+    expect(visibleText(building(container, 'fungus_garden')!.querySelector('.card__effect')!)).toMatch(/GATHER/);
+    expect(visibleText(building(container, 'tunnels')!.querySelector('.card__effect')!)).toMatch(/DIG/);
   });
 });
 

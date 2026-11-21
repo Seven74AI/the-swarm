@@ -106,6 +106,9 @@ const arbState: fc.Arbitrary<GameState> = fc
     autoEggLayer: fc.boolean(),
     autoEggs: fc.boolean(),
     nursery: fc.integer({ min: 0, max: 3 }),
+    // Story 4.7: the Fungus Garden scales gatherer food, Tunnels the digging.
+    garden: fc.integer({ min: 0, max: 3 }),
+    tunnels: fc.integer({ min: 0, max: 3 }),
     forest: fc.integer({ min: 0, max: 2 }),
     mountain: fc.integer({ min: 0, max: 2 }),
     meadow: fc.integer({ min: 0, max: 2 }),
@@ -132,6 +135,7 @@ const arbState: fc.Arbitrary<GameState> = fc
     s.resources.larvae = r.larvae;
     s.larvaPipeline = { count: r.larvae, progress: r.larvaProgress };
     s.resources.food = r.food;
+    s.buildings = { ...s.buildings, fungus_garden: { level: r.garden }, tunnels: { level: r.tunnels } };
     s.soldierPipeline = { count: r.training, progress: 0 };
     s.combatSoldiers = r.combatSoldiers;
     s.prestigeTree.purchased = [...r.prestige, ...(r.autoEggLayer ? ['auto_egg_laying'] : [])];
