@@ -127,11 +127,12 @@ test.describe('Phase reveal (fake clock)', () => {
     expect(box!.width).toBeGreaterThanOrEqual(viewport.width - 1);
     expect(box!.height).toBeGreaterThanOrEqual(viewport.height - 1);
 
-    await page.clock.runFor(3000);
-    const line = (await reveal.locator('[data-reveal-line]').textContent()) ?? '';
-    expect(line.trim().length).toBeGreaterThan(0);
+    // The installed fake clock also flows in real time, so a fixed runFor() before
+    // reading the line raced the 3.5 s reveal under CI load. Wait for the typed
+    // line instead, then run the clock past the reveal's end.
+    await expect(reveal.locator('[data-reveal-line]')).not.toBeEmpty();
 
-    await page.clock.runFor(600);
+    await page.clock.runFor(3600);
     await expect(reveal).toHaveCount(0);
     expect((await state(page)).lifetime.revealsSeen).toContain('colony');
   });

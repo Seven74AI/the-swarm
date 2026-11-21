@@ -125,7 +125,9 @@ async function setupOfflineTest(page: import('@playwright/test').Page, saveTimes
   await page.addInitScript((s: string) => {
     localStorage.setItem('the_swarm_save', s);
   }, JSON.stringify(saveData));
-  await page.goto('/');
+  // ?debug=1 makes production builds print log.info lines; some tests read
+  // the offline tick log from the console.
+  await page.goto('/?debug=1');
   await page.waitForLoadState('networkidle');
   // Wait for phase transition animation + UI mount
   await page.waitForTimeout(waitMs);
@@ -591,7 +593,7 @@ test.describe('Offline Progression — Efficiency', () => {
     await page2.addInitScript((s: string) => {
       localStorage.setItem('the_swarm_save', s);
     }, JSON.stringify(makeOfflineSave(fiveMinAgo, { offlineEfficiency: 1.0 })));
-    await page2.goto('/');
+    await page2.goto('/?debug=1');
     await page2.waitForLoadState('networkidle');
     await page2.waitForTimeout(3500);
 
@@ -614,7 +616,7 @@ test.describe('Offline Progression — Efficiency', () => {
     await page.addInitScript((s: string) => {
       localStorage.setItem('the_swarm_save', s);
     }, JSON.stringify(saveWithoutEff));
-    await page.goto('/');
+    await page.goto('/?debug=1');
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(3500);
 

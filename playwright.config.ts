@@ -22,8 +22,13 @@ export default defineConfig({
       },
     },
   ],
+  // E2E runs against a production bundle served by `vite preview`: page loads are
+  // much cheaper than the dev server's per-module transforms (~25% faster suite),
+  // and it tests what actually ships. E2E_BUILD=1 adds the harness pages to the
+  // build (see vite.config.ts). A dev server already on :5173 is reused locally.
   webServer: {
-    command: 'npx vite --port 5173',
+    command: 'pnpm exec vite build && pnpm exec vite preview --outDir dist-e2e --port 5173 --strictPort',
+    env: { E2E_BUILD: '1' },
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
   },

@@ -114,3 +114,9 @@ module must be pinned (`--pin gds=<tag>`) where the GitHub API is unreachable. T
 - rAF fake timers don't reliably drive `Ticker`; test the public API, not tick counts.
 - Panels exist but are `display:none` until their phase — use `toBeVisible()`.
 - Selectors: grep `src/ui/panels/*.ts` for `data-` / `id=`; there is no canonical selector list.
+- **Vitest runs in the `vmThreads` pool:** each file gets fresh modules, but one jsdom is shared per worker.
+  Clean up what a test adds to `document.body` / `localStorage` (`afterEach`) so files can't leak into each other.
+- **E2E runs against a production build** (`vite build` + `vite preview`, harness pages added via `E2E_BUILD=1`),
+  not the dev server. `log.info` lines only print with `?debug=1` in the URL; `log.debug` never prints there.
+- `page.clock.install()` keeps time flowing in real time too: don't read a short-lived overlay after a fixed
+  `runFor()` — wait for it with a retrying `expect`.
