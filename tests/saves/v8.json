@@ -3,7 +3,7 @@
   "timestamp": 1730000000000,
   "playTimeMs": 28800000,
   "gameState": {
-    "phase": "civilization",
+    "phase": "space",
     "resources": {
       "eggs": 10000,
       "larvae": 5000,

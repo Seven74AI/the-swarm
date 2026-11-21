@@ -3,7 +3,7 @@
   "timestamp": 1694000000000,
   "playTimeMs": 3600000,
   "gameState": {
-    "phase": "territory",
+    "phase": "expansion",
     "resources": {
       "eggs": 500,
       "larvae": 200,

@@ -40,7 +40,7 @@ function deepMerge(
  * Returns the final GameState after migration and deep-merge with defaults.
  */
 function loadAndMigrate(version: number): { saveData: SaveData; gameState: GameState } {
-  const snapshotPath = path.join(__dirname, '..', 'snapshots', `v${version}.json`);
+  const snapshotPath = path.join(__dirname, '..', 'saves', `v${version}.json`);
   const raw = fs.readFileSync(snapshotPath, 'utf-8');
   const saveData: SaveData = JSON.parse(raw);
 
@@ -61,7 +61,7 @@ describe('Save Version Compatibility', () => {
   // Test that snapshots exist for all versions
   it('has snapshot files for all versions v1 through v11', () => {
     for (let v = 1; v <= 11; v++) {
-      const p = path.join(__dirname, '..', 'snapshots', `v${v}.json`);
+      const p = path.join(__dirname, '..', 'saves', `v${v}.json`);
       expect(fs.existsSync(p)).toBe(true);
     }
   });
