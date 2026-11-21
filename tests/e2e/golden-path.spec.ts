@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { openTab } from './helpers/tabs';
+import { readResource } from './helpers/resources';
 
 /**
  * Golden Path E2E: Full progression seed → all panels unlock → save/load.
@@ -127,28 +128,26 @@ test.describe('Golden Path — Full Progression', () => {
   });
 
   test('resource panel shows seeded values', async ({ page }) => {
-    // Food should show 5000+
-    const foodDisplay = page.locator('[data-stat="resources.food"]');
-    await expect(foodDisplay).toBeVisible();
+    // Story 1.16: food sits in the strip; its exact integer is in the resource sheet.
+    await expect(page.locator('[data-stat="resources.food"] .critical-value')).toBeVisible();
     // Food grows every tick, so compare the shown number with the live state
-    // (both read in one evaluate) instead of pinning the seed's leading digits.
+    // instead of pinning the seed's leading digits.
     await expect(async () => {
-      const { shown, actual } = await page.evaluate(() => {
+      const shown = await readResource(page, 'food');
+      const actual = await page.evaluate(() => {
         const swarm = (window as unknown as Record<string, unknown>).__swarm as Record<string, unknown>;
-        const st = (swarm.manager as { getState: () => { resources: { food: number } } }).getState();
-        const text = document.querySelector('[data-stat="resources.food"]')?.textContent ?? '';
-        return { shown: Number(text.replace(/[^0-9]/g, '')), actual: st.resources.food };
+        return (swarm.manager as { getState: () => { resources: { food: number } } }).getState().resources.food;
       });
       expect(shown).toBeGreaterThan(0);
-      // The panel may lag the state by a tick, but never shows more than the colony has
-      // (formatFull floors, Story 1.9).
+      // The sheet refreshes 4 times a second and floors (Story 1.9), so it may lag
+      // the state a little but never shows more than the colony has.
       expect(shown).toBeLessThanOrEqual(Math.floor(actual));
       expect(shown).toBeGreaterThanOrEqual(Math.floor(actual * 0.9));
     }).toPass({ timeout: 10_000 });
 
-    // Eggs and workers are also in the resource panel
-    await expect(page.locator('[data-stat="resources.eggs"]')).toBeVisible();
+    // Workers are in the Expansion strip; eggs are in the resource sheet.
     await expect(page.locator('[data-stat="resources.workers"]')).toBeVisible();
+    expect(await readResource(page, 'eggs')).toBeGreaterThanOrEqual(0);
 
     // Wood/stone/nectar aren't directly rendered — verify via game state
     const state = await page.evaluate(() => {
@@ -250,15 +249,12 @@ test.describe('Golden Path — Full Progression', () => {
   // ─── Interactions ───────────────────────────────────────────────
 
   test('clicking egg increments egg count', async ({ page }) => {
-    const eggDisplay = page.locator('[data-stat="resources.eggs"]');
-
-    // Read current value
-    const before = await eggDisplay.textContent();
+    // Eggs aren't in the Expansion strip: read them in the resource sheet (Story 1.16).
+    const before = await readResource(page, 'eggs');
     await page.locator('#click-egg').click();
-    await page.waitForTimeout(300);
-
-    // After click, content should be different
-    await expect(eggDisplay).not.toHaveText(before!);
+    await expect(async () => {
+      expect(await readResource(page, 'eggs')).not.toBe(before);
+    }).toPass({ timeout: 10_000 });
   });
 
   test('scout reveals enemy information', async ({ page }) => {
@@ -349,9 +345,9 @@ test.describe('Golden Path — Full Progression', () => {
     // Egg button
     await expect(page.locator('#click-egg')).toBeVisible();
 
-    // Resource panel
+    // Resource strip (Story 1.16): the Expansion set, eggs in the resource sheet
     await expect(page.locator('[data-stat="resources.food"]')).toBeVisible();
-    await expect(page.locator('[data-stat="resources.eggs"]')).toBeVisible();
+    expect(await readResource(page, 'eggs')).toBeGreaterThanOrEqual(0);
 
     // Activity log (NEST)
     await expect(page.locator('#activity-log')).toBeVisible();

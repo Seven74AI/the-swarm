@@ -54,7 +54,7 @@ export const SEGMENTS: readonly SegmentDef[] = [
 ];
 
 const placements = {
-  // Global: the resource strip (Story 1.16 replaces ResourcePanel with the strip and resource sheet).
+  // Global: the resource strip and its resource sheet (Story 1.16; the `.resource-panel` host keeps the id).
   resource_panel: { tab: 'strip', unlockPhase: Phase.EGG_LAYING },
   // NEST
   phase_indicator: { tab: 'nest', unlockPhase: Phase.EGG_LAYING },

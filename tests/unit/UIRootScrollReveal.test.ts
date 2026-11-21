@@ -58,6 +58,25 @@ describe('UIRoot — Phase-Based Panel Reveal', () => {
       expect(panel).not.toBeNull();
     });
 
+    it('draws the resource strip into the resource_panel host in the strip (Story 1.16)', () => {
+      let state = createInitialState();
+      const hosts: HTMLElement[] = [];
+      const withStrip = new UIRoot({
+        bus,
+        actions: testActions(bus, () => state, (s: GameState) => { state = s; }),
+        saveManager: new SaveManager(),
+        getState: () => state,
+        loop,
+        confirmSettings: confirmSettings(),
+        mountStrip: (host) => hosts.push(host),
+      });
+      const shell = shellHosts(container);
+      withStrip.mount(shell);
+      expect(hosts).toHaveLength(1);
+      expect(hosts[0].classList.contains('resource-panel')).toBe(true);
+      expect(shell.strip.contains(hosts[0])).toBe(true);
+    });
+
     it('Phase 2+ panels are NOT mounted at boot', () => {
       ui.mount(shellHosts(container));
 

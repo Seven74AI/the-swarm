@@ -1,23 +1,18 @@
 import { effect } from '@preact/signals-core';
-import { selectResources, selectWorkersAssigned } from '../../state/selectors';
-import type { GameState } from '../../state/GameState';
+import { selectResources } from '../../state/selectors';
 import { formatFull } from '../../utils/format';
 
-const FOOD_PER_GATHER = 2;
-const FOOD_PER_UNASSIGNED = 1;
-const FOOD_CONSUMED_PER_2_WORKERS = 1;
-
 /**
- * FoodDisplay panel — shows food production and consumption in colony phases.
- * Displays current food stock, production rate, consumption rate, and net per tick.
- * Revealed in Phase COLONY+ via PhaseContent.
+ * FoodDisplay panel (WRKR tab, Colony+): the food stock.
+ *
+ * Story 1.16 moved its rate part (production, consumption and net per tick)
+ * to the resource strip's delta and the resource sheet's measured rate per
+ * second, so the two can never disagree. The WRKR upkeep line comes with the
+ * WRKR tab story.
  */
 export class FoodDisplay {
   private container: HTMLDivElement;
   private foodCountEl: HTMLSpanElement;
-  private productionEl: HTMLSpanElement;
-  private consumptionEl: HTMLSpanElement;
-  private netEl: HTMLSpanElement;
 
   constructor() {
     this.container = document.createElement('div');
@@ -27,10 +22,9 @@ export class FoodDisplay {
 
     const title = document.createElement('div');
     title.className = 'panel-title';
-    title.textContent = '🍞 Food';
+    title.textContent = 'Food';
     this.container.appendChild(title);
 
-    // Current food stock row
     const stockRow = document.createElement('div');
     stockRow.className = 'stat-row';
     const stockLabel = document.createElement('span');
@@ -42,61 +36,9 @@ export class FoodDisplay {
     stockRow.appendChild(this.foodCountEl);
     this.container.appendChild(stockRow);
 
-    // Production row
-    const prodRow = document.createElement('div');
-    prodRow.className = 'stat-row';
-    const prodLabel = document.createElement('span');
-    prodLabel.className = 'stat-label';
-    prodLabel.textContent = 'Production:';
-    this.productionEl = document.createElement('span');
-    this.productionEl.className = 'stat-value food-positive';
-    prodRow.appendChild(prodLabel);
-    prodRow.appendChild(this.productionEl);
-    this.container.appendChild(prodRow);
-
-    // Consumption row
-    const consRow = document.createElement('div');
-    consRow.className = 'stat-row';
-    const consLabel = document.createElement('span');
-    consLabel.className = 'stat-label';
-    consLabel.textContent = 'Consumption:';
-    this.consumptionEl = document.createElement('span');
-    this.consumptionEl.className = 'stat-value food-negative';
-    consRow.appendChild(consLabel);
-    consRow.appendChild(this.consumptionEl);
-    this.container.appendChild(consRow);
-
-    // Net row
-    const netRow = document.createElement('div');
-    netRow.className = 'stat-row';
-    const netLabel = document.createElement('span');
-    netLabel.className = 'stat-label';
-    netLabel.textContent = 'Net:';
-    this.netEl = document.createElement('span');
-    this.netEl.className = 'stat-value';
-    netRow.appendChild(netLabel);
-    netRow.appendChild(this.netEl);
-    this.container.appendChild(netRow);
-
-    // Reactive: refresh display when state changes
     effect(() => {
-      this.refresh(selectResources.value, selectWorkersAssigned.value);
+      this.foodCountEl.textContent = formatFull(selectResources.value.food);
     });
-  }
-
-  private refresh(resources: GameState['resources'], a: GameState['workersAssigned']): void {
-    const w = resources.workers;
-    const assigned = a.gather + a.tend + a.dig + a.guard;
-    const unassigned = Math.max(0, w - assigned);
-    const produced = a.gather * FOOD_PER_GATHER + unassigned * FOOD_PER_UNASSIGNED;
-    const consumed = Math.floor(w / 2) * FOOD_CONSUMED_PER_2_WORKERS;
-    const net = produced - consumed;
-
-    this.foodCountEl.textContent = formatFull(resources.food);
-    this.productionEl.textContent = produced > 0 ? `+${produced}/tick` : `${produced}/tick`;
-    this.consumptionEl.textContent = consumed > 0 ? `-${consumed}/tick` : `0/tick`;
-    this.netEl.textContent = net >= 0 ? `+${net}/tick` : `${net}/tick`;
-    this.netEl.className = net >= 0 ? 'stat-value food-positive' : 'stat-value food-negative';
   }
 
   getElement(): HTMLDivElement {

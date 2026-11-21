@@ -1,0 +1,52 @@
+/*
+ * Resource sheet (Story 1.16; DESIGN.md → Resource sheet, UX-DR8).
+ * Colors only through the --color-* aliases of ui/styles/tokens.css.
+ */
+
+.resource-sheet__header {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-dim);
+}
+
+.resource-sheet__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Two lines per resource: glyph, name, amount, rate; then cap and source. */
+.resource-row {
+  display: grid;
+  grid-template-columns: 30px 1fr auto auto;
+  grid-template-areas:
+    "glyph name amount rate"
+    "glyph cap source source";
+  column-gap: 0.5rem;
+  align-items: baseline;
+}
+.resource-row__glyph {
+  grid-area: glyph;
+  font-size: 30px;
+  line-height: 1;
+  align-self: center;
+}
+.resource-row__name { grid-area: name; }
+.resource-row__amount { grid-area: amount; font-weight: 700; text-align: right; }
+.resource-row__rate { grid-area: rate; text-align: right; min-width: 4ch; }
+.resource-row__cap,
+.resource-row__source {
+  font-size: 12px;
+  color: var(--color-dim);
+}
+.resource-row__cap { grid-area: cap; }
+.resource-row__source { grid-area: source; text-align: right; }
+
+.resource-row[data-capped="true"] .resource-row__amount,
+.resource-row__rate[data-trend="down"] {
+  color: var(--color-warn);
+}

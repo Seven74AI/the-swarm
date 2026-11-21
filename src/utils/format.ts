@@ -80,7 +80,7 @@ function group(abs: number): string {
  * at the shown precision. Exact integer arithmetic via BigInt, so a float
  * division can never round the mantissa up.
  */
-function suffixed(abs: number): string {
+function suffixed(abs: number, maxChars: number = STRIP_MAX_CHARS): string {
   if (!Number.isFinite(abs)) return '∞';
   const value = BigInt(abs);
   const text = value.toString();
@@ -93,12 +93,14 @@ function suffixed(abs: number): string {
 
   const suffix = SUFFIXES[tier];
   const intDigits = text.length - tier * 3; // 1..3 digits before the point
-  const room = STRIP_MAX_CHARS - suffix.length; // characters left for the number
+  const room = maxChars - suffix.length; // characters left for the number
   const decimals = Math.max(0, room - intDigits - 1); // -1 for the point
   const shown = text.slice(0, intDigits + decimals); // truncation = floor
   const int = shown.slice(0, intDigits);
   const frac = shown.slice(intDigits);
-  return (frac ? `${int}.${frac}` : int) + suffix;
+  const out = (frac ? `${int}.${frac}` : int) + suffix;
+  // A two-letter suffix after three digits can overflow a narrow field: fall back to the exponent.
+  return out.length <= maxChars ? out : `${text[0]}e${text.length - 1}`;
 }
 
 /** The floored integer, every digit, no grouping. */
@@ -126,6 +128,35 @@ export function formatFull(n: number): string {
   const { sign, abs } = signAndFloor(n);
   if (abs < 1000) return sign + digits(abs);
   return sign + cached(fullCache, abs, (v) => (v <= FULL_DIGITS_MAX ? group(v) : suffixed(v)));
+}
+
+/** A true minus sign (U+2212), so a loss never reads as a hyphen. */
+const MINUS = '\u2212';
+
+/** Sign of a delta (`+`, `−` or nothing for zero) and its magnitude, truncated toward zero. */
+function deltaParts(n: number): { sign: string; abs: number } {
+  const t = Number.isNaN(n) ? 0 : Math.trunc(n);
+  if (t > 0) return { sign: '+', abs: t };
+  if (t < 0) return { sign: MINUS, abs: -t };
+  return { sign: '', abs: 0 };
+}
+
+/**
+ * Resource strip delta (Story 1.16, UX-DR7): `+12`, `−3`, `0`, `+12K`.
+ * At most 5 characters with the sign, no `/s` (the unit is stated in the
+ * resource sheet). The magnitude never exceeds the integer part.
+ */
+export function formatDelta(n: number): string {
+  const { sign, abs } = deltaParts(n);
+  const room = STRIP_MAX_CHARS - sign.length;
+  if (abs < 10 ** room) return sign + digits(abs);
+  return sign + suffixed(abs, room);
+}
+
+/** Resource sheet rate: the signed `formatFull` of the magnitude (`+1 234`, `−12`, `0`). */
+export function formatDeltaFull(n: number): string {
+  const { sign, abs } = deltaParts(n);
+  return sign + formatFull(abs);
 }
 
 /**

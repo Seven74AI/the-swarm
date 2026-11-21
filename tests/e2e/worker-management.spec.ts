@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { openTab } from './helpers/tabs';
+import { readResource } from './helpers/resources';
 
 /**
  * Worker Management & Resource Loop E2E Tests
@@ -163,7 +164,7 @@ test.describe('Worker Management', () => {
     await expect(page.locator('#worker-assignment')).toBeVisible({ timeout: 5000 });
 
     // Record initial food
-    const foodDisplay = page.locator('[data-stat="resources.food"]');
+    const foodDisplay = page.locator('[data-stat="resources.food"] .critical-value');
     const initialFoodText = await foodDisplay.textContent();
     const initialFood = parseInt(initialFoodText!.match(/\d+/)![0], 10);
 
@@ -204,15 +205,12 @@ test.describe('Worker Management', () => {
     await page.waitForTimeout(8000);
 
     // Verify larvae appeared (eggs hatched)
-    const larvaeDisplay = page.locator('[data-stat="resources.larvae"]');
-    const larvaeText = await larvaeDisplay.textContent();
-    const larvaeCount = parseInt(larvaeText!.match(/\d+/)![0], 10);
+    // Eggs and larvae aren't in the Colony strip: read them in the resource sheet (Story 1.16).
+    const larvaeCount = await readResource(page, 'larvae');
     expect(larvaeCount).toBeGreaterThan(0);
 
     // Egg count should have decreased
-    const eggDisplay = page.locator('[data-stat="resources.eggs"]');
-    const eggText = await eggDisplay.textContent();
-    const eggCount = parseInt(eggText!.match(/\d+/)![0], 10);
+    const eggCount = await readResource(page, 'eggs');
     expect(eggCount).toBeLessThan(3);
   });
 
@@ -251,7 +249,7 @@ test.describe('Worker Management', () => {
 
     await openTab(page, 'wrkr');
     await expect(page.locator('#worker-assignment')).toBeVisible({ timeout: 5000 });
-    const foodDisplay = page.locator('[data-stat="resources.food"]');
+    const foodDisplay = page.locator('[data-stat="resources.food"] .critical-value');
 
     // Wait 3s with gatherers active → food increases
     await page.waitForTimeout(3000);

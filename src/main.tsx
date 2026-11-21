@@ -37,6 +37,8 @@ import { computeOfflineResourceDeltas } from './systems/OfflineProgression';
 import { openOfflineSummary } from './ui/sheets/OfflineSummarySheet';
 import { bindDecisionSheets } from './ui/sheets/DecisionSheet';
 import { createSheetController, type SheetController } from './ui/shell/SheetController';
+import { createResourceFeed } from './ui/shell/resourceFeed';
+import { ResourceStrip } from './ui/shell/ResourceStrip';
 import { PhaseStateMachine } from './phases/PhaseStateMachine';
 import { Phase, PHASE_ORDER } from './phases/phases';
 import { PhaseContent } from './ui/PhaseContent';
@@ -384,6 +386,7 @@ export function bootstrap(): {
   // One sheet at a time (Story 1.14, D7): every sheet is requested here, drawn by App.
   const sheets = createSheetController();
   bindDecisionSheets({ bus, sheets, choose: (type, choice) => actions.chooseDecision(type, choice) });
+  const resourceFeed = createResourceFeed();
 
   const ui = new UIRoot({
     bus,
@@ -394,6 +397,8 @@ export function bootstrap(): {
     loop,
     // Irreversible actions read the confirm style and hold duration from the settings (Story 1.13).
     confirmSettings: platform.settings.settings,
+    // The resource strip and resource sheet (Story 1.16) share one sampled feed (ADR 0012).
+    mountStrip: (host) => render(<ResourceStrip feed={resourceFeed} sheets={sheets} />, host),
   });
   if (app) {
     // The Preact root hosts the legacy UIRoot (Story 1.7). render() mounts it synchronously,

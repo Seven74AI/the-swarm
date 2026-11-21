@@ -112,6 +112,14 @@ async function dismissAndOpenWar(page: import('@playwright/test').Page) {
   await openTab(page, 'front', 'war');
 }
 
+/** A resource amount from the live state (for resources outside the phase's strip). */
+async function stateResource(page: import('@playwright/test').Page, id: string): Promise<number> {
+  return page.evaluate(
+    (key) => Math.floor((window as any).__swarm.manager.getState().resources[key] as number),
+    id,
+  );
+}
+
 async function setupOfflineTest(page: import('@playwright/test').Page, saveTimestamp: number, overrides?: Record<string, unknown>, waitMs = 3500) {
   const saveData = makeOfflineSave(saveTimestamp, overrides);
   await page.addInitScript((s: string) => {
@@ -194,10 +202,9 @@ test.describe('Offline Progression — Pipeline Catch-Up', () => {
       },
     }, 4000);
 
-    const larvaeEl = page.locator('[data-stat="resources.larvae"] .critical-value');
-    await expect(larvaeEl).toBeVisible({ timeout: 5000 });
-    const larvaeText = await larvaeEl.textContent();
-    const larvaeValue = parseInt(larvaeText?.replace(/[^0-9]/g, '') ?? '0', 10);
+    // The catch-up can reach Colony, whose strip has no larvae, and a decision sheet may
+    // hold the resource sheet back (Story 1.16): read the caught-up state itself.
+    const larvaeValue = await stateResource(page, 'larvae');
     // Eggs in pipeline + offline catch-up should produce larvae
     expect(larvaeValue).toBeGreaterThan(0);
   });
@@ -214,7 +221,7 @@ test.describe('Offline Progression — Pipeline Catch-Up', () => {
       },
     }, 4000);
 
-    const workersEl = page.locator('[data-stat="resources.workers"] .hud-resource-value');
+    const workersEl = page.locator('[data-stat="resources.workers"] .critical-value');
     await expect(workersEl).toBeVisible({ timeout: 5000 });
     const workersText = await workersEl.textContent();
     const workersValue = parseInt(workersText?.replace(/[^0-9]/g, '') ?? '0', 10);
@@ -235,17 +242,15 @@ test.describe('Offline Progression — Pipeline Catch-Up', () => {
       },
     }, 4000);
 
-    const workersEl = page.locator('[data-stat="resources.workers"] .hud-resource-value');
+    const workersEl = page.locator('[data-stat="resources.workers"] .critical-value');
     await expect(workersEl).toBeVisible({ timeout: 5000 });
     const workersText = await workersEl.textContent();
     const workersValue = parseInt(workersText?.replace(/[^0-9]/g, '') ?? '0', 10);
     // After 10 min offline with eggs+larvae in pipelines, workers must increase
     expect(workersValue).toBeGreaterThan(3);
     // Eggs should have decreased (consumed by pipeline)
-    const eggsEl = page.locator('[data-stat="resources.eggs"] .critical-value');
-    await expect(eggsEl).toBeVisible({ timeout: 5000 });
-    const eggsText = await eggsEl.textContent();
-    const eggsValue = parseInt(eggsText?.replace(/[^0-9]/g, '') ?? '0', 10);
+    // Colony's strip has no eggs (Story 1.16): read the caught-up state itself.
+    const eggsValue = await stateResource(page, 'eggs');
     expect(eggsValue).toBeLessThanOrEqual(100);
   });
 

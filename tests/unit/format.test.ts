@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import fc from 'fast-check';
-import { formatInt, formatStrip, formatFull, formatTime, clearFormatCache } from '../../src/utils/format';
+import {
+  formatInt,
+  formatStrip,
+  formatFull,
+  formatTime,
+  formatDelta,
+  formatDeltaFull,
+  clearFormatCache,
+} from '../../src/utils/format';
 
 const SUFFIX_EXP: Record<string, number> = {
   K: 3, M: 6, B: 9, T: 12, Qa: 15, Qi: 18, Sx: 21, Sp: 24, Oc: 27, No: 30, Dc: 33,
@@ -190,5 +198,74 @@ describe('formatTime', () => {
   it('drops seconds when > 1 hour', () => {
     expect(formatTime(3600000)).toBe('1h 0m');
     expect(formatTime(7200000)).toBe('2h 0m');
+  });
+});
+
+/** Split a signed delta into its sign character and the magnitude text. */
+function splitDelta(text: string): { sign: string; body: string } {
+  const sign = text[0] === '+' || text[0] === '\u2212' ? text[0] : '';
+  return { sign, body: text.slice(sign.length) };
+}
+
+const anyDelta = fc.oneof(
+  fc.integer({ min: -2_000_000, max: 2_000_000 }),
+  fc.double({ min: -1e30, max: 1e30, noNaN: true }),
+  fc.integer({ min: -Number.MAX_SAFE_INTEGER, max: Number.MAX_SAFE_INTEGER }),
+);
+
+describe('formatDelta (strip deltas, Story 1.16)', () => {
+  beforeEach(() => clearFormatCache());
+
+  it('is never more than 5 characters, sign included', () => {
+    fc.assert(
+      fc.property(anyDelta, (n) => {
+        expect(formatDelta(n).length).toBeLessThanOrEqual(5);
+      }),
+    );
+  });
+
+  it('marks gains with + and losses with a true minus sign (never a hyphen)', () => {
+    fc.assert(
+      fc.property(anyDelta, (n) => {
+        const text = formatDelta(n);
+        expect(text).not.toContain('-');
+        const { sign } = splitDelta(text);
+        if (Math.trunc(n) > 0) expect(sign).toBe('+');
+        else if (Math.trunc(n) < 0) expect(sign).toBe('\u2212');
+        else expect(sign).toBe('');
+      }),
+    );
+  });
+
+  it('never shows a larger magnitude than the integer part', () => {
+    fc.assert(
+      fc.property(anyDelta, (n) => {
+        const { body } = splitDelta(formatDelta(n));
+        if (/e/.test(body)) return; // exponent fallback, far beyond any real rate
+        expect(parseShown(body)).toBeLessThanOrEqual(BigInt(Math.floor(Math.abs(n))));
+      }),
+    );
+  });
+
+  it('has no "/s" unit', () => {
+    fc.assert(
+      fc.property(anyDelta, (n) => {
+        expect(formatDelta(n)).not.toContain('/');
+      }),
+    );
+  });
+});
+
+describe('formatDeltaFull (resource sheet rates, Story 1.16)', () => {
+  beforeEach(() => clearFormatCache());
+
+  it('is the signed formatFull of the magnitude', () => {
+    fc.assert(
+      fc.property(fc.integer({ min: -5_000_000, max: 5_000_000 }), (n) => {
+        const { sign, body } = splitDelta(formatDeltaFull(n));
+        expect(body).toBe(formatFull(Math.abs(n)));
+        expect(sign).toBe(n > 0 ? '+' : n < 0 ? '\u2212' : '');
+      }),
+    );
   });
 });

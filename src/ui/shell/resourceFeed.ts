@@ -1,0 +1,178 @@
+import { signal, type ReadonlySignal } from '@preact/signals';
+import {
+  selectCombatResources,
+  selectEffectiveNestCapacity,
+  selectPhase,
+  selectResources,
+  selectStats,
+} from '../../state/selectors';
+import { Phase, PHASE_ORDER } from '../../phases/phases';
+import { RESOURCES, STRIP_SETS, type ResourceId } from './resourceCatalog';
+
+/**
+ * The resource feed (Story 1.16; UX-DR7, UX-DR8).
+ *
+ * One sampler shared by the resource strip and the resource sheet. While anyone
+ * retains it, it reads the state every `REFRESH_MS` and publishes a snapshot, so
+ * both refresh at most 4 times a second however fast the game ticks.
+ *
+ * Rates are measured, not modelled: the change of each amount over the last
+ * `RATE_WINDOW_MS` of GAME time (`stats.playTimeMs`), per second, truncated to a
+ * whole number. Measuring works the same for every resource (pipelines, loot,
+ * conversions), counts consumption, and stays right across offline catch-up,
+ * because catch-up advances game time too. A pause adds no game time, so the
+ * window (and the rates) hold still until the game runs again.
+ */
+
+/** Strip and sheet refresh period: at most 4 updates a second. */
+export const REFRESH_MS = 250;
+/** Game time the rate is measured over. */
+export const RATE_WINDOW_MS = 4000;
+/** Cells in a full strip. */
+export const STRIP_CELLS = 5;
+
+export interface ResourceRow {
+  readonly id: ResourceId;
+  /** Integer amount held. */
+  readonly amount: number;
+  /** Whole units per second over the rate window (negative while falling). */
+  readonly rate: number;
+  /** Storage cap, or `null` when the resource has none. */
+  readonly cap: number | null;
+  readonly capped: boolean;
+  /** Reached by this phase, or held already. */
+  readonly unlocked: boolean;
+}
+
+export interface ResourceSnapshot {
+  readonly phase: Phase;
+  /** Every resource, in catalog order. */
+  readonly rows: readonly ResourceRow[];
+}
+
+export interface ResourceFeed {
+  readonly snapshot: ReadonlySignal<ResourceSnapshot>;
+  /** Read the state now and publish a new snapshot. */
+  sample(): void;
+  /** Keep sampling every `REFRESH_MS`; returns the release. Readers share one timer. */
+  retain(): () => void;
+}
+
+interface Sample {
+  readonly atMs: number;
+  readonly amounts: Readonly<Record<ResourceId, number>>;
+}
+
+function phaseOf(value: string): Phase {
+  return (PHASE_ORDER as string[]).includes(value) ? (value as Phase) : Phase.EGG_LAYING;
+}
+
+function readSample(): Sample {
+  const r = selectResources.peek();
+  const c = selectCombatResources.peek();
+  const amounts = {} as Record<ResourceId, number>;
+  for (const def of RESOURCES) {
+    const store = (def.store === 'resources' ? r : c) as unknown as Record<string, number | undefined>;
+    const raw = store[def.id] ?? 0;
+    amounts[def.id] = Number.isFinite(raw) ? Math.floor(raw) : 0;
+  }
+  return { atMs: selectStats.peek().playTimeMs, amounts };
+}
+
+export function createResourceFeed(opts: { windowMs?: number; intervalMs?: number } = {}): ResourceFeed {
+  const windowMs = opts.windowMs ?? RATE_WINDOW_MS;
+  const intervalMs = Math.max(REFRESH_MS, opts.intervalMs ?? REFRESH_MS);
+  let history: Sample[] = [];
+  let lastPhase = -1;
+
+  function build(): ResourceSnapshot {
+    const now = readSample();
+    const phase = phaseOf(selectPhase.peek());
+    const phaseIdx = PHASE_ORDER.indexOf(phase);
+    const newest = history[history.length - 1];
+    // A new run, a loaded save or a prestige: the old samples say nothing about now.
+    if (!newest || now.atMs < newest.atMs || phaseIdx < lastPhase) history = [];
+    lastPhase = phaseIdx;
+    if (history.length === 0 || now.atMs > history[history.length - 1].atMs) {
+      history.push(now);
+    } else {
+      // Same game time (paused, or a tap between ticks): the latest amounts replace the last sample.
+      history[history.length - 1] = now;
+    }
+    // Keep the window, plus the newest sample older than it as the baseline.
+    const from = now.atMs - windowMs;
+    let firstInside = history.findIndex((s) => s.atMs >= from);
+    if (firstInside < 0) firstInside = history.length - 1;
+    history = history.slice(Math.max(0, firstInside - 1));
+    const base = history[0];
+    const dt = now.atMs - base.atMs;
+
+    const cap = selectEffectiveNestCapacity.peek();
+    const rows = RESOURCES.map((def): ResourceRow => {
+      const amount = now.amounts[def.id];
+      const rate = dt > 0 ? Math.trunc(((amount - base.amounts[def.id]) * 1000) / dt) : 0;
+      const rowCap = def.id === 'workers' ? Math.floor(cap) : null;
+      return {
+        id: def.id,
+        amount,
+        rate: rate === 0 ? 0 : rate, // no -0
+        cap: rowCap,
+        capped: rowCap !== null && amount >= rowCap,
+        unlocked: phaseIdx >= PHASE_ORDER.indexOf(def.unlockPhase) || amount > 0,
+      };
+    });
+    return { phase, rows };
+  }
+
+  const snapshot = signal<ResourceSnapshot>(build());
+  let holders = 0;
+  let timer: ReturnType<typeof setInterval> | null = null;
+
+  const feed: ResourceFeed = {
+    snapshot,
+    sample() {
+      snapshot.value = build();
+    },
+    retain() {
+      holders++;
+      if (timer === null) {
+        feed.sample();
+        timer = setInterval(() => feed.sample(), intervalMs);
+      }
+      let released = false;
+      return () => {
+        if (released) return;
+        released = true;
+        holders--;
+        if (holders === 0 && timer !== null) {
+          clearInterval(timer);
+          timer = null;
+        }
+      };
+    },
+  };
+  return feed;
+}
+
+/** Capped or falling: the resources that need a look first. */
+export function needsAttention(row: ResourceRow): boolean {
+  return row.capped || row.rate < 0;
+}
+
+/**
+ * The strip's cells, at most `count`, never a locked resource.
+ * Phases 1 and 2 show their set as is; from Phase 3, and whenever the strip is
+ * narrowed to fewer cells, capped or falling resources come first.
+ */
+export function stripCells(snapshot: ResourceSnapshot, count: number = STRIP_CELLS): ResourceId[] {
+  const byId = new Map(snapshot.rows.map((r) => [r.id, r]));
+  const base = STRIP_SETS[snapshot.phase].filter((id) => byId.get(id)?.unlocked);
+  const alertsFirst = count < STRIP_CELLS || PHASE_ORDER.indexOf(snapshot.phase) >= PHASE_ORDER.indexOf(Phase.COMBAT);
+  if (!alertsFirst) return base.slice(0, count);
+  const alerts = [
+    ...base.filter((id) => needsAttention(byId.get(id)!)),
+    ...snapshot.rows.filter((r) => r.unlocked && needsAttention(r) && !base.includes(r.id)).map((r) => r.id),
+  ];
+  const ordered = [...alerts, ...base.filter((id) => !alerts.includes(id))];
+  return ordered.slice(0, count);
+}
