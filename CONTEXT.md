@@ -40,6 +40,9 @@ Committing a phase plays the **phase reveal** (Story 1.20, ADR 0014): a full-scr
 
 Story 1.31 (ADR 0022): text panels sit on a computed **character grid**, `cols = floor(contentWidth / advanceWidth(body))`, marked on `<html data-grid="full|medium|narrow">` (≥ 36, 28–35, < 28 columns). Below 36 meters shrink to `cols − 8` cells and two-column rows stack; below 28 text wraps, box-drawing becomes 1 px borders, meters read `74 % ████····` and aligned tables stack label over value. Nothing clips text. The primary zone un-pins below 480 px of height; NEST shows one event line below 560 px.
 
+### Accessibility floor
+Typed decoration (`·`, `→`, brackets, glyphs, 4-letter labels) is visual only: `Deco.tsx` (`Abbr`, `Sep`, `Arrow`, `decorate`) hides it and gives the words. One polite announcer (`[data-announcer]`) says goal met, phase entered, battle result, decision arrived, starving and capacity reached, on their edge, never values per tick. Reduced motion is `:root[data-reduced-motion="true"]` (`motion.css`); CRT in effect is `<html data-crt>`. ADR 0023.
+
 ### Keyboard shortcuts
 
 Story 1.30 (ADR 0021): `ui/shell/shortcuts.ts` acts on the player's key bindings (settings, Story 1.27). The **primary** key (Space) presses the active tab's primary-zone button as a tap would, only with focus on the page or that button; tab keys (1–5) press the tab-bar buttons; **pause** (P) toggles pause; **close** (Esc) dismisses a non-decision sheet through `SheetController.dismiss()`. Off in settings means no shortcut fires, Esc included. Hover tips show on tap too and Esc dismisses them (`ui/shell/tips.ts`).
