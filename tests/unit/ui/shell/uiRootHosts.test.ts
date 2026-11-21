@@ -88,4 +88,42 @@ describe('UIRoot in the tab shell', () => {
     expect(mounted.clickPower).toBe(nest.querySelector('[data-nest-host="click-power"]'));
     expect(mounted.primary).toBe(container.querySelector('[data-primary-for="nest"] [data-nest-primary]'));
   });
+
+  it('lays BUILD out top to bottom with the legacy ids kept, and > BUY in its primary zone (Story 1.24)', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    let state = createInitialState();
+    const bus = new EventBus();
+    const mounted: Record<string, HTMLElement> = {};
+    const ui = new UIRoot({
+      bus,
+      actions: testActions(bus, () => state, (s: GameState) => { state = s; }),
+      saveManager: new SaveManager(),
+      getState: () => state,
+      loop: new GameLoop(new Ticker()),
+      confirmSettings: confirmSettings(),
+      mountBuild: {
+        header: (host) => { mounted.header = host; },
+        clickPower: (host) => { mounted.clickPower = host; },
+        buildings: (host) => { mounted.buildings = host; },
+        research: (host) => { mounted.research = host; },
+        converter: (host) => { mounted.converter = host; },
+        primary: (host) => { mounted.primary = host; },
+      },
+    });
+    ui.mount(shellHosts(container));
+    for (const id of ['build_header', 'build_click_power', 'building_panel', 'research_panel', 'resource_converter_panel', 'build_primary']) {
+      ui.createPanel(id);
+    }
+    const build = container.querySelector<HTMLElement>('[data-tab-content="build"]')!;
+    const order = Array.from(build.children).map((el) => el.id || el.getAttribute('data-build-host'));
+    expect(order).toEqual(['header', 'click-power', 'building-panel', 'research-panel', 'resource-converter-panel']);
+    expect(mounted.header).toBe(build.querySelector('[data-build-host="header"]'));
+    expect(mounted.clickPower).toBe(build.querySelector('[data-build-host="click-power"]'));
+    expect(mounted.buildings).toBe(build.querySelector('#building-panel'));
+    expect(mounted.research).toBe(build.querySelector('#research-panel'));
+    expect(mounted.converter).toBe(build.querySelector('#resource-converter-panel'));
+    expect(mounted.primary).toBe(container.querySelector('[data-primary-for="build"] [data-build-primary-host]'));
+    expect(build.querySelector('#tech-tree-panel')).toBeNull();
+  });
 });

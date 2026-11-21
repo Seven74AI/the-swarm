@@ -50,6 +50,11 @@ import { NestScene } from './ui/nest/NestScene';
 import { ClickPowerCard } from './ui/nest/ClickPowerCard';
 import { WorkersPrimary, WorkersTab } from './ui/wrkr/WorkersTab';
 import { AutomationSection } from './ui/wrkr/AutomationSection';
+import { BuildHeader } from './ui/build/BuildHeader';
+import { BuildingCards } from './ui/build/BuildingCards';
+import { ResearchCards } from './ui/build/ResearchCards';
+import { ConverterCard } from './ui/build/ConverterCard';
+import { BuildPrimary } from './ui/build/BuildPrimary';
 import { PhaseStateMachine } from './phases/PhaseStateMachine';
 import { Phase, PHASE_ORDER } from './phases/phases';
 import { PhaseContent } from './ui/PhaseContent';
@@ -456,6 +461,23 @@ export function bootstrap(): {
       tab: (host) => render(<WorkersTab actions={actions} />, host),
       primary: (host) => render(<WorkersPrimary actions={actions} />, host),
       automation: (host) => render(<AutomationSection actions={actions} />, host),
+    },
+    // BUILD (Story 1.24): header, Click Power (Phase 2+), buildings, research, converter; > BUY on the highlighted card.
+    mountBuild: {
+      header: (host) => render(<BuildHeader />, host),
+      clickPower: (host) => render(<ClickPowerCard place="build" buy={() => actions.buyUpgrade('click_power')} />, host),
+      buildings: (host) => render(<BuildingCards buy={(id) => actions.buyBuilding(id)} />, host),
+      research: (host) =>
+        render(
+          <ResearchCards
+            start={(id) => actions.startResearch(id)}
+            cancel={(id) => actions.cancelResearch(id)}
+            confirmSettings={platform.settings.settings}
+          />,
+          host,
+        ),
+      converter: (host) => render(<ConverterCard convert={() => actions.runConversions()} />, host),
+      primary: (host) => render(<BuildPrimary perform={(intent) => actions.perform(intent)} />, host),
     },
   });
   if (app) {

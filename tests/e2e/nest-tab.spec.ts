@@ -157,7 +157,8 @@ test.describe('NEST tab', () => {
     await expect(zone).toHaveAttribute('data-next-action', 'none');
     await expect(zone).toHaveText(/^NEXT AFFORDABLE: .+ IN ~/);
     await expect(page.locator('[data-primary-zone] #click-egg')).toHaveCount(0);
-    await expect(page.locator('[data-card="click_power"]')).toHaveCount(0);
+    // Click Power left NEST for BUILD after Phase 1 (Story 1.24).
+    await expect(page.locator('[data-tab-panel="nest"] [data-card="click_power"]')).toHaveCount(0);
 
     const before = (await state(page)).stats.totalClicks;
     await page.locator('[data-nest-scene] #click-egg').click();

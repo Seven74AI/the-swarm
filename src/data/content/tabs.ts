@@ -67,11 +67,15 @@ const placements = {
   wrkr_primary: { tab: 'wrkr', zone: 'primary', unlockPhase: Phase.COLONY },
   food_display: { tab: 'wrkr', unlockPhase: Phase.COLONY },
   automation_panel: { tab: 'wrkr', unlockPhase: Phase.TRANSCENDENCE },
-  // BUILD (no buildings in Colony until Stories 3.4/3.5)
+  // BUILD (Story 1.24), top to bottom: the header (`BUILD` or `NEXT: <item> IN ~<time>`), the
+  // Click Power card (from Phase 2, UX-DR18), buildings (none in Colony until Stories 3.4/3.5),
+  // the research chain, then the converter it unlocks. `> BUY` on the highlighted card is pinned.
+  build_header: { tab: 'build', unlockPhase: Phase.COLONY },
+  build_click_power: { tab: 'build', unlockPhase: Phase.COLONY },
   building_panel: { tab: 'build', unlockPhase: Phase.EXPANSION },
-  resource_converter_panel: { tab: 'build', unlockPhase: Phase.SPACE },
   research_panel: { tab: 'build', unlockPhase: Phase.SPACE },
-  tech_tree_panel: { tab: 'build', unlockPhase: Phase.TRANSCENDENCE },
+  resource_converter_panel: { tab: 'build', unlockPhase: Phase.SPACE },
+  build_primary: { tab: 'build', zone: 'primary', unlockPhase: Phase.COLONY },
   // FRONT → WAR
   soldier_panel: { tab: 'front', segment: 'war', unlockPhase: Phase.COMBAT },
   battle_panel: { tab: 'front', segment: 'war', unlockPhase: Phase.COMBAT },

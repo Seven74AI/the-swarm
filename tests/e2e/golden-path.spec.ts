@@ -226,8 +226,8 @@ test.describe('Golden Path — Full Progression', () => {
     const venomRow = buildingPanel.locator('[data-building="venom_lab"]');
     await expect(venomRow).toBeVisible();
 
-    // Each row should show "Build" button
-    const buildBtns = buildingPanel.locator('button').filter({ hasText: 'Build' });
+    // Each card has its own BUY button (Story 1.24)
+    const buildBtns = buildingPanel.locator('[data-action="buy-building"]');
     await expect(buildBtns).toHaveCount(6);
   });
 
@@ -281,12 +281,12 @@ test.describe('Golden Path — Full Progression', () => {
   });
 
   test('clicking Build on barracks increments its level', async ({ page }) => {
-    // Barracks row shows current level in label
+    // Barracks card shows its level change (Story 1.24: `LV.n → n+1`)
     const barracksRow = page.locator('[data-building="barracks"]');
-    const labelBefore = await barracksRow.locator('.stat-label').textContent();
+    const labelBefore = await barracksRow.locator('.card__level').textContent();
 
-    // Click Build on barracks (may need to wait for resources from gatherers)
-    const buildBtn = barracksRow.locator('button').filter({ hasText: 'Build' });
+    // BUY on barracks (may need to wait for resources from gatherers)
+    const buildBtn = barracksRow.locator('[data-action="buy-building"]');
     // Run some ticks to accumulate food/wood from gatherers
     await page.waitForTimeout(2000);
     // Button may still be disabled if cost is high — check if enabled or skip
@@ -301,9 +301,9 @@ test.describe('Golden Path — Full Progression', () => {
     await page.waitForTimeout(500);
 
     // Label should have changed (Lv.2 → Lv.3)
-    const labelAfter = await barracksRow.locator('.stat-label').textContent();
+    const labelAfter = await barracksRow.locator('.card__level').textContent();
     expect(labelAfter).not.toBe(labelBefore);
-    expect(labelAfter).toContain('Lv.3');
+    expect(labelAfter).toContain('LV.3');
   });
 
   // ─── Save / Load ────────────────────────────────────────────────
@@ -311,7 +311,7 @@ test.describe('Golden Path — Full Progression', () => {
   test('save and reload preserves complex state', async ({ page }) => {
     // Capture state BEFORE saving
     const barracksLabelBefore = await page
-      .locator('[data-building="barracks"] .stat-label')
+      .locator('[data-building="barracks"] .card__level')
       .textContent();
 
     const soldierPanelText = await page.locator('#soldier-panel').textContent();
@@ -382,7 +382,7 @@ test.describe('Golden Path — Full Progression', () => {
 
     // ─── Verify building levels preserved ─────────────────────────
     const barracksLabelAfter = await page
-      .locator('[data-building="barracks"] .stat-label')
+      .locator('[data-building="barracks"] .card__level')
       .textContent();
     expect(barracksLabelAfter).toBe(barracksLabelBefore);
 

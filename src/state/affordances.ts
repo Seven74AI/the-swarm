@@ -11,6 +11,7 @@ import {
   type ResearchType,
 } from '../systems/AutomationSystem';
 import { isPrestigeAvailable } from '../systems/PrestigeSystem';
+import { getUpgradeCost } from '../systems/ResourceSystem';
 
 /**
  * Everything the player can afford right now, as `<panelId>:<item>` keys
@@ -20,6 +21,9 @@ import { isPrestigeAvailable } from '../systems/PrestigeSystem';
  */
 export function affordableKeys(state: GameState): string[] {
   const keys: string[] = [];
+  // Click Power is a BUILD card from Phase 2 (Story 1.24); the dot ignores it before BUILD is revealed.
+  const clickPower = getUpgradeCost('click_power', state.upgrades.click_power ?? 0);
+  if (clickPower !== null && state.resources.food >= clickPower) keys.push('build_click_power:click_power');
   for (const b of Object.keys(state.buildings) as BuildingType[]) {
     if (canBuild(b, state)) keys.push(`building_panel:${b}`);
   }

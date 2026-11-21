@@ -254,9 +254,18 @@ export function isItemAffordable(s: GameState, ref: ItemRef): boolean {
   return panelOpen(s, def.panel) && def.open(s) && def.affordable(s);
 }
 
+/**
+ * The panel that sells an item in this state. Click Power is a NEST card in
+ * Phase 1 and a BUILD card from Phase 2 (Story 1.24, UX-DR18).
+ */
+function sellerIn(s: GameState, ref: ItemRef): PanelId {
+  if (ref.kind === 'upgrade' && s.phase !== Phase.EGG_LAYING) return 'build_click_power';
+  return defOf(ref).panel;
+}
+
 function suggestItem(s: GameState, ref: ItemRef, rule: NextActionRule): SuggestedAction {
   const def = defOf(ref);
-  return { kind: 'act', rule, key: itemKey(ref), verb: def.verb(s), target: def.target(s), intent: def.intent(s), panel: def.panel };
+  return { kind: 'act', rule, key: itemKey(ref), verb: def.verb(s), target: def.target(s), intent: def.intent(s), panel: sellerIn(s, ref) };
 }
 
 function allocate(rule: NextActionRule, action: 'assignWorker' | 'unassignWorker', role: WorkerRole): SuggestedAction {
@@ -340,14 +349,14 @@ function secondsUntil(s: GameState, cost: ItemCost, rates: Partial<Record<CostKe
   return Math.max(1, Math.ceil(worst));
 }
 
-/** Rule 6: the soonest item reachable by waiting, critical-path items first. */
-function nextAffordable(s: GameState): NoAction['nextAffordable'] {
+/** Rule 6: the soonest item reachable by waiting, critical-path items first (only `among` them, when given). */
+function nextAffordable(s: GameState, among?: (ref: ItemRef) => boolean): NoAction['nextAffordable'] {
   const rates = ratesPerSec(s);
   const pick = (refs: readonly ItemRef[]) => {
     let best: { key: string; name: string; inSec: number } | null = null;
     for (const ref of refs) {
       const def = defOf(ref);
-      if (!panelOpen(s, def.panel) || !def.open(s)) continue;
+      if ((among && !among(ref)) || !panelOpen(s, def.panel) || !def.open(s)) continue;
       const inSec = secondsUntil(s, def.cost(s), rates);
       if (inSec !== null && (best === null || inSec < best.inSec)) best = { key: itemKey(ref), name: def.name, inSec };
     }
@@ -382,5 +391,41 @@ export function getNextAction(state: GameState): NextAction {
   const any = listItems().find((ref) => isItemAffordable(state, ref));
   if (any) return suggestItem(state, any, 'affordable');
   const next = nextAffordable(state);
+  return { kind: 'none', key: next ? `none:${next.key}:${next.inSec}` : 'none', nextAffordable: next };
+}
+
+/** Whether BUILD sells the item in this state (Story 1.24). */
+function soldOnBuild(s: GameState, ref: ItemRef): boolean {
+  const panel = sellerIn(s, ref);
+  return PANEL_PLACEMENT[panel].tab === 'build' && panelOpen(s, panel);
+}
+
+/**
+ * The items BUILD shows as cards (Story 1.24): Click Power from Phase 2, the
+ * buildings and the research chain, in the order the rule tries them.
+ */
+export function buildItems(state: GameState): ItemRef[] {
+  return listItems().filter((ref) => {
+    if (ref.kind === 'upgrade') return state.phase !== Phase.EGG_LAYING;
+    return PANEL_PLACEMENT[defOf(ref).panel].tab === 'build';
+  });
+}
+
+/**
+ * BUILD's highlighted card (Story 1.24, UX-DR17): its action is the tab's
+ * pinned primary action. Among the BUILD items open in this phase, first an
+ * affordable one from the phase's critical-path table, then any affordable
+ * one; with none, the BUILD item that becomes affordable soonest (the header's
+ * `NEXT: <item> IN ~<time>`). Pure, like `getNextAction`, and every suggestion
+ * is one the matching action accepts.
+ */
+export function getBuildAction(state: GameState): NextAction {
+  const sold = (ref: ItemRef) => soldOnBuild(state, ref);
+  const affordable = (ref: ItemRef) => sold(ref) && defOf(ref).open(state) && defOf(ref).affordable(state);
+  const path = (CRITICAL_PATH[state.phase as Phase] ?? []).find(affordable);
+  if (path) return suggestItem(state, path, 'critical_path');
+  const any = listItems().find(affordable);
+  if (any) return suggestItem(state, any, 'affordable');
+  const next = nextAffordable(state, sold);
   return { kind: 'none', key: next ? `none:${next.key}:${next.inSec}` : 'none', nextAffordable: next };
 }
