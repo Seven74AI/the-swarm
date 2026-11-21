@@ -30,7 +30,8 @@ describe('EventLog — Combat Events', () => {
       enemyType: 'beetle',
       foodGained: 45,
       specialLoot: { chitin: 2, silk: 0, venom: 0 },
-      narrative: '⚔️ 20 soldiers defeated a Beetle. 3 fell. +45 food. The colony salvages 2 chitin from the Beetle carcass.',
+        poisonDamageDealt: 0,
+        narrative: '⚔️ 20 soldiers defeated a Beetle. 3 fell. +45 food. The colony salvages 2 chitin from the Beetle carcass.',
     });
     const el = log.getElement();
     expect(el.textContent).toContain('20 soldiers defeated a Beetle');
@@ -43,7 +44,8 @@ describe('EventLog — Combat Events', () => {
       enemyType: 'scorpion',
       foodGained: 0,
       specialLoot: { chitin: 0, silk: 0, venom: 0 },
-      narrative: '💀 10 soldiers were slaughtered by a Scorpion. None survived.',
+        poisonDamageDealt: 0,
+        narrative: '💀 10 soldiers were slaughtered by a Scorpion. None survived.',
     });
     const el = log.getElement();
     expect(el.textContent).toContain('soldiers were slaughtered');

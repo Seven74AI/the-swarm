@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { EventLog } from '../../src/ui/panels/EventLog';
 import { EventBus } from '../../src/engine/EventBus';
+import { Phase } from '../../src/phases/phases';
 
 describe('EventLog', () => {
   let bus: EventBus;
@@ -32,7 +33,7 @@ describe('EventLog', () => {
 
     it('logs expedition_return success', () => {
       bus.emit('expedition_return', {
-        destination: 'MEADOW', result: 'success', food: 30, nectar: 10,
+        destination: 'MEADOW', result: 'success', food: 30, stone: 0, nectar: 10, wood: 0,
         scoutsReturned: 1, warriorsReturned: 2, tilesDiscovered: 2,
       });
       const entries = getEntries();
@@ -41,7 +42,7 @@ describe('EventLog', () => {
 
     it('logs expedition_return partial with casualties', () => {
       bus.emit('expedition_return', {
-        destination: 'MOUNTAIN', result: 'partial', food: 10, stone: 8,
+        destination: 'MOUNTAIN', result: 'partial', food: 10, stone: 8, nectar: 0, wood: 0,
         scoutsReturned: 0, warriorsReturned: 1, tilesDiscovered: 1,
       });
       const entries = getEntries();
@@ -50,7 +51,7 @@ describe('EventLog', () => {
 
     it('logs expedition_return failure', () => {
       bus.emit('expedition_return', {
-        destination: 'ENEMY NEST', result: 'failure', food: 0, stone: 0,
+        destination: 'ENEMY NEST', result: 'failure', food: 0, stone: 0, nectar: 0, wood: 0,
         scoutsReturned: 0, warriorsReturned: 0, tilesDiscovered: 0,
       });
       const entries = getEntries();
@@ -158,12 +159,7 @@ describe('EventLog', () => {
   // ── Probe launch ──
   describe('probe_launch', () => {
     it('logs probe launch with destination', () => {
-      bus.emit('probe_launch', {
-        id: 'probe_123',
-        destination: 'Alpha Centauri',
-        ticksRemaining: 42,
-        scouts: 1,
-      });
+      bus.emit('probe_launch', { destination: 'Alpha Centauri' });
       const msg = getLatestEntry();
       expect(msg).toContain('Probe launched toward Alpha Centauri');
     });
@@ -193,8 +189,8 @@ describe('EventLog', () => {
   // ── Phase notifications (unchanged) ──
   describe('phase notifications', () => {
     it('logs colony phase once', () => {
-      bus.emit('phase_changed', { phase: 'colony' });
-      bus.emit('phase_changed', { phase: 'colony' }); // second should be ignored
+      bus.emit('phase_changed', { phase: Phase.COLONY });
+      bus.emit('phase_changed', { phase: Phase.COLONY }); // second should be ignored
       const entries = getEntries();
       const colonyEntries = entries.filter((e) => e.includes('colony takes shape'));
       expect(colonyEntries.length).toBe(1);
@@ -217,7 +213,7 @@ describe('EventLog', () => {
     it('unsubscribes all handlers so no events leak after destroy', () => {
       const before = getEntries().length;
       log.destroy();
-      bus.emit('probe_launch', { id: 'p', destination: 'X', ticksRemaining: 1, scouts: 1 });
+      bus.emit('probe_launch', { destination: 'X' });
       bus.emit('exploration_return', {
         destination: 'X', result: 'success',
         voidCrystals: 1, antimatter: 0, darkMatter: 0,

@@ -6,13 +6,19 @@ const AUTO_DISMISS_MS = 30_000;
 /**
  * Non-blocking decision popup rendered bottom-right.
  * Shows event title, description, and 2-4 choice buttons.
- * Auto-dismisses after 30s if ignored. Emits 'decision_chosen' on choice.
+ * Auto-dismisses after 30s if ignored. On choice it calls `choose` (the action
+ * that applies the consequence) and then emits 'decision_chosen' as a notification.
  */
+export type ChooseDecision = (type: DecisionEvent['type'], choice: string) => void;
+
 export class DecisionPopup {
   private el: HTMLElement;
   private dismissTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(private bus: EventBus) {
+  constructor(
+    private bus: EventBus,
+    private choose: ChooseDecision = () => {},
+  ) {
     this.el = document.createElement('div');
     this.el.id = 'decision-popup';
     this.setupStyles();
@@ -54,6 +60,7 @@ export class DecisionPopup {
 
       btn.append(label, choiceDesc);
       btn.addEventListener('click', () => {
+        this.choose(event.type, c.label);
         this.bus.emit('decision_chosen', { type: event.type, choice: c.label });
         this.hide();
       });

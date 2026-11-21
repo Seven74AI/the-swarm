@@ -1,6 +1,6 @@
 import type { Transition } from './transitions';
 import type { GameState } from '../state/GameState';
-import type { EventBus } from '../engine/EventBus';
+import type { EventSink } from '../engine/events';
 import { Phase } from './phases';
 
 /**
@@ -23,7 +23,7 @@ export class PhaseStateMachine {
    * Evaluate transitions from the current phase.
    * Returns the (possibly new) current phase and the (possibly modified) state.
    */
-  tick(state: GameState, eventBus: EventBus): { phase: Phase; state: GameState } {
+  tick(state: GameState, eventBus: EventSink): { phase: Phase; state: GameState } {
     let resultState = state;
     for (const t of this.transitions) {
       if (t.from === this.current && t.guard(state)) {

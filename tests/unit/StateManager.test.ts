@@ -39,10 +39,10 @@ describe('StateManager', () => {
     expect(state.resources.nestCapacity).toBe(25);
   });
 
-  it('emits state:changed event on update', () => {
+  it('emits state_changed event on update', () => {
     const bus = new EventBus();
     const callback = vi.fn();
-    bus.subscribe('state:changed', callback);
+    bus.subscribe('state_changed', callback);
 
     const manager = new StateManager(bus);
     manager.update({ resources: { eggs: 3 } });
@@ -50,10 +50,10 @@ describe('StateManager', () => {
     expect(callback).toHaveBeenCalledTimes(1);
   });
 
-  it('state:changed payload contains the updated state', () => {
+  it('state_changed payload contains the updated state', () => {
     const bus = new EventBus();
     const callback = vi.fn();
-    bus.subscribe('state:changed', callback);
+    bus.subscribe('state_changed', callback);
 
     const manager = new StateManager(bus);
     const updated = manager.update({ phase: 'colony' });

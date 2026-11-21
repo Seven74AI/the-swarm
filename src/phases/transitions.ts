@@ -1,12 +1,12 @@
 import type { GameState } from '../state/GameState';
-import type { EventBus } from '../engine/EventBus';
+import type { EventSink } from '../engine/events';
 import { Phase } from './phases';
 
 export interface Transition {
   from: Phase;
   to: Phase;
   guard: (state: GameState) => boolean;
-  onEnter?: (state: GameState, eventBus: EventBus) => GameState;
+  onEnter?: (state: GameState, eventBus: EventSink) => GameState;
 }
 
 /**
