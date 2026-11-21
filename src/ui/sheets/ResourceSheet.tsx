@@ -14,8 +14,9 @@ import './ResourceSheet.css';
  * ordinary modal. Every unlocked resource: 30 px glyph, full name, the exact
  * integer (`formatFull`), its rate per second (the unit is stated once, in the
  * header), its cap and its source. `[ SETTINGS ⚙ ]` sits at the bottom, so
- * settings are reachable from Phase 1; until the settings screen exists
- * (Story 1.27) it is shown disabled with its reason.
+ * settings are reachable from Phase 1. main passes `onOpenSettings`, which
+ * opens the settings screen (Story 1.27); without it the button is shown
+ * disabled with its reason.
  *
  * It reads the same `ResourceFeed` as the strip, so it refreshes at most 4
  * times a second. Hooks: `[data-resource-sheet]`, `[data-resource-header]`,

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Capabilities } from '../../../src/platform/capabilities';
 import {
+  DEFAULT_KEY_BINDINGS,
   SETTINGS_KEY,
   SETTINGS_VERSION,
   createSettingsStore,
@@ -46,6 +47,7 @@ describe('settings store (Story 1.10)', () => {
       confirmHoldMs: 1000,
       layMode: 'hold',
       keyboardShortcuts: true,
+      keyBindings: DEFAULT_KEY_BINDINGS,
       coachMarksSeen: [],
     });
   });
@@ -178,5 +180,52 @@ describe('settings store (Story 1.10)', () => {
       expect(store.settings.value).toBe(before);
     });
   });
-});
 
+  describe('key bindings (Story 1.27)', () => {
+    it('binds every shortcut to its own key by default', () => {
+      const keys = Object.values(DEFAULT_KEY_BINDINGS);
+      expect(keys.length).toBeGreaterThan(0);
+      expect(new Set(keys).size).toBe(keys.length);
+      expect(keys.every((k) => typeof k === 'string' && k.length > 0)).toBe(true);
+    });
+
+    it('stores a remap, field by field, and reads it back in a later session', () => {
+      const storage = memoryStore();
+      const store = createSettingsStore({ storage, capabilities: caps() });
+      const [first] = Object.keys(DEFAULT_KEY_BINDINGS) as (keyof typeof DEFAULT_KEY_BINDINGS)[];
+      store.update({ keyBindings: { ...store.settings.value.keyBindings, [first]: 'q' } });
+      expect(store.settings.value.keyBindings[first]).toBe('q');
+      expect(Object.isFrozen(store.settings.value.keyBindings)).toBe(true);
+      const again = createSettingsStore({ storage, capabilities: caps() });
+      expect(again.settings.value.keyBindings).toEqual(store.settings.value.keyBindings);
+    });
+
+    it('refuses a binding that gives two shortcuts the same key', () => {
+      const store = createSettingsStore({ storage: memoryStore(), capabilities: caps() });
+      const before = store.settings.value;
+      const [a, b] = Object.keys(DEFAULT_KEY_BINDINGS) as (keyof typeof DEFAULT_KEY_BINDINGS)[];
+      store.update({ keyBindings: { ...before.keyBindings, [a]: before.keyBindings[b] } });
+      expect(store.settings.value).toBe(before);
+    });
+
+    it('drops unknown shortcuts and empty keys from a stored map, keeping the rest', () => {
+      const [a, b] = Object.keys(DEFAULT_KEY_BINDINGS) as (keyof typeof DEFAULT_KEY_BINDINGS)[];
+      const raw = JSON.stringify({
+        version: SETTINGS_VERSION,
+        settings: { keyBindings: { [a]: 'q', [b]: '', nonsense: 'z' } },
+      });
+      const store = createSettingsStore({ storage: memoryStore({ [SETTINGS_KEY]: raw }), capabilities: caps() });
+      expect(store.settings.value.keyBindings).toEqual({ ...DEFAULT_KEY_BINDINGS, [a]: 'q' });
+    });
+
+    it('keeps settings written by versions 1 and 2, before key bindings existed', () => {
+      expect(SETTINGS_VERSION).toBeGreaterThan(2);
+      for (const version of [1, 2]) {
+        const raw = JSON.stringify({ version, settings: { keyboardShortcuts: false, coachMarksSeen: ['lay-egg'] } });
+        const store = createSettingsStore({ storage: memoryStore({ [SETTINGS_KEY]: raw }), capabilities: caps() });
+        expect(store.settings.value.keyboardShortcuts).toBe(false);
+        expect(store.settings.value.keyBindings).toEqual(DEFAULT_KEY_BINDINGS);
+      }
+    });
+  });
+});
