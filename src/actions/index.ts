@@ -10,6 +10,8 @@
 import type { ActionDeps } from './context';
 import type { DecisionEvent } from '../systems/DecisionSystem';
 import type { WorkerRole } from '../systems/ResourceSystem';
+import type { MoveSource } from '../systems/Workforce';
+import type { RoleId } from '../data/content/roles';
 import type { BuildingType } from '../systems/BuildingSystem';
 import type { AutomationBuildingType, ResearchType } from '../systems/AutomationSystem';
 import type { ResearchProjectId } from '../state/GameState';
@@ -37,6 +39,8 @@ export function createActions(deps: ActionDeps) {
     layEgg: () => nest.layEgg(deps),
     assignWorker: (role: WorkerRole) => nest.assignWorker(deps, role),
     unassignWorker: (role: WorkerRole) => nest.unassignWorker(deps, role),
+    stepRole: (role: RoleId, delta: number) => nest.stepRole(deps, role, delta),
+    moveWorkers: (from: MoveSource, to: RoleId, count: number) => nest.moveWorkers(deps, from, to, count),
     buyUpgrade: (upgradeId: string) => nest.buyUpgrade(deps, upgradeId),
     togglePause: () => nest.togglePause(deps),
     // Buildings and automation

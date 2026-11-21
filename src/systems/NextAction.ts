@@ -287,12 +287,27 @@ function goalPending(s: GameState): boolean {
 
 const freeWorkers = (s: GameState): number => s.resources.workers - getAssignedWorkers(s);
 
-/** Rule 2: net food below zero and the stock covers less than the upkeep window → move a worker to GATHER. */
-function foodFix(s: GameState): SuggestedAction | null {
-  if (!panelOpen(s, 'worker_assignment')) return null;
+/** Food is critical: the net rate is below zero and the stock covers less than the upkeep window. */
+export function isFoodCritical(s: GameState): boolean {
   const r = computeResourceRates(s, new TerritorySystem().getBonuses(s));
   const net = r.foodProducedPerSec - r.foodConsumedPerSec;
-  if (!(net < 0) || s.resources.food >= r.foodConsumedPerSec * nextActionBalance.foodCriticalSeconds) return null;
+  return net < 0 && s.resources.food < r.foodConsumedPerSec * nextActionBalance.foodCriticalSeconds;
+}
+
+/** Capacity is critical: workers fill the effective nest capacity up to the balance percentage. */
+export function isCapacityCritical(s: GameState): boolean {
+  const cap = s.resources.nestCapacity + (getEffects('warehouse', s.buildings.warehouse.level).nestCapacity ?? 0);
+  return cap > 0 && s.resources.workers * 100 >= cap * nextActionBalance.capacityCriticalPercent;
+}
+
+/** Whether WRKR (the worker roles) is open in the state's phase. */
+export function workersOpen(s: GameState): boolean {
+  return panelOpen(s, 'worker_assignment');
+}
+
+/** Rule 2: net food below zero and the stock covers less than the upkeep window → move a worker to GATHER. */
+function foodFix(s: GameState): SuggestedAction | null {
+  if (!panelOpen(s, 'worker_assignment') || !isFoodCritical(s)) return null;
   if (freeWorkers(s) > 0) return allocate('food', 'assignWorker', 'gather');
   const a = s.workersAssigned;
   if (a.tend > 0) return allocate('food', 'unassignWorker', 'tend');
@@ -303,8 +318,7 @@ function foodFix(s: GameState): SuggestedAction | null {
 
 /** Rule 3: workers fill the nest → a Warehouse if affordable, else a worker on DIG. */
 function capacityFix(s: GameState): SuggestedAction | null {
-  const cap = s.resources.nestCapacity + (getEffects('warehouse', s.buildings.warehouse.level).nestCapacity ?? 0);
-  if (cap <= 0 || s.resources.workers * 100 < cap * nextActionBalance.capacityCriticalPercent) return null;
+  if (!isCapacityCritical(s)) return null;
   const warehouse: ItemRef = { kind: 'building', id: 'warehouse' };
   if (isItemAffordable(s, warehouse)) return suggestItem(s, warehouse, 'capacity');
   if (!panelOpen(s, 'worker_assignment')) return null;

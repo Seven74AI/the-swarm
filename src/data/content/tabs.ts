@@ -63,6 +63,8 @@ const placements = {
   transcendence_panel: { tab: 'nest', unlockPhase: Phase.TRANSCENDENCE },
   // WRKR
   worker_assignment: { tab: 'wrkr', unlockPhase: Phase.COLONY },
+  // WRKR's primary action: the single most useful reallocation (Story 1.23).
+  wrkr_primary: { tab: 'wrkr', zone: 'primary', unlockPhase: Phase.COLONY },
   food_display: { tab: 'wrkr', unlockPhase: Phase.COLONY },
   automation_panel: { tab: 'wrkr', unlockPhase: Phase.TRANSCENDENCE },
   // BUILD (no buildings in Colony until Stories 3.4/3.5)

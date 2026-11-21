@@ -48,6 +48,8 @@ import { bindPhaseReveal } from './ui/overlays/PhaseReveal';
 import { NestPrimary } from './ui/nest/NestPrimary';
 import { NestScene } from './ui/nest/NestScene';
 import { ClickPowerCard } from './ui/nest/ClickPowerCard';
+import { WorkersPrimary, WorkersTab } from './ui/wrkr/WorkersTab';
+import { AutomationSection } from './ui/wrkr/AutomationSection';
 import { PhaseStateMachine } from './phases/PhaseStateMachine';
 import { Phase, PHASE_ORDER } from './phases/phases';
 import { PhaseContent } from './ui/PhaseContent';
@@ -448,6 +450,12 @@ export function bootstrap(): {
       primary: (host) => render(<NestPrimary actions={actions} layMode={layMode} />, host),
       scene: (host) => render(<NestScene lay={actions.layEgg} />, host),
       clickPower: (host) => render(<ClickPowerCard buy={() => actions.buyUpgrade('click_power')} />, host),
+    },
+    // WRKR (Story 1.23): role rows and upkeep readout, the reallocation primary action, automation.
+    mountWorkers: {
+      tab: (host) => render(<WorkersTab actions={actions} />, host),
+      primary: (host) => render(<WorkersPrimary actions={actions} />, host),
+      automation: (host) => render(<AutomationSection actions={actions} />, host),
     },
   });
   if (app) {

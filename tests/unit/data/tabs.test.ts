@@ -79,6 +79,7 @@ describe('tab registry', () => {
       event_log: ['nest'],
       transcendence_panel: ['nest'],
       worker_assignment: ['wrkr'],
+      wrkr_primary: ['wrkr'],
       food_display: ['wrkr'],
       automation_panel: ['wrkr'],
       building_panel: ['build'],

@@ -78,6 +78,8 @@ export interface StepperProps {
   readonly multiplier?: Multiplier;
   /** Starting multiplier of the stepper's own row. Default ×1. */
   readonly initialMultiplier?: Multiplier;
+  /** Extra class on the value (a caller's legacy hook, e.g. WRKR's `.role-count`). */
+  readonly valueClass?: string;
   [hook: `data-${string}`]: string | undefined;
 }
 
@@ -92,6 +94,7 @@ export function Stepper(props: StepperProps) {
     removeDisabled = 'none to remove',
     multiplier,
     initialMultiplier = 1,
+    valueClass,
     ...hooks
   } = props;
   const [own, setOwn] = useState<Multiplier>(initialMultiplier);
@@ -122,7 +125,7 @@ export function Stepper(props: StepperProps) {
           onPress={step('remove')}
           data-step="remove"
         />
-        <span class="stepper__value" data-stepper-value="">
+        <span class={valueClass ? `stepper__value ${valueClass}` : 'stepper__value'} data-stepper-value="">
           {Math.max(0, Math.floor(value))}
         </span>
         <Button

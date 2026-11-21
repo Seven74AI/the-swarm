@@ -171,8 +171,8 @@ test.describe('Golden Path — Full Progression', () => {
     const workerPanel = page.locator('#worker-assignment');
     await expect(workerPanel).toBeVisible();
     const text = await workerPanel.textContent();
-    expect(text).toContain('Gather');
-    expect(text).toContain('Tend');
+    expect(text).toContain('GATHER');
+    expect(text).toContain('TEND');
   });
 
   test('soldier panel shows recruit button and soldier stats', async ({ page }) => {

@@ -1,0 +1,21 @@
+/* WRKR tab (Story 1.23). DESIGN.md → Role row, Upkeep readout; colors only from the phase aliases in ui/styles/tokens.css. */
+.wrkr { display: flex; flex-direction: column; gap: 0.5rem; }
+.wrkr-upkeep,
+.wrkr-line { margin: 0; font-size: 0.8125rem; color: var(--color-dim); font-variant-numeric: tabular-nums; }
+.wrkr-upkeep [data-upkeep-value],
+.wrkr-upkeep [data-production-value] { color: var(--color-accent); }
+.wrkr-upkeep__net { font-weight: 700; color: var(--color-accent); }
+.wrkr-upkeep__net[data-trend='down'] { color: var(--color-warn); }
+.wrkr-roles { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+.wrkr-role {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+}
+.wrkr-role__info { display: flex; flex-direction: column; min-width: 0; }
+.wrkr-role__label { font-weight: 700; }
+.wrkr-role__bar { font-size: 0.75rem; letter-spacing: 0; color: var(--color-accent); white-space: nowrap; }
+.wrkr-role__empty { color: var(--color-edge); }
+.wrkr-role__effect { font-size: 0.75rem; color: var(--color-dim); }

@@ -300,11 +300,17 @@ test.describe('Worker Management', () => {
     await expect(gatherRow.locator('.role-count')).toHaveText('2');
     await expect(tendRow.locator('.role-count')).toHaveText('1');
 
-    // Try assigning more — should not increase (no unassigned workers left)
-    await gatherPlus.click();
+    // No free workers left: every [+] is disabled with the reason (Story 1.23); counts stay
+    await expect(gatherPlus).toHaveAttribute('aria-disabled', 'true');
+    await expect(tendPlus).toHaveAttribute('aria-disabled', 'true');
+    await expect(gatherRow).toContainText('no free workers');
     await expect(gatherRow.locator('.role-count')).toHaveText('2');
-
-    await tendPlus.click();
     await expect(tendRow.locator('.role-count')).toHaveText('1');
+
+    // Reassigning still works: take one off TEND, put it on GATHER
+    await tendRow.locator('.role-controls button').filter({ hasText: '−' }).click();
+    await expect(tendRow.locator('.role-count')).toHaveText('0');
+    await gatherPlus.click();
+    await expect(gatherRow.locator('.role-count')).toHaveText('3');
   });
 });
