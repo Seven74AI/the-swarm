@@ -303,6 +303,9 @@ test.describe('focus', () => {
 test.describe('reduced motion', () => {
   test('the setting turns typing, floating +N, easing and CRT off, and the palette fade is 300 ms', async ({ page }) => {
     await page.setViewportSize(PHONE);
+    // Freeze timers so the +N particle (removed after PARTICLE_MS) is still there to inspect.
+    await page.clock.install();
+    await page.clock.pauseAt(Date.now() + 1000);
     await seed(page, { phase: 'egg_laying' }, { reducedMotion: 'on', crt: 'full' });
     const root = page.locator('html');
     await expect(root).toHaveAttribute('data-reduced-motion', 'true');
@@ -310,10 +313,9 @@ test.describe('reduced motion', () => {
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--reveal-fade').trim())).toBe('300ms');
     // No floating +N.
     await page.locator('#click-egg').click();
-    const particle = page.locator('.click-particle');
-    if ((await particle.count()) > 0) {
-      expect(await particle.first().evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
-    }
+    const particle = page.locator('.click-particle').first();
+    await expect(particle).toBeAttached();
+    await expect(particle).toHaveCSS('animation-name', 'none');
     // No easing anywhere in the shell: transitions and animations finish at once.
     const slow = await page.evaluate(() =>
       [...document.querySelectorAll<HTMLElement>('[data-shell] *')].filter((el) => {
@@ -324,8 +326,9 @@ test.describe('reduced motion', () => {
     );
     expect(slow).toBe(0);
     // The cursor is steady.
-    const cursor = page.locator('[data-cursor]').first();
-    if ((await cursor.count()) > 0) expect(await cursor.evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
+    const cursor = page.locator('[data-primary-zone] [data-cursor]').first();
+    await expect(cursor).toBeAttached();
+    await expect(cursor).toHaveCSS('animation-name', 'none');
   });
 
   test('the OS setting is followed by default', async ({ page }) => {

@@ -248,11 +248,15 @@ test.describe('Text reflow: the rules behind the layout', () => {
     await expect(lines.first()).toBeVisible();
     for (let i = 1; i < (await lines.count()); i++) await expect(lines.nth(i)).toBeHidden();
     // Every cost line of a primary action sits inside its button, inside the zone.
-    for (const cost of await page.locator('[data-primary-zone] [data-cost]').all()) {
-      if (!(await cost.isVisible())) continue;
+    // NEST's primary carries no cost; WAR's FIGHT does (`N SOLDIERS`).
+    await openTab(page, 'front', 'war');
+    const costs = page.locator('[data-primary-zone] [data-cost]').filter({ visible: true });
+    await expect(costs.first()).toBeVisible();
+    for (const cost of await costs.all()) {
       expect(await cost.evaluate((el) => el.closest('button') !== null)).toBe(true);
     }
-    // LOG keeps every line.
+    // Back on NEST, with room again, every line shows.
+    await openTab(page, 'nest');
     await page.setViewportSize({ width: 360, height: 700 });
     await expect(lines.nth(1)).toBeVisible();
   });
