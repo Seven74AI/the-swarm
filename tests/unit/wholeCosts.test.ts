@@ -6,6 +6,7 @@ import { getEquipmentUpgradeCost } from '../../src/systems/SoldierSystem';
 import { getAutoBuildCost, getResearchCost, type AutomationBuildingType, type ResearchType } from '../../src/systems/AutomationSystem';
 import { getProjects } from '../../src/systems/ResearchSystem';
 import { getMutationCost } from '../../src/systems/MutationSystem';
+import { getParticleLabCost } from '../../src/systems/ResourceConversionSystem';
 import { buildingBalance } from '../../src/data/balance/buildings';
 import { mutationBalance } from '../../src/data/balance/mutations';
 import { automationBalance } from '../../src/data/balance/automation';
@@ -85,6 +86,7 @@ describe('every cost is a whole number (Story 3.3)', () => {
       for (const b of autoBuildings) expect(wholeValues(getAutoBuildCost(b, level)), `${b} Lv.${level}`).toBe(true);
       expect(isWhole(getUpgradeCost('click_power', level)), `click power Lv.${level}`).toBe(true);
       expect(isWhole(getEquipmentUpgradeCost(level)), `equipment Lv.${level}`).toBe(true);
+      expect(wholeValues(getParticleLabCost(level)), `particle lab Lv.${level}`).toBe(true);
     }
     for (const r of Object.keys(automationBalance.research) as ResearchType[]) {
       expect(wholeValues(getResearchCost(r)), r).toBe(true);

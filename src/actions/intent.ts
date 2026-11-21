@@ -13,6 +13,7 @@ export interface IntentTargets {
   upgradeArmor(): ActionResult;
   buildShip(): ActionResult;
   upgradeShip(): ActionResult;
+  buildParticleLab(): ActionResult;
   startResearch(id: Extract<ActionIntent, { action: 'startResearch' }>['id']): ActionResult;
   researchAutomation(id: Extract<ActionIntent, { action: 'researchAutomation' }>['id']): ActionResult;
   buildAutomation(id: Extract<ActionIntent, { action: 'buildAutomation' }>['id']): ActionResult;
@@ -45,6 +46,8 @@ export function performIntent(actions: IntentTargets, intent: ActionIntent): Act
       return actions.buildShip();
     case 'upgradeShip':
       return actions.upgradeShip();
+    case 'buildParticleLab':
+      return actions.buildParticleLab();
     case 'startResearch':
       return actions.startResearch(intent.id);
     case 'researchAutomation':

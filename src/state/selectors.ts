@@ -22,6 +22,7 @@ import {
 import {
   getConversionDefs,
   getConversionRate,
+  canBuildParticleLab,
   isConversionUnlocked,
   type ConversionId,
 } from '../systems/ResourceConversionSystem';
@@ -174,6 +175,9 @@ const conversionUnlocks = new Map<ConversionId, ReadonlySignal<boolean>>();
 export function selectCanBuild(id: BuildingType): ReadonlySignal<boolean> {
   return memo(canBuilds, id, () => canBuild(id, gameState.value));
 }
+
+/** Whether the Particle Lab's next level is on sale and affordable now (Story 3.6). */
+export const selectCanBuildParticleLab = computed(() => canBuildParticleLab(gameState.value));
 
 /** Whether BUILD lists the building in this phase (Story 3.5). */
 export function selectBuildingUnlocked(id: BuildingType): ReadonlySignal<boolean> {

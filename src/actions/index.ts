@@ -52,6 +52,7 @@ export function createActions(deps: ActionDeps) {
     startResearch: (id: ResearchProjectId) => research.startResearch(deps, id),
     cancelResearch: (id: ResearchProjectId) => research.cancelResearch(deps, id),
     runConversions: () => research.runConversions(deps),
+    buildParticleLab: () => research.buildParticleLab(deps),
     // Combat
     trainSoldier: () => combat.trainSoldier(deps),
     upgradeWeapon: () => combat.upgradeWeapon(deps),

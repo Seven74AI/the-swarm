@@ -11,7 +11,14 @@ import {
   unassignResearcher as unassignResearcherFrom,
 } from '../systems/ResearchSystem';
 import { freeWorkers } from '../systems/Workforce';
-import { getConversionDefs, isConversionUnlocked, tickConversions } from '../systems/ResourceConversionSystem';
+import {
+  buildParticleLab as buildLab,
+  canAffordParticleLab,
+  getConversionDefs,
+  isConversionUnlocked,
+  isParticleLabOpen,
+  tickConversions,
+} from '../systems/ResourceConversionSystem';
 
 /** Move one worker into the research pool. */
 export function assignResearcher(deps: ActionDeps): ActionResult {
@@ -62,4 +69,12 @@ export function runConversions(deps: ActionDeps): ActionResult {
   const r = commit(deps, s, next);
   if (r.ok) deps.bus.emit('conversion_tick', { tick: 1 });
   return r;
+}
+
+/** Build the Particle Lab or its next level (Story 3.6); `locked` before the converter opens. */
+export function buildParticleLab(deps: ActionDeps): ActionResult {
+  const s = current(deps);
+  if (!isParticleLabOpen(s)) return refuse('locked');
+  if (!canAffordParticleLab(s)) return refuse('cannot_afford');
+  return commit(deps, s, buildLab(s));
 }

@@ -1,10 +1,17 @@
-import { selectConversionRate, selectConversionUnlocked, selectConversions, selectResearchStatus } from '../../state/selectors';
-import { getConversionDefs, type ConversionDef } from '../../state/queries';
+import {
+  selectCanBuildParticleLab,
+  selectConversionRate,
+  selectConversionUnlocked,
+  selectConversions,
+  selectResearchStatus,
+} from '../../state/selectors';
+import { getConversionDefs, getParticleLabCost, itemKey, type ConversionDef } from '../../state/queries';
 import { formatFull } from '../../utils/format';
 import { Button } from '../primitives/Button';
 import { Card } from '../primitives/Card';
-import { CONVERSION_NOT_READY, CONVERTER_GLYPH } from './buildCatalog';
-import { PriceText } from './cost';
+import { CONVERSION_NOT_READY, CONVERTER_GLYPH, PARTICLE_LAB_GLYPH } from './buildCatalog';
+import { PriceText, shortfallOf } from './cost';
+import { highlightedKey } from './BuildingCards';
 import { Arrow, decorate } from '../primitives/Deco';
 
 function Step({ def }: { def: ConversionDef }) {
@@ -69,6 +76,44 @@ export function ConverterCard({ convert }: { convert: () => { readonly ok: boole
           ))}
         </ul>
       </Card>
+    </div>
+  );
+}
+
+/**
+ * The Particle Lab as a BUILD card (Story 3.6), above the converter in the
+ * `#resource-converter-panel` host: the antimatter step runs once there is one,
+ * and each level adds to its rate. Hooks: `[data-particle-lab]`,
+ * `[data-action="build-particle-lab"]`.
+ */
+export function ParticleLabCard({ build }: { build: () => { readonly ok: boolean } }) {
+  const level = selectConversions.value?.particleLab ?? 0;
+  const affordable = selectCanBuildParticleLab.value;
+  const price = getParticleLabCost(level);
+  const target = level === 0 ? 'PARTICLE LAB' : `PARTICLE LAB LV.${level + 1}`;
+  return (
+    <div class="build-item" data-particle-lab="">
+      <Card
+        id="particle_lab"
+        glyph={PARTICLE_LAB_GLYPH}
+        title="PARTICLE LAB"
+        level={`LV.${level} → ${level + 1}`}
+        effect={level === 0 ? 'LETS VOID CRYSTALS BECOME ANTIMATTER' : 'MORE ANTIMATTER PER SEC'}
+        cost={<PriceText price={price} />}
+        affordable={affordable}
+        shortfall={shortfallOf(price)}
+        selected={highlightedKey() === itemKey({ kind: 'particle_lab' })}
+        action={
+          <Button
+            variant="secondary"
+            verb={level === 0 ? 'BUILD' : 'UPGRADE'}
+            target={target}
+            disabled={affordable ? false : 'NOT ENOUGH RESOURCES'}
+            onPress={build}
+            data-action="build-particle-lab"
+          />
+        }
+      />
     </div>
   );
 }

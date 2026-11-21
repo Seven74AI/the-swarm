@@ -12,6 +12,7 @@ import {
 } from '../systems/AutomationSystem';
 import { isPrestigeAvailable } from '../systems/PrestigeSystem';
 import { getUpgradeCost } from '../systems/ResourceSystem';
+import { canBuildParticleLab } from '../systems/ResourceConversionSystem';
 
 /**
  * Everything the player can afford right now, as `<panelId>:<item>` keys
@@ -39,6 +40,7 @@ export function affordableKeys(state: GameState): string[] {
   for (const r of Object.keys(RESEARCHES) as ResearchType[]) {
     if (canResearch(r, state)) keys.push(`automation_panel:research-${r}`);
   }
+  if (canBuildParticleLab(state)) keys.push('resource_converter_panel:particle_lab');
   if (isPrestigeAvailable(state)) keys.push('prestige_panel:prestige');
   return keys;
 }

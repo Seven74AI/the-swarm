@@ -3,7 +3,7 @@ import { buildingUpgradeCost, softCapEffectiveness } from '../engine/Progression
 import { buildingBalance as B } from '../data/balance/buildings';
 import { recruitmentBalance } from '../data/balance/recruitment';
 import { BUILDING_UNLOCK_PHASE } from '../data/content/buildings';
-import { FIRST_PRODUCED_IN, type ProducedResource } from '../data/content/producers';
+import { FIRST_PRODUCED_IN } from '../data/content/producers';
 import { isUnlocked } from '../data/content/tabs';
 import type { Phase } from '../phases/phases';
 
@@ -60,7 +60,7 @@ export function isBuildingUnlocked(building: BuildingType, phase: Phase): boolea
  */
 export function isLevelPayableIn(building: BuildingType, level: number, phase: Phase): boolean {
   const cost = getBuildCost(building, level);
-  return (Object.keys(cost) as ProducedResource[]).every((k) => cost[k] <= 0 || isUnlocked(FIRST_PRODUCED_IN[k], phase));
+  return (Object.keys(cost) as (keyof Cost)[]).every((k) => cost[k] <= 0 || isUnlocked(FIRST_PRODUCED_IN[k], phase));
 }
 
 /** Whether the building's next level can be bought in the state's phase, at any price. */

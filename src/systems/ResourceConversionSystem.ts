@@ -1,6 +1,9 @@
 import type { GameState, ConversionState } from '../state/GameState';
 import type { ResearchProjectId } from '../state/GameState';
 import { isProjectCompleted } from './ResearchSystem';
+import { conversionBalance as C } from '../data/balance/conversions';
+import { PANEL_PLACEMENT, isUnlocked } from '../data/content/tabs';
+import type { Phase } from '../phases/phases';
 
 /**
  * Resource conversion chain IDs — matches ResearchProjectId for unlock linkage.
@@ -28,7 +31,7 @@ export interface ConversionDef {
 }
 
 /**
- * Three-step resource conversion DAG:
+ * Three-step resource conversion DAG (amounts and caps in `data/balance/conversions.ts`):
  *   stone + nectar + researchers → voidCrystals
  *   voidCrystals + particleLab → antimatter
  *   antimatter + spaceExpedition → darkMatter
@@ -37,28 +40,28 @@ const CONVERSIONS: ConversionDef[] = [
   {
     id: 'voidCrystalSynthesis',
     name: 'Void Crystal Synthesis',
-    inputs: { stone: 5, nectar: 2 },
-    outputs: { voidCrystals: 1 },
+    inputs: { ...C.voidCrystalSynthesis.inputs },
+    outputs: { ...C.voidCrystalSynthesis.outputs },
     requiredResearch: 'voidCrystalSynthesis',
     baseRate: 1,
-    /** Rate cap: 1 per 20 researchers assigned per tick */
+    /** Rate cap: one run a second per `researchersPerRun` researchers assigned. */
     getRateCap: (state: GameState): number => {
       const researchers = state.workersAssigned.researchers ?? 0;
-      return Math.floor(researchers / 20);
+      return Math.floor(researchers / C.voidCrystalSynthesis.researchersPerRun);
     },
     isReady: (): boolean => true,
   },
   {
     id: 'antimatterContainment',
     name: 'Antimatter Containment',
-    inputs: { voidCrystals: 2 },
-    outputs: { antimatter: 1 },
+    inputs: { ...C.antimatterContainment.inputs },
+    outputs: { ...C.antimatterContainment.outputs },
     requiredResearch: 'antimatterContainment',
     baseRate: 1,
-    /** Rate cap: particleLab level / 3 per tick (need level 3+ for 1/sec) */
+    /** Rate cap: runs a second for each Particle Lab level (Story 3.6: Lv.1 already runs). */
     getRateCap: (state: GameState): number => {
       const lab = state.conversions?.particleLab ?? 0;
-      return Math.floor(lab / 3);
+      return lab * C.antimatterContainment.runsPerSecPerLabLevel;
     },
     isReady: (state: GameState): boolean => {
       return (state.conversions?.particleLab ?? 0) > 0;
@@ -67,13 +70,13 @@ const CONVERSIONS: ConversionDef[] = [
   {
     id: 'darkMatterDetection',
     name: 'Dark Matter Detection',
-    inputs: { antimatter: 1 },
-    outputs: { darkMatter: 1 },
+    inputs: { ...C.darkMatterDetection.inputs },
+    outputs: { ...C.darkMatterDetection.outputs },
     requiredResearch: 'darkMatterDetection',
     baseRate: 1,
-    /** Rate cap: 1 per 2 active space explorations */
+    /** Rate cap: one run a second per `explorationsPerRun` active space explorations. */
     getRateCap: (state: GameState): number => {
-      return Math.floor((state.spaceExplorations?.length ?? 0) / 2);
+      return Math.floor((state.spaceExplorations?.length ?? 0) / C.darkMatterDetection.explorationsPerRun);
     },
     isReady: (state: GameState): boolean => {
       return (state.spaceExplorations?.length ?? 0) > 0;
@@ -129,14 +132,46 @@ export function getConversionRate(state: GameState, id: ConversionId): number {
   return cap;
 }
 
+/** The stocks a Particle Lab level is paid from. */
+export type ParticleLabCost = { readonly stone: number; readonly voidCrystals: number };
+
+/** Price of the Particle Lab's next level from `level` (0 = build it): `floor(base × multiplier^level)`. */
+export function getParticleLabCost(level: number): ParticleLabCost {
+  const { baseCost, costMultiplier } = C.particleLab;
+  const growth = Math.pow(costMultiplier, level);
+  return { stone: Math.floor(baseCost.stone * growth), voidCrystals: Math.floor(baseCost.voidCrystals * growth) };
+}
+
+/** Whether BUILD sells the Particle Lab in this state: with the converter (Story 3.6). */
+export function isParticleLabOpen(state: GameState): boolean {
+  return isUnlocked(PANEL_PLACEMENT.resource_converter_panel.unlockPhase, state.phase as Phase);
+}
+
+/** Whether the stocks cover the Particle Lab's next level (affordability only). */
+export function canAffordParticleLab(state: GameState): boolean {
+  const cost = getParticleLabCost(state.conversions.particleLab);
+  return state.resources.stone >= cost.stone && state.resources.voidCrystals >= cost.voidCrystals;
+}
+
+/** Whether the Particle Lab's next level can be bought now. */
+export function canBuildParticleLab(state: GameState): boolean {
+  return isParticleLabOpen(state) && canAffordParticleLab(state);
+}
+
 /**
- * Build a particle lab (increment level).
+ * Build the Particle Lab, or its next level, and pay for it (Story 3.6). The
+ * same state when it isn't on sale or the stocks fall short.
  */
 export function buildParticleLab(state: GameState): GameState {
-  if (!state.conversions) return state;
-
+  if (!canBuildParticleLab(state)) return state;
+  const cost = getParticleLabCost(state.conversions.particleLab);
   return {
     ...state,
+    resources: {
+      ...state.resources,
+      stone: state.resources.stone - cost.stone,
+      voidCrystals: state.resources.voidCrystals - cost.voidCrystals,
+    },
     conversions: {
       ...state.conversions,
       particleLab: state.conversions.particleLab + 1,

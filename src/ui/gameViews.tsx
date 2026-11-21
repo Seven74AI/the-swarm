@@ -27,7 +27,7 @@ import { AutomationSection } from './wrkr/AutomationSection';
 import { BuildHeader } from './build/BuildHeader';
 import { BuildingCards } from './build/BuildingCards';
 import { ResearchCards } from './build/ResearchCards';
-import { ConverterCard } from './build/ConverterCard';
+import { ConverterCard, ParticleLabCard } from './build/ConverterCard';
 import { BuildPrimary } from './build/BuildPrimary';
 import { CombatLog, EnemyCard, MutationsSection, SoldiersSection, WarPrimary } from './war/WarSegment';
 import type { WarSession } from './war/warSession';
@@ -162,6 +162,7 @@ export function gameViews(d: GameViewDeps): ShellViews {
             domId="resource-converter-panel"
             class="build-section resource-converter-panel"
           >
+            <ParticleLabCard build={() => d.actions.buildParticleLab()} />
             <ConverterCard convert={() => d.actions.runConversions()} />
           </Panel>
         </>

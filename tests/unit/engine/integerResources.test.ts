@@ -215,6 +215,7 @@ const arbAction: fc.Arbitrary<Command> = fc.oneof(
   fc.constantFrom(...PROJECT_IDS).map((id): Command => ({ kind: 'action', name: `startResearch ${id}`, run: (a) => a.startResearch(id) })),
   fc.constantFrom(...PROJECT_IDS).map((id): Command => ({ kind: 'action', name: `cancelResearch ${id}`, run: (a) => a.cancelResearch(id) })),
   act('runConversions', (a) => a.runConversions()),
+  act('buildParticleLab', (a) => a.buildParticleLab()),
   act('trainSoldier', (a) => a.trainSoldier()),
   act('upgradeWeapon', (a) => a.upgradeWeapon()),
   act('upgradeArmor', (a) => a.upgradeArmor()),

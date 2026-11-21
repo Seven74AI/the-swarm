@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createInitialState, type GameState } from '../../src/state/GameState';
+import { Phase } from '../../src/phases/phases';
 import {
   tickConversions,
   getConversionDefs,
   isConversionUnlocked,
   getConversionRate,
   buildParticleLab,
+  getParticleLabCost,
   type ConversionId,
 } from '../../src/systems/ResourceConversionSystem';
 
@@ -262,17 +264,36 @@ describe('ResourceConversionSystem', () => {
     });
   });
 
-  describe('buildParticleLab', () => {
-    it('increments particleLab level', () => {
-      const initial = state.conversions.particleLab;
-      const result = buildParticleLab(state);
-      expect(result.conversions.particleLab).toBe(initial + 1);
+  describe('buildParticleLab (Story 3.6: priced, sold with the converter)', () => {
+    const onSale = (s: GameState): GameState => ({
+      ...s,
+      phase: Phase.SPACE,
+      resources: { ...s.resources, stone: 1e9, voidCrystals: 1e9 },
     });
 
-    it('works with fresh initial state', () => {
-      const bareState = createInitialState();
-      const result = buildParticleLab(bareState);
-      expect(result.conversions.particleLab).toBe(1);
+    it('adds a level and pays the price of that level', () => {
+      const s = onSale(state);
+      const cost = getParticleLabCost(s.conversions.particleLab);
+      const result = buildParticleLab(s);
+      expect(result.conversions.particleLab).toBe(s.conversions.particleLab + 1);
+      expect(result.resources.stone).toBe(s.resources.stone - cost.stone);
+      expect(result.resources.voidCrystals).toBe(s.resources.voidCrystals - cost.voidCrystals);
+    });
+
+    it('each level costs at least as much as the one before', () => {
+      for (let l = 0; l < 10; l++) {
+        const now = getParticleLabCost(l);
+        const next = getParticleLabCost(l + 1);
+        expect(next.stone).toBeGreaterThanOrEqual(now.stone);
+        expect(next.voidCrystals).toBeGreaterThanOrEqual(now.voidCrystals);
+      }
+    });
+
+    it('changes nothing before the converter opens or when the stocks fall short', () => {
+      const early = { ...onSale(state), phase: Phase.EXPANSION };
+      expect(buildParticleLab(early)).toBe(early);
+      const broke = { ...createInitialState(), phase: Phase.SPACE };
+      expect(buildParticleLab(broke)).toBe(broke);
     });
   });
 });
