@@ -17,6 +17,10 @@ async function getFoodValue(page: any): Promise<number> {
   return parseFloat(text?.replace(/[^0-9.]/g, '') ?? '0');
 }
 
+const isPaused = (page: any): Promise<boolean> =>
+  // @ts-ignore - runs in browser context
+  page.evaluate(() => window.__swarm.manager.getState().paused as boolean);
+
 /** Seed a save file in localStorage BEFORE page.goto. */
 async function seedSave(page: any, overrides: Record<string, unknown> = {}): Promise<void> {
   await page.addInitScript((extra: Record<string, unknown>) => {
@@ -71,6 +75,8 @@ async function seedSave(page: any, overrides: Record<string, unknown> = {}): Pro
 }
 
 test('click pause button stops food production', async ({ page }) => {
+  // A fake clock lets the test move game time forward on purpose, instead of sleeping.
+  await page.clock.install();
   await seedSave(page);
   await page.goto('/');
 
@@ -87,11 +93,11 @@ test('click pause button stops food production', async ({ page }) => {
     }), { timeout: 5_000 })
     .toBe(true);
   // Let the display catch up with the last pre-pause tick.
-  await page.waitForTimeout(300);
+  await page.clock.runFor(300);
   const foodBefore = await getFoodValue(page);
 
-  // While paused, food must not grow at all.
-  await page.waitForTimeout(500);
+  // While paused, food must not grow at all, however much time passes.
+  await page.clock.runFor(2_000);
   const foodPaused = await getFoodValue(page);
   expect(foodPaused).toBe(foodBefore);
 });
@@ -102,16 +108,15 @@ test('click resume restarts food production', async ({ page }) => {
 
   // Pause first
   await page.click(PAUSE_BUTTON);
-  await page.waitForTimeout(200);
+  await expect.poll(() => isPaused(page)).toBe(true);
   const foodPaused = await getFoodValue(page);
 
   // Resume
   await page.click(PAUSE_BUTTON);
+  await expect.poll(() => isPaused(page)).toBe(false);
 
-  // Wait — food should increase after resume
-  await page.waitForTimeout(500);
-  const foodAfter = await getFoodValue(page);
-  expect(foodAfter).toBeGreaterThan(foodPaused);
+  // Food should increase after resume
+  await expect.poll(() => getFoodValue(page), { timeout: 10_000 }).toBeGreaterThan(foodPaused);
 });
 
 test('Space does not pause (it is the primary action now)', async ({ page }) => {
@@ -119,11 +124,13 @@ test('Space does not pause (it is the primary action now)', async ({ page }) => 
   await page.goto('/');
   await expect(page.locator(PAUSE_BUTTON)).toBeAttached();
   await page.keyboard.press('Space');
-  await page.waitForTimeout(200);
+  // Key handling is synchronous: had Space paused, the state would say so already.
+  expect(await isPaused(page)).toBe(false);
   await expect(page.locator('body')).not.toHaveClass(/game-paused/);
 });
 
 test('P toggles pause (Story 1.30)', async ({ page }) => {
+  await page.clock.install();
   await seedSave(page);
   await page.goto('/');
   await expect(page.locator(PAUSE_BUTTON)).toBeAttached();
@@ -136,7 +143,7 @@ test('P toggles pause (Story 1.30)', async ({ page }) => {
 
   // Take food reading while paused — should barely change
   const foodPaused = await getFoodValue(page);
-  await page.waitForTimeout(300);
+  await page.clock.runFor(2_000);
   const foodStillPaused = await getFoodValue(page);
   const foodDiff = foodStillPaused - foodPaused;
   expect(foodDiff).toBeLessThanOrEqual(2);
@@ -148,9 +155,7 @@ test('P toggles pause (Story 1.30)', async ({ page }) => {
   await expect(page.locator('body')).not.toHaveClass(/game-paused/);
 
   // Food should increase after resume
-  await page.waitForTimeout(500);
-  const foodAfter = await getFoodValue(page);
-  expect(foodAfter).toBeGreaterThan(foodStillPaused);
+  await expect.poll(() => getFoodValue(page), { timeout: 10_000 }).toBeGreaterThan(foodStillPaused);
 });
 
 test('UI dims when paused', async ({ page }) => {
@@ -186,7 +191,5 @@ test('reload starts unpaused even if save had paused: true', async ({ page }) =>
   await expect(page.locator('body')).not.toHaveClass(/game-paused/);
 
   // Food should increase (game is running, not paused)
-  await page.waitForTimeout(500);
-  const food = await getFoodValue(page);
-  expect(food).toBeGreaterThan(100);
+  await expect.poll(() => getFoodValue(page), { timeout: 10_000 }).toBeGreaterThan(100);
 });
