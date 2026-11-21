@@ -2,7 +2,7 @@ import type { GameState } from '../state/GameState';
 import { buildingUpgradeCost, softCapEffectiveness } from '../engine/ProgressionCurve';
 import { buildingBalance as B } from '../data/balance/buildings';
 import { recruitmentBalance } from '../data/balance/recruitment';
-import { BUILDING_UNLOCK_PHASE } from '../data/content/buildings';
+import { BUILDING_MAX_LEVEL, BUILDING_UNLOCK_PHASE } from '../data/content/buildings';
 import { FIRST_PRODUCED_IN } from '../data/content/producers';
 import { isUnlocked } from '../data/content/tabs';
 import type { Phase } from '../phases/phases';
@@ -15,7 +15,8 @@ export type BuildingType =
   | 'tunnels'
   | 'silk_weaving'
   | 'chitin_armory'
-  | 'venom_lab';
+  | 'venom_lab'
+  | 'midden';
 
 interface Cost {
   food: number;
@@ -74,7 +75,13 @@ export function isLevelPayableIn(building: BuildingType, level: number, phase: P
 /** Whether the building's next level can be bought in the state's phase, at any price. */
 export function isBuildingOpen(building: BuildingType, state: GameState): boolean {
   const phase = state.phase as Phase;
-  return isBuildingUnlocked(building, phase) && isLevelPayableIn(building, state.buildings[building].level + 1, phase);
+  const next = state.buildings[building].level + 1;
+  return isBuildingUnlocked(building, phase) && !isBuildingMaxed(building, state) && isLevelPayableIn(building, next, phase);
+}
+
+/** Whether the building stands at its last level (Story 4.8, `BUILDING_MAX_LEVEL`). */
+export function isBuildingMaxed(building: BuildingType, state: GameState): boolean {
+  return state.buildings[building].level >= (BUILDING_MAX_LEVEL[building] ?? Infinity);
 }
 
 /** Whether the stocks cover the building's next level (affordability only; see `isBuildingOpen`). */
@@ -131,7 +138,7 @@ export function build(building: BuildingType, state: GameState): GameState {
  * soft cap is floored for them (Story 3.3, FR34). A fractional capacity would
  * let a fraction of an ant mature.
  */
-const COUNT_EFFECTS: ReadonlySet<string> = new Set(['nestCapacity', 'scoutsCap', 'warriorsCap']);
+const COUNT_EFFECTS: ReadonlySet<string> = new Set(['nestCapacity', 'scoutsCap', 'warriorsCap', 'salvagePerFallen']);
 
 export function getEffects(
   building: BuildingType,
@@ -171,5 +178,7 @@ function getRawEffects(
       return { weaponUnlocked: level >= 1 ? 1 : 0 };
     case 'venom_lab':
       return { venomLabLevel: level };
+    case 'midden':
+      return { salvagePerFallen: level * B.middenSalvagePerFallenPerLevel };
   }
 }

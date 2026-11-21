@@ -51,12 +51,23 @@ export const CRITICAL_PATH: Readonly<Record<Phase, readonly ItemRef[]>> = {
     { kind: 'building', id: 'barracks' },
     { kind: 'building', id: 'walls' },
   ],
-  // Battles won: survive (HP) and hit harder, then feed the colony.
+  // Battles won (Story 4.8): every equipment, mutation and combat building
+  // competes here for the loot. Army-wide stats first (a workshop, then its
+  // equipment), then the mutations that answer one trait each, then venom.
   [Phase.COMBAT]: [
+    { kind: 'building', id: 'chitin_armory' },
+    { kind: 'equipment', id: 'weapon' },
+    { kind: 'building', id: 'silk_weaving' },
+    { kind: 'equipment', id: 'armor' },
     { kind: 'mutation', id: 'tough_shells' },
     { kind: 'mutation', id: 'swift_soldiers' },
     { kind: 'mutation', id: 'reinforced_mandibles' },
     { kind: 'mutation', id: 'efficient_gatherers' },
+    { kind: 'mutation', id: 'accelerated_hatching' },
+    { kind: 'building', id: 'venom_lab' },
+    { kind: 'mutation', id: 'potent_venom' },
+    // Last: the fallen's chitin feeds everything above, paid in the army's food.
+    { kind: 'building', id: 'midden' },
   ],
   // Workers and a food stock: room for workers, expeditions for territory, more food.
   [Phase.EXPANSION]: [

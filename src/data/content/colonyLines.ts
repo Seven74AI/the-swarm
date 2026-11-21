@@ -55,6 +55,7 @@ const lines = {
   battle_venom: { text: 'VENOM DEALS {damage} DAMAGE.', from: Phase.COMBAT },
   battle_salvage: { text: 'THE SWARM SALVAGES {loot} FROM THE {enemy}.', from: Phase.COMBAT },
   battle_defeat: { text: 'THE {enemy} KILLS ALL {soldiers} SOLDIERS.', from: Phase.COMBAT },
+  battle_midden: { text: 'THE MIDDEN TAKES {fallen} FALLEN. +{chitin} CHITIN.', from: Phase.COMBAT },
   battle_draw: { text: 'THE {enemy} RETREATS. {lost} SOLDIERS FALL.', from: Phase.COMBAT },
   // The battle summary's cause line (Story 4.3, UX-DR25); words in `battleCauses.ts`.
   cause_trait_beat: { text: '{their} {beat} YOUR {upgrade}.', from: Phase.COMBAT },

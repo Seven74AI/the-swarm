@@ -158,6 +158,7 @@ export function prestige(state: GameState): GameState {
       silk_weaving: { level: 0 },
       chitin_armory: { level: 0 },
       venom_lab: { level: 0 },
+      midden: { level: 0 },
     },
     territory: {
       ownedTiles: 0,

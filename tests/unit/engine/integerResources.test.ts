@@ -80,7 +80,7 @@ const arbState: fc.Arbitrary<GameState> = fc
     combatSoldiers: amount(80),
     scouts: amount(20),
     warriors: amount(20),
-    buildingLevels: fc.array(amount(6), { minLength: 8, maxLength: 8 }),
+    buildingLevels: fc.array(amount(6), { minLength: 9, maxLength: 9 }),
     equipment: fc.array(amount(5), { minLength: 2, maxLength: 2 }),
     clickPower: amount(20),
     // Egg-chamber levels (Story 4.6), up to each one's last level.
@@ -131,7 +131,7 @@ const arbState: fc.Arbitrary<GameState> = fc
     s.soldierPipeline = { count: r.training, progress: 0 };
     s.combatSoldiers = r.combatSoldiers;
     s.soldiers = { ...s.soldiers, scouts: r.scouts, warriors: r.warriors };
-    const [barracks, walls, warehouse, silk, chitin, venom, garden, tunnels] = r.buildingLevels;
+    const [barracks, walls, warehouse, silk, chitin, venom, garden, tunnels, midden] = r.buildingLevels;
     s.buildings = {
       barracks: { level: barracks, count: barracks },
       walls: { level: walls },
@@ -141,6 +141,7 @@ const arbState: fc.Arbitrary<GameState> = fc
       silk_weaving: { level: silk },
       chitin_armory: { level: chitin },
       venom_lab: { level: venom },
+      midden: { level: midden },
     };
     s.equipment = { weapon: r.equipment[0], armor: r.equipment[1] };
     s.upgrades = { ...s.upgrades, click_power: r.clickPower, ...r.nestUpgrades };
@@ -209,7 +210,7 @@ const arbAction: fc.Arbitrary<Command> = fc.oneof(
   fc.constantFrom(...(Object.keys(upgradeBalance) as UpgradeId[])).map(
     (id): Command => ({ kind: 'action', name: `buyUpgrade ${id}`, run: (a) => a.buyUpgrade(id) }),
   ),
-  fc.constantFrom('barracks', 'walls', 'warehouse', 'fungus_garden', 'tunnels', 'silk_weaving', 'chitin_armory', 'venom_lab' as const).map(
+  fc.constantFrom('barracks', 'walls', 'warehouse', 'fungus_garden', 'tunnels', 'silk_weaving', 'chitin_armory', 'venom_lab', 'midden' as const).map(
     (b): Command => ({ kind: 'action', name: `buyBuilding ${b}`, run: (a) => a.buyBuilding(b) }),
   ),
   fc.constantFrom('basic_incubation', 'queens_pheromones', 'thermal_regulation', 'genetic_optimization', 'cloning_vats' as const).map(

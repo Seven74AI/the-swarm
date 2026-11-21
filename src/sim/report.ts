@@ -8,6 +8,9 @@ import { SimRunner, runSim, type SimResult } from './runner';
 import { dailySchedule, type CheckInSchedule } from './schedule';
 import { defaultPolicy, maxArmyPolicy, type PlayerPolicy } from './policy';
 import type { CheckInRecord, EggSample, ProbeReport } from './probes';
+import { MUTATIONS } from '../systems/MutationSystem';
+import type { BuildingType } from '../systems/BuildingSystem';
+import { BUILDING_UNLOCK_PHASE } from '../data/content/buildings';
 
 export type { PacingTargets, PhaseTarget } from '../data/balance/pacing';
 
@@ -164,6 +167,33 @@ export interface ArmyRun {
   readonly battlesLost: number;
   /** Indexes of the check-ins where food was critical. */
   readonly foodCritical: readonly number[];
+  /** Phase 3 purchasables bought in Combat (Story 4.8), as `combatPurchases` names them. */
+  readonly bought: readonly string[];
+}
+
+const levels = (name: string, from: number, to: number): string | null =>
+  to <= from ? null : to === from + 1 ? `${name} LV.${to}` : `${name} LV.${from + 1}–${to}`;
+
+/**
+ * What a colony bought between two states (Story 4.8): its equipment levels,
+ * mutations and the levels of the buildings that open in Combat, upper case
+ * (`WEAPONS LV.1–3`, `TOUGH SHELLS`, `MIDDEN LV.1`). Pure.
+ */
+export function combatPurchases(before: GameState, after: GameState): string[] {
+  const out: (string | null)[] = [
+    levels('WEAPONS', before.equipment.weapon, after.equipment.weapon),
+    levels('ARMOR', before.equipment.armor, after.equipment.armor),
+  ];
+  for (const m of MUTATIONS) {
+    const had = before.mutations.find((x) => x.id === m.id)?.purchased === true;
+    const has = after.mutations.find((x) => x.id === m.id)?.purchased === true;
+    if (has && !had) out.push(m.name.toUpperCase());
+  }
+  for (const id of Object.keys(BUILDING_UNLOCK_PHASE) as BuildingType[]) {
+    if (BUILDING_UNLOCK_PHASE[id] !== Phase.COMBAT) continue;
+    out.push(levels(id.replace(/_/g, ' ').toUpperCase(), before.buildings[id]?.level ?? 0, after.buildings[id]?.level ?? 0));
+  }
+  return out.filter((x): x is string => x !== null);
 }
 
 /**
@@ -213,6 +243,7 @@ function playCombat(entry: GameState, seed: number, schedule: CheckInSchedule, f
     battlesWon: r.state.battlesWon,
     battlesLost: r.state.battlesLost,
     foodCritical: checkIns.filter((c) => c.foodCritical).map((c) => c.index),
+    bought: combatPurchases(entry, r.state),
   };
 }
 
@@ -327,7 +358,9 @@ export function formatArmyComparison(a: ArmyComparison): string[] {
   return [
     `Army trade-off (Story 4.4): Combat from check-in ${a.startCheckIn + 1}, same seed, default player vs max-army player (trains every free worker, then fights)`,
     armyLine('default', a.default),
+    `            bought in Combat: ${a.default.bought.join(', ') || 'nothing'}`,
     armyLine('max-army', a.maxArmy),
+    `            bought in Combat: ${a.maxArmy.bought.join(', ') || 'nothing'}`,
     `  Food-critical for the max-army colony only: check-ins ${checkInList(a.onlyMaxArmyFoodCritical)} (target ≥ 1)`,
   ];
 }

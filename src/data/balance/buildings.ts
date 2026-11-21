@@ -18,6 +18,8 @@ export const buildingBalance = {
     // Story 4.7: the Colony's nectar buildings. Wood or stone against the Warehouse, nectar against each other.
     fungus_garden: { food: 0, wood: 800, stone: 0, nectar: 300, chitin: 0, silk: 0, venom: 0 },
     tunnels: { food: 0, wood: 0, stone: 1200, nectar: 300, chitin: 0, silk: 0, venom: 0 },
+    /** Story 4.8: paid in stone, the Walls', the Warehouse's and the Chitin Armory's currency. */
+    midden: { food: 0, wood: 0, stone: 1500, nectar: 0, chitin: 0, silk: 0, venom: 0 },
   },
   /** From this level on, barracks, walls and warehouse also cost combat resources. */
   advancedFromLevel: 5,
@@ -33,6 +35,8 @@ export const buildingBalance = {
   },
   /** Walls: defence share per level. */
   wallsDefensePerLevel: 0.05,
+  /** Midden (Story 4.8): chitin each fallen soldier leaves, per level. */
+  middenSalvagePerFallenPerLevel: 1,
   /** Warehouse: nest capacity per level. */
   warehouseNestCapacityPerLevel: 20,
   /** Fungus Garden (Story 4.7): extra share of a gatherer's food per level. */

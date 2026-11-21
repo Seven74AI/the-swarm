@@ -84,6 +84,6 @@ export const combatBalance = {
     accelerated_hatching: { fight: { healPerRound: 2 }, strongAgainst: ['swarm'], weakAgainst: ['swift'] },
     tough_shells: { fight: { maxHp: 2 }, strongAgainst: ['swift'], weakAgainst: ['thick_shell', 'regrowth'] },
     potent_venom: { fight: { poisonDamage: 0.5 }, strongAgainst: ['regrowth'], weakAgainst: ['venom_resistance', 'thick_shell'] },
-    reinforced_mandibles: { fight: { strength: 1 }, strongAgainst: ['thick_shell'], weakAgainst: ['swift'] },
+    reinforced_mandibles: { fight: { strength: 2 }, strongAgainst: ['thick_shell'], weakAgainst: ['swift'] },
   },
 } as const;

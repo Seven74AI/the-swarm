@@ -130,6 +130,8 @@ export interface GameState {
     silk_weaving: { level: number };
     chitin_armory: { level: number };
     venom_lab: { level: number };
+    /** Story 4.8: where the fallen go; each soldier lost leaves chitin. */
+    midden: { level: number };
   };
   territory: {
     ownedTiles: number;
@@ -415,6 +417,7 @@ export function createInitialState(): GameState {
       silk_weaving: { level: 0 },
       chitin_armory: { level: 0 },
       venom_lab: { level: 0 },
+      midden: { level: 0 },
     },
     territory: {
       ownedTiles: 0,

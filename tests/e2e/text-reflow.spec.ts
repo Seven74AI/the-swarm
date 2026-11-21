@@ -276,6 +276,18 @@ for (const setup of SETUPS) {
       expect((await layoutProblems(page)).map((p) => `battle summary: ${p}`)).toEqual([]);
     });
 
+    test('BUILD with built workshops (MAX) and the Midden fits the screen too (Story 4.8)', async ({ page }) => {
+      await seed(page, setup, {
+        ...SPACE,
+        buildings: { ...SPACE.buildings, chitin_armory: { level: 1 }, silk_weaving: { level: 1 }, midden: { level: 2 } },
+      });
+      await openTab(page, 'build');
+      const build = page.locator('[data-tab-panel="build"]');
+      await expect(build.locator('[data-building="midden"]')).toBeVisible();
+      await expect(build.locator('[data-building="chitin_armory"] .card__level')).toContainText('MAX');
+      expect((await layoutProblems(page)).map((p) => `build: ${p}`)).toEqual([]);
+    });
+
     test('the settings sheet and the import sheets fit the screen too (Story 2.11)', async ({ page }) => {
       await seed(page, setup);
       const openSettings = async () => {

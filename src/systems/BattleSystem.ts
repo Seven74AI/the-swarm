@@ -6,6 +6,7 @@ import { armyOf, fightRounds, type BattleOutcome } from './CombatRounds';
 import { battleCause } from './BattleCauses';
 import type { BattleCause } from './Counters';
 import { consumeVenom } from './VenomSystem';
+import { getEffects } from './BuildingSystem';
 import { between, intBetween, rngStream, type RngStream } from '../utils/rng';
 import { combatBalance } from '../data/balance/combat';
 import type { EnemyType } from '../data/content/enemies';
@@ -122,6 +123,9 @@ export class BattleSystem {
       }
     }
 
+    // The Midden (Story 4.8): every soldier lost, whatever the outcome, leaves chitin.
+    const middenChitin = Math.floor(soldiersLost * (getEffects('midden', workingState.buildings.midden?.level ?? 0).salvagePerFallen ?? 0));
+
     // Build narrative
     let narrative: string;
     if (victory) {
@@ -142,6 +146,10 @@ export class BattleSystem {
     } else {
       // Draw: max rounds exceeded, enemy flees
       narrative = colonyLine('battle_draw', { enemy: enemy.name, lost: soldiersLost });
+    }
+    if (middenChitin > 0) {
+      narrative += ` ${colonyLine('battle_midden', { fallen: soldiersLost, chitin: middenChitin })}`;
+      chitinGained += middenChitin;
     }
 
     const result: BattleResult = {

@@ -261,7 +261,7 @@ describe('MutationSystem', () => {
     it('getSoldierMaxHp increases after tough_shells', async () => {
       const { getSoldierMaxHp } = await import('../../src/systems/SoldierSystem');
       const before = getSoldierMaxHp(state);
-      giveResources({ chitin: 15, silk: 10 });
+      giveResources({ ...MUTATIONS.find((m) => m.id === 'tough_shells')!.cost });
       const afterPurchase = purchaseMutation(state, 'tough_shells');
       const after = getSoldierMaxHp(afterPurchase);
       expect(after).toBeGreaterThan(before);
