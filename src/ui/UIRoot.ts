@@ -6,19 +6,15 @@ import { EventLog } from './panels/EventLog';
 import { SoldierPanel } from './panels/SoldierPanel';
 import { BattlePanel } from './panels/BattlePanel';
 import { CombatLogPanel } from './panels/CombatLogPanel';
-import { BuildingPanel } from './panels/BuildingPanel';
 import { ExpeditionPanel } from './panels/ExpeditionPanel';
 import { ExplorationPanel } from './panels/ExplorationPanel';
 import { MapPanel } from './panels/MapPanel';
 import { SpaceshipPanel } from './panels/SpaceshipPanel';
 import { CosmicPanel } from './panels/CosmicPanel';
 import { StarmapPanel } from './panels/StarmapPanel';
-import { ResourceConverterPanel } from './panels/ResourceConverterPanel';
-import { TechTreePanel } from './panels/TechTreePanel';
 import { PrestigePanel } from './panels/PrestigePanel';
 import { PrestigeTreePanel } from './panels/PrestigeTreePanel';
 import { TranscendencePanel } from './panels/TranscendencePanel';
-import { ResearchPanel } from './panels/ResearchPanel';
 import { MutationPanel } from './panels/MutationPanel';
 import { FoodDisplay } from './panels/FoodDisplay';
 import type { AudioSystem } from './AudioSystem';
@@ -47,6 +43,22 @@ export interface WorkersMounts {
   primary(host: HTMLElement): void;
   /** The automation section, in the `automation_panel` host. */
   automation(host: HTMLElement): void;
+}
+
+/** Where main renders BUILD's Preact parts (Story 1.24), top to bottom, then the primary action. */
+export interface BuildMounts {
+  /** `BUILD` or `NEXT: <item> IN ~<time>`. */
+  header(host: HTMLElement): void;
+  /** The Click Power card (from Phase 2). */
+  clickPower(host: HTMLElement): void;
+  /** The building cards, into `#building-panel`. */
+  buildings(host: HTMLElement): void;
+  /** The research chain, into `#research-panel`. */
+  research(host: HTMLElement): void;
+  /** The converter card, into `#resource-converter-panel`. */
+  converter(host: HTMLElement): void;
+  /** `> BUY` on the highlighted card, in BUILD's primary zone. */
+  primary(host: HTMLElement): void;
 }
 
 /**
@@ -85,6 +97,7 @@ export class UIRoot {
   private mountPhaseLine?: (host: HTMLElement) => void;
   private mountNest?: NestMounts;
   private mountWorkers?: WorkersMounts;
+  private mountBuild?: BuildMounts;
 
   /** Registry mapping panelId → factory function. Populated in constructor. */
   private panelRegistry: Map<string, () => HTMLElement> = new Map();
@@ -106,6 +119,8 @@ export class UIRoot {
     mountNest?: NestMounts;
     /** Renders WRKR's role rows and upkeep, its primary action and automation into their hosts (Story 1.23). */
     mountWorkers?: WorkersMounts;
+    /** Renders BUILD's header, cards and primary action into their hosts (Story 1.24). */
+    mountBuild?: BuildMounts;
   }) {
     this.bus = deps.bus;
     this.actions = deps.actions;
@@ -119,6 +134,7 @@ export class UIRoot {
     this.mountPhaseLine = deps.mountPhaseLine;
     this.mountNest = deps.mountNest;
     this.mountWorkers = deps.mountWorkers;
+    this.mountBuild = deps.mountBuild;
 
     // ── Populate panel registry with factory functions ──
     // Phase 1 panels (mounted at boot for always-visible UI)
@@ -150,9 +166,6 @@ export class UIRoot {
       this.bus, this.actions, this.getState,
     ).getElement());
     this.panelRegistry.set('combat_log', () => new CombatLogPanel().getElement());
-    this.panelRegistry.set('building_panel', () => new BuildingPanel(
-      this.bus, this.getState, this.actions,
-    ).getElement());
     this.panelRegistry.set('mutation_panel', () => new MutationPanel(
       this.bus, this.getState, this.actions,
     ).getElement());
@@ -198,14 +211,8 @@ export class UIRoot {
       };
       return starmapPanel.getElement();
     });
-    this.panelRegistry.set('resource_converter_panel', () => new ResourceConverterPanel(
-      this.bus, this.getState, this.actions,
-    ).getElement());
 
     // Phase 5 panels (lazy — created on demand)
-    this.panelRegistry.set('tech_tree_panel', () => new TechTreePanel(
-      this.bus, this.getState, this.actions,
-    ).getElement());
     this.panelRegistry.set('automation_panel', () =>
       this.createHost('', 'panel automation-host', (h) => this.mountWorkers?.automation(h)));
     this.panelRegistry.set('prestige_panel', () => new PrestigePanel(
@@ -218,10 +225,20 @@ export class UIRoot {
       this.bus, this.getState,
     ).getElement());
 
-    // Phase 4+ research panel (lazy — created on demand)
-    this.panelRegistry.set('research_panel', () => new ResearchPanel(
-      this.bus, this.getState, this.actions, this.confirmSettings,
-    ).getElement());
+    // BUILD (Story 1.24): Preact cards in hosts that keep the legacy panels' ids.
+    this.panelRegistry.set('build_header', () => this.createBuildHost('header', this.mountBuild?.header));
+    this.panelRegistry.set('build_click_power', () => this.createBuildHost('click-power', this.mountBuild?.clickPower));
+    this.panelRegistry.set('building_panel', () => this.createBuildPanel('building-panel', this.mountBuild?.buildings));
+    this.panelRegistry.set('research_panel', () => this.createBuildPanel('research-panel', this.mountBuild?.research));
+    this.panelRegistry.set('resource_converter_panel', () =>
+      this.createBuildPanel('resource-converter-panel', this.mountBuild?.converter));
+    this.panelRegistry.set('build_primary', () => {
+      const host = document.createElement('div');
+      host.className = 'build-primary-host';
+      host.setAttribute('data-build-primary-host', '');
+      this.mountBuild?.primary(host);
+      return host;
+    });
   }
 
   /**
@@ -426,6 +443,23 @@ export class UIRoot {
     host.style.display = 'none';
     if (id) host.id = id;
     if (className) host.className = className;
+    mount?.(host);
+    return host;
+  }
+
+  /** A BUILD content host (`[data-build-host=<name>]`) that main renders into. */
+  private createBuildHost(name: string, mount?: (host: HTMLElement) => void): HTMLElement {
+    const host = document.createElement('div');
+    host.setAttribute('data-build-host', name);
+    mount?.(host);
+    return host;
+  }
+
+  /** A BUILD section keeping a legacy panel's id and class (`#building-panel.building-panel`, …). */
+  private createBuildPanel(id: string, mount?: (host: HTMLElement) => void): HTMLElement {
+    const host = document.createElement('section');
+    host.id = id;
+    host.className = `build-section ${id}`;
     mount?.(host);
     return host;
   }

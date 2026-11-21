@@ -4,8 +4,9 @@ import { openTab } from './helpers/tabs';
 /**
  * Research System E2E Tests
  *
- * Seeds a colony in SPACE phase and verifies the research panel,
- * researcher assignment, project start, progress, completion, and chain unlock.
+ * Seeds a colony in SPACE phase and verifies BUILD's research cards (Story 1.24):
+ * researchers assigned on WRKR, START, the progress meter and time left,
+ * completion, the chain unlock, and CANCEL (50 % BACK) through HoldToConfirm.
  *
  * Pattern: use page.clock.install() before goto, then advance time to trigger
  * phase transitions and panel rendering. Adapted from space-phase tests.
@@ -87,96 +88,52 @@ async function seedSpaceAndWait(page: any, overrides?: Record<string, unknown>) 
 }
 
 test.describe('Research System', () => {
-  test('research panel visible in space phase', async ({ page }) => {
+  const card = (page: any, id: string) => page.locator(`#research-panel [data-research-project="${id}"]`);
+
+  test('research cards visible in space phase, one per chain step', async ({ page }) => {
     await seedSpaceAndWait(page);
 
     const panel = page.locator('#research-panel');
     await expect(panel).toBeVisible({ timeout: 10000 });
-    await expect(panel).toContainText('Research');
+    await expect(panel).toContainText('VOID CRYSTAL SYNTHESIS');
+    await expect(panel).toContainText('ANTIMATTER CONTAINMENT');
+    await expect(panel).toContainText('DARK MATTER DETECTION');
+    await expect(panel.locator('[data-research-project] [data-card]')).toHaveCount(3);
   });
 
-  test('research panel lists all 3 projects', async ({ page }) => {
+  test('the first step is available, the chained steps are locked', async ({ page }) => {
     await seedSpaceAndWait(page);
 
-    const panel = page.locator('#research-panel');
-    await expect(panel).toContainText('Void Crystal Synthesis');
-    await expect(panel).toContainText('Antimatter Containment');
-    await expect(panel).toContainText('Dark Matter Detection');
+    await expect(card(page, 'voidCrystalSynthesis')).toHaveAttribute('data-research-status', 'available');
+    await expect(card(page, 'antimatterContainment')).toHaveAttribute('data-research-status', 'locked');
+    await expect(card(page, 'darkMatterDetection')).toHaveAttribute('data-research-status', 'locked');
+    // A locked step names what it waits for.
+    await expect(card(page, 'antimatterContainment')).toContainText('NEEDS VOID CRYSTAL SYNTHESIS');
   });
 
-  test('first project shows Available status', async ({ page }) => {
+  test('assign researchers on WRKR, then START runs the step with a meter and the time left', async ({ page }) => {
     await seedSpaceAndWait(page);
 
-    const panel = page.locator('#research-panel');
-    const vcsCard = panel.locator('[data-research-project="voidCrystalSynthesis"]');
-    await expect(vcsCard).toContainText('Available');
+    const start = card(page, 'voidCrystalSynthesis').locator('[data-action="start-research"]');
+    await expect(start).toHaveAttribute('aria-disabled', 'true');
+    await expect(card(page, 'voidCrystalSynthesis')).toContainText('RESEARCHERS');
+
+    // Researchers are a WRKR role (Story 1.23): ×MAX puts every free worker on Research.
+    await openTab(page, 'wrkr');
+    const wrkr = page.locator('[data-tab-panel="wrkr"]');
+    await wrkr.locator('[data-multiplier="max"]').click();
+    await wrkr.locator('[data-role="research"] [data-step="add"]').click();
+
+    await openTab(page, 'build');
+    await expect(start).not.toHaveAttribute('aria-disabled', 'true');
+    await start.click();
+
+    await expect(card(page, 'voidCrystalSynthesis')).toHaveAttribute('data-research-status', 'in_progress');
+    await expect(card(page, 'voidCrystalSynthesis').locator('[role="progressbar"]')).toHaveCount(1);
+    await expect(card(page, 'voidCrystalSynthesis').locator('[data-time-left]')).toContainText('LEFT');
   });
 
-  test('chained projects show Locked status', async ({ page }) => {
-    await seedSpaceAndWait(page);
-
-    const panel = page.locator('#research-panel');
-    const acCard = panel.locator('[data-research-project="antimatterContainment"]');
-    await expect(acCard).toContainText('Locked');
-
-    const dmdCard = panel.locator('[data-research-project="darkMatterDetection"]');
-    await expect(dmdCard).toContainText('Locked');
-  });
-
-  test('assign researchers and start project', async ({ page }) => {
-    await seedSpaceAndWait(page);
-
-    // Click '+' on researcher pool 50 times to assign researchers
-    const panel = page.locator('#research-panel');
-    const researcherSection = panel.locator('.research-researcher-pool');
-    const researcherPlus = researcherSection.locator('button').last();
-
-    // The click handler writes state synchronously and the panel re-renders in
-    // the same effect, so no clock advance is needed between clicks.
-    for (let i = 0; i < 50; i++) {
-      await researcherPlus.dispatchEvent('click');
-    }
-    await expect(researcherSection.locator('.research-pool-count')).toHaveText('50');
-
-    const vcsCard = panel.locator('[data-research-project="voidCrystalSynthesis"]');
-    const startBtn = vcsCard.locator('button');
-    await expect(startBtn).toBeEnabled();
-
-    await startBtn.dispatchEvent('click');
-    await page.clock.runFor(100);
-
-    await expect(vcsCard).toContainText('In Progress');
-  });
-
-  test('progress bar appears for in-progress project', async ({ page }) => {
-    await seedSpaceAndWait(page, {
-      workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 50 },
-      research: {
-        projects: {
-          voidCrystalSynthesis: { state: 'in_progress', progress: 30 },
-          antimatterContainment: { state: 'locked', progress: 0 },
-          darkMatterDetection: { state: 'locked', progress: 0 },
-        },
-      },
-    });
-
-    // Advance time to let signals settle
-    await page.clock.runFor(500);
-
-    const panel = page.locator('#research-panel');
-    const vcsCard = panel.locator('[data-research-project="voidCrystalSynthesis"]');
-
-    await expect(vcsCard).toContainText('In Progress');
-
-    const progressBar = vcsCard.locator('.progress-bar-fill, [role="progressbar"]');
-    // Progress bar exists (may use CSS visibility:hidden during animation)
-    const barCount = await progressBar.count();
-    expect(barCount).toBeGreaterThan(0);
-
-    await expect(vcsCard).toContainText(/\d+s \/ \d+s/);
-  });
-
-  test('completed project shows unlock and Completed status', async ({ page }) => {
+  test('a completed step reads DONE and unlocks the next', async ({ page }) => {
     await seedSpaceAndWait(page, {
       workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 },
       research: {
@@ -188,17 +145,14 @@ test.describe('Research System', () => {
       },
     });
 
-    await page.clock.runFor(500);
-
-    const panel = page.locator('#research-panel');
-    const vcsCard = panel.locator('[data-research-project="voidCrystalSynthesis"]');
-
-    await expect(vcsCard).toContainText('Completed');
-    await expect(vcsCard).toContainText('Unlocked');
-    await expect(vcsCard).toContainText('voidCrystal');
+    await expect(card(page, 'voidCrystalSynthesis')).toHaveAttribute('data-research-status', 'completed');
+    await expect(card(page, 'voidCrystalSynthesis')).toContainText('DONE');
+    await expect(card(page, 'antimatterContainment')).toHaveAttribute('data-research-status', 'available');
+    // The converter's first step is unlocked by it.
+    await expect(page.locator('#resource-converter-panel [data-conversion="voidCrystalSynthesis"]')).toHaveAttribute('data-unlocked', 'true');
   });
 
-  test('cancel project shows Cancel button and holding it works', async ({ page }) => {
+  test('CANCEL (50 % BACK) shows the refund first, and holding it refunds half', async ({ page }) => {
     await seedSpaceAndWait(page, {
       workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 50 },
       research: {
@@ -210,19 +164,27 @@ test.describe('Research System', () => {
       },
     });
 
-    await page.clock.runFor(500);
+    const vcsCard = card(page, 'voidCrystalSynthesis');
+    await expect(vcsCard).toHaveAttribute('data-research-status', 'in_progress');
+    await expect(vcsCard.locator('[data-refund]')).toContainText('BACK');
 
-    const panel = page.locator('#research-panel');
-    const vcsCard = panel.locator('[data-research-project="voidCrystalSynthesis"]');
-
-    await expect(vcsCard).toContainText('Cancel');
+    const read = () => page.evaluate(() => {
+      // @ts-ignore - runs in browser context
+      const s = window.__swarm.manager.getState();
+      return { stone: s.resources.stone as number, nectar: s.resources.nectar as number };
+    });
+    const before = await read();
 
     // Cancel is irreversible: hold it past the hold duration (Story 1.13).
-    const cancelBtn = vcsCard.locator('button', { hasText: 'Cancel' });
+    const cancelBtn = vcsCard.locator('[data-action="cancel-research"]');
+    await expect(cancelBtn).toHaveAttribute('aria-label', /CANCEL \(50 % BACK\)/);
     await cancelBtn.dispatchEvent('pointerdown', { pointerId: 1, button: 0, isPrimary: true });
     // The hold completes and fires while still pressed; the control then leaves the card.
     await page.clock.runFor(1500);
 
-    await expect(vcsCard).toContainText('Available');
+    await expect(vcsCard).toHaveAttribute('data-research-status', 'available');
+    const after = await read();
+    expect(after.stone).toBeGreaterThan(before.stone);
+    expect(after.nectar).toBeGreaterThan(before.nectar);
   });
 });

@@ -270,13 +270,13 @@ test.describe('Buildings', () => {
   test('build Barracks Lv.1 — cost deduction + effect display', async ({ page }) => {
     await seedAndWaitForExpansion(page);
 
-    // Verify initial state: Lv.0, effect shows "Scouts cap: 0"
-    await expect(page.locator('[data-building="barracks"]')).toContainText('Lv.0');
-    await expect(page.locator('[data-building="barracks"] .building-info')).toContainText('Scouts cap: 0', { timeout: 3000 });
+    // Verify initial state: LV.0, effect line starts at SCOUTS 0 (Story 1.24 cards)
+    await expect(page.locator('[data-building="barracks"]')).toContainText('LV.0 →');
+    await expect(page.locator('[data-building="barracks"] .card__effect')).toContainText('SCOUTS 0 →', { timeout: 3000 });
 
-    // Click Build. Read resources immediately before and after the click in one
+    // Tap BUY. Read resources immediately before and after the click in one
     // synchronous evaluate, so no tick's production lands between the two reads.
-    const buildBtn = page.locator('[data-building="barracks"] button').filter({ hasText: 'Build' });
+    const buildBtn = page.locator('[data-building="barracks"] [data-action="buy-building"]');
     await expect(buildBtn).toBeEnabled({ timeout: 3000 });
     const { before, after } = await buildBtn.evaluate((el) => {
       // @ts-ignore - runs in browser context
@@ -288,10 +288,10 @@ test.describe('Buildings', () => {
     expect(before.food).toBeGreaterThan(0);
 
     // Verify level updated to Lv.1
-    await expect(page.locator('[data-building="barracks"]')).toContainText('Lv.1', { timeout: 3000 });
+    await expect(page.locator('[data-building="barracks"]')).toContainText('LV.1 →', { timeout: 3000 });
 
     // Effect shows "Scouts cap: 2" (Lv.1 Barracks: scoutsCap=2, warriorsCap=0)
-    await expect(page.locator('[data-building="barracks"] .building-info')).toContainText('Scouts cap: 2', { timeout: 3000 });
+    await expect(page.locator('[data-building="barracks"] .card__effect')).toContainText('SCOUTS 2 →', { timeout: 3000 });
 
     // Building paid its cost: food and wood both went down.
     expect(after.food).toBeLessThan(before.food);
@@ -305,21 +305,21 @@ test.describe('Buildings', () => {
     await seedAndWaitForExpansion(page);
 
     // Initial: Lv.0, defense +0%
-    await expect(page.locator('[data-building="walls"]')).toContainText('Lv.0');
-    await expect(page.locator('[data-building="walls"] .building-info')).toContainText('Defense: +0%', { timeout: 3000 });
+    await expect(page.locator('[data-building="walls"]')).toContainText('LV.0 →');
+    await expect(page.locator('[data-building="walls"] .card__effect')).toContainText('DEFENSE +0% →', { timeout: 3000 });
 
     // Note stone before
     const stoneBefore = await readGameState(page, 'resources.stone') as number;
 
     // Click Build
-    const buildBtn = page.locator('[data-building="walls"] button').filter({ hasText: 'Build' });
+    const buildBtn = page.locator('[data-building="walls"] [data-action="buy-building"]');
     await expect(buildBtn).toBeEnabled({ timeout: 3000 });
     await buildBtn.evaluate(el => (el as HTMLElement).click());
     await page.clock.runFor(100); // Let signals settle DOM
 
     // Level updated to Lv.1, defense +5%
-    await expect(page.locator('[data-building="walls"]')).toContainText('Lv.1', { timeout: 3000 });
-    await expect(page.locator('[data-building="walls"] .building-info')).toContainText('Defense: +5%', { timeout: 3000 });
+    await expect(page.locator('[data-building="walls"]')).toContainText('LV.1 →', { timeout: 3000 });
+    await expect(page.locator('[data-building="walls"] .card__effect')).toContainText('DEFENSE +5% →', { timeout: 3000 });
 
     // Stone deducted: Walls Lv.1 costs 500 stone (200 * 2.5^1)
     const stoneAfter = await readGameState(page, 'resources.stone') as number;
@@ -331,18 +331,18 @@ test.describe('Buildings', () => {
     await seedAndWaitForExpansion(page);
 
     // Initial: Lv.0, capacity +0
-    await expect(page.locator('[data-building="warehouse"]')).toContainText('Lv.0');
-    await expect(page.locator('[data-building="warehouse"] .building-info')).toContainText('Capacity: +0', { timeout: 3000 });
+    await expect(page.locator('[data-building="warehouse"]')).toContainText('LV.0 →');
+    await expect(page.locator('[data-building="warehouse"] .card__effect')).toContainText('NEST CAPACITY +0 →', { timeout: 3000 });
 
     // Click Build
-    const buildBtn = page.locator('[data-building="warehouse"] button').filter({ hasText: 'Build' });
+    const buildBtn = page.locator('[data-building="warehouse"] [data-action="buy-building"]');
     await expect(buildBtn).toBeEnabled({ timeout: 3000 });
     await buildBtn.evaluate(el => (el as HTMLElement).click());
     await page.clock.runFor(100); // Let signals settle DOM
 
     // Level updated to Lv.1, capacity display shows +25
-    await expect(page.locator('[data-building="warehouse"]')).toContainText('Lv.1', { timeout: 3000 });
-    await expect(page.locator('[data-building="warehouse"] .building-info')).toContainText('Capacity: +25', { timeout: 3000 });
+    await expect(page.locator('[data-building="warehouse"]')).toContainText('LV.1 →', { timeout: 3000 });
+    await expect(page.locator('[data-building="warehouse"] .card__effect')).toContainText('NEST CAPACITY +25 →', { timeout: 3000 });
 
     // Resources deducted: Warehouse Lv.1 = 375 wood + 250 stone (×2.5)
     const wood = await readGameState(page, 'resources.wood') as number;
@@ -368,15 +368,16 @@ test.describe('Buildings', () => {
     await page.waitForSelector('#building-panel', { timeout: 10000 });
     await expect(page.locator('#phase-indicator')).toContainText('The Expansion', { timeout: 15000 });
 
-    // All Build buttons should be disabled (no wood or stone)
+    // All BUY buttons are disabled (no wood or stone), and each card shows its shortfall
     await expect(
-      page.locator('[data-building="barracks"] button').filter({ hasText: 'Build' }),
+      page.locator('[data-building="barracks"] [data-action="buy-building"]'),
     ).toBeDisabled({ timeout: 3000 });
     await expect(
-      page.locator('[data-building="walls"] button').filter({ hasText: 'Build' }),
+      page.locator('[data-building="walls"] [data-action="buy-building"]'),
     ).toBeDisabled({ timeout: 3000 });
     await expect(
-      page.locator('[data-building="warehouse"] button').filter({ hasText: 'Build' }),
+      page.locator('[data-building="warehouse"] [data-action="buy-building"]'),
     ).toBeDisabled({ timeout: 3000 });
+    await expect(page.locator('[data-building="walls"] [data-shortfall]')).toContainText('needs');
   });
 });

@@ -35,6 +35,12 @@ describe('affordableKeys (Story 1.15: the tab dot)', () => {
     expect(affordableKeys(poor)).not.toContain('building_panel:warehouse');
   });
 
+  it('lists affordable Click Power under BUILD\'s Click Power card (Story 1.24)', () => {
+    expect(affordableKeys(rich())).toContain('build_click_power:click_power');
+    const s = rich();
+    expect(affordableKeys({ ...s, resources: { ...s.resources, food: 0 } })).not.toContain('build_click_power:click_power');
+  });
+
   it('lists purchasable mutations under the mutation panel', () => {
     const first = MUTATIONS.find((m) => !m.prerequisite)!;
     expect(affordableKeys(rich())).toContain(`mutation_panel:${first.id}`);

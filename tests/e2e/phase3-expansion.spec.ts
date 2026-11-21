@@ -108,9 +108,9 @@ test.describe('Phase 3 — Expansion', () => {
     const buildingPanel = page.locator('.building-panel');
     await expect(buildingPanel).toBeAttached();
     const text = await buildingPanel.textContent();
-    expect(text).toContain('Barracks');
-    expect(text).toContain('Walls');
-    expect(text).toContain('Warehouse');
+    expect(text).toContain('BARRACKS');
+    expect(text).toContain('WALLS');
+    expect(text).toContain('WAREHOUSE');
   });
 
   test('save and reload preserves state', async ({ page }) => {

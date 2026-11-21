@@ -397,10 +397,7 @@ test.describe('Space Phase — Neon Theme & Panels', () => {
     const converterPanel = page.locator('#resource-converter-panel');
     await expect(converterPanel).toBeAttached({ timeout: 5000 });
 
-    // Phase 5 panels should NOT exist yet in space phase
-    const techTreeExists = await page.locator('#tech-tree-panel').count();
-    expect(techTreeExists).toBe(0);
-
+    // Phase 5 panels should NOT exist yet in space phase (the tech tree panel is gone: Story 1.24)
     const autoExists = await page.locator('#automation-panel').count();
     expect(autoExists).toBe(0);
   });

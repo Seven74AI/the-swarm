@@ -82,10 +82,13 @@ describe('tab registry', () => {
       wrkr_primary: ['wrkr'],
       food_display: ['wrkr'],
       automation_panel: ['wrkr'],
+      // BUILD (Story 1.24): TechTreePanel is gone (the Legacy tree is sold in LOG → LEGACY).
+      build_header: ['build'],
+      build_click_power: ['build'],
       building_panel: ['build'],
       research_panel: ['build'],
-      tech_tree_panel: ['build'],
       resource_converter_panel: ['build'],
+      build_primary: ['build'],
       soldier_panel: ['front', 'war'],
       battle_panel: ['front', 'war'],
       combat_log: ['front', 'war'],
@@ -113,6 +116,14 @@ describe('tab registry', () => {
     // At most one primary action per tab.
     const tabs = primaries.map((p) => p.tab);
     expect(new Set(tabs).size).toBe(tabs.length);
+  });
+
+  it('BUILD shows its header, the Click Power card and > BUY from Colony, then buildings, research and the converter in that order (Story 1.24)', () => {
+    expect(PANEL_PLACEMENT.build_primary.zone).toBe('primary');
+    const colony = panelsForPhase(Phase.COLONY).filter((id) => PANEL_PLACEMENT[id].tab === 'build');
+    expect(colony).toEqual(['build_header', 'build_click_power', 'build_primary']);
+    const space = panelsForPhase(Phase.SPACE).filter((id) => PANEL_PLACEMENT[id].tab === 'build' && !PANEL_PLACEMENT[id].zone);
+    expect(space).toEqual(['build_header', 'build_click_power', 'building_panel', 'research_panel', 'resource_converter_panel']);
   });
 
   it('panels accumulate: what one phase shows, every later phase shows too', () => {

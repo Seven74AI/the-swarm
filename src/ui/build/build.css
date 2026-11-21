@@ -1,0 +1,48 @@
+/*
+ * BUILD (Story 1.24; EXPERIENCE.md → Tabs, Card, Research card; mockup
+ * key-wrkr-build.html). Top to bottom: header, Click Power card (Phase 2+),
+ * building cards, research cards, converter card; `> BUY` on the highlighted
+ * card is pinned in the primary zone. Colors only through the --color-* aliases.
+ */
+.build-header {
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--color-accent);
+}
+.build-header[data-next-key] { color: var(--color-dim); }
+
+.build-item,
+[data-build-host='click-power'] { margin-bottom: 0.5rem; }
+
+.build-done { font-size: 0.8125rem; color: var(--color-dim); }
+
+.build-progress { margin-top: 0.25rem; }
+.build-progress__left { margin: 0.125rem 0 0; font-size: 0.75rem; color: var(--color-dim); }
+.build-progress__left[data-stalled] { color: var(--color-warn); }
+
+.build-conversions { list-style: none; margin: 0.25rem 0 0; padding: 0; }
+.build-conversion {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--color-dim);
+}
+.build-conversion__status[data-warn] { color: var(--color-warn); }
+
+/* The primary action fills the primary zone: one full-width row, like NEST's. */
+.build-primary-host,
+.build-primary {
+  height: 100%;
+}
+.build-primary {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 7px var(--shell-margin, 14px);
+}
+.build-primary .next-action { flex: 1 1 auto; min-width: 0; }
+.build-primary .swarm-btn { width: 100%; }

@@ -79,3 +79,5 @@ export {
   type ResearchType,
 } from '../systems/AutomationSystem';
 export { canAffordShipCost, getShipCost, MAX_SHIP_LEVEL } from '../systems/SpaceshipSystem';
+// BUILD's cards match the highlighted item by its key (Story 1.24).
+export { itemKey } from '../systems/NextAction';

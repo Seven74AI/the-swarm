@@ -445,8 +445,8 @@ test.describe('Save/Load Robustness', () => {
     // Verify building levels in UI
     const buildingPanel = page.locator('.building-panel');
     await expect(buildingPanel).toBeAttached({ timeout: 5000 });
-    await expect(buildingPanel).toContainText('Lv.2');
-    await expect(buildingPanel).toContainText('Lv.1');
+    await expect(buildingPanel).toContainText('LV.2 →');
+    await expect(buildingPanel).toContainText('LV.1 →');
 
     // Save
     await saveGame(page);
@@ -459,9 +459,9 @@ test.describe('Save/Load Robustness', () => {
     // Verify building levels preserved
     const reloadedPanel = page.locator('.building-panel');
     await expect(reloadedPanel).toBeAttached({ timeout: 5000 });
-    await expect(reloadedPanel).toContainText('Barracks', { timeout: 3000 });
-    await expect(reloadedPanel).toContainText('Lv.2', { timeout: 3000 });
-    await expect(reloadedPanel).toContainText('Lv.1', { timeout: 3000 });
+    await expect(reloadedPanel).toContainText('BARRACKS', { timeout: 3000 });
+    await expect(reloadedPanel).toContainText('LV.2 →', { timeout: 3000 });
+    await expect(reloadedPanel).toContainText('LV.1 →', { timeout: 3000 });
   });
 
   test('save corruption recovery — malformed JSON', async ({ page }) => {

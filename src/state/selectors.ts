@@ -4,7 +4,7 @@ import type { GameState, PhaseGoal } from './GameState';
 import { getEffects } from '../systems/BuildingSystem';
 import { computeResourceRates } from '../systems/ResourceSystem';
 import { affordableKeys } from './affordances';
-import { getNextAction, type NextAction } from '../systems/NextAction';
+import { getBuildAction, getNextAction, type NextAction } from '../systems/NextAction';
 import { assignedTotal, freeWorkers, getReallocation, workforceTotal, type Reallocation } from '../systems/Workforce';
 import { TerritorySystem } from '../systems/TerritorySystem';
 import {
@@ -17,8 +17,12 @@ import {
 import {
   getConversionDefs,
   getConversionRate,
+  isConversionUnlocked,
   type ConversionId,
 } from '../systems/ResourceConversionSystem';
+import { canBuild, type BuildingType } from '../systems/BuildingSystem';
+import { canStartProject, getAssignedResearchers, getProjectStatus } from '../systems/ResearchSystem';
+import type { ResearchProjectId, ResearchProjectStatus } from './GameState';
 import { conditionMet, goalFor, goalPercent, type GoalCondition, type Transition } from '../phases/transitions';
 
 export type { GoalCondition, Transition } from '../phases/transitions';
@@ -109,6 +113,45 @@ export const selectFoodRatePerSec = computed(() => {
 export const selectNetFoodPerSec = computed(() => {
   return Math.floor(selectFoodRatePerSec.value);
 });
+
+// --- BUILD's rules, per item (Story 1.24): primitives, so a card re-renders only when its answer changes ---
+
+function memo<K, V>(cache: Map<K, ReadonlySignal<V>>, key: K, make: () => V): ReadonlySignal<V> {
+  let sel = cache.get(key);
+  if (!sel) {
+    sel = computed(make);
+    cache.set(key, sel);
+  }
+  return sel;
+}
+
+const canBuilds = new Map<BuildingType, ReadonlySignal<boolean>>();
+const researchStatuses = new Map<ResearchProjectId, ReadonlySignal<ResearchProjectStatus>>();
+const canStarts = new Map<ResearchProjectId, ReadonlySignal<boolean>>();
+const conversionUnlocks = new Map<ConversionId, ReadonlySignal<boolean>>();
+
+/** Whether the next level of a building is affordable now (BuildingSystem's own check). */
+export function selectCanBuild(id: BuildingType): ReadonlySignal<boolean> {
+  return memo(canBuilds, id, () => canBuild(id, gameState.value));
+}
+
+/** A research project's status: locked, available, in_progress or completed. */
+export function selectResearchStatus(id: ResearchProjectId): ReadonlySignal<ResearchProjectStatus> {
+  return memo(researchStatuses, id, () => getProjectStatus(gameState.value, id));
+}
+
+/** Whether a research project can be started now (status, researchers and price). */
+export function selectCanStartResearch(id: ResearchProjectId): ReadonlySignal<boolean> {
+  return memo(canStarts, id, () => canStartProject(gameState.value, id));
+}
+
+/** Researchers assigned (the research pool). */
+export const selectAssignedResearchers = computed(() => getAssignedResearchers(gameState.value));
+
+/** Whether a conversion step can run (researched and ready). */
+export function selectConversionUnlocked(id: ConversionId): ReadonlySignal<boolean> {
+  return memo(conversionUnlocks, id, () => isConversionUnlocked(gameState.value, id));
+}
 
 // --- Parameterised slices ---------------------------------------------------------------------
 
@@ -305,3 +348,15 @@ export function selectCanBuildAuto(id: AutomationBuildingType): ReadonlySignal<b
   }
   return sel;
 }
+let lastBuildAction: NextAction | null = null;
+
+/**
+ * BUILD's highlighted card (`getBuildAction`, Story 1.24): the card whose action is BUILD's pinned
+ * `> BUY`, or none with the header's `NEXT: <item> IN ~<time>`. Quiet like `selectNextAction`.
+ */
+export const selectBuildAction = computed<NextAction>(() => {
+  const next = getBuildAction(gameState.value);
+  if (lastBuildAction !== null && sameNextAction(lastBuildAction, next)) return lastBuildAction;
+  lastBuildAction = next;
+  return next;
+});
