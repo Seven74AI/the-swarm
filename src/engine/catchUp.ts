@@ -9,6 +9,7 @@ import { log } from '../utils/log';
 import { EventQueue } from './events';
 import { processTick } from './processTick';
 import { creditWhole } from '../utils/math';
+import { applyOfflineRules, offlineRulesFor } from './offlineRules';
 
 export interface CatchUpDeps {
   resourceSystem: ResourceSystem;
@@ -38,6 +39,11 @@ export interface CatchUpDeps {
  * the same `processTick`, the last step taking what is left. A 24 h catch-up
  * stays within `CATCH_UP_MAX_STEPS` calls. One summary line is logged, not one
  * per step. Tests pass `stepMs` = 50 to compare with fine steps.
+ *
+ * Offline-only rules (Story 2.7, `offlineRules.ts`): no decision event spawns
+ * or counts down, no phase commits (the latch may set), events are collected
+ * and dropped, automation runs as configured, and after every step workers are
+ * kept at or above the starvation floor fixed from the state before the absence.
  */
 export function catchUp(
   state: GameState,
@@ -81,6 +87,7 @@ export function catchUp(
     },
   };
 
+  const rules = offlineRulesFor(state);
   const events = new EventQueue();
   let steps = 0;
   for (let done = 0; done < simulatedMs; steps++) {
@@ -89,6 +96,7 @@ export function catchUp(
       s, deps.resourceSystem, deps.soldierSystem, deps.mapSystem, deps.territorySystem, events, stepLen / 1000,
       true, // skipDeterministicResources: added above in closed form
     );
+    s = applyOfflineRules(s, rules);
     s = deps.latch(s);
     events.clear();
     done += stepLen;
