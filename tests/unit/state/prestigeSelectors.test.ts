@@ -5,8 +5,10 @@ import {
   selectCanPurchasePrestigeUpgrade,
   selectOfflineAwayLimitMs,
   selectOfflineEfficiency,
+  selectLegacyUnlocked,
   selectPrestigeAvailable,
-  selectPrestigeShortfall,
+  selectPrestigeRequirementCurrent,
+  selectPrestigeRequirementMet,
   selectProjectedLegacyPoints,
 } from '../../../src/state/selectors';
 import {
@@ -14,7 +16,9 @@ import {
   canPurchasePrestigeUpgrade,
   getPhaseScore,
   getUnmetRequirements,
+  isLegacyRevealed,
   isPrestigeAvailable,
+  PRESTIGE_REQUIREMENTS,
 } from '../../../src/state/queries';
 import { PRESTIGE_UPGRADES } from '../../../src/data/prestigeTree';
 import { getOfflineCapMs, getOfflineEfficiency } from '../../../src/systems/OfflineProgression';
@@ -39,14 +43,17 @@ describe('prestige selectors', () => {
     for (const s of [createInitialState(), ready()]) {
       gameState.value = s;
       expect(selectPrestigeAvailable.value).toBe(isPrestigeAvailable(s));
-      expect(selectPrestigeShortfall.value).toEqual(getUnmetRequirements(s).join('\n'));
+      expect(selectLegacyUnlocked.value).toBe(isLegacyRevealed(s));
+      const unmet = new Set(getUnmetRequirements(s).map((u) => u.id));
+      for (const r of PRESTIGE_REQUIREMENTS) {
+        expect(selectPrestigeRequirementMet(r.id).value, r.id).toBe(!unmet.has(r.id));
+        expect(selectPrestigeRequirementCurrent(r.id).value, r.id).toBe(r.current(s));
+      }
       expect(selectOfflineEfficiency.value).toBe(getOfflineEfficiency(s));
       expect(selectOfflineAwayLimitMs.value).toBe(getOfflineCapMs(s));
     }
-    gameState.value = createInitialState();
-    expect(selectPrestigeShortfall.value).not.toBe('');
-    gameState.value = ready();
-    expect(selectPrestigeShortfall.value).toBe('');
+    const id = PRESTIGE_REQUIREMENTS[0].id;
+    expect(selectPrestigeRequirementMet(id)).toBe(selectPrestigeRequirementMet(id));
   });
 
   it('project the same legacy points prestige() awards, in every phase (#188)', () => {
