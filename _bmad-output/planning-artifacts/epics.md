@@ -993,7 +993,7 @@ So that nothing vulnerable ships to players.
 **Given** `.github/workflows/ci.yml`
 **When** this story lands
 **Then** `pnpm audit --prod --audit-level=high` runs as a step inside an existing job, with no new job key, no job-level `name:`, no `|| true` and no `--if-present`
-**And** Dependabot groups development-dependency updates into weekly PRs
+**And** Dependabot groups development-dependency updates into one PR (daily schedule, owner decision 2026-11-21)
 
 **Covers:** AR25
 

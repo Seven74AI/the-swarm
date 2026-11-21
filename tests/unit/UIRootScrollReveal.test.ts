@@ -145,8 +145,10 @@ describe('UIRoot — Phase-Based Panel Reveal', () => {
     it('the reveal plays once: when it ends, the reveal class and its stagger delay go', () => {
       ui.mount(shellHosts(container));
       const el = ui.createPanel('worker_assignment');
+      onScreen(el, true);
       ui.showPanel('worker_assignment', 300);
       expect(el.classList.contains('panel-revealed')).toBe(true);
+      expect(el.style.animationDelay).not.toBe('');
 
       // A child's animation ending bubbles up, but does not end the panel's reveal.
       const child = el.appendChild(document.createElement('span'));
@@ -161,17 +163,26 @@ describe('UIRoot — Phase-Based Panel Reveal', () => {
       expect(el.classList.contains('panel-unlocked')).toBe(true);
     });
 
-    it('a panel unlocked in a hidden tab appears there without a reveal', () => {
+    it('a panel unlocked in a closed tab slides in once, unstaggered, when its tab opens', () => {
       ui.mount(shellHosts(container));
       const el = ui.createPanel('worker_assignment');
-      const hiddenTab = document.createElement('section');
-      hiddenTab.hidden = true;
-      container.appendChild(hiddenTab).appendChild(el);
-
+      onScreen(el, false);
       ui.showPanel('worker_assignment', 300);
+      expect(el.classList.contains('panel-revealed')).toBe(true);
+      expect(el.style.animationDelay).toBe('');
+      // The tab opens and the reveal plays; once it ends, opening the tab again shows it as is.
+      animationEnd(el, 'phaseReveal');
+      expect(el.classList.contains('panel-revealed')).toBe(false);
+    });
 
-      expect(el.style.display).toBe('');
-      expect(el.classList.contains('panel-unlocked')).toBe(true);
+    it('a reveal cut short (its tab closed mid-slide) is over too', () => {
+      ui.mount(shellHosts(container));
+      const el = ui.createPanel('worker_assignment');
+      onScreen(el, true);
+      ui.showPanel('worker_assignment', 300);
+      const e = new Event('animationcancel', { bubbles: true });
+      Object.defineProperty(e, 'animationName', { value: 'phaseReveal' });
+      el.dispatchEvent(e);
       expect(el.classList.contains('panel-revealed')).toBe(false);
       expect(el.style.animationDelay).toBe('');
     });
@@ -199,6 +210,50 @@ describe('UIRoot — Phase-Based Panel Reveal', () => {
       const evt = events[events.length - 1] as { panelId: string };
       expect(evt.panelId).toBe('worker_assignment');
     });
+
+    // The stagger cascades panels in as a phase begins. It belongs to that one
+    // reveal: a panel in a closed tab, or one opened again later, must not wait
+    // out its place in the cascade every time its tab opens.
+    const onScreen = (el: HTMLElement, shown: boolean) => {
+      el.getClientRects = () => (shown ? [new DOMRect(0, 0, 10, 10)] : []) as unknown as DOMRectList;
+    };
+    const animationDone = (el: HTMLElement, type: 'animationend' | 'animationcancel', target: Element = el) => {
+      const e = new Event(type, { bubbles: true });
+      Object.defineProperty(e, 'animationName', { value: 'phaseReveal' });
+      target.dispatchEvent(e);
+    };
+
+    it('staggers a panel that is on screen as it is revealed', () => {
+      ui.mount(shellHosts(container));
+      const el = ui.createPanel('worker_assignment');
+      onScreen(el, true);
+      ui.showPanel('worker_assignment', 300);
+      expect(el.style.animationDelay).not.toBe('');
+    });
+
+    it('does not stagger a panel whose tab is closed', () => {
+      ui.mount(shellHosts(container));
+      const el = ui.createPanel('worker_assignment');
+      onScreen(el, false);
+      ui.showPanel('worker_assignment', 300);
+      expect(el.style.animationDelay).toBe('');
+      expect(el.classList.contains('panel-revealed')).toBe(true);
+    });
+
+    for (const type of ['animationend', 'animationcancel'] as const) {
+      it(`drops the stagger once the reveal is over (${type})`, () => {
+        ui.mount(shellHosts(container));
+        const el = ui.createPanel('worker_assignment');
+        onScreen(el, true);
+        ui.showPanel('worker_assignment', 300);
+        // A child's animation bubbling up is not the panel's reveal.
+        const child = el.appendChild(document.createElement('span'));
+        animationDone(el, type, child);
+        expect(el.style.animationDelay).not.toBe('');
+        animationDone(el, type);
+        expect(el.style.animationDelay).toBe('');
+      });
+    }
 
     it('showPanel is a no-op for panels not yet created', () => {
       ui.mount(shellHosts(container));

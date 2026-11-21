@@ -555,23 +555,24 @@ export class UIRoot {
       // Remove legacy scroll-awaiting class if present
       el.classList.remove('panel-awaiting-reveal');
       el.style.display = '';
-      el.classList.add('panel-unlocked');
-      // Play the reveal once, where the player sees it. A CSS animation restarts each
-      // time its element is shown again, so a class left in place replayed the slide-in
-      // (with its stagger delay) on every tab switch, moving panels from under the
-      // pointer. A panel unlocked in a hidden tab simply appears there.
-      if (!el.closest('[hidden]')) {
-        // Stagger delay so panels cascade in rather than appearing simultaneously.
-        if (revealDelayMs > 0) el.style.animationDelay = `${revealDelayMs}ms`;
-        el.classList.add('panel-revealed');
-        const done = (e: AnimationEvent): void => {
-          if (e.target !== el || e.animationName !== 'phaseReveal') return;
-          el.removeEventListener('animationend', done);
-          el.classList.remove('panel-revealed');
-          el.style.animationDelay = '';
-        };
-        el.addEventListener('animationend', done);
+      el.classList.add('panel-unlocked', 'panel-revealed');
+      // The stagger cascades panels in as a phase begins, and only for a panel on
+      // screen now: one in a closed tab slides in, unstaggered, when its tab first opens.
+      if (revealDelayMs > 0 && el.getClientRects().length > 0) {
+        el.style.animationDelay = `${revealDelayMs}ms`;
       }
+      // Play the reveal once. A CSS animation restarts whenever its element is shown
+      // again, so a class left in place replayed the slide-in on every tab switch,
+      // moving panels from under the pointer.
+      const done = (e: Event): void => {
+        if (e.target !== el || (e as AnimationEvent).animationName !== 'phaseReveal') return;
+        el.removeEventListener('animationend', done);
+        el.removeEventListener('animationcancel', done);
+        el.classList.remove('panel-revealed');
+        el.style.animationDelay = '';
+      };
+      el.addEventListener('animationend', done);
+      el.addEventListener('animationcancel', done);
       this.bus.emit('panel_revealed', { panelId });
     }
   }

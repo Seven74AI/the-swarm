@@ -165,8 +165,8 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
       // The panels are revealed under the phase reveal (Story 1.20), which tapContinue waits out.
       await tapContinue(page);
 
-      // worker_assignment should now exist, unlocked (it sits in WRKR, a hidden tab, so it
-      // appears there without a reveal animation)
+      // worker_assignment should now exist, unlocked (it sits in WRKR, a closed tab: it
+      // slides in once, unstaggered, when that tab first opens)
       const wa = page.locator('#worker-assignment');
       await expect(wa).toBeAttached({ timeout: 5000 });
       await expect(wa).toHaveClass(/panel-unlocked/);
