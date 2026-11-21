@@ -34,6 +34,7 @@ import { bindDecisionSheets, type DecisionSheets } from './ui/sheets/DecisionShe
 import { createToasts, type Toasts } from './ui/primitives/Toast';
 import { openTickFailure } from './ui/sheets/TickFailureSheet';
 import { openSettings } from './ui/sheets/SettingsSheet';
+import { openImportConfirm, openImportRefused } from './ui/sheets/ImportSaveSheet';
 import { buildDiagnostics, DIAGNOSTICS_FILENAME } from './debug/diagnostics';
 import { createTickTimings } from './debug/timings';
 import { debugEnabled } from './debug/enabled';
@@ -59,7 +60,7 @@ import { OnboardingManager } from './ui/OnboardingManager';
 import { bindPhaseTheme } from './ui/theme/phaseTheme';
 import { bindCrt, bindReducedMotion } from './ui/theme/reducedMotion';
 import { createAnnouncer } from './ui/shell/announcer';
-import { bindAnnouncements, battleLine, SAVE_FAILED_LINE, SAVE_RECOVERED_LINE } from './ui/shell/announcements';
+import { bindAnnouncements, battleLine, IMPORT_FAILED_LINE, SAVE_FAILED_LINE, SAVE_RECOVERED_LINE } from './ui/shell/announcements';
 import { SaveFailedMarker } from './ui/shell/SaveFailedMarker';
 import { openUnreadableSave } from './ui/sheets/UnreadableSaveSheet';
 import { createWebPlatform, type Platform } from './platform';
@@ -379,12 +380,47 @@ export function bootstrap(): {
     });
     if (!platform.browser.download(DIAGNOSTICS_FILENAME, text)) log.warn('diagnostics', 'export download failed');
   };
+  // IMPORT SAVE (Story 2.11, AR6): pick a file, then SaveManager says what it is. A file that
+  // isn't a swarm save (or is from a newer build) is refused and nothing changes. A valid one,
+  // already migrated to this version, needs a hold-to-confirm; then it becomes THE save (every
+  // later save is held, so this session can't overwrite it), its chronicle is loaded, and the
+  // page reloads into it, so panels, phase and session state are rebuilt from the save.
+  let settingsSheetId: number | null = null;
+  const importSave = (): void => {
+    void platform.browser.pickFile('.json,application/json').then((text) => {
+      if (text === null) return;
+      const read = saveManager.readImport(text);
+      if (settingsSheetId !== null) sheets.close(settingsSheetId);
+      settingsSheetId = null;
+      if (!read.ok) {
+        openImportRefused(sheets, { reason: read.reason, version: read.version, current: SaveManager.SAVE_VERSION });
+        return;
+      }
+      const confirmId = openImportConfirm(sheets, {
+        playTimeMs: read.save.playTimeMs,
+        confirmSettings: platform.settings.settings,
+        onConfirm: () => {
+          sheets.close(confirmId);
+          if (!saveManager.replaceWith(read.save)) {
+            toasts.show(IMPORT_FAILED_LINE);
+            return;
+          }
+          log.info('save', 'save imported; reloading into it');
+          chronicle.load(read.save.chronicle);
+          loop.stop();
+          platform.browser.reload();
+        },
+      });
+    });
+  };
   const openSettingsScreen = (): void => {
-    openSettings(sheets, {
+    settingsSheetId = openSettings(sheets, {
       store: platform.settings,
       capabilities: platform.capabilities,
       onExportDiagnostics: exportDiagnostics,
       onPause: () => resumePath.pause(),
+      onExportSave: exportSave,
+      onImportSave: importSave,
     });
   };
 
