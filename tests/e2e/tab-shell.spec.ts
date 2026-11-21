@@ -111,9 +111,9 @@ test.describe('Tab shell', () => {
     await seed(page, COLONY);
     await openTab(page, 'wrkr');
     const scroller = page.locator('[data-shell-scroll]');
-    // Make sure the tab can scroll.
+    // At 360×512 the WRKR tab overflows; if it ever fits, this test must be reseeded, not skipped.
     const max = await scroller.evaluate((el) => el.scrollHeight - el.clientHeight);
-    test.skip(max < 40, 'WRKR content fits without scrolling at this size');
+    expect(max).toBeGreaterThanOrEqual(40);
     await scroller.evaluate((el) => { el.scrollTop = 40; });
 
     await openTab(page, 'nest');

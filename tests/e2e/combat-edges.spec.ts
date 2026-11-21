@@ -274,7 +274,7 @@ test.describe('Combat Edge Cases', () => {
     await expect(summary(page)).toContainText(/VICTORY|DEFEAT|DRAW/);
   });
 
-  test('strong equipment favors victory', async ({ page }) => {
+  test('a battle with strong equipment resolves and the summary can be closed', async ({ page }) => {
     await setupCombatPhase(page, {
       combatSoldiers: 10,
       equipment: { weapon: 10, armor: 10 },
