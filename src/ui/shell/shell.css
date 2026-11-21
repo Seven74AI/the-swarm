@@ -109,7 +109,8 @@
 }
 
 .shell-primary-slot {
-  min-height: var(--shell-primary-zone);
+  /* The zone's 1 px top rule is part of its 64 px. */
+  min-height: calc(var(--shell-primary-zone) - 1px);
 }
 
 /* The lay-egg button as NEST's primary action: full width, one 48 px row. */
@@ -149,7 +150,8 @@
 
 .tab-bar-list {
   display: flex;
-  min-height: var(--shell-tab-bar);
+  /* The bar's 1 px top rule is part of its 52 px. */
+  min-height: calc(var(--shell-tab-bar) - 1px);
 }
 
 .tab-bar-tab,

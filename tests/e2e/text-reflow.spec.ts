@@ -165,7 +165,7 @@ test.describe('Text reflow: the rules behind the layout', () => {
     await seed(page, { name: 'phone', width: 390, height: 844 });
     const root = page.locator('html');
     await expect(root).toHaveAttribute('data-grid', 'full');
-    const cols = async () => Number(await root.evaluate((el) => el.style.getPropertyValue('--grid-cols')));
+    const cols = async () => Number(await root.getAttribute('data-grid-cols'));
     const wide = await cols();
     expect(wide).toBeGreaterThanOrEqual(36);
     // The player doubles the text size: fewer columns, and the narrow rules apply.

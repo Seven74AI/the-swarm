@@ -21,7 +21,7 @@ reaches only part of it.
   and the Shell attaches it. It measures the narrowest visible tab column (each desktop column follows the rule, so
   the narrowest decides) against a hidden probe of ten zeros in the body font, and remeasures on the next frame
   after a resize of the shell, a column or the probe (so a text-size change counts even if the window doesn't).
-- **Two outputs.** CSS keys off `:root[data-grid=…]` and `--grid-cols` (`ui/shell/reflow.css`); components read the
+- **Two outputs.** CSS keys off `:root[data-grid=…]` (`ui/shell/reflow.css`; the count is also in `data-grid-cols`, and the root's inline style stays free); components read the
   count with `useGridCols()`, whose context defaults to the module signal `appGridCols`, so every Preact root follows
   it without a provider and tests can provide their own.
 - **Pinned rows grow with the text.** The primary zone and tab bar have minimum (not fixed) heights; the Shell

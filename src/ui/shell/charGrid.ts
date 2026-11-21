@@ -4,7 +4,7 @@
  *
  * `createCharGrid({root, measure})` keeps `cols` = whole body-font columns in
  * the content column, and mirrors it on `root` as `data-grid="full|medium|narrow"`
- * and `--grid-cols`, which `reflow.css` keys off. `attach(shell)` measures the
+ * and `data-grid-cols`; `reflow.css` keys off `data-grid`. `attach(shell)` measures the
  * shell: the narrowest visible tab column (on desktop each column follows the
  * same rule, so the narrowest decides), against the advance of the body font.
  * It remeasures when the shell or the text size changes (a probe of ten
@@ -31,7 +31,7 @@ export interface CharGrid {
 }
 
 export interface CharGridOptions {
-  /** Where `data-grid` and `--grid-cols` go (the document root in the app). */
+  /** Where `data-grid` and `data-grid-cols` go (the document root in the app). */
   readonly root: HTMLElement;
   /** A fixed measurement (tests); by default the attached shell is measured. */
   readonly measure?: () => GridMeasure;
@@ -67,8 +67,9 @@ export function createCharGrid({ root, measure, cols = signal(Infinity) }: CharG
 
   const write = () => {
     root.setAttribute('data-grid', grid.value);
-    if (Number.isFinite(cols.value)) root.style.setProperty('--grid-cols', String(cols.value));
-    else root.style.removeProperty('--grid-cols');
+    // Attributes only: the root's inline style stays free (the phase aliases are attribute-bound too).
+    if (Number.isFinite(cols.value)) root.setAttribute('data-grid-cols', String(cols.value));
+    else root.removeAttribute('data-grid-cols');
   };
 
   const refresh = () => {
@@ -128,7 +129,7 @@ export function createCharGrid({ root, measure, cols = signal(Infinity) }: CharG
     attach,
     dispose() {
       root.removeAttribute('data-grid');
-      root.style.removeProperty('--grid-cols');
+      root.removeAttribute('data-grid-cols');
     },
   };
 }

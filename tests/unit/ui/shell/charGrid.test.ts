@@ -9,7 +9,7 @@ import { BOX_DRAWING_MIN_COLS, DESIGN_COLS } from '../../../../src/ui/primitives
 describe('createCharGrid', () => {
   afterEach(() => {
     document.documentElement.removeAttribute('data-grid');
-    document.documentElement.style.removeProperty('--grid-cols');
+    document.documentElement.removeAttribute('data-grid-cols');
   });
 
   it('marks the root with the grid class and the column count, and follows remeasures', () => {
@@ -18,7 +18,8 @@ describe('createCharGrid', () => {
     const root = document.documentElement;
     expect(grid.cols.value).toBe(40);
     expect(root.getAttribute('data-grid')).toBe('full');
-    expect(root.style.getPropertyValue('--grid-cols')).toBe('40');
+    expect(root.getAttribute('data-grid-cols')).toBe('40');
+    expect(root.getAttribute('style') ?? '').toBe('');
 
     size = { width: 300, advance: 10 };
     grid.refresh();
