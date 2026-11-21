@@ -158,6 +158,47 @@ for (const setup of SETUPS) {
       expect(found).toEqual([]);
     });
 
+    test('the save sheets and the SAVE FAILED marker fit the screen too (Story 2.2)', async ({ page }) => {
+      // A save that couldn't be read: its sheet comes up over the game.
+      await page.setViewportSize({ width: setup.width, height: setup.height });
+      await page.addInitScript(
+        ({ fontPx }) => {
+          if (!sessionStorage.getItem('unreadable-done')) {
+            localStorage.setItem('the_swarm_save', '{"version": 19, "gameState": {');
+            localStorage.setItem('the_swarm_onboarding', 'done');
+          }
+          if (fontPx) {
+            const apply = () => document.documentElement?.style.setProperty('font-size', `${fontPx}px`);
+            apply();
+            document.addEventListener('readystatechange', apply);
+          }
+        },
+        { fontPx: setup.fontPx ?? 0 },
+      );
+      await page.goto('/');
+      await expect(page.locator('[data-unreadable-save]')).toBeVisible();
+      const found = (await layoutProblems(page)).map((p) => `unreadable sheet: ${p}`);
+
+      // A running game whose writes fail: the marker under the strip, then its sheet.
+      await page.evaluate(() => sessionStorage.setItem('unreadable-done', '1'));
+      await seed(page, setup);
+      await page.evaluate(() => {
+        const set = Storage.prototype.setItem;
+        Storage.prototype.setItem = function (k: string, v: string) {
+          if (k.startsWith('the_swarm_save')) throw new DOMException('full', 'QuotaExceededError');
+          return set.call(this, k, v);
+        };
+        const w = window as unknown as { __swarm: { saveManager: { save(s: unknown, t: number, f: boolean): boolean }; manager: { getState(): unknown } } };
+        w.__swarm.saveManager.save(w.__swarm.manager.getState(), 0, true);
+      });
+      await expect(page.locator('[data-save-failed]')).toBeVisible();
+      found.push(...(await layoutProblems(page)).map((p) => `save failed marker: ${p}`));
+      await page.locator('[data-save-failed]').click();
+      await expect(page.locator('[data-save-failed-sheet]')).toBeVisible();
+      found.push(...(await layoutProblems(page)).map((p) => `save failed sheet: ${p}`));
+      expect(found).toEqual([]);
+    });
+
     test('the debug overlay fits the screen too', async ({ page }) => {
       // Story 1.34: dev builds (this server) and ?debug=1; one inspector key open.
       await seed(page, setup);

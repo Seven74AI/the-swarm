@@ -211,6 +211,21 @@ function listenerGameStateWrites(files: SourceFile[]): Violation[] {
  * AR23 (Story 1.19): the phase changes only through `PhaseStateMachine.commit`
  * (CONTINUE), or prestige. Nothing else writes `state.phase`.
  */
+/**
+ * Story 2.2 (AR6, D4): the save lives behind `platform/storage/SaveStore`, and
+ * settings behind the platform settings store, so nothing outside platform/
+ * names `localStorage` (or `sessionStorage`), on `window` or not.
+ */
+const STORAGE_PATTERN = /(?<![\w$])(?:localStorage|sessionStorage)\b/g;
+
+function storageViolations(files: SourceFile[]): Violation[] {
+  return files
+    .filter((f) => layerOf(f.rel) !== 'platform')
+    .flatMap((f) =>
+      findInCode(f.text, STORAGE_PATTERN).map((h) => `${f.rel}:${h.line} uses ${h.text}; go through the platform SaveStore or settings store`),
+    );
+}
+
 const PHASE_WRITERS = ['phases/PhaseStateMachine.ts', 'systems/PrestigeSystem.ts'];
 
 function phaseWriteViolations(files: SourceFile[]): Violation[] {
@@ -243,6 +258,10 @@ describe('architecture boundaries (AR21)', () => {
 
   it('only main imports values from platform/', () => {
     expect(platformValueImports(files)).toEqual([]);
+  });
+
+  it('only platform/ touches localStorage (Story 2.2)', () => {
+    expect(storageViolations(files)).toEqual([]);
   });
 
   it('no Math.random in systems/ or sim/ beyond the known exceptions', () => {
@@ -401,6 +420,17 @@ describe('architecture boundaries (AR21)', () => {
         fake('actions/f.ts', "const m = await import('../platform/settings');"),
       ]);
       expect(v.map((x) => x.split(':')[0])).toEqual(['ui/d.ts', 'engine/e.ts', 'actions/f.ts']);
+    });
+
+    it('flags localStorage outside platform/, not in comments or strings', () => {
+      const v = storageViolations([
+        fake('persistence/A.ts', "localStorage.setItem('k', 'v');"),
+        fake('ui/B.ts', "const s = window.localStorage;"),
+        fake('main.tsx', "sessionStorage.clear();"),
+        fake('platform/storage/C.ts', "storage.getItem('k'); localStorage.getItem('k');"),
+        fake('ui/D.ts', "// localStorage\nconst key = 'localStorage';\nconst myLocalStorage = 1;"),
+      ]);
+      expect(v.map((x) => x.split(':')[0])).toEqual(['persistence/A.ts', 'ui/B.ts', 'main.tsx']);
     });
 
     it('counts Math.random in systems/ and sim/ only, ignoring comments and strings', () => {

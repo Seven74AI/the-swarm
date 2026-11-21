@@ -1,9 +1,11 @@
 import { OnboardingTooltip, type TooltipConfig } from './OnboardingTooltip';
+import type { IntroFlag } from '../platform/storage/introFlag';
 
 /**
  * OnboardingManager — Controls the onboarding tooltip sequence.
  *
- * Reads/writes localStorage key `the_swarm_onboarding` to track completion.
+ * Completion is the intro flag main passes in (platform/, Story 2.2: its own
+ * key, outside the save).
  * When the player hasn't completed onboarding, shows tooltips sequentially.
  * After all tooltips are dismissed, marks onboarding as complete.
  *
@@ -13,11 +15,12 @@ import { OnboardingTooltip, type TooltipConfig } from './OnboardingTooltip';
  *   3. "Assign workers to harvest" — points at worker assignment
  */
 
-/** localStorage key for onboarding completion flag. */
-const ONBOARDING_KEY = 'the_swarm_onboarding';
-
-/** Value written to localStorage when onboarding is complete. */
-const ONBOARDING_COMPLETE = 'done';
+export interface OnboardingDeps {
+  /** Whether the intro was finished (platform/storage/introFlag). */
+  readonly flag: IntroFlag;
+  /** A save was found (any load status but `empty`): a returning player skips the intro. */
+  readonly hasSave: boolean;
+}
 
 const TOOLTIP_STEPS: TooltipConfig[] = [
   {
@@ -44,15 +47,13 @@ export class OnboardingManager {
   private currentStep = 0;
   private activeTooltip: OnboardingTooltip | null = null;
 
+  constructor(private readonly deps: OnboardingDeps) {}
+
   /**
    * Check whether onboarding has already been completed.
    */
-  static isCompleted(): boolean {
-    try {
-      return localStorage.getItem(ONBOARDING_KEY) === ONBOARDING_COMPLETE;
-    } catch {
-      return false;
-    }
+  isCompleted(): boolean {
+    return this.deps.flag.done();
   }
 
   /**
@@ -60,10 +61,10 @@ export class OnboardingManager {
    * Does nothing if onboarding is already completed or all steps done.
    */
   start(): void {
-    if (OnboardingManager.isCompleted()) return;
+    if (this.isCompleted()) return;
     // If the player already has a save, they're a returning player — skip onboarding.
     // This also prevents the onboarding overlay from blocking E2E tests that seed a save.
-    if (localStorage.getItem('the_swarm_save') !== null) return;
+    if (this.deps.hasSave) return;
     if (this.currentStep >= TOOLTIP_STEPS.length) return;
 
     this.showCurrentStep();
@@ -100,20 +101,16 @@ export class OnboardingManager {
   }
 
   /**
-   * Mark onboarding as complete in localStorage.
+   * Mark onboarding as complete.
    */
   private markComplete(): void {
-    try {
-      localStorage.setItem(ONBOARDING_KEY, ONBOARDING_COMPLETE);
-    } catch {
-      // localStorage may not be available (private browsing, quota)
-    }
+    this.deps.flag.markDone();
   }
 
   /**
    * Reset onboarding (for testing or debug).
    */
-  static reset(): void {
-    localStorage.removeItem(ONBOARDING_KEY);
+  reset(): void {
+    this.deps.flag.reset();
   }
 }

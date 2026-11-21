@@ -25,6 +25,8 @@ export const STARVING_LINE = 'Starving: the food store is empty.';
 export const CAPACITY_LINE = 'Nest capacity reached.';
 /** Toasted and logged when saving starts failing (main, `SaveManager.onSaveFailed`). */
 export const SAVE_FAILED_LINE = 'SAVE FAILED: STORAGE IS FULL OR BLOCKED.';
+/** Told once when the save was missing and its backup was loaded instead (Story 2.2). */
+export const SAVE_RECOVERED_LINE = 'THE SAVE WAS MISSING. THE BACKUP IS LOADED.';
 
 export interface AnnouncementDeps {
   readonly bus: Pick<EventBus<SwarmEvents>, 'subscribe' | 'unsubscribe'>;

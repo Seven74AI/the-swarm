@@ -62,6 +62,13 @@ describe('diagnostics export', () => {
     expect(parsed.save).toBe('{broken');
   });
 
+  it('carries the save that could not be read, as it was (Story 2.2)', () => {
+    const damaged = '{"version": 19, "gameState": {';
+    const out = JSON.parse(buildDiagnostics({ ...base, log: [], unreadableSave: damaged }));
+    expect(out.unreadableSave).toBe(damaged);
+    expect(JSON.parse(buildDiagnostics({ ...base, log: [] })).unreadableSave).toBeNull();
+  });
+
   it('names a .json file', () => {
     expect(DIAGNOSTICS_FILENAME.endsWith('.json')).toBe(true);
   });

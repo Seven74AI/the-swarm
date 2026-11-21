@@ -29,7 +29,7 @@ import { processTick } from './engine/processTick';
 import { catchUp, type CatchUpDeps } from './engine/catchUp';
 import { getPrestigeBonuses } from './systems/PrestigeBonusSystem';
 import { render } from 'preact';
-import { computed, effect } from '@preact/signals-core';
+import { computed, effect, signal } from '@preact/signals-core';
 import { App } from './ui/App';
 import { gameViews } from './ui/gameViews';
 import { EventLog } from './ui/log/EventLog';
@@ -68,7 +68,9 @@ import { OnboardingManager } from './ui/OnboardingManager';
 import { bindPhaseTheme } from './ui/theme/phaseTheme';
 import { bindCrt, bindReducedMotion } from './ui/theme/reducedMotion';
 import { createAnnouncer } from './ui/shell/announcer';
-import { bindAnnouncements, battleLine, SAVE_FAILED_LINE } from './ui/shell/announcements';
+import { bindAnnouncements, battleLine, SAVE_FAILED_LINE, SAVE_RECOVERED_LINE } from './ui/shell/announcements';
+import { SaveFailedMarker } from './ui/shell/SaveFailedMarker';
+import { openUnreadableSave } from './ui/sheets/UnreadableSaveSheet';
 import { createWebPlatform, type Platform } from './platform';
 import { bindHapticFeedback, bindSoundSetting } from './platform/feedback';
 
@@ -118,7 +120,8 @@ export function bootstrap(): {
   const resourceSystem = new ResourceSystem(bus);
   const soldierSystem = new SoldierSystem(bus);
   const battleSystem = new BattleSystem(bus);
-  const saveManager = new SaveManager();
+  // The save lives behind the platform SaveStore (Story 2.2, D4): primary, 2 backups, the unreadable copy.
+  const saveManager = new SaveManager(platform.saves);
   const audio = new AudioSystem();
   const loop = new GameLoop(ticker);
   const phaseContent = new PhaseContent();
@@ -132,8 +135,10 @@ export function bootstrap(): {
   let catchUpMs: number | null = null;
   const tickTimings = createTickTimings();
 
-  // Try to load saved state
-  const saved = saveManager.load();
+  // Read the save and what was found (Story 2.2). An unreadable save is never reset:
+  // SaveManager now refuses every save until the player picks LOAD BACKUP or START OVER.
+  const opened = saveManager.open();
+  const saved = opened.state ?? null;
   let offlineSummary: OfflineLoadInfo | null = null;
   // The event lines (Story 1.26, ADR 0018): kept beside the game state, written into every save.
   const chronicle = createChronicle(saved?.chronicle);
@@ -455,6 +460,13 @@ export function bootstrap(): {
     toasts.show(SAVE_FAILED_LINE);
     bus.emit('narrative', { message: SAVE_FAILED_LINE });
   });
+  // `• SAVE FAILED` under the strip while writes fail; cleared by the next good write (Story 2.2).
+  const saveFailing = signal(saveManager.isFailing());
+  saveManager.onSaveStatus((failing) => {
+    saveFailing.value = failing;
+  });
+  // A save rebuilt from its backup is told once (the next save writes the primary again).
+  if (opened.status === 'recoveredFromBackup') toasts.show(SAVE_RECOVERED_LINE);
   bus.subscribe('decision_resolved', ({ id, timedOut, policy }) => {
     if (timedOut && policy === 'costly') toasts.show(timeoutLine(getDecision(id)));
   });
@@ -465,6 +477,13 @@ export function bootstrap(): {
   // After 3 failed ticks (Story 1.17): keep the last good snapshot as THE save
   // (stop autosave, write it now, and every later save writes it too), then
   // offer EXPORT SAVE and RELOAD.
+  // EXPORT SAVE (the save-failed sheet, Story 2.2): the game as it is now, as a file.
+  const exportSave = (): void => {
+    const state = haltedSnapshot ?? gameState.value;
+    const text = saveManager.serialize(state, state.stats.playTimeMs);
+    if (!platform.browser.download('the-swarm-save.json', text)) log.warn('save', 'export download failed');
+  };
+
   const onTickHalt = (): void => {
     const snapshot = gameState.value;
     haltedSnapshot = snapshot;
@@ -488,6 +507,7 @@ export function bootstrap(): {
       now: Date.now(),
       userAgent: typeof navigator === 'undefined' ? '' : navigator.userAgent,
       save: saveManager.serialize(state, state.stats.playTimeMs),
+      unreadableSave: saveManager.unreadableText(),
       seed: state.seed,
       settings: platform.settings.settings.value,
       capabilities: platform.capabilities,
@@ -574,6 +594,8 @@ export function bootstrap(): {
     segment: shell.segment,
     chronicle,
     jump,
+    saveFailing,
+    onExportSave: exportSave,
   });
   if (app) {
     render(
@@ -633,9 +655,9 @@ export function bootstrap(): {
   // What hover shows, a tap shows; tips stay hoverable and Esc dismisses them (WCAG 1.4.13).
   bindTips();
 
-  // Start onboarding tutorial for new players (persisted via localStorage)
+  // Start onboarding tutorial for new players (the intro flag lives in platform/, outside the save)
   setTimeout(() => {
-    const onboarding = new OnboardingManager();
+    const onboarding = new OnboardingManager({ flag: platform.introFlag, hasSave: opened.status !== 'empty' });
     onboarding.start();
   }, 500);
 
@@ -719,7 +741,27 @@ export function bootstrap(): {
     gameState.value = { ...unpausedState, paused: false };
   }
 
-  loop.start();
+  // A save that couldn't be read (Story 2.2): the game waits behind the sheet, writing
+  // nothing, until the player chooses. LOAD BACKUP makes the backup the save and boots
+  // from it; START OVER writes the fresh run and starts it.
+  if (opened.status === 'unreadable') {
+    const backup = opened.backup;
+    const sheetId = openUnreadableSave(sheets, {
+      hasBackup: backup !== undefined,
+      confirmSettings: platform.settings.settings,
+      onLoadBackup: () => {
+        if (backup && saveManager.loadBackup(backup.slot)) platform.browser.reload();
+      },
+      onStartOver: () => {
+        log.info('save', 'unreadable save set aside; starting over');
+        saveManager.startOver(gameState.value, gameState.value.stats.playTimeMs);
+        sheets.close(sheetId);
+        loop.start();
+      },
+    });
+  } else {
+    loop.start();
+  }
 
   return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, panels, audio, actions, platform, sheets, overlays, chronicle, toasts, cheatsLoaded };
 }

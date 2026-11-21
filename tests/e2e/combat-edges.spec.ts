@@ -389,15 +389,30 @@ test.describe('Save/Load Robustness', () => {
     await expect.poll(() => visibleText(reloadedPanel), { timeout: 3000 }).toContain('LV.1 →');
   });
 
+  // Story 2.2: a save that can't be read is never silently reset. The game boots behind
+  // THIS SAVE COULDN'T BE READ. without crashing, and is playable once the player holds START OVER.
+  async function startOverFromUnreadable(page: Page): Promise<void> {
+    const sheet = page.locator('[data-unreadable-save]');
+    await expect(sheet).toBeVisible({ timeout: 5000 });
+    const holdMs = await page.evaluate(
+      () =>
+        (window as unknown as { __swarm: { platform: { settings: { settings: { value: { confirmHoldMs: number } } } } } }).__swarm
+          .platform.settings.settings.value.confirmHoldMs,
+    );
+    await sheet.locator('[data-action="start-over"]').dispatchEvent('pointerdown', { pointerId: 1, button: 0, isPrimary: true });
+    await expect(sheet).toHaveCount(0, { timeout: holdMs + 5000 });
+  }
+
   test('save corruption recovery — malformed JSON', async ({ page }) => {
     await page.addInitScript(() => {
+      if (sessionStorage.getItem('seeded')) return;
+      sessionStorage.setItem('seeded', '1');
       localStorage.setItem('the_swarm_save', '{broken json {{{');
     });
 
     await page.goto('/');
-    await page.waitForTimeout(2000);
+    await startOverFromUnreadable(page);
 
-    // Game should load without crash — SaveManager catches JSON.parse errors
     const eggBtn = page.locator('#click-egg');
     await expect(eggBtn).toBeAttached({ timeout: 5000 });
     await expect(eggBtn).toBeEnabled({ timeout: 3000 });
@@ -415,6 +430,8 @@ test.describe('Save/Load Robustness', () => {
   }) => {
     // Valid JSON but missing gameState field
     await page.addInitScript(() => {
+      if (sessionStorage.getItem('seeded')) return;
+      sessionStorage.setItem('seeded', '1');
       localStorage.setItem(
         'the_swarm_save',
         JSON.stringify({ version: 11, timestamp: 0, playTimeMs: 0 }),
@@ -422,14 +439,13 @@ test.describe('Save/Load Robustness', () => {
     });
 
     await page.goto('/');
-    await page.waitForTimeout(2000);
+    await startOverFromUnreadable(page);
 
-    // Game should fall back to fresh start
+    // START OVER gives a fresh, playable game
     const eggBtn = page.locator('#click-egg');
     await expect(eggBtn).toBeAttached({ timeout: 5000 });
     await expect(eggBtn).toBeEnabled({ timeout: 3000 });
 
-    // Game is playable
     await eggBtn.click();
     await page.waitForTimeout(300);
 

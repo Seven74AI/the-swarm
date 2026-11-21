@@ -23,6 +23,8 @@ export interface DiagnosticsInput {
   readonly save: string;
   /** The game's seed (Story 1.34), also inside the save; repeated at the top for bug reports. */
   readonly seed?: number;
+  /** A save that couldn't be read, kept aside as it was (Story 2.2); null or absent when there is none. */
+  readonly unreadableSave?: string | null;
   readonly settings: unknown;
   readonly capabilities: unknown;
   readonly log: readonly LogEntry[];
@@ -62,6 +64,7 @@ export function buildDiagnostics(input: DiagnosticsInput): string {
       capabilities: input.capabilities,
       log: input.log.map((e) => ({ ...e, detail: e.detail.map(plainDetail) })),
       save: parseOrText(input.save),
+      unreadableSave: input.unreadableSave ?? null,
     },
     null,
     2,

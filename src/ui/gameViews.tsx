@@ -13,6 +13,7 @@ import type { ResourceFeed } from './shell/resourceFeed';
 import { Panel } from './shell/Panel';
 import { TopBar } from './shell/TopBar';
 import { ResourceStrip } from './shell/ResourceStrip';
+import { SaveFailedMarker } from './shell/SaveFailedMarker';
 import { PhaseLine, phaseClass } from './shell/GoalMeter';
 import type { ConfirmSettings } from './primitives/HoldToConfirm';
 import { NestPrimary } from './nest/NestPrimary';
@@ -58,6 +59,9 @@ export interface GameViewDeps {
   segment: ReadonlySignal<SegmentId | null>;
   chronicle: Chronicle;
   jump: LineJump;
+  /** True while save writes fail: `• SAVE FAILED` under the strip, with EXPORT SAVE (Story 2.2). */
+  saveFailing: ReadonlySignal<boolean>;
+  onExportSave: () => void;
 }
 
 /** `#phase-indicator` keeps PhaseIndicator's per-phase class (`phase-colony` …), which main.css styles. */
@@ -86,6 +90,8 @@ export function gameViews(d: GameViewDeps): ShellViews {
         <Panel id="resource_panel" class="resource-panel" attrs={{ 'data-resource-panel': '' }}>
           <ResourceStrip feed={d.feed} sheets={d.sheets} onOpenSettings={d.onOpenSettings} />
         </Panel>
+        {/* Outside the panel: shown whenever writes fail, in any phase (Story 2.2). */}
+        <SaveFailedMarker failing={d.saveFailing} sheets={d.sheets} onExport={d.onExportSave} />
       </>
     ),
     tabs: {

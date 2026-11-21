@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { SaveManager, type SaveData } from '../../src/persistence/SaveManager';
 import { migrateSave } from '../../src/persistence/migrations';
+import { createLocalSaveStore } from '../../src/platform/storage/SaveStore';
 import type { GameState } from '../../src/state/GameState';
 import { Phase } from '../../src/phases/phases';
 import { EventBus } from '../../src/engine/EventBus';
@@ -57,7 +58,7 @@ const PHASES = new Set<string>(Object.values(Phase));
 function loadThroughSaveManager(data: SaveData) {
   localStorage.clear();
   localStorage.setItem('the_swarm_save', JSON.stringify(data));
-  return new SaveManager().load();
+  return new SaveManager(createLocalSaveStore(localStorage)).load();
 }
 
 /** The state invariants every loaded save must hold. */

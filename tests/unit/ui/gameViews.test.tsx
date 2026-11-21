@@ -28,7 +28,7 @@ beforeEach(() => {
   gameState.value = createInitialState();
 });
 
-function setup() {
+function setup(saveFailing = signal(false)) {
   const bus = new EventBus();
   const actions = testActions(bus);
   const shell = createTabShell({ phase: signal(Phase.TRANSCENDENCE), affordable: signal('') });
@@ -47,6 +47,8 @@ function setup() {
     segment: shell.segment,
     chronicle: createChronicle(),
     jump: { canJump: () => false, jump: () => {} },
+    saveFailing,
+    onExportSave: () => {},
   });
   const view = render(<App views={views} shell={shell} panels={panels} />);
   const c = view.container;
@@ -63,6 +65,17 @@ const containerOf = (c: ParentNode, id: PanelId): Element | null => {
 };
 
 describe('the game views', () => {
+  it('show • SAVE FAILED in the strip while saving fails, before any panel is revealed (Story 2.2)', () => {
+    const failing = signal(false);
+    const { c } = setup(failing);
+    const strip = c.querySelector('[data-shell-strip]')!;
+    expect(strip.querySelector('[data-save-failed]')).toBeNull();
+    act(() => void (failing.value = true));
+    expect(strip.querySelector('[data-save-failed]')).not.toBeNull();
+    act(() => void (failing.value = false));
+    expect(strip.querySelector('[data-save-failed]')).toBeNull();
+  });
+
   it('put every registry panel in the container of its placement', () => {
     const { c, revealAll } = setup();
     revealAll();

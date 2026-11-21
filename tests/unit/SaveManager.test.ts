@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SaveManager } from '../../src/persistence/SaveManager';
+import { createLocalSaveStore } from '../../src/platform/storage/SaveStore';
 import { createInitialState } from '../../src/state/GameState';
 import type { GameState } from '../../src/state/GameState';
 import { Phase } from '../../src/phases/phases';
@@ -11,7 +12,7 @@ describe('SaveManager', () => {
 
   beforeEach(() => {
     localStorage.clear();
-    saveManager = new SaveManager();
+    saveManager = new SaveManager(createLocalSaveStore(localStorage));
   });
 
   describe('save + load round-trip', () => {
@@ -104,7 +105,7 @@ describe('SaveManager', () => {
       saveManager.setChronicleSource(() => chronicle);
       saveManager.save(createInitialState(), 0, true);
       expect(JSON.parse(saveManager.serialize(createInitialState(), 0)).chronicle).toEqual(chronicle);
-      expect(new SaveManager().load()!.chronicle).toEqual(chronicle);
+      expect(new SaveManager(createLocalSaveStore(localStorage)).load()!.chronicle).toEqual(chronicle);
     });
 
     it('loads an older save with an empty chronicle', () => {
@@ -119,7 +120,7 @@ describe('SaveManager', () => {
       const open = { id: 'overcrowding' as const, remainingMs: 12_345, openedAtSessionMs: 99_000, roll: 0.25 };
       const state = { ...createInitialState(), decision: { open, nextSpawnSessionMs: 150_000 } };
       saveManager.save(state, 0, true);
-      expect(new SaveManager().load()!.gameState.decision.open).toEqual(open);
+      expect(new SaveManager(createLocalSaveStore(localStorage)).load()!.gameState.decision.open).toEqual(open);
     });
 
     it('drops a malformed chronicle instead of failing the load', () => {
