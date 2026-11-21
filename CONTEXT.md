@@ -43,6 +43,9 @@ Story 1.31 (ADR 0022): text panels sit on a computed **character grid**, `cols =
 ### Accessibility floor
 Typed decoration (`·`, `→`, brackets, glyphs, 4-letter labels) is visual only: `Deco.tsx` (`Abbr`, `Sep`, `Arrow`, `decorate`) hides it and gives the words. One polite announcer (`[data-announcer]`) says goal met, phase entered, battle result, decision arrived, starving and capacity reached, on their edge, never values per tick. Reduced motion is `:root[data-reduced-motion="true"]` (`motion.css`); CRT in effect is `<html data-crt>`. ADR 0023.
 
+### Voice
+The colony speaks in short, present-tense, upper-case lines ending in a full stop; the interface speaks plainly; nothing has an exclamation mark, and no copy names a phase before it is entered (UX-DR42, Story 1.33). **Colony lines** (event lines and narrative beats) live in `src/data/content/colonyLines.ts`, each with the first phase it can be written in; `colonyLine(id, values)` fills them. Decision titles end with a full stop (`OVERCROWDING.`). Short forms (`LV.`, `STR`, `CHTN`) are registered in `src/data/content/abbreviations.ts`, and `decorate()` reads them in full. `tests/arch/voice.test.ts` scans every literal in `src/` for these rules; `tests/e2e/voice.spec.ts` reads the rendered game in every phase.
+
 ### Keyboard shortcuts
 
 Story 1.30 (ADR 0021): `ui/shell/shortcuts.ts` acts on the player's key bindings (settings, Story 1.27). The **primary** key (Space) presses the active tab's primary-zone button as a tap would, only with focus on the page or that button; tab keys (1–5) press the tab-bar buttons; **pause** (P) toggles pause; **close** (Esc) dismisses a non-decision sheet through `SheetController.dismiss()`. Off in settings means no shortcut fires, Esc included. Hover tips show on tap too and Esc dismisses them (`ui/shell/tips.ts`).

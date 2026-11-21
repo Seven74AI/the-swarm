@@ -106,8 +106,8 @@ test.describe('Starmap Planet Cards — Click & Tooltip', () => {
     // Activity Log should contain the planet info
     const eventLog = page.locator('#activity-log');
     await expect(eventLog).toContainText('MARS', { timeout: 5000 });
-    await expect(eventLog).toContainText('Antimatter');
-    await expect(eventLog).toContainText('rocky');
+    await expect(eventLog).toContainText('ANTIMATTER');
+    await expect(eventLog).toContainText('ROCKY');
   });
 
   test('discovered planet card has data-tooltip with yields', async ({ page }) => {
@@ -130,7 +130,7 @@ test.describe('Starmap Planet Cards — Click & Tooltip', () => {
 
     // Activity Log should contain the undiscovered explanation
     const eventLog = page.locator('#activity-log');
-    await expect(eventLog).toContainText('undiscovered', { timeout: 5000 });
+    await expect(eventLog).toContainText('UNCHARTED', { timeout: 5000 });
   });
 
   test('undiscovered planet card has data-tooltip with requirement', async ({ page }) => {
