@@ -32,3 +32,25 @@ export const OFFLINE_CAP_MAX_MS = 24 * HOUR_MS;
  * values still written in ticks are converted with this.
  */
 export const TICK_MS = 50 as const;
+
+/**
+ * Offline catch-up (Story 2.6, D2/AR4): the macro-step. Catch-up advances
+ * through the same `processTick` the game uses, in steps of this length
+ * (initial value 10 s; tuned with `pnpm perf`). Systems are correct for any
+ * step length (Story 2.5).
+ */
+export const CATCH_UP_STEP_MS = 10_000 as const;
+
+/**
+ * The CI step budget (Story 2.6, NFR4): a 24 h catch-up (`OFFLINE_CAP_MAX_MS`)
+ * calls `processTick` at most this many times. A fixed number, so a smaller
+ * `CATCH_UP_STEP_MS` fails tests/unit/engine/catchUpBudget.test.ts until the
+ * budget is raised on purpose (and `pnpm perf` re-checked on the reference phone).
+ */
+export const CATCH_UP_MAX_STEPS = 8_640 as const;
+
+/**
+ * NFR4: a 12 h (24 h with upgrades) catch-up finishes within this on the
+ * reference phone. Reported by `pnpm perf` (tests/perf/), never asserted in CI.
+ */
+export const CATCH_UP_BUDGET_MS = 500 as const;

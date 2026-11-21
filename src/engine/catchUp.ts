@@ -4,6 +4,8 @@ import type { SoldierSystem } from '../systems/SoldierSystem';
 import type { MapSystem } from '../systems/MapSystem';
 import type { TerritorySystem } from '../systems/TerritorySystem';
 import { capOfflineMs, computeOfflineResourceDeltas } from '../systems/OfflineProgression';
+import { CATCH_UP_STEP_MS, TICK_MS } from '../data/constants';
+import { log } from '../utils/log';
 import { EventQueue } from './events';
 import { processTick } from './processTick';
 import { creditWhole } from '../utils/math';
@@ -17,8 +19,6 @@ export interface CatchUpDeps {
   latch: (state: GameState) => GameState;
 }
 
-/** The simulated tick length. */
-const TICK_SEC = 50 / 1000;
 
 /**
  * Offline catch-up (GM-8), shared by resume-on-load and the dev time skip
@@ -32,10 +32,24 @@ const TICK_SEC = 50 / 1000;
  *
  * At most `getOfflineCapMs(state)` is simulated, whatever the caller asks for
  * (Story 2.4): `ms` is cut to the cap, and `ticks` to the ticks the cut time holds.
+ *
+ * Macro-steps (Story 2.6, D2/AR4): the `ticks × 50 ms` of game time are not
+ * run tick by tick but in steps of `stepMs` (`CATCH_UP_STEP_MS`, 10 s) through
+ * the same `processTick`, the last step taking what is left. A 24 h catch-up
+ * stays within `CATCH_UP_MAX_STEPS` calls. One summary line is logged, not one
+ * per step. Tests pass `stepMs` = 50 to compare with fine steps.
  */
-export function catchUp(state: GameState, ms: number, ticks: number, deps: CatchUpDeps): GameState {
+export function catchUp(
+  state: GameState,
+  ms: number,
+  ticks: number,
+  deps: CatchUpDeps,
+  stepMs: number = CATCH_UP_STEP_MS,
+): GameState {
   const effectiveMs = capOfflineMs(state, ms);
-  const tickCount = Math.min(ticks, Math.floor(effectiveMs / (TICK_SEC * 1000)));
+  const tickCount = Math.max(0, Math.min(ticks, Math.floor(effectiveMs / TICK_MS)));
+  const simulatedMs = tickCount * TICK_MS;
+  const step = stepMs > 0 ? stepMs : CATCH_UP_STEP_MS;
   const totalDtSec = effectiveMs / 1000;
   const territoryBonuses = deps.territorySystem.getBonuses(state);
   const d = computeOfflineResourceDeltas(state, totalDtSec, territoryBonuses);
@@ -68,13 +82,17 @@ export function catchUp(state: GameState, ms: number, ticks: number, deps: Catch
   };
 
   const events = new EventQueue();
-  for (let i = 0; i < tickCount; i++) {
+  let steps = 0;
+  for (let done = 0; done < simulatedMs; steps++) {
+    const stepLen = Math.min(step, simulatedMs - done);
     s = processTick(
-      s, deps.resourceSystem, deps.soldierSystem, deps.mapSystem, deps.territorySystem, events, TICK_SEC,
+      s, deps.resourceSystem, deps.soldierSystem, deps.mapSystem, deps.territorySystem, events, stepLen / 1000,
       true, // skipDeterministicResources: added above in closed form
     );
     s = deps.latch(s);
     events.clear();
+    done += stepLen;
   }
+  log.info('catch-up', `simulated ${simulatedMs} ms in ${steps} steps`, { effectiveMs, simulatedMs, steps, stepMs: step });
   return s;
 }

@@ -13,6 +13,7 @@
     "test:e2e": "playwright test",
     "test:all": "tsc --noEmit && vitest run && playwright test",
     "lint": "oxlint",
+    "perf": "vitest run --config vitest.perf.config.ts",
     "prepare": "sh scripts/setup-hooks.sh",
     "typecheck": "tsc --noEmit"
   },
