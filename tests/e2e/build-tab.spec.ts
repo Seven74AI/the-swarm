@@ -45,7 +45,8 @@ test.describe('BUILD tab', () => {
   test('in Colony, nothing affordable: the header names what comes next and > BUY is empty', async ({ page }) => {
     // Food comes in from the gatherers, so the price must stay out of reach for the
     // whole test: a high Click Power level, not an empty larder, keeps it unaffordable.
-    await seed(page, { ...colony(0), upgrades: { click_power: 40 } });
+    // The offline research (Story 2.8) is already done, so Click Power is the only BUILD item left.
+    await seed(page, { ...colony(0), upgrades: { click_power: 40 }, research: { projects: { dormantForaging: { status: 'done' } } } });
     await openTab(page, 'build');
     const build = page.locator('[data-tab-panel="build"]');
     await expect(build.locator('[data-build-header]')).toHaveText(/^NEXT: CLICK POWER IN ~/);

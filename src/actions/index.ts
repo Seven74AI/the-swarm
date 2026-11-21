@@ -72,8 +72,6 @@ export function createActions(deps: ActionDeps) {
     // Prestige
     prestige: () => prestige.prestige(deps),
     buyPrestigeUpgrade: (id: PrestigeUpgradeId) => prestige.buyPrestigeUpgrade(deps, id),
-    buyTemporalResonance: () => prestige.buyTemporalResonance(deps),
-    buyChronoSynchronization: () => prestige.buyChronoSynchronization(deps),
     // Phase flow
     continuePhase: () => continuePhase(deps),
     markRevealSeen: (phase: Phase) => markRevealSeen(deps, phase),

@@ -75,6 +75,8 @@ const placements = {
   // the research chain, then the converter it unlocks. `> BUY` on the highlighted card is pinned.
   build_header: { tab: 'build', unlockPhase: Phase.COLONY },
   build_click_power: { tab: 'build', unlockPhase: Phase.COLONY },
+  // The run's offline research (Story 2.8, FR21): open from Phase 2, paid in food.
+  offline_research_panel: { tab: 'build', unlockPhase: Phase.COLONY },
   building_panel: { tab: 'build', unlockPhase: Phase.EXPANSION },
   research_panel: { tab: 'build', unlockPhase: Phase.SPACE },
   resource_converter_panel: { tab: 'build', unlockPhase: Phase.SPACE },

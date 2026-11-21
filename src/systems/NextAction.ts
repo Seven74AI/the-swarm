@@ -170,7 +170,7 @@ function defOf(ref: ItemRef): ItemDef {
     case 'research': {
       const def = getProjects().find((p) => p.id === ref.id);
       return {
-        panel: 'research_panel',
+        panel: def?.panel ?? 'research_panel',
         name: def?.name ?? ref.id,
         open: (s) =>
           !!def && getProjectStatus(s, ref.id) === 'available' && getAssignedResearchers(s) >= def.requiredResearchers,

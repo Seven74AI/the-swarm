@@ -5,7 +5,7 @@ import { gameState } from '../../../../src/state/gameSignal';
 import { Phase } from '../../../../src/phases/phases';
 import { getBuildAction } from '../../../../src/systems/NextAction';
 import { getBuildCost } from '../../../../src/systems/BuildingSystem';
-import { getProjects } from '../../../../src/systems/ResearchSystem';
+import { OFFLINE_RESEARCH_ID, getProjects, getProjectsFor } from '../../../../src/systems/ResearchSystem';
 import { getUpgradeCost } from '../../../../src/systems/ResourceSystem';
 import { BuildHeader } from '../../../../src/ui/build/BuildHeader';
 import { BuildingCards } from '../../../../src/ui/build/BuildingCards';
@@ -158,12 +158,37 @@ describe('Research cards (Story 1.24, UX-DR19)', () => {
   it('draws one card per chain step with its status', () => {
     gameState.value = space();
     const { container } = render(<ResearchCards start={() => ({ ok: true })} cancel={() => ({ ok: true })} confirmSettings={confirmSettings()} />);
-    for (const p of getProjects()) {
+    for (const p of getProjectsFor('research_panel')) {
       const el = research(container, p.id)!;
       expect(el, p.id).not.toBeNull();
       expect(el.getAttribute('data-research-status'), p.id).toBe(p.prerequisite ? 'locked' : 'available');
       expect(el.querySelector('.card__level')!.textContent, p.id).toMatch(/STEP \d\/\d/);
     }
+    // The offline research has its own panel (Story 2.8).
+    expect(research(container, OFFLINE_RESEARCH_ID)).toBeNull();
+  });
+
+  it('the offline research panel draws its one card in Colony, with no crew and no step (Story 2.8)', () => {
+    gameState.value = makeState({ phase: Phase.COLONY, resources: { workers: 5, food: 100_000 } });
+    const started: string[] = [];
+    const { container } = render(
+      <ResearchCards
+        panel="offline_research_panel"
+        start={(id) => (started.push(id), { ok: true })}
+        cancel={() => ({ ok: true })}
+        confirmSettings={confirmSettings()}
+      />,
+    );
+    const cards = container.querySelectorAll('[data-research-project]');
+    expect(cards).toHaveLength(1);
+    const el = research(container, OFFLINE_RESEARCH_ID)!;
+    expect(el.getAttribute('data-research-status')).toBe('available');
+    expect(el.querySelector('.card__level')).toBeNull();
+    expect(el.textContent).not.toMatch(/RESEARCHERS/);
+    const btn = el.querySelector<HTMLButtonElement>('[data-action="start-research"]')!;
+    expect(btn.getAttribute('aria-disabled')).not.toBe('true');
+    btn.click();
+    expect(started).toEqual([OFFLINE_RESEARCH_ID]);
   });
 
   it('START is disabled with the reason while too few researchers are assigned', () => {

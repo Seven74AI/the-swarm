@@ -127,7 +127,7 @@ export function gameViews(d: GameViewDeps): ShellViews {
           </Panel>
         </>
       ),
-      // BUILD (Story 1.24): header, Click Power (Phase 2+), buildings, research, converter.
+      // BUILD (Story 1.24): header, Click Power (Phase 2+), the offline research (2.8), buildings, research, converter.
       build: (
         <>
           <Panel id="build_header" attrs={{ 'data-build-host': 'header' }}>
@@ -135,6 +135,14 @@ export function gameViews(d: GameViewDeps): ShellViews {
           </Panel>
           <Panel id="build_click_power" attrs={{ 'data-build-host': 'click-power' }}>
             <ClickPowerCard place="build" buy={buyClickPower} />
+          </Panel>
+          <Panel id="offline_research_panel" tag="section" class="build-section research-panel" attrs={{ 'data-build-host': 'offline-research' }}>
+            <ResearchCards
+              panel="offline_research_panel"
+              start={(id) => d.actions.startResearch(id)}
+              cancel={(id) => d.actions.cancelResearch(id)}
+              confirmSettings={d.confirmSettings}
+            />
           </Panel>
           <Panel id="building_panel" tag="section" domId="building-panel" class="build-section building-panel">
             <BuildingCards buy={(id) => d.actions.buyBuilding(id)} />

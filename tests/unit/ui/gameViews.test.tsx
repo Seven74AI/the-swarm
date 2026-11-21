@@ -112,7 +112,7 @@ describe('the game views', () => {
     revealAll();
     const ids = (sel: string) => [...c.querySelector(sel)!.children].map((el) => el.id || el.getAttribute('data-build-host') || el.getAttribute('data-log-host') || el.className);
     expect(ids('[data-tab-content="wrkr"]')).toEqual(['worker-assignment', 'food-display', expect.stringContaining('automation-host')]);
-    expect(ids('[data-tab-content="build"]')).toEqual(['header', 'click-power', 'building-panel', 'research-panel', 'resource-converter-panel']);
+    expect(ids('[data-tab-content="build"]')).toEqual(['header', 'click-power', 'offline-research', 'building-panel', 'research-panel', 'resource-converter-panel']);
     expect(ids('[data-segment-panel="war"]')).toEqual(['soldier-panel', 'mutation-panel', 'battle-panel', 'combat-log-panel']);
     expect(ids('[data-tab-content="log"]')).toEqual(['chronicle', 'stats', 'settings', 'legacy']);
     const legacy = c.querySelector('[data-log-section="legacy"]')!;

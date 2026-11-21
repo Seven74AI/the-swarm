@@ -1,4 +1,6 @@
 import type { GameState, ResearchProject, ResearchProjectId, ResearchProjectStatus } from '../state/GameState';
+import type { PanelId } from '../data/content/tabs';
+import { OFFLINE_EFFICIENCY_STEP_POINTS } from '../data/constants';
 
 export type { ResearchProjectId } from '../state/GameState';
 
@@ -12,7 +14,18 @@ export interface ResearchProjectDef {
   durationMs: number;
   unlock: string;
   prerequisite: ResearchProjectId | null;
+  /** The BUILD panel whose cards sell it (the space chain, or the offline research from Colony). */
+  panel: Extract<PanelId, 'research_panel' | 'offline_research_panel'>;
+  /** Offline efficiency points while this run has it done (Story 2.8, `getOfflineEfficiency`). */
+  offlineEfficiencyPoints?: number;
 }
+
+/**
+ * The run's offline research (Story 2.8, FR21): open from Colony, paid in food,
+ * it needs no researchers (the researcher row opens with the space chain).
+ * Prestige wipes it; the Legacy efficiency node is the permanent half.
+ */
+export const OFFLINE_RESEARCH_ID = 'dormantForaging' satisfies ResearchProjectId;
 
 const PROJECTS: ResearchProjectDef[] = [
   {
@@ -24,6 +37,7 @@ const PROJECTS: ResearchProjectDef[] = [
     durationMs: 30_000, // 600 ticks
     unlock: 'voidCrystal',
     prerequisite: null,
+    panel: 'research_panel',
   },
   {
     id: 'antimatterContainment',
@@ -34,6 +48,7 @@ const PROJECTS: ResearchProjectDef[] = [
     durationMs: 75_000, // 1500 ticks
     unlock: 'antimatter + particle lab',
     prerequisite: 'voidCrystalSynthesis',
+    panel: 'research_panel',
   },
   {
     id: 'darkMatterDetection',
@@ -44,12 +59,30 @@ const PROJECTS: ResearchProjectDef[] = [
     durationMs: 150_000, // 3000 ticks
     unlock: 'darkMatter from expeditions',
     prerequisite: 'antimatterContainment',
+    panel: 'research_panel',
+  },
+  {
+    id: OFFLINE_RESEARCH_ID,
+    name: 'Dormant Foraging',
+    description: 'Workers keep a slow foraging rhythm while the colony is left alone.',
+    cost: { food: 300 },
+    requiredResearchers: 0,
+    durationMs: 60_000, // 1200 ticks
+    unlock: 'offline efficiency',
+    prerequisite: null,
+    panel: 'offline_research_panel',
+    offlineEfficiencyPoints: OFFLINE_EFFICIENCY_STEP_POINTS,
   },
 ];
 
-/** Returns all research project definitions. */
+/** Returns all research project definitions (every panel). */
 export function getProjects(): ResearchProjectDef[] {
   return PROJECTS;
+}
+
+/** The projects one BUILD panel sells, in card order. */
+export function getProjectsFor(panel: ResearchProjectDef['panel']): ResearchProjectDef[] {
+  return PROJECTS.filter((p) => p.panel === panel);
 }
 
 /** Get the definition for a specific project. */

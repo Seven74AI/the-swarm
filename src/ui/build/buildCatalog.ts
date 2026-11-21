@@ -1,5 +1,6 @@
 import type { BuildingType, ConversionId } from '../../state/queries';
 import type { ResearchProjectId } from '../../state/GameState';
+import { OFFLINE_EFFICIENCY_STEP_POINTS } from '../../data/constants';
 
 /**
  * What BUILD's cards say (Story 1.24, UX-DR17): names, placeholder glyphs and
@@ -31,6 +32,7 @@ export const RESEARCH_EFFECT: Readonly<Record<ResearchProjectId, string>> = {
   voidCrystalSynthesis: 'UNLOCKS THE CONVERTER: STONE + NECTAR → VOID CRYSTALS',
   antimatterContainment: 'UNLOCKS VOID CRYSTALS → ANTIMATTER (NEEDS A PARTICLE LAB)',
   darkMatterDetection: 'UNLOCKS ANTIMATTER → DARK MATTER (NEEDS A SPACE EXPLORATION)',
+  dormantForaging: `TIME AWAY COUNTS FOR MORE: OFFLINE EFFICIENCY +${OFFLINE_EFFICIENCY_STEP_POINTS} POINTS UNTIL PRESTIGE`,
 };
 
 export const CONVERTER_GLYPH = '⇄';

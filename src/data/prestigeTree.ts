@@ -1,10 +1,16 @@
+import { HOUR_MS, OFFLINE_CAP_RAISE_MS, OFFLINE_EFFICIENCY_STEP_POINTS } from './constants';
+
+const CAP_RAISE_TEXT = `Offline cap +${OFFLINE_CAP_RAISE_MS / HOUR_MS} h`;
+
 /**
  * Prestige Tree upgrade data.
  *
- * The prestige tree contains 8 permanent upgrades:
+ * The prestige tree contains 11 permanent upgrades:
  *   - 5 production bonuses (Egg-laying +25%, Hatching +25%, Food +25%,
  *     Soldier training +25%, Worker efficiency +10%)
  *   - 3 unlock upgrades (Auto-egg-laying, Starting resources, Phase skip)
+ *   - 3 offline upgrades (Story 2.8): offline efficiency +25 points, and two
+ *     cap raises that take the offline cap from 12 h to 24 h
  *
  * Upgrades are purchased with Legacy Points and persist through Full Wipes.
  */
@@ -17,7 +23,10 @@ export type PrestigeUpgradeId =
   | 'worker_efficiency_bonus'
   | 'auto_egg_laying'
   | 'starting_resources'
-  | 'phase_skip';
+  | 'phase_skip'
+  | 'temporal_resonance'
+  | 'chrono_synchronization'
+  | 'long_dormancy';
 
 export type PrestigeUpgradeEffect =
   | 'egg_laying'
@@ -27,9 +36,11 @@ export type PrestigeUpgradeEffect =
   | 'worker_efficiency'
   | 'auto_egg_laying'
   | 'starting_resources'
-  | 'phase_skip';
+  | 'phase_skip'
+  | 'offline_efficiency'
+  | 'offline_cap';
 
-export type PrestigeUpgradeType = 'production' | 'unlock';
+export type PrestigeUpgradeType = 'production' | 'unlock' | 'offline';
 
 export interface PrestigeUpgrade {
   id: PrestigeUpgradeId;
@@ -47,12 +58,14 @@ export interface PrestigeUpgrade {
   depth: number;
   /**
    * How much owning this node raises the offline cap, in ms (Story 2.4).
-   * Summed by `getOfflineCapMs`; no node sets it until Story 2.8.
+   * Summed by `getOfflineCapMs`.
    */
   offlineCapRaiseMs?: number;
+  /** Percentage points owning this node adds to offline efficiency (Story 2.8, `getOfflineEfficiency`). */
+  offlineEfficiencyPoints?: number;
 }
 
-/** All 8 prestige tree upgrades. */
+/** All 11 prestige tree upgrades. */
 export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
   // ── Production Bonuses (5) ──
   {
@@ -146,5 +159,44 @@ export const PRESTIGE_UPGRADES: PrestigeUpgrade[] = [
     phaseRequired: 'egg_laying',
     prerequisites: ['auto_egg_laying'],
     depth: 3,
+  },
+  // ── Offline Upgrades (3, Story 2.8) ──
+  // Temporal Resonance and Chrono Synchronization were one-off buys before
+  // Story 2.8; the save migration grants these nodes to saves that owned them.
+  {
+    id: 'temporal_resonance',
+    name: 'Temporal Resonance',
+    description: `Offline efficiency +${OFFLINE_EFFICIENCY_STEP_POINTS} points`,
+    cost: 10,
+    effect: 'offline_efficiency',
+    type: 'offline',
+    icon: '🌀',
+    prerequisites: [],
+    depth: 0,
+    offlineEfficiencyPoints: OFFLINE_EFFICIENCY_STEP_POINTS,
+  },
+  {
+    id: 'chrono_synchronization',
+    name: 'Chrono Synchronization',
+    description: CAP_RAISE_TEXT,
+    cost: 8,
+    effect: 'offline_cap',
+    type: 'offline',
+    icon: '🔮',
+    prerequisites: [],
+    depth: 0,
+    offlineCapRaiseMs: OFFLINE_CAP_RAISE_MS,
+  },
+  {
+    id: 'long_dormancy',
+    name: 'Long Dormancy',
+    description: CAP_RAISE_TEXT,
+    cost: 12,
+    effect: 'offline_cap',
+    type: 'offline',
+    icon: '⏳',
+    prerequisites: ['chrono_synchronization'],
+    depth: 1,
+    offlineCapRaiseMs: OFFLINE_CAP_RAISE_MS,
   },
 ];

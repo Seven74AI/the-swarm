@@ -26,7 +26,7 @@ vi.mock('../../../src/data/prestigeTree', async (importOriginal) => {
 const { processTick } = await import('../../../src/engine/processTick');
 const { resume } = await import('../../../src/engine/resume');
 const { catchUp } = await import('../../../src/engine/catchUp');
-const { getOfflineCapMs } = await import('../../../src/systems/OfflineProgression');
+const { getOfflineCapMs, getOfflineEfficiency } = await import('../../../src/systems/OfflineProgression');
 const { EventBus } = await import('../../../src/engine/EventBus');
 const { ResourceSystem } = await import('../../../src/systems/ResourceSystem');
 const { SoldierSystem } = await import('../../../src/systems/SoldierSystem');
@@ -51,16 +51,20 @@ function deps(): Deps {
   };
 }
 
-/** A mid-game colony with every pipeline busy and the cap raised to its ceiling. */
+/**
+ * A mid-game colony with every pipeline busy and the cap raised to its ceiling,
+ * at 50%, 75% (the run's offline research) or 100% (and the Legacy efficiency
+ * node), Story 2.8.
+ */
 const colony = (offlineEfficiency: number) =>
   makeState({
     phase: 'colony',
-    offlineEfficiency,
     resources: { workers: 40, food: 5_000, eggs: 30, larvae: 10 },
     eggPipeline: { count: 30, progress: 0 },
     larvaPipeline: { count: 10, progress: 0 },
     workersAssigned: { gather: 20, tend: 10 },
-    prestigeTree: { purchased: [CAP_MAX_NODE] },
+    research: offlineEfficiency >= 0.75 ? { projects: { dormantForaging: { status: 'done' } } } : {},
+    prestigeTree: { purchased: offlineEfficiency >= 1 ? [CAP_MAX_NODE, 'temporal_resonance'] : [CAP_MAX_NODE] },
   });
 
 const DAY_PLUS = OFFLINE_CAP_MAX_MS + 6 * 60 * 60_000;
@@ -75,8 +79,9 @@ describe('catch-up step budget (Story 2.6)', () => {
     expect(CATCH_UP_MAX_STEPS * CATCH_UP_STEP_MS).toBeGreaterThanOrEqual(OFFLINE_CAP_MAX_MS);
   });
 
-  it('the test state really has the 24 h cap', () => {
+  it('the test state really has the 24 h cap and the efficiency asked for', () => {
     expect(getOfflineCapMs(colony(1))).toBe(OFFLINE_CAP_MAX_MS);
+    for (const efficiency of [0.5, 0.75, 1]) expect(getOfflineEfficiency(colony(efficiency))).toBe(efficiency);
   });
 
   for (const efficiency of [0.5, 0.75, 1]) {

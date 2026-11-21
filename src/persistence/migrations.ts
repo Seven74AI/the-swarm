@@ -550,6 +550,51 @@ function migrateV20toV21(data: SaveData): SaveData {
   };
 }
 
+/** Tolerance for the old stored efficiency (it was written as 0.75 and 1.0 exactly). */
+const OLD_EFFICIENCY_EPSILON = 1e-9;
+
+/**
+ * v21 → v22 (Story 2.8, FR21): offline efficiency is computed (50% + the run's
+ * offline research + the Legacy efficiency node), no longer stored. The old
+ * one-off buys had no ownership flag, so ownership is read from the stored
+ * `offlineEfficiency`: 0.75 = Temporal Resonance, 1.0 = it and Chrono
+ * Synchronization. Grant, not refund (owner decision 2026-11-21):
+ * - Temporal Resonance → the Legacy efficiency node `temporal_resonance`, so
+ *   the save keeps 75% without the research.
+ * - Chrono Synchronization → the first Legacy cap-raise node
+ *   `chrono_synchronization`, and this run's offline research is marked done,
+ *   so the save stays at 100% until its next prestige.
+ * Every save gets the research slot; nothing else changes.
+ */
+function migrateV21toV22(data: SaveData): SaveData {
+  const gs = { ...(data.gameState as unknown as Record<string, unknown>) };
+  const stored = gs.offlineEfficiency;
+  delete gs.offlineEfficiency;
+  const had = typeof stored === 'number' && Number.isFinite(stored) ? stored : 0;
+  const ownsTR = had >= 0.75 - OLD_EFFICIENCY_EPSILON;
+  const ownsCS = had >= 1 - OLD_EFFICIENCY_EPSILON;
+
+  const tree = gs.prestigeTree !== null && typeof gs.prestigeTree === 'object' ? (gs.prestigeTree as Record<string, unknown>) : {};
+  const purchased = Array.isArray(tree.purchased) ? tree.purchased.filter((id): id is string => typeof id === 'string') : [];
+  const grant = [...(ownsTR ? ['temporal_resonance'] : []), ...(ownsCS ? ['chrono_synchronization'] : [])];
+  const nextPurchased = [...new Set([...purchased, ...grant])];
+
+  const research = gs.research !== null && typeof gs.research === 'object' ? (gs.research as Record<string, unknown>) : {};
+  const projects = research.projects !== null && typeof research.projects === 'object' ? (research.projects as Record<string, unknown>) : {};
+  const existing = projects.dormantForaging;
+  const slot = ownsCS ? { status: 'done' } : existing !== null && typeof existing === 'object' ? existing : { status: 'idle' };
+
+  return {
+    ...data,
+    version: 22,
+    gameState: {
+      ...gs,
+      prestigeTree: { ...tree, purchased: nextPurchased },
+      research: { ...research, projects: { ...projects, dormantForaging: slot } },
+    } as unknown as GameState,
+  };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -572,6 +617,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   18: migrateV18toV19,
   19: migrateV19toV20,
   20: migrateV20toV21,
+  21: migrateV21toV22,
 };
 
 /**

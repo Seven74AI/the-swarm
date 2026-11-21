@@ -9,6 +9,7 @@ import { TerritorySystem } from '../../../src/systems/TerritorySystem';
 import { PhaseStateMachine } from '../../../src/phases/PhaseStateMachine';
 import { TRANSITIONS } from '../../../src/phases/transitions';
 import { RESUME_FULL_EFFICIENCY_MS } from '../../../src/data/constants';
+import { getOfflineEfficiency } from '../../../src/systems/OfflineProgression';
 import type { GameState } from '../../../src/state/GameState';
 import { makeState } from '../helpers/makeState';
 
@@ -51,7 +52,7 @@ describe('resume(elapsedMs)', () => {
   });
 
   it('runs a gap under 60 s at full efficiency, with no offline summary', () => {
-    const before = colony({ offlineEfficiency: 0.5 });
+    const before = colony();
     const gap = RESUME_FULL_EFFICIENCY_MS - 10_000;
     const r = resume(before, gap, catchUpDeps());
     expect(r.offline).toBeNull();
@@ -63,13 +64,13 @@ describe('resume(elapsedMs)', () => {
   });
 
   it('hands 60 s or more to the offline path at the offline efficiency', () => {
-    const before = colony({ offlineEfficiency: 0.5 });
+    const before = colony();
     const gap = RESUME_FULL_EFFICIENCY_MS;
     const r = resume(before, gap, catchUpDeps());
     expect(r.offline).not.toBeNull();
     expect(r.offline!.elapsedMs).toBe(gap);
-    expect(r.offline!.efficiency).toBe(before.offlineEfficiency);
-    expect(r.efficiency).toBe(before.offlineEfficiency);
+    expect(r.offline!.efficiency).toBe(getOfflineEfficiency(before));
+    expect(r.efficiency).toBe(getOfflineEfficiency(before));
     // Reduced efficiency: fewer ticks than the gap holds.
     expect(r.offline!.offlineTicks).toBeLessThan(Math.floor(gap / 50));
     expect(r.offline!.offlineTicks).toBeGreaterThan(0);

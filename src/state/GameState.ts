@@ -233,12 +233,6 @@ export interface GameState {
     /** Fractional progress toward next auto egg (rate * dt accumulator). */
     progress: number;
   };
-  /**
-   * Offline progression efficiency multiplier (0.5 = 50%, 1.0 = 100%).
-   * Default 50% for standard incremental convention.
-   * Upgradable via Phase 5+ prestige upgrades.
-   */
-  offlineEfficiency: number;
   /** Research system state (GM-6). */
   research: ResearchState;
   /** Resource conversion system state (GM-4). */
@@ -256,7 +250,7 @@ export interface GameState {
   mutations: Mutation[];
 }
 
-export type ResearchProjectId = 'voidCrystalSynthesis' | 'antimatterContainment' | 'darkMatterDetection';
+export type ResearchProjectId = 'voidCrystalSynthesis' | 'antimatterContainment' | 'darkMatterDetection' | 'dormantForaging';
 
 /** Display status of a research project. `locked`/`available` are derived from prerequisites. */
 export type ResearchProjectStatus = 'locked' | 'available' | 'in_progress' | 'completed';
@@ -469,12 +463,12 @@ export function createInitialState(): GameState {
       },
       progress: 0,
     },
-    offlineEfficiency: 0.5,
     research: {
       projects: {
         voidCrystalSynthesis: { status: 'idle' },
         antimatterContainment: { status: 'idle' },
         darkMatterDetection: { status: 'idle' },
+        dormantForaging: { status: 'idle' },
       },
     },
     conversions: {

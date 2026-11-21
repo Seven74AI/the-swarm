@@ -37,19 +37,16 @@ export {
   getAssignedResearchers,
   getProjectStatus,
   getProjects,
+  getProjectsFor,
   type ResearchProjectDef,
 } from '../systems/ResearchSystem';
 export {
   canPurchasePrestigeUpgrade,
   calculateLegacyPoints,
-  canBuyChronoSynchronization,
-  canBuyTemporalResonance,
-  CHRONO_SYNCHRONIZATION_COST,
   getPhaseScore,
   getUnmetRequirements,
   isPrestigeAvailable,
   isPrestigeUpgradePurchased,
-  TEMPORAL_RESONANCE_COST,
 } from '../systems/PrestigeSystem';
 export { MAX_PROBES, PROBE_SWARM_THRESHOLD } from '../systems/ExplorationSystem';
 export { MAX_ACTIVE_EXPEDITIONS } from '../systems/ExpeditionSystem';

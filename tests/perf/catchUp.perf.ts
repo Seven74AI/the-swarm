@@ -42,15 +42,16 @@ function deps(): Deps {
   };
 }
 
+/** 50%, 75% (the run's offline research) or 100% (and the Legacy efficiency node), Story 2.8. */
 const colony = (offlineEfficiency: number) =>
   makeState({
     phase: 'colony',
-    offlineEfficiency,
     resources: { workers: 40, food: 5_000, eggs: 30, larvae: 10 },
     eggPipeline: { count: 30, progress: 0 },
     larvaPipeline: { count: 10, progress: 0 },
     workersAssigned: { gather: 20, tend: 10 },
-    prestigeTree: { purchased: [CAP_MAX_NODE] },
+    research: offlineEfficiency >= 0.75 ? { projects: { dormantForaging: { status: 'done' } } } : {},
+    prestigeTree: { purchased: offlineEfficiency >= 1 ? [CAP_MAX_NODE, 'temporal_resonance'] : [CAP_MAX_NODE] },
   });
 
 const RUNS = 7;

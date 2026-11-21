@@ -1,27 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialState } from '../../src/state/GameState';
 import type { GameState } from '../../src/state/GameState';
-import { getOfflineCapMs, planOffline } from '../../src/systems/OfflineProgression';
+import { getOfflineCapMs, getOfflineEfficiency, planOffline } from '../../src/systems/OfflineProgression';
 
-describe('GameState offlineEfficiency', () => {
-  it('offlineEfficiency defaults to 0.5 (50%) in createInitialState', () => {
+describe('offline efficiency is derived, not stored (Story 2.8)', () => {
+  it('a new state stores no efficiency; getOfflineEfficiency gives the 50% baseline', () => {
     const state = createInitialState();
-    expect(state.offlineEfficiency).toBe(0.5);
-  });
-
-  it('offlineEfficiency is a number on the GameState interface', () => {
-    const state = createInitialState();
-    expect(typeof state.offlineEfficiency).toBe('number');
-  });
-
-  it('offlineEfficiency is preserved across save/load round-trip', () => {
-    const state = createInitialState();
-    // Modify efficiency to ensure it survives serialization
-    (state as GameState).offlineEfficiency = 0.75;
-
-    const json = JSON.stringify(state);
-    const restored = JSON.parse(json) as GameState;
-    expect(restored.offlineEfficiency).toBe(0.75);
+    expect('offlineEfficiency' in state).toBe(false);
+    expect(getOfflineEfficiency(state)).toBe(0.5);
   });
 });
 
