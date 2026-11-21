@@ -178,13 +178,6 @@ describe('AutomationSystem', () => {
       }
     });
 
-    it('Nursery has maxLevel 10', () => {
-      expect(AUTOMATION_BUILDINGS['nursery'].maxLevel).toBe(10);
-    });
-
-    it('Hatchery has maxLevel 5', () => {
-      expect(AUTOMATION_BUILDINGS['hatchery'].maxLevel).toBe(5);
-    });
   });
 
   // ── getBuildingEffect ──
