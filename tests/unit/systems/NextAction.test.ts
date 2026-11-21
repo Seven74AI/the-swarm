@@ -11,6 +11,7 @@ import {
 } from '../../../src/systems/NextAction';
 import { CRITICAL_PATH } from '../../../src/data/content/criticalPath';
 import { nextActionBalance } from '../../../src/data/balance/nextAction';
+import { MS_PER_SEC } from '../../../src/data/constants';
 import { Phase, PHASE_ORDER } from '../../../src/phases/phases';
 import { goalFor } from '../../../src/phases/transitions';
 import { PhaseStateMachine } from '../../../src/phases/PhaseStateMachine';
@@ -187,7 +188,7 @@ describe('getNextAction (Story 1.21)', () => {
     it('is not critical while the stock covers the upkeep window, even when the rate is negative', () => {
       const s = starving(colony());
       const upkeep = computeResourceRates(s).foodConsumedPerSec;
-      const enough = Math.ceil(upkeep * nextActionBalance.foodCriticalSeconds);
+      const enough = Math.ceil(upkeep * (nextActionBalance.foodCriticalMs / MS_PER_SEC));
       const covered = { ...s, resources: { ...s.resources, food: enough } };
       const n = getNextAction(covered);
       expect(n.kind === 'act' && n.rule === 'food').toBe(false);

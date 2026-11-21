@@ -1,11 +1,11 @@
 import type { GameState, SpaceExploration, SpaceProbe } from '../state/GameState';
 import { PLANETS, type PlanetDef } from '../data/planets';
-import { hashString, intBetween, keyedStream, pick, type RngStream } from '../utils/rng';
+import { STREAM_KEYS, hashString, intBetween, keyedStream, pick, type RngStream } from '../utils/rng';
 
 /** Key the keyed streams of explorations and probe launches apart (Story 3.1). */
-const EXPLORATION_KEY = 2;
-const PROBE_TICK_KEY = 3;
-const PROBE_PLANET_KEY = 4;
+const EXPLORATION_KEY = STREAM_KEYS.exploration;
+const PROBE_TICK_KEY = STREAM_KEYS.probeTick;
+const PROBE_PLANET_KEY = STREAM_KEYS.probePlanet;
 
 /**
  * The rolls of one exploration (Story 3.1): fixed by the game's seed, the run

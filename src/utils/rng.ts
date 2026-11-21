@@ -82,6 +82,18 @@ function fmix(h: number): number {
   return (h ^ (h >>> 16)) >>> 0;
 }
 
+/**
+ * The first key of each keyed stream, one per kind of outcome, so no two kinds
+ * ever share draws (Story 3.1). Kept in one place (Story 3.2: no number
+ * literals in systems/).
+ */
+export const STREAM_KEYS = {
+  expedition: 1,
+  exploration: 2,
+  probeTick: 3,
+  probePlanet: 4,
+} as const;
+
 /** A 32-bit hash of a string (an id), for `keyedStream`. */
 export function hashString(text: string): number {
   let h = 0x811c9dc5;

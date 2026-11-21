@@ -1,6 +1,7 @@
 import type { ActionDeps } from './context';
 import { commit, current, refuse, type ActionResult } from './result';
-import { MAX_EQUIPMENT_LEVEL, SOLDIER_COST_FOOD, getEquipmentUpgradeCost } from '../systems/SoldierSystem';
+import { getEquipmentUpgradeCost } from '../systems/SoldierSystem';
+import { soldierBalance } from '../data/balance/soldiers';
 import type { BattleResult } from '../systems/BattleSystem';
 import { MUTATIONS, purchaseMutation } from '../systems/MutationSystem';
 import { getEnemyDefs } from '../systems/EnemySystem';
@@ -20,14 +21,14 @@ import {
 export function trainSoldier(deps: ActionDeps): ActionResult {
   const s = current(deps);
   if (s.resources.workers < 1 || freeWorkers(s) < 1) return refuse('no_free_workers');
-  if (s.resources.food < SOLDIER_COST_FOOD) return refuse('cannot_afford');
+  if (s.resources.food < soldierBalance.costFood) return refuse('cannot_afford');
   return commit(deps, s, deps.soldierSystem.recruitSoldier(s));
 }
 
 /** Raise weapons one level (needs a Chitin Armory). */
 export function upgradeWeapon(deps: ActionDeps): ActionResult {
   const s = current(deps);
-  if (s.equipment.weapon >= MAX_EQUIPMENT_LEVEL) return refuse('max_level');
+  if (s.equipment.weapon >= soldierBalance.maxEquipmentLevel) return refuse('max_level');
   if ((s.buildings.chitin_armory?.level ?? 0) < 1) return refuse('locked');
   if (s.combatResources.chitin < getEquipmentUpgradeCost(s.equipment.weapon)) return refuse('cannot_afford');
   return commit(deps, s, deps.soldierSystem.upgradeWeapon(s));
@@ -36,7 +37,7 @@ export function upgradeWeapon(deps: ActionDeps): ActionResult {
 /** Raise armour one level (needs Silk Weaving). */
 export function upgradeArmor(deps: ActionDeps): ActionResult {
   const s = current(deps);
-  if (s.equipment.armor >= MAX_EQUIPMENT_LEVEL) return refuse('max_level');
+  if (s.equipment.armor >= soldierBalance.maxEquipmentLevel) return refuse('max_level');
   if ((s.buildings.silk_weaving?.level ?? 0) < 1) return refuse('locked');
   if (s.combatResources.silk < getEquipmentUpgradeCost(s.equipment.armor)) return refuse('cannot_afford');
   return commit(deps, s, deps.soldierSystem.upgradeArmor(s));

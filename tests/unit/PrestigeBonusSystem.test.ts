@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 import { getPrestigeBonuses, hasPurchased, type PrestigeBonuses } from '../../src/systems/PrestigeBonusSystem';
+import { prestigeBonusBalance as B } from '../../src/data/balance/prestigeBonuses';
+
+/** The multiplier after `n` purchases of a production upgrade: `1 + bonus × n`. */
+const after = (bonus: number, n = 1): number => 1 + bonus * n;
 
 /**
  * PrestigeBonusSystem tests — TDD for Slice 4 wiring.
@@ -43,76 +47,76 @@ describe('PrestigeBonusSystem', () => {
 
     // ─── Production Bonuses ───
 
-    it('egg-laying bonus: 1 purchase → 1.25x multiplier', () => {
+    it('egg-laying bonus: 1 purchase → 1 + bonus', () => {
       state.prestigeTree.purchased = ['egg_laying_bonus'];
       const bonuses = getPrestigeBonuses(state);
-      expect(bonuses.eggLaying).toBeCloseTo(1.25, 4);
+      expect(bonuses.eggLaying).toBeCloseTo(after(B.egg_laying), 4);
       // Other bonuses unaffected
       expect(bonuses.hatching).toBe(1.0);
     });
 
-    it('hatching bonus: 1 purchase → 1.25x multiplier', () => {
+    it('hatching bonus: 1 purchase → 1 + bonus', () => {
       state.prestigeTree.purchased = ['hatching_bonus'];
       const bonuses = getPrestigeBonuses(state);
-      expect(bonuses.hatching).toBeCloseTo(1.25, 4);
+      expect(bonuses.hatching).toBeCloseTo(after(B.hatching), 4);
       expect(bonuses.eggLaying).toBe(1.0);
     });
 
-    it('food bonus: 1 purchase → 1.25x multiplier', () => {
+    it('food bonus: 1 purchase → 1 + bonus', () => {
       state.prestigeTree.purchased = ['food_bonus'];
       const bonuses = getPrestigeBonuses(state);
-      expect(bonuses.food).toBeCloseTo(1.25, 4);
+      expect(bonuses.food).toBeCloseTo(after(B.food), 4);
     });
 
-    it('soldier training bonus: 1 purchase → 1.25x multiplier', () => {
+    it('soldier training bonus: 1 purchase → 1 + bonus', () => {
       state.prestigeTree.purchased = ['soldier_training_bonus'];
       const bonuses = getPrestigeBonuses(state);
-      expect(bonuses.soldierTraining).toBeCloseTo(1.25, 4);
+      expect(bonuses.soldierTraining).toBeCloseTo(after(B.soldier_training), 4);
     });
 
-    it('worker efficiency bonus: 1 purchase → 1.10x multiplier', () => {
+    it('worker efficiency bonus: 1 purchase → 1 + bonus', () => {
       state.prestigeTree.purchased = ['worker_efficiency_bonus'];
       const bonuses = getPrestigeBonuses(state);
-      expect(bonuses.workerEfficiency).toBeCloseTo(1.10, 4);
+      expect(bonuses.workerEfficiency).toBeCloseTo(after(B.worker_efficiency), 4);
     });
 
     // ─── Additive Stacking (same upgrade) ───
 
-    it('same upgrade additive: 2x egg-laying → 1.50x', () => {
+    it('same upgrade additive: 2x egg-laying → 1 + 2 × bonus', () => {
       state.prestigeTree.purchased = ['egg_laying_bonus', 'egg_laying_bonus'];
       const bonuses = getPrestigeBonuses(state);
-      expect(bonuses.eggLaying).toBeCloseTo(1.50, 4);
+      expect(bonuses.eggLaying).toBeCloseTo(after(B.egg_laying, 2), 4);
     });
 
-    it('same upgrade additive: 3x egg-laying → 1.75x', () => {
+    it('same upgrade additive: 3x egg-laying → 1 + 3 × bonus', () => {
       state.prestigeTree.purchased = [
         'egg_laying_bonus',
         'egg_laying_bonus',
         'egg_laying_bonus',
       ];
       const bonuses = getPrestigeBonuses(state);
-      expect(bonuses.eggLaying).toBeCloseTo(1.75, 4);
+      expect(bonuses.eggLaying).toBeCloseTo(after(B.egg_laying, 3), 4);
     });
 
-    it('same upgrade additive: 2x worker efficiency → 1.20x', () => {
+    it('same upgrade additive: 2x worker efficiency → 1 + 2 × bonus', () => {
       state.prestigeTree.purchased = ['worker_efficiency_bonus', 'worker_efficiency_bonus'];
       const bonuses = getPrestigeBonuses(state);
-      expect(bonuses.workerEfficiency).toBeCloseTo(1.20, 4);
+      expect(bonuses.workerEfficiency).toBeCloseTo(after(B.worker_efficiency, 2), 4);
     });
 
     // ─── Multiplicative Across Different Upgrades ───
 
-    it('different upgrades multiply: egg 50% × worker 20% = 1.80 effective', () => {
+    it('different upgrades multiply: each applies on its own', () => {
       state.prestigeTree.purchased = [
         'egg_laying_bonus',
-        'egg_laying_bonus',        // 1.50
-        'worker_efficiency_bonus',  // 1.10
+        'egg_laying_bonus',
+        'worker_efficiency_bonus',
       ];
       const bonuses = getPrestigeBonuses(state);
       // Each bonus is independent; combined effect in systems = product
-      expect(bonuses.eggLaying).toBeCloseTo(1.50, 4);
-      expect(bonuses.workerEfficiency).toBeCloseTo(1.10, 4);
-      // Cross-product in practice: 1.50 * 1.10 = 1.65 (but systems multiply independently)
+      expect(bonuses.eggLaying).toBeCloseTo(after(B.egg_laying, 2), 4);
+      expect(bonuses.workerEfficiency).toBeCloseTo(after(B.worker_efficiency), 4);
+      // Systems multiply them independently.
       // The spec says "Bonuses from different upgrades should multiply"
       // Since each system applies its own bonus separately, the effect is multiplicative
       // But getPrestigeBonuses returns independent multipliers — systems build the product
@@ -128,11 +132,11 @@ describe('PrestigeBonusSystem', () => {
         'worker_efficiency_bonus',
       ];
       const bonuses = getPrestigeBonuses(state);
-      expect(bonuses.eggLaying).toBeCloseTo(1.25, 4);
-      expect(bonuses.hatching).toBeCloseTo(1.25, 4);
-      expect(bonuses.food).toBeCloseTo(1.25, 4);
-      expect(bonuses.soldierTraining).toBeCloseTo(1.25, 4);
-      expect(bonuses.workerEfficiency).toBeCloseTo(1.10, 4);
+      expect(bonuses.eggLaying).toBeCloseTo(after(B.egg_laying), 4);
+      expect(bonuses.hatching).toBeCloseTo(after(B.hatching), 4);
+      expect(bonuses.food).toBeCloseTo(after(B.food), 4);
+      expect(bonuses.soldierTraining).toBeCloseTo(after(B.soldier_training), 4);
+      expect(bonuses.workerEfficiency).toBeCloseTo(after(B.worker_efficiency), 4);
     });
 
     // ─── Unlock Upgrades ───
@@ -177,7 +181,7 @@ describe('PrestigeBonusSystem', () => {
         'starting_resources',
       ];
       const bonuses = getPrestigeBonuses(state);
-      expect(bonuses.eggLaying).toBeCloseTo(1.25, 4);
+      expect(bonuses.eggLaying).toBeCloseTo(after(B.egg_laying), 4);
       expect(bonuses.autoEggLayer).toBe(true);
       expect(bonuses.startingResources).toBe(true);
       expect(bonuses.phaseSkip).toBe(false);

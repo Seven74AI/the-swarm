@@ -1,9 +1,8 @@
 import type { GameState } from '../state/GameState';
 import { getAutoEggRate } from '../systems/AutomationSystem';
 import { getPrestigeBonuses } from '../systems/PrestigeBonusSystem';
+import { resourceBalance } from '../data/balance/resources';
 
-/** Eggs a second laid by the prestige tree's auto egg layer. */
-export const AUTO_EGG_LAYER_PER_SEC = 1;
 
 /**
  * Eggs laid a second without a tap: automation (when enabled) plus the
@@ -11,7 +10,7 @@ export const AUTO_EGG_LAYER_PER_SEC = 1;
  */
 export function getAutoLayRate(state: GameState): number {
   const automation = state.autoProduction.enabled ? getAutoEggRate(state) : 0;
-  const layer = getPrestigeBonuses(state).autoEggLayer ? AUTO_EGG_LAYER_PER_SEC : 0;
+  const layer = getPrestigeBonuses(state).autoEggLayer ? resourceBalance.autoEggLayerPerSec : 0;
   return automation + layer;
 }
 

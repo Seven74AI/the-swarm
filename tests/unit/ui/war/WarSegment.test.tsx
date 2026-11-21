@@ -4,7 +4,7 @@ import { signal } from '@preact/signals';
 import { gameState } from '../../../../src/state/gameSignal';
 import { Phase } from '../../../../src/phases/phases';
 import { MUTATIONS } from '../../../../src/systems/MutationSystem';
-import { SOLDIER_COST_FOOD } from '../../../../src/systems/SoldierSystem';
+import { soldierBalance } from '../../../../src/data/balance/soldiers';
 import { createWarSession, type WarSession } from '../../../../src/ui/war/warSession';
 import { CombatLog, EnemyCard, MutationsSection, SoldiersSection, WarPrimary } from '../../../../src/ui/war/WarSegment';
 import type { SegmentId } from '../../../../src/data/content/tabs';
@@ -85,7 +85,7 @@ describe('WAR segment (Story 1.25)', () => {
     expect(btn().getAttribute('aria-disabled')).toBe('true');
     expect(c.querySelector('#soldier-panel')!.textContent).toContain('no free workers');
     cleanup();
-    seed({ resources: { workers: 10, food: SOLDIER_COST_FOOD - 1, nestCapacity: 1000 } });
+    seed({ resources: { workers: 10, food: soldierBalance.costFood - 1, nestCapacity: 1000 } });
     c = mount();
     expect(btn().getAttribute('aria-disabled')).toBe('true');
     expect(c.querySelector('#soldier-panel')!.textContent).toMatch(/needs \d+ more food/i);

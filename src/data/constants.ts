@@ -2,6 +2,12 @@
  * Game constants that rarely change (arch: Configuration). `as const`.
  */
 
+/** Milliseconds in a second: converts balance durations (`…Ms`) to the systems' `dtSec` and back. */
+export const MS_PER_SEC = 1000 as const;
+
+/** A whole, in percentage points: `share = points / PERCENT`. */
+export const PERCENT = 100 as const;
+
 /** The tab bar never shows more than this many tabs (UX-DR5, EXPERIENCE.md: a phase adds tabs or segments, never a sixth tab). */
 export const MAX_TABS = 5 as const;
 
@@ -41,8 +47,8 @@ export const OFFLINE_EFFICIENCY_STEP_POINTS = 25 as const;
 
 /**
  * The fixed simulation step (Ticker, 20 Hz). Systems are correct for any step
- * length (Story 2.5, AR4); until Story 3.2 moves balance to milliseconds, the
- * values still written in ticks are converted with this.
+ * length (Story 2.5, AR4). No balance value is written in ticks (Story 3.2):
+ * durations are `…Ms` and rates `…PerSec` in `data/balance/`.
  */
 export const TICK_MS = 50 as const;
 

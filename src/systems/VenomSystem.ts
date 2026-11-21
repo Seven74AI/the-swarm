@@ -1,18 +1,19 @@
 import type { GameState } from '../state/GameState';
+import { combatBalance } from '../data/balance/combat';
 
 /**
  * VenomSystem — manages poison damage-over-time mechanics.
  * Requires Venom Lab building (Lv.1+) and venom in stock.
- * Consumes 1 venom per battle activation.
+ * Consumes `venomPerBattle` venom per battle activation.
  *
- * Poison damage per round = venom_lab.level * 2.
+ * Poison damage per round = venom_lab.level × `poisonDamagePerLabLevel` (`data/balance/combat.ts`).
  */
 export function getPoisonDamagePerTick(state: GameState): number {
   if (
     state.buildings.venom_lab.level >= 1 &&
-    state.combatResources.venom >= 1
+    state.combatResources.venom >= combatBalance.venomPerBattle
   ) {
-    return state.buildings.venom_lab.level * 2;
+    return state.buildings.venom_lab.level * combatBalance.poisonDamagePerLabLevel;
   }
   return 0;
 }
@@ -26,7 +27,7 @@ export function consumeVenom(state: GameState): GameState {
     ...state,
     combatResources: {
       ...state.combatResources,
-      venom: state.combatResources.venom - 1,
+      venom: state.combatResources.venom - combatBalance.venomPerBattle,
     },
   };
 }

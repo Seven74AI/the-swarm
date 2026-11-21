@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Ticker } from '../../src/engine/Ticker';
 import { GameLoop } from '../../src/engine/GameLoop';
 import { createInitialState, type GameState } from '../../src/state/GameState';
+import { progressionBalance as P } from '../../src/data/balance/progression';
+
+const production = (phaseNumber: number, lp: number): number =>
+  P.productionPerPhase ** phaseNumber * (1 + P.productionPerLegacyPoint * lp);
+const FREE = P.scalePenalty.freeWorkers;
 
 describe('GameLoop', () => {
   let ticker: Ticker;
@@ -36,11 +41,11 @@ describe('GameLoop', () => {
 
   // GM-5: Progression curve integration
   describe('getProductionMultiplier', () => {
-    it('returns 1.12 for initial egg_laying phase with 0 legacy points', () => {
+    it('returns the phase-1 multiplier for initial egg_laying phase with 0 legacy points', () => {
       const loop = new GameLoop(ticker);
       const state = createInitialState();
       const mult = loop.getProductionMultiplier(state);
-      expect(mult).toBeCloseTo(1.12, 4);
+      expect(mult).toBeCloseTo(production(1, 0), 4);
     });
 
     it('increases with phase progression', () => {
@@ -51,8 +56,8 @@ describe('GameLoop', () => {
       const colonyMult = loop.getProductionMultiplier(colony);
       const combatMult = loop.getProductionMultiplier(combat);
 
-      expect(colonyMult).toBeCloseTo(1.2544, 4); // 1.12^2
-      expect(combatMult).toBeCloseTo(1.404928, 4); // 1.12^3
+      expect(colonyMult).toBeCloseTo(production(2, 0), 4);
+      expect(combatMult).toBeCloseTo(production(3, 0), 4);
       expect(combatMult).toBeGreaterThan(colonyMult);
     });
 
@@ -63,9 +68,8 @@ describe('GameLoop', () => {
         prestige: { count: 1, legacyPoints: 3, totalFoodProduced: 100000, totalWoodProduced: 0, totalStoneProduced: 0, totalNectarProduced: 0 },
       };
 
-      // 1.12 * (1 + 3*0.15) = 1.12 * 1.45 = 1.624
       const mult = loop.getProductionMultiplier(state);
-      expect(mult).toBeCloseTo(1.624, 4);
+      expect(mult).toBeCloseTo(production(1, 3), 4);
     });
   });
 
@@ -76,20 +80,20 @@ describe('GameLoop', () => {
       expect(loop.getWorkerEfficiency(state)).toBe(1.0);
     });
 
-    it('returns 1.0 at exactly 500 workers', () => {
+    it('returns 1.0 at exactly the scale-penalty threshold', () => {
       const loop = new GameLoop(ticker);
       const state: GameState = {
         ...createInitialState(),
-        resources: { ...createInitialState().resources, workers: 500 },
+        resources: { ...createInitialState().resources, workers: FREE },
       };
       expect(loop.getWorkerEfficiency(state)).toBe(1.0);
     });
 
-    it('drops below 1.0 above 500 workers', () => {
+    it('drops below 1.0 above the threshold', () => {
       const loop = new GameLoop(ticker);
       const state: GameState = {
         ...createInitialState(),
-        resources: { ...createInitialState().resources, workers: 750 },
+        resources: { ...createInitialState().resources, workers: FREE + 250 },
       };
       expect(loop.getWorkerEfficiency(state)).toBeLessThan(1.0);
     });

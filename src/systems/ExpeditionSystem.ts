@@ -1,9 +1,9 @@
 import type { Expedition, GameState } from '../state/GameState';
 import { clamp } from '../utils/math';
-import { chance, hashString, keyedStream, type RngStream } from '../utils/rng';
+import { STREAM_KEYS, chance, hashString, keyedStream, type RngStream } from '../utils/rng';
 
 /** Keys an expedition's outcome stream apart from the other keyed streams. */
-const EXPEDITION_KEY = 1;
+const EXPEDITION_KEY = STREAM_KEYS.expedition;
 
 /**
  * The rolls of one expedition (Story 3.1): fixed by the game's seed, the run

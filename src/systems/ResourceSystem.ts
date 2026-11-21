@@ -4,7 +4,8 @@ import type { GameState, ResourceRemainder } from '../state/GameState';
 import type { TerritoryBonuses } from './TerritorySystem';
 import { creditWhole, upgradeCost } from '../utils/math';
 import { chainedShare, completedShare } from '../utils/decay';
-import { TICK_MS } from '../data/constants';
+import { MS_PER_SEC, TICK_MS } from '../data/constants';
+import { resourceBalance } from '../data/balance/resources';
 import { getEffects } from './BuildingSystem';
 import { productionMultiplier, workerEfficiency } from '../engine/ProgressionCurve';
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
@@ -17,7 +18,7 @@ import { getMutationEffects } from './MutationSystem';
 export interface ResourceRates {
   /** Gross food produced per second (before consumption). */
   foodProducedPerSec: number;
-  /** Food consumed per second (workers / 2). */
+  /** Food consumed per second (workers × upkeep). */
   foodConsumedPerSec: number;
   /** Wood produced per second from territory bonuses. */
   woodPerSec: number;
@@ -49,11 +50,11 @@ export function computeResourceRates(
   const workerEff = workerEfficiency(workers);
 
   const foodProducedPerSec = (
-    (gatherCount * 2 + Math.max(0, unassignedCount) * 1)
+    (gatherCount * resourceBalance.gatherFoodPerSec + Math.max(0, unassignedCount) * resourceBalance.idleFoodPerSec)
     * prodMult * workerEff * prestigeBonuses.food * prestigeBonuses.workerEfficiency
     * (1 + mutationEffects.gatherRate)
   );
-  const foodConsumedPerSec = workers / 2;
+  const foodConsumedPerSec = workers * resourceBalance.upkeepFoodPerSec;
 
   let territoryFoodRate = 0;
   let territoryStoneRate = 0;
@@ -76,8 +77,7 @@ export function computeResourceRates(
 }
 
 /**
- * Upgrade definitions.
- * Each upgrade has an id, base food cost, and cost multiplier.
+ * Upgrade definitions: base food cost and cost multiplier (`data/balance/resources.ts`).
  */
 interface UpgradeDef {
   baseCost: number;
@@ -85,7 +85,7 @@ interface UpgradeDef {
 }
 
 const UPGRADES: Record<string, UpgradeDef> = {
-  click_power: { baseCost: 10, costMultiplier: 1.15 },
+  click_power: resourceBalance.clickPower,
 };
 
 /** Food cost of an egg-chamber upgrade at its current level, or null for an unknown upgrade. */
@@ -103,12 +103,6 @@ export function getAssignedWorkers(state: GameState): number {
   return a.gather + a.tend + a.dig + a.guard;
 }
 
-export const EGG_HATCH_TIME = 50; // ticks (at 1s per tick equivalent, 5x pacing nerf)
-export const LARVA_MATURE_TIME = 50; // ticks (5x pacing nerf)
-const FOOD_PER_WORKER = 1;
-const FOOD_PER_GATHER = 2;
-const TEND_MULTIPLIER = 0.25; // each tend worker gives +25% hatch rate
-const DIG_TICKS_PER_ROOM = 20; // dig-worker ticks per +1 nestCapacity
 
 /**
  * ResourceSystem handles all resource mutations: clicking, ticking, buying.
@@ -120,7 +114,7 @@ const DIG_TICKS_PER_ROOM = 20; // dig-worker ticks per +1 nestCapacity
  */
 /** Eggs one tap lays at a Click Power level (FR1: 1 per tap plus 1 per level). */
 export function eggsPerTap(clickPowerLevel: number): number {
-  return 1 + clickPowerLevel;
+  return resourceBalance.eggsPerTap + clickPowerLevel * resourceBalance.eggsPerTapPerLevel;
 }
 
 export class ResourceSystem {
@@ -163,7 +157,7 @@ export class ResourceSystem {
   tick(
     state: GameState,
     territoryBonuses?: TerritoryBonuses,
-    dtSec: number = 0.05,
+    dtSec: number = TICK_MS / MS_PER_SEC,
     skipDeterministicResources: boolean = false,
     /** Where tick events go: the game loop passes the tick's queue (AR18). */
     events: EventSink = this.bus,
@@ -178,9 +172,9 @@ export class ResourceSystem {
 
     // Pipeline rate constants (per second): a pipeline completes `count × k` items a second.
     const tendCount = state.workersAssigned.tend;
-    const hatchK = (1 / EGG_HATCH_TIME) * (1 + tendCount * TEND_MULTIPLIER)
+    const hatchK = (MS_PER_SEC / resourceBalance.hatchMs) * (1 + tendCount * resourceBalance.tendHatchBonusPerWorker)
       * prestigeBonuses.eggLaying * (1 + mutationEffects.hatchRate);
-    const matureK = (1 / LARVA_MATURE_TIME) * prestigeBonuses.hatching;
+    const matureK = (MS_PER_SEC / resourceBalance.matureMs) * prestigeBonuses.hatching;
     const eggPipe = state.eggPipeline;
     const larvaPipe = state.larvaPipeline;
 
@@ -209,15 +203,17 @@ export class ResourceSystem {
     let stoneChanged = false;
     let nectarChanged = false;
 
-    // Integer-only nest capacity: each dig worker adds one per tick of game time
-    // (TICK_MS, so any step length); 20 make +1 nestCapacity (1 capacity/sec/dig worker).
+    // Integer-only nest capacity: the accumulator counts dig-worker time in
+    // units of TICK_MS (the saved unit, kept so saves need no migration); every
+    // `digMsPerRoom` of one dig worker adds +1 nestCapacity, at any step length.
     const digCount = state.workersAssigned.dig;
+    const stepsPerRoom = resourceBalance.digMsPerRoom / TICK_MS;
     let capacityAccumulator = state.capacityAccumulator;
     let nestCapacity = state.resources.nestCapacity;
     if (digCount > 0) {
-      capacityAccumulator += digCount * (Math.round(dtSec * 1000) / TICK_MS);
-      const rooms = Math.floor(capacityAccumulator / DIG_TICKS_PER_ROOM);
-      capacityAccumulator -= rooms * DIG_TICKS_PER_ROOM;
+      capacityAccumulator += digCount * (Math.round(dtSec * MS_PER_SEC) / TICK_MS);
+      const rooms = Math.floor(capacityAccumulator / stepsPerRoom);
+      capacityAccumulator -= rooms * stepsPerRoom;
       nestCapacity += rooms;
     }
     const effectiveNestCapacity = nestCapacity + (getEffects('warehouse', state.buildings.warehouse.level).nestCapacity ?? 0);
