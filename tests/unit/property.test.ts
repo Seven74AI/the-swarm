@@ -51,6 +51,7 @@ function arbitraryGameState(): fc.Arbitrary<GameState> {
     eggPipelineCount: nat(200),
     larvaPipelineCount: nat(200),
     gatherWorkers: nat(100),
+    forageWorkers: nat(100),
     tendWorkers: nat(100),
     digWorkers: nat(100),
     guardWorkers: nat(100),
@@ -66,6 +67,7 @@ function arbitraryGameState(): fc.Arbitrary<GameState> {
     state.larvaPipeline = { count: raw.larvaPipelineCount, progress: 0 };
     state.workersAssigned = {
       gather: raw.gatherWorkers,
+      forage: raw.forageWorkers,
       tend: raw.tendWorkers,
       dig: raw.digWorkers,
       guard: raw.guardWorkers,
@@ -178,6 +180,7 @@ describe('ResourceSystem — property-based invariants', () => {
         // But with 0 assigned workers, food should decrease
         if (
           state.workersAssigned.gather === 0 &&
+          state.workersAssigned.forage === 0 &&
           state.workersAssigned.tend === 0 &&
           state.workersAssigned.dig === 0 &&
           state.workersAssigned.guard === 0

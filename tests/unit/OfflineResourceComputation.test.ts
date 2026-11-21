@@ -129,12 +129,23 @@ describe('computeResourceRates', () => {
     expect(deltas.stoneDelta).toBeGreaterThan(0);
   });
 
-  it('no territory bonuses → no wood/stone deltas', () => {
-    const state = stateWithWorkers(10, 5);
+  it('no territory and nobody on Gather, Forage or Dig → no wood/stone/nectar deltas', () => {
+    const state = stateWithWorkers(10, 0);
+    state.workersAssigned.tend = 5;
     const deltas = computeOfflineResourceDeltas(state, 3600);
     expect(deltas.woodDelta).toBe(0);
     expect(deltas.stoneDelta).toBe(0);
     expect(deltas.nectarDelta).toBe(0);
+  });
+
+  it('worker roles alone bring in wood, stone and nectar offline (Story 3.4)', () => {
+    const state = stateWithWorkers(10, 4);
+    state.workersAssigned.forage = 3;
+    state.workersAssigned.dig = 3;
+    const deltas = computeOfflineResourceDeltas(state, 3600);
+    expect(deltas.woodDelta).toBeGreaterThan(0);
+    expect(deltas.stoneDelta).toBeGreaterThan(0);
+    expect(deltas.nectarDelta).toBeGreaterThan(0);
   });
 
   it('grossFoodProduced matches food production rate × time', () => {

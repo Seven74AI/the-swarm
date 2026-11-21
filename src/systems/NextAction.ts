@@ -322,6 +322,7 @@ function foodFix(s: GameState): SuggestedAction | null {
   if (freeWorkers(s) > 0) return allocate('food', 'assignWorker', 'gather');
   const a = s.workersAssigned;
   if (a.tend > 0) return allocate('food', 'unassignWorker', 'tend');
+  if (a.forage > 0) return allocate('food', 'unassignWorker', 'forage');
   if (a.dig > 0) return allocate('food', 'unassignWorker', 'dig');
   if (a.guard > nextActionBalance.minGuards) return allocate('food', 'unassignWorker', 'guard');
   return null;
@@ -416,7 +417,7 @@ export type ReturnMove =
   | { readonly kind: 'wait'; readonly key: string; readonly name: string; readonly inSec: number };
 
 /** Allocation sources tried by the fallback, in order: jobs that bring no food first. */
-const FALLBACK_SOURCES: readonly WorkerRole[] = ['tend', 'dig', 'guard', 'gather'];
+const FALLBACK_SOURCES: readonly WorkerRole[] = ['tend', 'forage', 'dig', 'guard', 'gather'];
 
 /**
  * The return summary's next move, never empty (Story 2.9). It is the

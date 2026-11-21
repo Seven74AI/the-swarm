@@ -126,7 +126,7 @@ const arbState: fc.Arbitrary<GameState> = fc
     // Assignments never exceed the workers on hand.
     const total = r.shares.reduce((a, b) => a + b, 0) || 1;
     const part = (i: number) => Math.floor((r.workers * r.shares[i]) / total / 1.25);
-    s.workersAssigned = { gather: part(0), tend: part(1), dig: part(2), guard: part(3), researchers: 0 };
+    s.workersAssigned = { gather: part(0), forage: part(4), tend: part(1), dig: part(2), guard: part(3), researchers: 0 };
     s.resources.eggs = r.eggs;
     s.eggPipeline = { count: r.eggs, progress: r.eggProgress };
     s.resources.larvae = r.larvae;

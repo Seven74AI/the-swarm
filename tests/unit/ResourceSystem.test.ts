@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { EventBus } from '../../src/engine/EventBus';
 import { ResourceSystem } from '../../src/systems/ResourceSystem';
 import { resourceBalance } from '../../src/data/balance/resources';
+import { roleBalance } from '../../src/data/balance/roles';
 import { MS_PER_SEC, TICK_MS } from '../../src/data/constants';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 
@@ -88,10 +89,10 @@ describe('ResourceSystem', () => {
       state.resources.workers = 10;
       state.resources.eggs = 100;
       state.eggPipeline = { count: 100, progress: 0 };
-      state.workersAssigned = { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 };
+      state.workersAssigned = { gather: 0, forage: 0, tend: 0, dig: 0, guard: 0, researchers: 0 };
       const withoutTend = system.tick(state);
 
-      state.workersAssigned = { gather: 0, tend: 10, dig: 0, guard: 0, researchers: 0 };
+      state.workersAssigned = { gather: 0, forage: 0, tend: 10, dig: 0, guard: 0, researchers: 0 };
       state.eggPipeline = { count: 100, progress: 0 };
       state.resources.eggs = 100;
       const withTend = system.tick(state);
@@ -109,7 +110,7 @@ describe('ResourceSystem', () => {
     it('over hatchMs, about 1 − 1/e of the egg pipeline hatches', () => {
       state.resources.eggs = 10_000;
       state.eggPipeline = { count: 10_000, progress: 0 };
-      state.workersAssigned = { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 };
+      state.workersAssigned = { gather: 0, forage: 0, tend: 0, dig: 0, guard: 0, researchers: 0 };
       const r = system.tick(state, undefined, resourceBalance.hatchMs / MS_PER_SEC);
       const hatched = state.eggPipeline.count - r.eggPipeline.count;
       expect(hatched / state.eggPipeline.count).toBeCloseTo(MEAN_SHARE, 2);
@@ -125,9 +126,9 @@ describe('ResourceSystem', () => {
     });
 
     it('one dig worker adds one room per digMsPerRoom', () => {
-      state.workersAssigned = { gather: 0, tend: 0, dig: 1, guard: 0, researchers: 0 };
+      state.workersAssigned = { gather: 0, forage: 0, tend: 0, dig: 1, guard: 0, researchers: 0 };
       state.resources.workers = 1;
-      const r = system.tick(state, undefined, (3 * resourceBalance.digMsPerRoom) / MS_PER_SEC);
+      const r = system.tick(state, undefined, (3 * roleBalance.digMsPerRoom) / MS_PER_SEC);
       expect(r.resources.nestCapacity - state.resources.nestCapacity).toBe(3);
     });
   });
@@ -176,7 +177,7 @@ describe('ResourceSystem', () => {
       // High worker count where consumption > unassigned production
       state.resources.workers = 100;
       state.resources.food = 1000;
-      state.workersAssigned = { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 };
+      state.workersAssigned = { gather: 0, forage: 0, tend: 0, dig: 0, guard: 0, researchers: 0 };
       const result = system.tick(state);
       // 100 workers unassigned: +100 produced, floor(100/2)=50 consumed → net +50
       // Food should increase with unassigned
@@ -193,10 +194,10 @@ describe('ResourceSystem', () => {
     it('gather workers produce more food than unassigned', () => {
       state.resources.workers = 10;
       state.resources.food = 100;
-      state.workersAssigned = { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 };
+      state.workersAssigned = { gather: 0, forage: 0, tend: 0, dig: 0, guard: 0, researchers: 0 };
       const unassigned = system.tick(state);
 
-      state.workersAssigned = { gather: 10, tend: 0, dig: 0, guard: 0, researchers: 0 };
+      state.workersAssigned = { gather: 10, forage: 0, tend: 0, dig: 0, guard: 0, researchers: 0 };
       state.resources.food = 100;
       const gathered = system.tick(state);
 
@@ -264,7 +265,7 @@ describe('ResourceSystem', () => {
   describe('tick — dig workers', () => {
     it('accumulates capacityAccumulator but does not change nestCapacity in one tick', () => {
       state.resources.workers = 5;
-      state.workersAssigned = { gather: 0, tend: 0, dig: 3, guard: 0, researchers: 0 };
+      state.workersAssigned = { gather: 0, forage: 0, tend: 0, dig: 3, guard: 0, researchers: 0 };
       const result = system.tick(state);
       // Accumulator grows but < 20, so capacity unchanged
       expect(result.capacityAccumulator).toBeGreaterThan(state.capacityAccumulator);
@@ -274,7 +275,7 @@ describe('ResourceSystem', () => {
 
     it('increases nestCapacity when accumulator crosses threshold', () => {
       state.resources.workers = 10;
-      state.workersAssigned = { gather: 0, tend: 0, dig: 3, guard: 0, researchers: 0 };
+      state.workersAssigned = { gather: 0, forage: 0, tend: 0, dig: 3, guard: 0, researchers: 0 };
 
       let result = state;
       // 3 dig workers × 7 ticks = 21 accumulator → +1 capacity
@@ -286,7 +287,7 @@ describe('ResourceSystem', () => {
 
     it('does not change nestCapacity when no dig workers', () => {
       state.resources.workers = 5;
-      state.workersAssigned = { gather: 3, tend: 0, dig: 0, guard: 0, researchers: 0 };
+      state.workersAssigned = { gather: 3, forage: 0, tend: 0, dig: 0, guard: 0, researchers: 0 };
 
       let result = state;
       for (let i = 0; i < 20; i++) {
@@ -298,7 +299,7 @@ describe('ResourceSystem', () => {
     it('nestCapacity grows faster with more dig workers', () => {
       state.resources.workers = 10;
       // With 1 dig worker: 20 ticks = 20 accumulator → exactly +1
-      state.workersAssigned = { gather: 0, tend: 0, dig: 1, guard: 0, researchers: 0 };
+      state.workersAssigned = { gather: 0, forage: 0, tend: 0, dig: 1, guard: 0, researchers: 0 };
       let withOne = state;
       for (let i = 0; i < 20; i++) {
         withOne = system.tick(withOne);
@@ -306,7 +307,7 @@ describe('ResourceSystem', () => {
       const gain1 = withOne.resources.nestCapacity - state.resources.nestCapacity;
 
       // With 5 dig workers: 20 ticks = 100 accumulator → +5 capacity
-      state.workersAssigned = { gather: 0, tend: 0, dig: 5, guard: 0, researchers: 0 };
+      state.workersAssigned = { gather: 0, forage: 0, tend: 0, dig: 5, guard: 0, researchers: 0 };
       let withFive = state;
       for (let i = 0; i < 20; i++) {
         withFive = system.tick(withFive);
@@ -318,7 +319,7 @@ describe('ResourceSystem', () => {
 
     it('accumulator persists across ticks (integer-only, no floating-point drift)', () => {
       state.resources.workers = 5;
-      state.workersAssigned = { gather: 0, tend: 0, dig: 1, guard: 0, researchers: 0 };
+      state.workersAssigned = { gather: 0, forage: 0, tend: 0, dig: 1, guard: 0, researchers: 0 };
 
       let result = state;
       for (let i = 0; i < 20; i++) {
