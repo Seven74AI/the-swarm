@@ -7,6 +7,23 @@ import { progressionBalance as P } from '../../src/data/balance/progression';
 
 const FULL = P.softCap.fullLevels;
 
+type Stock = 'food' | 'wood' | 'stone' | 'nectar' | 'chitin' | 'silk' | 'venom';
+const COMBAT: readonly Stock[] = ['chitin', 'silk', 'venom'];
+
+/**
+ * Give the state exactly what the building's next level costs (Story 3.11:
+ * tests read prices from the balance, never restate them), one short of
+ * `short` when given, and none of `without`.
+ */
+function fund(state: GameState, building: BuildingType, opts: { short?: Stock; without?: Stock } = {}): void {
+  const cost = getBuildCost(building, state.buildings[building].level + 1);
+  for (const [k, v] of Object.entries(cost) as [Stock, number][]) {
+    const n = k === opts.without ? 0 : k === opts.short ? v - 1 : v;
+    if (COMBAT.includes(k)) state.combatResources[k as 'chitin' | 'silk' | 'venom'] = n;
+    else state.resources[k as 'food' | 'wood' | 'stone' | 'nectar'] = n;
+  }
+}
+
 /**
  * BuildingSystem tests — behavior-focused.
  * Tests cost/effect direction, resource deduction, invariants,
@@ -163,130 +180,98 @@ describe('BuildingSystem', () => {
     });
 
     it('can build with enough resources', () => {
-      state.resources.food = 1000;
-      state.resources.wood = 1000;
-      state.resources.stone = 1000;
-      state.resources.nectar = 1000;
+      fund(state, 'barracks');
       expect(canBuild('barracks', state)).toBe(true);
     });
 
     it('cannot build if resources barely insufficient', () => {
-      // Level 1 barracks: 250 food, 125 wood
-      state.resources.food = 250;
-      state.resources.wood = 124; // 1 short
+      fund(state, 'barracks', { short: 'wood' });
       expect(canBuild('barracks', state)).toBe(false);
     });
 
-    it('can build multiple levels with massive resources', () => {
-      state.resources.food = 100000;
-      state.resources.wood = 100000;
-      state.resources.stone = 100000;
-      state.resources.nectar = 100000;
-      // Should be able to build level 5 (huge cost)
+    it('can build a high level once its (larger) price is covered', () => {
+      state.buildings.barracks.level = 3;
+      fund(state, 'barracks');
       expect(canBuild('barracks', state)).toBe(true);
     });
 
     it('cannot build silk_weaving without silk', () => {
-      state.resources.wood = 1000;
-      state.combatResources.silk = 0;
+      fund(state, 'silk_weaving', { without: 'silk' });
       expect(canBuild('silk_weaving', state)).toBe(false);
     });
 
     it('can build silk_weaving with enough silk and wood', () => {
-      state.resources.wood = 1000;
-      state.combatResources.silk = 20;
+      fund(state, 'silk_weaving');
       expect(canBuild('silk_weaving', state)).toBe(true);
     });
 
     it('cannot build chitin_armory without chitin', () => {
-      state.resources.stone = 1000;
-      state.combatResources.chitin = 0;
+      fund(state, 'chitin_armory', { without: 'chitin' });
       expect(canBuild('chitin_armory', state)).toBe(false);
     });
 
     it('can build chitin_armory with enough chitin and stone', () => {
-      state.resources.stone = 1000;
-      state.combatResources.chitin = 20;
+      fund(state, 'chitin_armory');
       expect(canBuild('chitin_armory', state)).toBe(true);
     });
 
     it('cannot build venom_lab without venom', () => {
-      state.resources.nectar = 1000;
-      state.combatResources.venom = 0;
+      fund(state, 'venom_lab', { without: 'venom' });
       expect(canBuild('venom_lab', state)).toBe(false);
     });
 
     it('can build venom_lab with enough venom and nectar', () => {
-      state.resources.nectar = 1000;
-      state.combatResources.venom = 10;
+      fund(state, 'venom_lab');
       expect(canBuild('venom_lab', state)).toBe(true);
     });
 
     it('cannot build barracks Lv.5 without chitin', () => {
       state.buildings.barracks.level = 4;
-      state.resources.food = 100000;
-      state.resources.wood = 100000;
-      state.combatResources.chitin = 0;
+      fund(state, 'barracks', { without: 'chitin' });
       expect(canBuild('barracks', state)).toBe(false);
     });
 
     it('can build barracks Lv.5 with chitin and base resources', () => {
       state.buildings.barracks.level = 4;
-      state.resources.food = 100000;
-      state.resources.wood = 100000;
-      state.combatResources.chitin = 10000;
+      fund(state, 'barracks');
       expect(canBuild('barracks', state)).toBe(true);
     });
 
     it('cannot build walls Lv.5 without silk', () => {
       state.buildings.walls.level = 4;
-      state.resources.stone = 100000;
-      state.combatResources.silk = 0;
+      fund(state, 'walls', { without: 'silk' });
       expect(canBuild('walls', state)).toBe(false);
     });
 
     it('can build walls Lv.5 with silk and stone', () => {
       state.buildings.walls.level = 4;
-      state.resources.stone = 100000;
-      state.combatResources.silk = 10000;
+      fund(state, 'walls');
       expect(canBuild('walls', state)).toBe(true);
     });
 
     it('cannot build warehouse Lv.5 without silk and chitin', () => {
       state.buildings.warehouse.level = 4;
-      state.resources.wood = 100000;
-      state.resources.stone = 100000;
-      state.combatResources.silk = 10000;
-      state.combatResources.chitin = 0;
+      fund(state, 'warehouse', { without: 'chitin' });
       expect(canBuild('warehouse', state)).toBe(false);
     });
 
     it('can build warehouse Lv.5 with both silk and chitin', () => {
       state.buildings.warehouse.level = 4;
-      state.resources.wood = 100000;
-      state.resources.stone = 100000;
-      state.combatResources.silk = 10000;
-      state.combatResources.chitin = 10000;
+      fund(state, 'warehouse');
       expect(canBuild('warehouse', state)).toBe(true);
     });
   });
 
   describe('build', () => {
     it('increments building level on success', () => {
-      state.resources.food = 1000;
-      state.resources.wood = 1000;
-      state.resources.stone = 1000;
-      state.resources.nectar = 1000;
+      fund(state, 'barracks');
       const before = state.buildings.barracks.level;
       const result = build('barracks', state);
       expect(result.buildings.barracks.level).toBeGreaterThan(before);
     });
 
     it('deducts resources on build', () => {
-      state.resources.food = 1000;
-      state.resources.wood = 1000;
-      state.resources.stone = 1000;
-      state.resources.nectar = 1000;
+      fund(state, 'barracks');
       const result = build('barracks', state);
       expect(result.resources.food).toBeLessThan(state.resources.food);
     });
@@ -297,10 +282,7 @@ describe('BuildingSystem', () => {
     });
 
     it('never deducts below zero', () => {
-      state.resources.food = 1000;
-      state.resources.wood = 1000;
-      state.resources.stone = 1000;
-      state.resources.nectar = 1000;
+      fund(state, 'barracks');
       const result = build('barracks', state);
       expect(result.resources.food).toBeGreaterThanOrEqual(0);
       expect(result.resources.wood).toBeGreaterThanOrEqual(0);
@@ -309,24 +291,21 @@ describe('BuildingSystem', () => {
     });
 
     it('deducts silk when building silk_weaving', () => {
-      state.resources.wood = 1000;
-      state.combatResources.silk = 20;
+      fund(state, 'silk_weaving');
       const result = build('silk_weaving', state);
       expect(result.combatResources.silk).toBeLessThan(state.combatResources.silk);
       expect(result.buildings.silk_weaving.level).toBeGreaterThan(state.buildings.silk_weaving.level);
     });
 
     it('deducts chitin when building chitin_armory', () => {
-      state.resources.stone = 1000;
-      state.combatResources.chitin = 20;
+      fund(state, 'chitin_armory');
       const result = build('chitin_armory', state);
       expect(result.combatResources.chitin).toBeLessThan(state.combatResources.chitin);
       expect(result.buildings.chitin_armory.level).toBeGreaterThan(state.buildings.chitin_armory.level);
     });
 
     it('deducts venom when building venom_lab', () => {
-      state.resources.nectar = 1000;
-      state.combatResources.venom = 10;
+      fund(state, 'venom_lab');
       const result = build('venom_lab', state);
       expect(result.combatResources.venom).toBeLessThan(state.combatResources.venom);
       expect(result.buildings.venom_lab.level).toBeGreaterThan(state.buildings.venom_lab.level);

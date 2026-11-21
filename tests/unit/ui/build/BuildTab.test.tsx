@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, cleanup, act } from '@testing-library/preact';
+import { formatFull } from '../../../../src/utils/format';
 import '@preact/signals';
 import { gameState } from '../../../../src/state/gameSignal';
 import { Phase } from '../../../../src/phases/phases';
@@ -60,7 +61,7 @@ describe('Building cards (Story 1.24)', () => {
     gameState.value = makeState({ phase: Phase.EXPANSION, resources: broke });
     const { container } = render(<BuildingCards buy={() => ({ ok: true })} />);
     const walls = building(container, 'walls')!;
-    expect(walls.querySelector('[data-shortfall]')!.textContent).toMatch(/needs \d+ more/);
+    expect(walls.querySelector('[data-shortfall]')!.textContent).toContain(`needs ${formatFull(getBuildCost('walls', 1).stone)} more`);
     expect(walls.querySelector('button')!.getAttribute('aria-disabled')).toBe('true');
 
     const cost = getBuildCost('walls', 1);

@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test';
 import { openTab } from './helpers/tabs';
 import { readResource } from './helpers/resources';
 import { tapContinue } from './helpers/phase';
+import { resourceBalance } from '../../src/data/balance/resources';
+import { skipGameTime } from './helpers/time';
 
 /**
  * Worker Management & Resource Loop E2E Tests
@@ -201,9 +203,10 @@ test.describe('Worker Management', () => {
     await tendRow.locator('.role-controls button').filter({ hasText: '+' }).click();
     await expect(tendRow.locator('.role-count')).toHaveText('1');
 
-    // Verify larvae appear as eggs hatch (5x pacing: allow the egg→larva chain a while).
+    // Let about one mean hatch time pass (read from the balance): eggs hatch into larvae.
     // Eggs and larvae aren't in the Colony strip: read them in the resource sheet (Story 1.16).
-    await expect.poll(() => readResource(page, 'larvae'), { timeout: 30_000 }).toBeGreaterThan(0);
+    await skipGameTime(page, resourceBalance.hatchMs);
+    await expect.poll(() => readResource(page, 'larvae'), { timeout: 10_000 }).toBeGreaterThan(0);
 
     // Egg count should have decreased
     const eggCount = await readResource(page, 'eggs');

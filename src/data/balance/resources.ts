@@ -11,12 +11,17 @@
  *   second), so an egg took 50 s on average, not 50 × 50 ms. Kept as 50 000 ms.
  * - `DIG_TICKS_PER_ROOM = 20` counted real 50 ms ticks: 20 × 50 ms = 1 000 ms
  *   of one dig worker per room (now `roleBalance.digMsPerRoom`).
+ *
+ * Story 3.11 tuned these to the GDD's Difficulty Curve (the before and after
+ * `pnpm sim` reports are in its story file): an egg now takes about 15 min to
+ * hatch and a larva 15 min to mature, so Phase 1 is minutes of tapping, not
+ * seconds, and eggs laid in a check-in become workers while the player is away.
  */
 export const resourceBalance = {
   /** Mean time an egg takes to hatch (pipeline rate k = 1 / hatchMs). */
-  hatchMs: 50_000,
+  hatchMs: 900_000,
   /** Mean time a larva takes to mature into a worker. */
-  matureMs: 50_000,
+  matureMs: 900_000,
   /** Food each worker eats. */
   upkeepFoodPerSec: 0.5,
   /** Eggs one tap lays at Click Power 0 (FR1). */

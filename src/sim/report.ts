@@ -115,6 +115,12 @@ export function idleCheckIns(checkIns: readonly CheckInRecord[], limitMs: number
   return checkIns.filter((c) => c.actions === 0 && (c.waitMs === null || c.waitMs > limitMs));
 }
 
+/** In how many of a phase's check-ins food, and capacity, was critical (Story 3.11). Pure. */
+export function criticalMoments(checkIns: readonly CheckInRecord[], phase: string): { food: number; capacity: number } {
+  const inPhase = checkIns.filter((c) => c.phase === phase);
+  return { food: inPhase.filter((c) => c.foodCritical).length, capacity: inPhase.filter((c) => c.capacityCritical).length };
+}
+
 export interface PacingRow {
   readonly target: PhaseTarget;
   /** Null when the run never reached the phase. */
@@ -137,6 +143,8 @@ export interface PacingReport {
   readonly tapShareAfterColony: number | null;
   readonly medianActions: number | null;
   readonly idle: readonly CheckInRecord[];
+  /** Check-ins of `targets.criticalMoments.phase` where food, and capacity, was critical (Story 3.11). */
+  readonly critical: { readonly food: number; readonly capacity: number };
 }
 
 /** The report's numbers for one run (Story 3.9). Pure. */
@@ -163,6 +171,7 @@ export function buildPacingReport(result: SimResult, opts: { readonly seed: numb
     tapShareAfterColony: tapShare(probes.eggs, (e) => PHASE_ORDER.indexOf(e.phase as Phase) >= colony),
     medianActions: median(probes.checkIns.map((c) => c.actions)),
     idle: idleCheckIns(probes.checkIns, targets.idleCheckInMaxMs),
+    critical: criticalMoments(probes.checkIns, targets.criticalMoments.phase),
   };
 }
 
@@ -201,6 +210,12 @@ function pct(n: number | null): string {
   return n === null ? 'n/a (no eggs laid)' : `${n}%`;
 }
 
+/** The label of the phase the critical moments are counted in. */
+function phaseLabel(r: PacingReport): string {
+  const p = r.targets.criticalMoments.phase;
+  return `Phase ${r.targets.phases.find((t) => t.phase === p)?.label ?? p}`;
+}
+
 /** Phases the run reached past the targets' (Expansion, Space …): where each started. */
 function laterPhases(r: PacingReport): string[] {
   const listed = new Set<string>(r.targets.phases.map((t) => t.phase));
@@ -234,6 +249,7 @@ export function formatPacingReport(r: PacingReport): string {
     `Eggs from tapping, first ${formatTime(t.tapWindowMs)} of play: ${pct(r.tapShareFirst)} (target ≥ ${t.tapShareFirstMinPercent}%)`,
     `Eggs from tapping, from Colony on: ${pct(r.tapShareAfterColony)} (target < ${t.tapShareAfterColonyMaxPercent}%)`,
     `Actions per check-in (taps excluded): median ${r.medianActions ?? 'n/a'}`,
+    `${phaseLabel(r)} check-ins food-critical: ${r.critical.food}, capacity-critical: ${r.critical.capacity} (target ≥ ${t.criticalMoments.min} each)`,
     ...(laterPhases(r).length > 0 ? ['Later phases (no GDD target in the MVP):', ...laterPhases(r)] : []),
     `Check-ins with nothing affordable within ${formatTime(t.idleCheckInMaxMs)} (pacing defects): ${r.idle.length}`,
     ...r.idle.map((c) => `  - check-in ${c.index + 1} (day ${Math.floor(c.startMs / DAY_MS) + 1}, ${c.phase}): ${c.waitMs === null ? 'nothing ever affordable at current rates' : `next in ${span(c.waitMs)}`}`),

@@ -1,6 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
 import { openTab } from './helpers/tabs';
 import { readResource } from './helpers/resources';
+import { MS_PER_SEC } from '../../src/data/constants';
+import { roleBalance } from '../../src/data/balance/roles';
+import { skipGameTime } from './helpers/time';
 
 /**
  * Story 1.23 (UX-DR15): WRKR. Role rows with a text bar, count and stepper
@@ -77,6 +80,9 @@ test.describe('WRKR tab', () => {
     await wrkr.locator('[data-multiplier="max"]').click();
     await wrkr.locator('[data-role="forage"] [data-step="add"]').click();
     await expect(wrkr.locator('[data-free]')).toHaveText(/FREE 0$/);
+    // Long enough for one worker on the slowest role to bring in a whole unit (read from the balance).
+    const slowest = Math.min(roleBalance.gatherWoodPerSec, roleBalance.digStonePerSec, roleBalance.forageNectarPerSec);
+    await skipGameTime(page, Math.ceil(MS_PER_SEC / slowest));
     for (const id of ['wood', 'stone', 'nectar']) {
       await expect.poll(() => readResource(page, id), { timeout: 10_000 }).toBeGreaterThan(0);
     }

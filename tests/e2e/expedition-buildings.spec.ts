@@ -1,6 +1,7 @@
 import { visibleText } from './helpers/text';
 import { test, expect, type Page } from '@playwright/test';
 import { openTab } from './helpers/tabs';
+import { buildingBalance } from '../../src/data/balance/buildings';
 
 /**
  * E2E: Expedition Lifecycle & Building Construction.
@@ -350,9 +351,9 @@ test.describe('Buildings', () => {
     });
     await page.clock.runFor(100); // Let signals settle DOM
 
-    // Level updated to Lv.1, capacity display shows +25
+    // Level updated to Lv.1, capacity display shows one level's room (read from the balance, Story 3.11)
     await expect.poll(() => visibleText(page.locator('[data-building="warehouse"]')), { timeout: 3000 }).toContain('LV.1 →');
-    await expect(page.locator('[data-building="warehouse"] .card__effect')).toContainText('NEST CAPACITY +25 →', { timeout: 3000 });
+    await expect(page.locator('[data-building="warehouse"] .card__effect')).toContainText(`NEST CAPACITY +${buildingBalance.warehouseNestCapacityPerLevel} →`, { timeout: 3000 });
 
     // Building paid its cost: wood and stone both went down.
     expect(after.wood).toBeLessThan(before.wood);

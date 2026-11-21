@@ -1,5 +1,5 @@
 import type { GameState } from '../state/GameState';
-import { getNextAction, isItemAffordable, listItems } from '../systems/NextAction';
+import { getNextAction, isCapacityCritical, isFoodCritical, isItemAffordable, listItems } from '../systems/NextAction';
 import { MS_PER_SEC } from '../data/constants';
 
 /** The moment a phase was entered (Story 3.7). */
@@ -36,6 +36,10 @@ export interface CheckInRecord {
   readonly refused: number;
   /** `actions`, by action name (`continuePhase`, `buyBuilding`, `trainSoldier`, `fight` …). */
   readonly byAction: Readonly<Record<string, number>>;
+  /** Food was critical (`isFoodCritical`) on arrival or after any move or step of play (Story 3.11). */
+  readonly foodCritical: boolean;
+  /** The nest was full (`isCapacityCritical`) on arrival or after any move or step of play (Story 3.11). */
+  readonly capacityCritical: boolean;
 }
 
 /** Eggs laid since the previous sample (Story 3.9): `tapped` of the `laid` came from LAY EGG taps. */
@@ -85,12 +89,15 @@ interface OpenCheckIn {
   taps: number;
   refused: number;
   byAction: Record<string, number>;
+  foodCritical: boolean;
+  capacityCritical: boolean;
 }
 
 /**
  * The run's probes (Story 3.7, AR15): when each phase was entered, per
  * check-in the actions taken, the decisions available and the wait until one
- * opens, and every egg laid, tapped or not (Story 3.9). The runner feeds
+ * opens, whether food or capacity was critical in it (Story 3.11), and every
+ * egg laid, tapped or not (Story 3.9). The runner feeds
  * them; they never change the game.
  */
 export class Probes {
@@ -111,7 +118,19 @@ export class Probes {
   /** A check-in starts: the player has just arrived to `s`. */
   beginCheckIn(index: number, s: GameState, atMs: number): void {
     this.endCheckIn();
-    this.open = { index, startMs: atMs, phase: s.phase, decisionsAvailable: decisionsAvailable(s), waitMs: waitMs(s), actions: 0, taps: 0, refused: 0, byAction: {} };
+    this.open = {
+      index, startMs: atMs, phase: s.phase, decisionsAvailable: decisionsAvailable(s), waitMs: waitMs(s), actions: 0, taps: 0, refused: 0, byAction: {},
+      foodCritical: false, capacityCritical: false,
+    };
+    this.critical(s);
+  }
+
+  /** Raise the open check-in's critical-moment flags that hold in `s` (only in the phase it started in). */
+  private critical(s: GameState): void {
+    const o = this.open;
+    if (!o || s.phase !== o.phase) return;
+    if (!o.foodCritical && isFoodCritical(s)) o.foodCritical = true;
+    if (!o.capacityCritical && isCapacityCritical(s)) o.capacityCritical = true;
   }
 
   /** A move went through its action: `ok` says whether the action accepted it. */
@@ -139,6 +158,7 @@ export class Probes {
     }
     this.lastLaid = s.stats.totalEggsLaid;
     this.tappedEggs = 0;
+    this.critical(s);
     if (s.phase === this.lastPhase) return;
     this.lastPhase = s.phase;
     this.entries.push({ phase: s.phase, atMs, activeMs, checkIn: this.open?.index ?? 0 });

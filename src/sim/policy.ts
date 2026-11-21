@@ -60,6 +60,21 @@ function goalRoleMoves(s: GameState): SimMove[] {
 }
 
 /**
+ * Whether tapping still helps the phase goal (Story 3.11). LAY EGG stays on
+ * NEST in every phase and, until automation opens (Story 4.10), it is the only
+ * egg source, so a player whose goal lacks workers keeps tapping. In Egg
+ * Laying tapping is the whole phase (every extra egg is one more that may
+ * hatch early); later the player stops once the brood waiting (eggs and
+ * larvae) already covers the workers the goal lacks.
+ */
+function needsWorkers(s: GameState): boolean {
+  const c = goalFor(s.phase)?.conditions.find((x) => x.id === 'workers');
+  if (!c || conditionMet(c, s)) return false;
+  if (s.phase === Phase.EGG_LAYING) return true;
+  return s.resources.workers + s.resources.eggs + s.resources.larvae < c.target(s);
+}
+
+/**
  * The fewest soldiers that make the enemy on the card no longer dangerous,
  * looking no further than what could be trained now; null if none would.
  */
@@ -92,14 +107,15 @@ function combatMoves(s: GameState): SimMove[] {
  * The default player (Story 3.7, architecture N2): follow `getNextAction`
  * (which also taps CONTINUE once the goal has latched), rebalance roles with
  * WRKR's reallocation, and do the goal's verbs that are not purchases: lay
- * eggs in Egg Laying (tapping is the only egg source before automation), put
+ * eggs while the goal still needs workers (tapping is the only egg source
+ * before automation, in every phase: Story 3.11), put
  * a worker on a role a goal condition counts (GUARD), and train and fight in
  * Combat. It never prestiges and never answers a decision event (none fire
  * in the harness).
  */
 export const defaultPolicy: PlayerPolicy = (s, turn) => {
   const moves: SimMove[] = [];
-  if (s.phase === Phase.EGG_LAYING && turn.taps > 0) moves.push({ kind: 'layEgg', taps: turn.taps });
+  if (turn.taps > 0 && needsWorkers(s)) moves.push({ kind: 'layEgg', taps: turn.taps });
   const next = getNextAction(s);
   if (next.kind === 'act') moves.push({ kind: 'intent', intent: next.intent });
   const realloc = getReallocation(s);

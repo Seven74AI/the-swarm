@@ -11,6 +11,7 @@ import { TerritorySystem } from '../../../src/systems/TerritorySystem';
 import { ROLES, rolesForPhase } from '../../../src/data/content/roles';
 import { roleBalance } from '../../../src/data/balance/roles';
 import { stepRole } from '../../../src/systems/Workforce';
+import { MS_PER_SEC } from '../../../src/data/constants';
 
 /**
  * Story 3.4 (FR3, FR36): worker roles bring in wood, stone and nectar in
@@ -47,24 +48,29 @@ function run(state: GameState, seconds: number, stepSec = 0.05): GameState {
 
 const noTerritory = (s: GameState) => s.mapTiles.every((t) => !t.claimed);
 
+/** Seconds `workers` on a role need to bring in a few whole units at `perSec` each (read from the balance). */
+const secondsFor = (perSec: number, workers: number) => Math.ceil(3 / (perSec * workers));
+/** Seconds `workers` diggers need to dig one room. */
+const roomSeconds = (workers: number) => Math.ceil(roleBalance.digMsPerRoom / MS_PER_SEC / workers);
+
 describe('worker roles produce the basic resources in Colony (Story 3.4)', () => {
   it('Gather brings in food and wood, with no territory', () => {
     const before = colony({ gather: 10 });
     expect(noTerritory(before)).toBe(true);
-    const after = run(before, 10);
+    const after = run(before, secondsFor(roleBalance.gatherWoodPerSec, 10), 1);
     expect(after.resources.wood).toBeGreaterThan(before.resources.wood);
     expect(after.resources.food).toBeGreaterThan(before.resources.food);
   });
 
   it('Forage brings in nectar, with no territory', () => {
     const before = colony({ forage: 10 });
-    const after = run(before, 10);
+    const after = run(before, secondsFor(roleBalance.forageNectarPerSec, 10), 1);
     expect(after.resources.nectar).toBeGreaterThan(before.resources.nectar);
   });
 
   it('Dig grows the nest and brings in stone, with no territory', () => {
     const before = colony({ dig: 10 });
-    const after = run(before, 10);
+    const after = run(before, Math.max(roomSeconds(10), secondsFor(roleBalance.digStonePerSec, 10)), 10);
     expect(after.resources.stone).toBeGreaterThan(before.resources.stone);
     expect(after.resources.nestCapacity).toBeGreaterThan(before.resources.nestCapacity);
   });

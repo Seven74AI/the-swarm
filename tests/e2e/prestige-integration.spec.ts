@@ -1,5 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { settleReveals } from './helpers/reveal';
+import { resourceBalance } from '../../src/data/balance/resources';
+import { skipGameTime } from './helpers/time';
 
 /**
  * E2E: Prestige Integration — Slice 5.
@@ -285,7 +287,8 @@ test.describe('Prestige Integration — Slice 5', () => {
     // clickTimes waits for each click to count (Story 1.22 removed the "Clicks:" counter: it reads state).
     await clickTimes(page, 3);
 
-    // The pipeline produces workers, then food (5x pacing nerf: allow a while)
+    // The pipeline produces workers, then food: let the mean hatch and mature time pass (read from the balance).
+    await skipGameTime(page, resourceBalance.hatchMs + resourceBalance.matureMs);
     await expect.poll(() => stat(page, 'resources.food'), { timeout: 30000 }).toBeGreaterThan(25);
   });
 

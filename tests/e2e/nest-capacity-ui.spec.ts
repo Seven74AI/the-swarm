@@ -182,7 +182,7 @@ test.describe('Nest Capacity UI', () => {
       buildings: { barracks: { level: 0, count: 0 }, walls: { level: 0 }, warehouse: { level: 1 } },
     });
 
-    // With warehouse level 1 (+25 capacity), capacity display should show +Warehouse
+    // With warehouse level 1 (its room per level), capacity display should show +Warehouse
     await openTab(page, 'wrkr');
     const capacityLine = page.locator('.capacity-line');
     await expect(capacityLine).toBeVisible();

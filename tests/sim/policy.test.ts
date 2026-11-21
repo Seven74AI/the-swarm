@@ -43,7 +43,25 @@ describe('defaultPolicy', () => {
     expect(kinds(defaultPolicy(s, { taps: 0 }))).not.toContain('layEgg');
   });
 
-  it('does not tap once Egg Laying is over', () => {
+  it('keeps tapping after Egg Laying while the goal still needs workers (Story 3.11)', () => {
+    const s = colonyWithoutGuard();
+    const short = { ...s, resources: { ...s.resources, workers: s.resources.workers - 1, eggs: 0, larvae: 0 } };
+    expect(defaultPolicy(short, { taps: 7 })).toContainEqual({ kind: 'layEgg', taps: 7 });
+  });
+
+  it('stops tapping after Egg Laying once the brood covers the workers the goal lacks', () => {
+    const s = colonyWithoutGuard();
+    const brood = { ...s, resources: { ...s.resources, workers: s.resources.workers - 2, eggs: 1, larvae: 1 } };
+    expect(kinds(defaultPolicy(brood, { taps: 7 }))).not.toContain('layEgg');
+  });
+
+  it('keeps tapping in Egg Laying whatever the brood', () => {
+    const s = createInitialState();
+    const brood = { ...s, resources: { ...s.resources, eggs: 10_000, larvae: 10_000 } };
+    expect(defaultPolicy(brood, { taps: 7 })).toContainEqual({ kind: 'layEgg', taps: 7 });
+  });
+
+  it('stops tapping once the goal has its workers', () => {
     expect(kinds(defaultPolicy(colonyWithoutGuard(), { taps: 7 }))).not.toContain('layEgg');
   });
 
