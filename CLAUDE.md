@@ -97,7 +97,7 @@ module must be pinned (`--pin gds=<tag>`) where the GitHub API is unreachable. T
 - **Two soldier systems — don't conflate.** Combat soldiers (`SoldierSystem`, `state.combatSoldiers`, pipeline,
   auto-battles) vs scouts/warriors (`RecruitmentSystem`, `state.soldiers.*`, direct recruit, expeditions only; caps from `getEffects('barracks', level)` — scouts from Lv.1, warriors from Lv.2).
 - **`TerritorySystem.claimTile()` mutates in place** — spread the state before writing it back.
-- **`MapPanel.onTileClick` defaults to `null`** — assign it explicitly in `UIRoot`.
+- **`MapPanel.onTileClick` defaults to `null`** — assign it explicitly where the panel is mounted (`src/ui/front/FrontSegments.tsx`).
 - **`getEffectiveNestCapacity()` does not exist.** Compute
   `s.resources.nestCapacity + (getEffects('warehouse', s.buildings.warehouse.level).nestCapacity ?? 0)`.
 - **Save migrations** (`src/persistence/migrations.ts`, version in `SaveManager.SAVE_VERSION`): if two branches add the
@@ -111,9 +111,11 @@ module must be pinned (`--pin gds=<tag>`) where the GitHub API is unreachable. T
 - **Seeds must be pipeline-aware:** eggs go in `eggPipeline.count`, larvae in `larvaPipeline.count`.
 - **Phase seeds must satisfy the real guards** in `transitions.ts`, or the panel never appears.
 - Build seeds from `createInitialState()` overrides; `SaveManager.load()` migrates + deep-merges partial saves.
+  A seed must still be a well-formed save (`version`, `timestamp`, `gameState`): anything else is unreadable and
+  opens `THIS SAVE COULDN'T BE READ.` (Story 2.2). `SaveManager` needs a store: `new SaveManager(createLocalSaveStore(localStorage))`.
 - Combat RNG is unseeded: assert `Victory|Defeat`, never a specific outcome.
 - rAF fake timers don't reliably drive `Ticker`; test the public API, not tick counts.
-- Panels exist but are `display:none` until their phase — use `toBeVisible()`.
+- Panels are absent from the DOM until their phase reveals them (`src/ui/shell/Panel.tsx`) — wait for them with `toBeVisible()`.
 - Selectors: grep `src/ui/panels/*.ts` for `data-` / `id=`; there is no canonical selector list.
 - **Vitest runs in the `vmThreads` pool:** each file gets fresh modules, but one jsdom is shared per worker.
   Clean up what a test adds to `document.body` / `localStorage` (`afterEach`) so files can't leak into each other.

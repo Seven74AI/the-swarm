@@ -13,12 +13,14 @@
   border-radius: 0;
   font-family: "Swarm Mono", ui-monospace, Menlo, Consolas, monospace;
   font-size: 0.875rem;
+  line-height: 1.25;
   text-align: center;
   cursor: pointer;
 }
 
-/* The marker gets its own line: the strip's height cap grows by one 44 px target while it shows,
-   so the strip never has to scroll to show it (text-reflow.spec, 320 px at 200 % text). */
+/* The marker gets its own line: the strip's height cap grows by the marker's height while it shows
+   (at least the 44 px target, more at large text), so the strip never has to scroll to show it
+   (text-reflow.spec, 320 px at 200 % text). */
 .shell-strip:has(.save-failed-marker) {
-  max-height: calc(34dvh + 48px);
+  max-height: calc(34dvh + max(48px, 2rem));
 }
