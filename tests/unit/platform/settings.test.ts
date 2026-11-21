@@ -46,6 +46,7 @@ describe('settings store (Story 1.10)', () => {
       confirmHoldMs: 1000,
       layMode: 'hold',
       keyboardShortcuts: true,
+      coachMarksSeen: [],
     });
   });
 
@@ -139,4 +140,43 @@ describe('settings store (Story 1.10)', () => {
       expect(store.settings.value.sound).toBe(true);
     }
   });
+
+  describe('coach marks seen (Story 1.12)', () => {
+    it('remembers each concept once, across sessions, outside the save', () => {
+      const storage = memoryStore();
+      const store = createSettingsStore({ storage, capabilities: caps() });
+      store.update({ coachMarksSeen: ['lay-egg'] });
+      store.update({ coachMarksSeen: [...store.settings.value.coachMarksSeen, 'lay-egg', 'assign'] });
+      const again = createSettingsStore({ storage, capabilities: caps() });
+      expect([...again.settings.value.coachMarksSeen].sort()).toEqual(['assign', 'lay-egg']);
+      expect(Object.isFrozen(again.settings.value.coachMarksSeen)).toBe(true);
+    });
+
+    it('drops a stored list that is not a list of concept names', () => {
+      for (const bad of ['lay-egg', [1, 2], [''], null]) {
+        const raw = JSON.stringify({ version: SETTINGS_VERSION, settings: { sound: true, coachMarksSeen: bad } });
+        const store = createSettingsStore({ storage: memoryStore({ [SETTINGS_KEY]: raw }), capabilities: caps() });
+        expect(store.settings.value.coachMarksSeen).toEqual([]);
+        expect(store.settings.value.sound).toBe(true);
+      }
+    });
+
+    it('keeps settings written by version 1, before coach marks existed', () => {
+      expect(SETTINGS_VERSION).toBeGreaterThan(1);
+      const raw = JSON.stringify({ version: 1, settings: { layMode: 'toggle' } });
+      const store = createSettingsStore({ storage: memoryStore({ [SETTINGS_KEY]: raw }), capabilities: caps() });
+      expect(store.settings.value.layMode).toBe('toggle');
+      expect(store.settings.value.coachMarksSeen).toEqual([]);
+    });
+
+    it('does not write again when the same concepts are marked seen', () => {
+      const storage = memoryStore();
+      const store = createSettingsStore({ storage, capabilities: caps() });
+      store.update({ coachMarksSeen: ['lay-egg'] });
+      const before = store.settings.value;
+      store.update({ coachMarksSeen: ['lay-egg'] });
+      expect(store.settings.value).toBe(before);
+    });
+  });
 });
+

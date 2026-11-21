@@ -1,0 +1,32 @@
+/* Stepper primitive (Story 1.12). DESIGN.md → Controls; colors only from the phase aliases in ui/styles/tokens.css. */
+.stepper { display: inline-flex; flex-direction: column; gap: 0.5rem; }
+.stepper__row { display: inline-flex; align-items: center; gap: 0.5rem; }
+.stepper__value {
+  min-width: 3ch;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent);
+}
+/* Each bracket is a 44 px target; adjacent targets keep 8 px apart (gap). */
+.stepper [data-step] {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  justify-content: center;
+}
+.stepper__multipliers { display: inline-flex; gap: 0.5rem; }
+.stepper__multiplier {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0 0.5rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--color-dim);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.stepper__multiplier[aria-pressed='true'] {
+  color: var(--color-on-accent);
+  background: var(--color-accent);
+}
