@@ -78,7 +78,7 @@ export class ClickButton {
     const state = this.getState();
     const newState = this.resourceSystem.clickEgg(state);
     this.setState(newState);
-    this.bus.emit('click:egg', {});
+    this.bus.emit('egg_clicked', {});
     this.saveManager.save(newState, newState.stats.playTimeMs);
     this.spawnClickParticle();
     this.spawnBurstParticles();

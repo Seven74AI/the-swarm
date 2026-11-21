@@ -32,8 +32,7 @@ import { TranscendencePanel } from './panels/TranscendencePanel';
 import { ResearchPanel } from './panels/ResearchPanel';
 import { MutationPanel } from './panels/MutationPanel';
 import { FoodDisplay } from './panels/FoodDisplay';
-import type { DecisionEvent } from '../systems/DecisionSystem';
-import { DecisionPopup } from './components/DecisionPopup';
+import { DecisionPopup, type ChooseDecision } from './components/DecisionPopup';
 import type { AudioSystem } from './AudioSystem';
 
 /**
@@ -88,6 +87,8 @@ export class UIRoot {
     setState: (state: GameState) => void;
     audio?: AudioSystem;
     loop: GameLoop;
+    /** Action that applies a decision choice to the game state. */
+    chooseDecision?: ChooseDecision;
   }) {
     this.bus = deps.bus;
     this.resourceSystem = deps.resourceSystem;
@@ -99,7 +100,7 @@ export class UIRoot {
     this.getState = deps.getState;
     this.setState = deps.setState;
     this.eventLog = new EventLog(this.bus);
-    this.decisionPopup = new DecisionPopup(this.bus);
+    this.decisionPopup = new DecisionPopup(this.bus, deps.chooseDecision);
     this.audio = deps.audio;
     this.loop = deps.loop;
 
@@ -305,8 +306,8 @@ export class UIRoot {
 
     // ── Decision popup (bottom-right fixed, non-blocking) ──
     container.appendChild(this.decisionPopup.getElement());
-    this.bus.subscribe('decision_event', (payload: unknown) => {
-      this.decisionPopup.show(payload as DecisionEvent);
+    this.bus.subscribe('decision_event', (payload) => {
+      this.decisionPopup.show(payload);
     });
 
     container.appendChild(panels);

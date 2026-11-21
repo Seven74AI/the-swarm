@@ -62,6 +62,20 @@ describe('DecisionPopup', () => {
     expect(buttons[1].textContent).toContain('Ignore');
   });
 
+  it('applies the choice through the choose action before announcing it', () => {
+    const order: string[] = [];
+    const choose = vi.fn(() => order.push('action'));
+    bus.subscribe('decision_chosen', () => order.push('event'));
+
+    const popup = new DecisionPopup(bus, choose);
+    popup.show(beetleEvent);
+    container.appendChild(popup.getElement());
+    popup.getElement().querySelector('button')!.click();
+
+    expect(choose).toHaveBeenCalledWith('beetle', 'Collect');
+    expect(order).toEqual(['action', 'event']);
+  });
+
   it('emits decision_chosen event on button click', () => {
     let chosen: any = null;
     bus.subscribe('decision_chosen', (p) => (chosen = p));

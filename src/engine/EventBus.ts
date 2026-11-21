@@ -1,17 +1,16 @@
 import { log } from '../utils/log';
+import type { EventSink, SwarmEvents } from './events';
+
+export type { SwarmEvents } from './events';
 
 /**
- * Generic event map: key = event name, value = payload type.
+ * Synchronous typed event bus. The event map defaults to `SwarmEvents`, so an
+ * unknown event name or a wrong payload is a compile error.
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface SwarmEvents {
-  [key: string]: unknown;
-}
-
-export class EventBus<T extends Record<string, unknown> = SwarmEvents> {
+export class EventBus<T extends object = SwarmEvents> implements EventSink<T> {
   private listeners = new Map<string, Set<(payload: unknown) => void>>();
 
-  subscribe<K extends string & keyof T>(
+  subscribe<K extends keyof T & string>(
     event: K,
     callback: (payload: T[K]) => void,
   ): void {
@@ -21,14 +20,14 @@ export class EventBus<T extends Record<string, unknown> = SwarmEvents> {
     this.listeners.get(event)!.add(callback as (payload: unknown) => void);
   }
 
-  unsubscribe<K extends string & keyof T>(
+  unsubscribe<K extends keyof T & string>(
     event: K,
     callback: (payload: T[K]) => void,
   ): void {
     this.listeners.get(event)?.delete(callback as (payload: unknown) => void);
   }
 
-  emit<K extends string & keyof T>(event: K, payload: T[K]): void {
+  emit<K extends keyof T & string>(event: K, payload: T[K]): void {
     const callbacks = this.listeners.get(event);
     if (callbacks) {
       for (const cb of callbacks) {

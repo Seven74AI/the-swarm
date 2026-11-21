@@ -63,8 +63,8 @@ export class EventLog {
 
     // Listen for events (milestone-based, no spam)
     const onClickCb = () => this.onClick();
-    bus.subscribe('click:egg', onClickCb);
-    this.unsubscribeHandles.push(() => bus.unsubscribe('click:egg', onClickCb));
+    bus.subscribe('egg_clicked', onClickCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('egg_clicked', onClickCb));
 
     const onWorkersCb = () => this.onWorkersChanged();
     bus.subscribe('workers_changed', onWorkersCb);

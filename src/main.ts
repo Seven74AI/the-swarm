@@ -1,5 +1,8 @@
 import { log } from './utils/log';
 import { EventBus } from './engine/EventBus';
+import { EventQueue, type EventSink } from './engine/events';
+import { createTickContext } from './engine/TickContext';
+import { chooseDecision } from './actions/decisions';
 import { Ticker } from './engine/Ticker';
 import { GameLoop } from './engine/GameLoop';
 import { gameState } from './state/gameSignal';
@@ -40,7 +43,7 @@ import { OnboardingManager } from './ui/OnboardingManager';
  * Full game loop with persistence, phase state machine, and autosave.
  * Uses @preact/signals-core for reactive state (replaces StateManager + Store).
  * - Load saved state on startup (or start fresh)
- * - Each tick: ResourceSystem.tick → PhaseStateMachine.tick → write signal
+ * - Each tick: systems → PhaseStateMachine.tick → one signal write → flush queued events
  * - Autosave every 30 seconds
  * - PhaseContent manages which panels are active
  * - Fixed 50ms timestep with rAF-based delta accumulator
@@ -49,6 +52,8 @@ import { OnboardingManager } from './ui/OnboardingManager';
 export function bootstrap(): {
   bus: EventBus;
   ticker: Ticker;
+  /** One live tick (the Ticker's callback), exposed for tests. */
+  tick: (dtSec: number) => void;
   loop: GameLoop;
   resourceSystem: ResourceSystem;
   saveManager: SaveManager;
@@ -118,12 +123,17 @@ export function bootstrap(): {
       // Run the tick loop for pipelines (eggs→larvae→workers/soldiers),
       // battles, expeditions, and other non-deterministic events.
       // Deterministic resource deltas are skipped (applied above via closed-form).
+      // Simulated ticks raise events into a collecting queue that is never
+      // flushed: nothing plays or animates for catch-up (AR18). The summary
+      // below is built from the before/after states.
       const dtSec = 50 / 1000; // 50ms per tick
+      const offlineEvents = new EventQueue();
       for (let i = 0; i < offlineData.offlineTicks; i++) {
         catchUpState = processTick(
-          catchUpState, resourceSystem, soldierSystem, mapSystem, territorySystem, bus, dtSec,
+          catchUpState, resourceSystem, soldierSystem, mapSystem, territorySystem, offlineEvents, dtSec,
           true, // skipDeterministicResources — handled by closed-form above
         );
+        offlineEvents.clear();
       }
 
       gameState.value = catchUpState;
@@ -151,11 +161,16 @@ export function bootstrap(): {
   const currentPhase = (gameState.value.phase as Phase) ?? Phase.EGG_LAYING;
   const fsm = new PhaseStateMachine(currentPhase, TRANSITIONS);
 
-  // Wire resource ticking into the game loop (dtSec = 0.05 for 50ms ticks)
-  ticker.onTick((dtSec: number) => {
+  // One live tick (dtSec = 0.05 for 50ms ticks).
+  // Events raised during the tick are queued on the tick context and flushed
+  // to the bus only after the tick's single state write (AR18), so listeners
+  // always read the state the event describes.
+  const tick = (dtSec: number): void => {
     // ── Pause guard: skip all tick processing when paused ──
     if (gameState.value.paused) return;
 
+    const ctx = createTickContext(dtSec);
+    const events = ctx.events;
     const state = gameState.value;
 
     // Generate map if tiles are all empty (first tick)
@@ -166,7 +181,7 @@ export function bootstrap(): {
 
     // Get territory bonuses for resource production
     const bonuses = territorySystem.getBonuses(workingState);
-    let newState = resourceSystem.tick(workingState, bonuses, dtSec);
+    let newState = resourceSystem.tick(workingState, bonuses, dtSec, false, events);
 
     // Track gross food produced for prestige system
     const workers = workingState.resources.workers;
@@ -183,7 +198,7 @@ export function bootstrap(): {
       },
     });
 
-    newState = soldierSystem.tick(newState, dtSec);
+    newState = soldierSystem.tick(newState, dtSec, events);
     newState = tickAutoProduction(newState, dtSec);
 
     // Auto-egg-layer from prestige tree (1 egg/sec)
@@ -220,7 +235,7 @@ export function bootstrap(): {
         const scoutsReturned = Math.min(exp.scouts, Math.max(0, newState.soldiers.scouts - (workingState.soldiers.scouts - exp.scouts)));
         const warriorsReturned = Math.min(exp.warriors, Math.max(0, newState.soldiers.warriors - (workingState.soldiers.warriors - exp.warriors)));
 
-        let result = 'failure';
+        let result: 'success' | 'partial' | 'failure' = 'failure';
         if (scoutsReturned + warriorsReturned === totalSent) {
           result = 'success';
         } else if (scoutsReturned + warriorsReturned > 0) {
@@ -228,7 +243,7 @@ export function bootstrap(): {
         }
 
         const oldResources = workingState.resources;
-        bus.emit('expedition_return', {
+        events.emit('expedition_return', {
           destination: exp.destination,
           result,
           food: newState.resources.food - oldResources.food,
@@ -250,7 +265,7 @@ export function bootstrap(): {
         newState = resolveExploration(newState, exp);
         // Emit exploration return event with result details
         const oldResources = workingState.resources;
-        let result = 'success';
+        let result: 'success' | 'partial' | 'failure' = 'success';
         if (newState.resources.voidCrystals === oldResources.voidCrystals &&
             newState.resources.antimatter === oldResources.antimatter &&
             newState.resources.darkMatter === oldResources.darkMatter) {
@@ -259,7 +274,7 @@ export function bootstrap(): {
                    oldResources.voidCrystals + oldResources.antimatter + oldResources.darkMatter + 1) {
           result = 'partial';
         }
-        bus.emit('exploration_return', {
+        events.emit('exploration_return', {
           destination: exp.destination,
           result,
           voidCrystals: newState.resources.voidCrystals - oldResources.voidCrystals,
@@ -282,7 +297,7 @@ export function bootstrap(): {
         const oldAntimatter = newState.resources.antimatter;
         const oldDarkMatter = newState.resources.darkMatter;
         newState = resolveMission(ship.id, newState);
-        bus.emit('spaceship_return', {
+        events.emit('spaceship_return', {
           shipId: ship.id,
           destination: ship.destinationName,
           shipType: ship.type,
@@ -312,38 +327,32 @@ export function bootstrap(): {
       },
     });
 
-    // Write to signal — triggers all UI effects
-    gameState.value = newState;
-
     // Decision popup spawn check
     const decisionEvent = decisionSystem.popEvent(newState, newState.stats.playTimeMs);
     if (decisionEvent) {
-      bus.emit('decision_event', decisionEvent);
+      events.emit('decision_event', decisionEvent);
     }
 
     // Check phase transitions — sync FSM with potential external phase changes
     // (e.g., prestige reset) before evaluating transitions
-    const updated = gameState.value;
-    fsm.setPhase(updated.phase as Phase);
-    const tickResult = fsm.tick(updated, bus);
-    if (tickResult.phase !== updated.phase) {
-      gameState.value = {
+    fsm.setPhase(newState.phase as Phase);
+    const tickResult = fsm.tick(newState, events);
+    if (tickResult.phase !== newState.phase) {
+      newState = {
         ...tickResult.state,
         phase: tickResult.phase,
       };
     }
-  });
+
+    // The tick's one state write — triggers all UI effects…
+    gameState.value = newState;
+    // …and only then the tick's events, so listeners see the new state.
+    events.flushTo(bus);
+  };
+  ticker.onTick(tick);
 
   // Mount UI
   const app = document.getElementById('app');
-
-  // Wire decision chosen → apply consequence to game state
-  bus.subscribe('decision_chosen', (payload: unknown) => {
-    const p = payload as { type: string; choice: string };
-    const current = gameState.value;
-    const newState = decisionSystem.applyChoice(current, p.type, p.choice);
-    gameState.value = newState;
-  });
 
   const ui = new UIRoot({
     bus,
@@ -357,6 +366,8 @@ export function bootstrap(): {
     setState: (state: GameState) => { gameState.value = state; },
     audio,
     loop,
+    // Decision choices are an action, not a listener: no listener writes state.
+    chooseDecision: (type, choice) => chooseDecision(decisionSystem, type, choice),
   });
   if (app) {
     ui.mount(app);
@@ -379,8 +390,7 @@ export function bootstrap(): {
   });
 
   // Listen for phase changes to reveal new panels with transition animation
-  bus.subscribe('phase_changed', (payload: unknown) => {
-    const phase = (payload as { phase: string }).phase as Phase;
+  bus.subscribe('phase_changed', ({ phase }) => {
     const prestigeCount = gameState.value.prestige.count;
     phaseContent.triggerTransition(phase, bus, ui, prestigeCount);
   });
@@ -449,7 +459,7 @@ export function bootstrap(): {
 
   loop.start();
 
-  return { bus, ticker, loop, resourceSystem, saveManager, fsm, ui, decisionSystem, audio };
+  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, ui, decisionSystem, audio };
 }
 
 /**
@@ -462,7 +472,7 @@ export function processTick(
   soldierSystem: SoldierSystem,
   mapSystem: MapSystem,
   territorySystem: TerritorySystem,
-  bus: EventBus,
+  events: EventSink,
   dtSec: number,
   skipDeterministicResources: boolean = false,
 ): GameState {
@@ -474,7 +484,7 @@ export function processTick(
   }
 
   const bonuses = territorySystem.getBonuses(workingState);
-  let newState = resourceSystem.tick(workingState, bonuses, dtSec, skipDeterministicResources);
+  let newState = resourceSystem.tick(workingState, bonuses, dtSec, skipDeterministicResources, events);
 
   // Track gross food produced for prestige system
   // Skip when using closed-form offline computation (already counted above)
@@ -494,7 +504,7 @@ export function processTick(
     });
   }
 
-  newState = soldierSystem.tick(newState, dtSec);
+  newState = soldierSystem.tick(newState, dtSec, events);
   newState = tickAutoProduction(newState, dtSec);
 
   // Auto-egg-layer from prestige tree (1 egg/sec)

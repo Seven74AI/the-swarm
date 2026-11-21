@@ -1,4 +1,5 @@
 import type { EventBus } from '../engine/EventBus';
+import type { EventSink } from '../engine/events';
 import type { GameState } from '../state/GameState';
 import type { TerritoryBonuses } from './TerritorySystem';
 import { upgradeCost } from '../utils/math';
@@ -136,7 +137,14 @@ export class ResourceSystem {
    * Rate-based pipelines replace per-item timer iteration → O(1).
    * Two-phase: compute all rates first, then apply all deltas.
    */
-  tick(state: GameState, territoryBonuses?: TerritoryBonuses, dtSec: number = 0.05, skipDeterministicResources: boolean = false): GameState {
+  tick(
+    state: GameState,
+    territoryBonuses?: TerritoryBonuses,
+    dtSec: number = 0.05,
+    skipDeterministicResources: boolean = false,
+    /** Where tick events go: the game loop passes the tick's queue (AR18). */
+    events: EventSink = this.bus,
+  ): GameState {
     // ─── Phase 1: Compute all rates from current state (read-only) ───
 
     const rates = computeResourceRates(state, territoryBonuses);
@@ -281,13 +289,13 @@ export class ResourceSystem {
       capacityAccumulator,
     };
 
-    if (eggsChanged) this.bus.emit('eggs_changed', { eggs: result.resources.eggs });
-    if (larvaeChanged) this.bus.emit('larvae_changed', { larvae: result.resources.larvae });
-    if (foodChanged) this.bus.emit('food_changed', { food: result.resources.food });
-    if (woodChanged) this.bus.emit('wood_changed', { wood: result.resources.wood });
-    if (stoneChanged) this.bus.emit('stone_changed', { stone: result.resources.stone });
-    if (nectarChanged) this.bus.emit('nectar_changed', { nectar: result.resources.nectar });
-    if (workersChanged) this.bus.emit('workers_changed', { workers: result.resources.workers });
+    if (eggsChanged) events.emit('eggs_changed', { eggs: result.resources.eggs });
+    if (larvaeChanged) events.emit('larvae_changed', { larvae: result.resources.larvae });
+    if (foodChanged) events.emit('food_changed', { food: result.resources.food });
+    if (woodChanged) events.emit('wood_changed', { wood: result.resources.wood });
+    if (stoneChanged) events.emit('stone_changed', { stone: result.resources.stone });
+    if (nectarChanged) events.emit('nectar_changed', { nectar: result.resources.nectar });
+    if (workersChanged) events.emit('workers_changed', { workers: result.resources.workers });
 
     return result;
   }

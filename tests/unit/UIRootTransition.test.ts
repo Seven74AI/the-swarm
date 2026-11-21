@@ -4,6 +4,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { EventBus } from '../../src/engine/EventBus';
+import { Phase } from '../../src/phases/phases';
 import { UIRoot } from '../../src/ui/UIRoot';
 import { ResourceSystem } from '../../src/systems/ResourceSystem';
 import { SoldierSystem } from '../../src/systems/SoldierSystem';
@@ -61,7 +62,7 @@ describe('UIRoot — phase transition overlay', () => {
       const ui = createUIRoot();
       ui.mount(container);
 
-      bus.emit('transition_start', { phase: 'colony', quote: 'Test quote.' });
+      bus.emit('transition_start', { phase: Phase.COLONY, quote: 'Test quote.' });
 
       const overlay = document.getElementById('phase-transition-overlay');
       expect(overlay).not.toBeNull();
@@ -72,7 +73,7 @@ describe('UIRoot — phase transition overlay', () => {
       const ui = createUIRoot();
       ui.mount(container);
 
-      bus.emit('transition_start', { phase: 'colony', quote: 'The colony awakens.' });
+      bus.emit('transition_start', { phase: Phase.COLONY, quote: 'The colony awakens.' });
 
       const overlay = document.getElementById('phase-transition-overlay');
       expect(overlay?.textContent).toContain('The colony awakens.');
@@ -82,10 +83,10 @@ describe('UIRoot — phase transition overlay', () => {
       const ui = createUIRoot();
       ui.mount(container);
 
-      bus.emit('transition_start', { phase: 'colony', quote: 'Test.' });
+      bus.emit('transition_start', { phase: Phase.COLONY, quote: 'Test.' });
       expect(document.getElementById('phase-transition-overlay')).not.toBeNull();
 
-      bus.emit('transition_complete', { phase: 'colony' });
+      bus.emit('transition_complete', { phase: Phase.COLONY });
 
       const overlay = document.getElementById('phase-transition-overlay');
       expect(overlay?.classList.contains('active')).toBe(false);
@@ -99,7 +100,7 @@ describe('UIRoot — phase transition overlay', () => {
       ui.showPanel('resource_panel');
       ui.showPanel('event_log');
 
-      bus.emit('transition_start', { phase: 'colony', quote: 'Test.' });
+      bus.emit('transition_start', { phase: Phase.COLONY, quote: 'Test.' });
 
       // At least one panel should have transition-dimmed
       const dimmedPanels = container.querySelectorAll('.panel.transition-dimmed');
@@ -113,8 +114,8 @@ describe('UIRoot — phase transition overlay', () => {
       ui.showPanel('resource_panel');
       ui.showPanel('event_log');
 
-      bus.emit('transition_start', { phase: 'colony', quote: 'Test.' });
-      bus.emit('transition_complete', { phase: 'colony' });
+      bus.emit('transition_start', { phase: Phase.COLONY, quote: 'Test.' });
+      bus.emit('transition_complete', { phase: Phase.COLONY });
 
       // No panels should still be dimmed
       const dimmedPanels = container.querySelectorAll('.panel.transition-dimmed');
@@ -125,7 +126,7 @@ describe('UIRoot — phase transition overlay', () => {
       const ui = createUIRoot();
       ui.mount(container);
 
-      bus.emit('transition_start', { phase: 'colony', quote: 'The colony awakens.' });
+      bus.emit('transition_start', { phase: Phase.COLONY, quote: 'The colony awakens.' });
 
       const indicator = document.querySelector('.phase-indicator');
       expect(indicator).not.toBeNull();
@@ -136,8 +137,8 @@ describe('UIRoot — phase transition overlay', () => {
       const ui = createUIRoot();
       ui.mount(container);
 
-      bus.emit('transition_start', { phase: 'colony', quote: 'Test.' });
-      bus.emit('transition_complete', { phase: 'colony' });
+      bus.emit('transition_start', { phase: Phase.COLONY, quote: 'Test.' });
+      bus.emit('transition_complete', { phase: Phase.COLONY });
 
       const indicator = document.querySelector('.phase-indicator');
       expect(indicator).not.toBeNull();
@@ -148,7 +149,7 @@ describe('UIRoot — phase transition overlay', () => {
       const ui = createUIRoot();
       ui.mount(container);
 
-      bus.emit('transition_start', { phase: 'space', quote: 'Gravity is a chain.' });
+      bus.emit('transition_start', { phase: Phase.SPACE, quote: 'Gravity is a chain.' });
 
       const overlay = document.getElementById('phase-transition-overlay');
       expect(overlay).not.toBeNull();

@@ -59,7 +59,7 @@ export class StateManager {
 
   update(partial: DeepPartial<GameState>): GameState {
     this.state = deepMerge(this.state, partial) as GameState;
-    this.bus.emit('state:changed', this.state);
+    this.bus.emit('state_changed', this.state);
     for (const cb of this.subscribers) {
       cb(this.state);
     }

@@ -1,4 +1,5 @@
 import type { EventBus } from '../engine/EventBus';
+import type { EventSink } from '../engine/events';
 import type { GameState } from '../state/GameState';
 import { upgradeCost } from '../utils/math';
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
@@ -43,8 +44,9 @@ export class SoldierSystem {
   /**
    * Process a single tick: rate-based soldier training.
    * @param dtSec Delta time in seconds (from Ticker, typically 0.05 for 50ms ticks).
+   * @param events Where tick events go: the game loop passes the tick's queue (AR18).
    */
-  tick(state: GameState, dtSec: number): GameState {
+  tick(state: GameState, dtSec: number, events: EventSink = this.bus): GameState {
     const pipe = { ...state.soldierPipeline };
     if (pipe.count === 0) return state;
 
@@ -68,8 +70,8 @@ export class SoldierSystem {
     };
 
     if (newSoldiers > 0) {
-      this.bus.emit('soldiers_changed', { soldiers: result.combatSoldiers });
-      this.bus.emit('soldier_recruited', { type: 'soldier', count: newSoldiers });
+      events.emit('soldiers_changed', { soldiers: result.combatSoldiers });
+      events.emit('soldier_recruited', { type: 'soldier', count: newSoldiers });
     }
 
     return result;
