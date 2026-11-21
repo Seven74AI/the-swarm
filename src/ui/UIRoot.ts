@@ -2,10 +2,8 @@ import type { EventBus } from '../engine/EventBus';
 import type { SaveManager } from '../persistence/SaveManager';
 import type { GameState } from '../state/GameState';
 import type { GameLoop } from '../engine/GameLoop';
-import { Phase } from '../phases/phases';
 import { ClickButton } from './components/ClickButton';
 import { EventLog } from './panels/EventLog';
-import { PhaseIndicator } from './panels/PhaseIndicator';
 import { WorkerAssignment } from './panels/WorkerAssignment';
 import { SoldierPanel } from './panels/SoldierPanel';
 import { BattlePanel } from './panels/BattlePanel';
@@ -72,6 +70,7 @@ export class UIRoot {
 
   /** Draws the resource strip into its host (Story 1.16; main renders the Preact strip there). */
   private mountStrip?: (host: HTMLElement) => void;
+  private mountPhaseLine?: (host: HTMLElement) => void;
 
   /** Registry mapping panelId → factory function. Populated in constructor. */
   private panelRegistry: Map<string, () => HTMLElement> = new Map();
@@ -87,6 +86,8 @@ export class UIRoot {
     confirmSettings: ReadonlySignal<ConfirmSettings>;
     /** Renders the resource strip and its sheet into the `resource_panel` host (Story 1.16). */
     mountStrip?: (host: HTMLElement) => void;
+    /** Renders the phase line and goal meter into NEST's `#phase-indicator` host (Story 1.18). */
+    mountPhaseLine?: (host: HTMLElement) => void;
   }) {
     this.bus = deps.bus;
     this.actions = deps.actions;
@@ -97,11 +98,12 @@ export class UIRoot {
     this.loop = deps.loop;
     this.confirmSettings = deps.confirmSettings;
     this.mountStrip = deps.mountStrip;
+    this.mountPhaseLine = deps.mountPhaseLine;
 
     // ── Populate panel registry with factory functions ──
     // Phase 1 panels (mounted at boot for always-visible UI)
     this.panelRegistry.set('resource_panel', () => this.createStripHost());
-    this.panelRegistry.set('phase_indicator', () => new PhaseIndicator(this.bus, this.getState().phase as Phase).getElement());
+    this.panelRegistry.set('phase_indicator', () => this.createPhaseLineHost());
     this.panelRegistry.set('click_button', () => new ClickButton(
       this.bus, this.actions, this.saveManager, this.getState, deps.audio,
     ).getElement());
@@ -261,9 +263,9 @@ export class UIRoot {
     hosts.strip.appendChild(topBar);
 
     // Phase indicator (always visible) — boot panel (Phase 1), NEST
-    const phaseIndicator = new PhaseIndicator(this.bus, this.getState().phase as Phase);
-    hosts.host(PANEL_PLACEMENT.phase_indicator).appendChild(phaseIndicator.getElement());
-    this.panelElements.set('phase_indicator', phaseIndicator.getElement());
+    const phaseLine = this.createPhaseLineHost();
+    hosts.host(PANEL_PLACEMENT.phase_indicator).appendChild(phaseLine);
+    this.panelElements.set('phase_indicator', phaseLine);
 
     // Click button — NEST's primary action, pinned in the primary zone
     const clickBtn = new ClickButton(
@@ -388,6 +390,15 @@ export class UIRoot {
    * The `resource_panel` host: the resource strip and its sheet replace the
    * legacy ResourcePanel (Story 1.16). The `.resource-panel` class stays as a hook.
    */
+  /** The phase line and goal meter host (Story 1.18), keeping PhaseIndicator's `#phase-indicator` hooks. */
+  private createPhaseLineHost(): HTMLElement {
+    const host = document.createElement('div');
+    host.id = 'phase-indicator';
+    host.className = 'phase-indicator';
+    this.mountPhaseLine?.(host);
+    return host;
+  }
+
   private createStripHost(): HTMLElement {
     const host = document.createElement('div');
     host.className = 'resource-panel';

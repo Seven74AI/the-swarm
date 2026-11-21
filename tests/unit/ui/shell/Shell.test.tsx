@@ -125,4 +125,18 @@ describe('Shell (Story 1.15)', () => {
     const { panel } = setup();
     for (const t of TABS) expect(panel(t.id)).not.toBeNull();
   });
+
+  it('shows the condensed goal meter under the strip on every tab but NEST (Story 1.18)', () => {
+    const { tab, view } = setup(Phase.COLONY);
+    const condensed = () => view.container.querySelector<HTMLElement>('[data-goal-meter="condensed"]');
+    const line = () => view.container.querySelector<HTMLElement>('[data-goal-line]')!;
+    expect(line().hidden).toBe(true);
+    act(() => tab('wrkr')!.click());
+    expect(line().hidden).toBe(false);
+    expect(condensed()).not.toBeNull();
+    expect(line().previousElementSibling?.hasAttribute('data-shell-strip')).toBe(true);
+    act(() => tab('nest')!.click());
+    expect(line().hidden).toBe(true);
+  });
 });
+

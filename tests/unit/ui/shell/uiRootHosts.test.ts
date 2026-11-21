@@ -38,4 +38,27 @@ describe('UIRoot in the tab shell', () => {
     expect(container.querySelector('[data-primary-for="nest"] #click-egg')).not.toBeNull();
     expect(container.querySelector('[data-shell-strip] #top-bar')).not.toBeNull();
   });
+
+  it('mounts the phase line into #phase-indicator on NEST (Story 1.18)', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    let state = createInitialState();
+    const bus = new EventBus();
+    const mounted: HTMLElement[] = [];
+    const ui = new UIRoot({
+      bus,
+      actions: testActions(bus, () => state, (s: GameState) => { state = s; }),
+      saveManager: new SaveManager(),
+      getState: () => state,
+      loop: new GameLoop(new Ticker()),
+      confirmSettings: confirmSettings(),
+      mountPhaseLine: (host) => { mounted.push(host); },
+    });
+    ui.mount(shellHosts(container));
+    const host = container.querySelector<HTMLElement>('[data-tab-panel="nest"] #phase-indicator');
+    expect(host).not.toBeNull();
+    expect(host!.classList.contains('phase-indicator')).toBe(true);
+    expect(mounted).toContain(host);
+  });
 });
+

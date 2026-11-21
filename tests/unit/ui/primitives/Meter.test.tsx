@@ -47,4 +47,15 @@ describe('Meter', () => {
     const { getByRole } = render(<Meter value={80} max={100} valueText="Entropy 80 percent" warn />);
     expect(getByRole('progressbar').hasAttribute('data-warn')).toBe(true);
   });
+
+  it('draws brackets around the cells by default, and none when bare (condensed goal meter, Story 1.18)', () => {
+    const framed = render(<Meter value={1} max={2} valueText="1 of 2" />);
+    expect(framed.container.querySelector('.meter__bar')!.textContent).toMatch(/^\[.*\]$/);
+    cleanup();
+    const bare = render(<Meter value={1} max={2} valueText="1 of 2" brackets={false} />);
+    const text = bare.container.querySelector('.meter__bar')!.textContent!;
+    expect(text).not.toContain('[');
+    expect(text).not.toContain(']');
+    expect(bare.container.querySelector('[data-meter-cells]')).not.toBeNull();
+  });
 });

@@ -4,6 +4,7 @@ import type { TabShell } from './tabShell';
 import { hostsFromRoot, type ShellHosts } from './hosts';
 import { TabBar } from './TabBar';
 import { SegmentRow } from './SegmentRow';
+import { CondensedGoalMeter } from './GoalMeter';
 import './shell.css';
 
 /** The part of the legacy `UIRoot` the shell needs: mount its panels into the shell's hosts. */
@@ -56,6 +57,10 @@ export function Shell({ shell, legacy }: { shell: TabShell; legacy: LegacyUi }) 
       data-tab-bar-shown={showBar ? 'true' : 'false'}
     >
       <header class="shell-strip" data-shell-strip="" />
+      {/* Story 1.18: NEST shows the full goal meter on its phase line; every other tab, this one line. */}
+      <div class="shell-goal-line" data-goal-line="" hidden={active === 'nest'}>
+        <CondensedGoalMeter />
+      </div>
       <main ref={scroller} id="panels" class="shell-scroll" data-shell-scroll="">
         {TABS.map((t) => (
           <section

@@ -25,10 +25,12 @@ export interface MeterProps {
   readonly cells?: number;
   /** Draw the fill in `warn` (entropy above 75 %). */
   readonly warn?: boolean;
+  /** `[` `]` around the cells (default). The condensed goal meter draws them bare (Story 1.18). */
+  readonly brackets?: boolean;
   readonly class?: string;
 }
 
-export function Meter({ value, max, valueText, cells = METER_CELLS, warn = false, class: cls }: MeterProps) {
+export function Meter({ value, max, valueText, cells = METER_CELLS, warn = false, brackets = true, class: cls }: MeterProps) {
   const top = Math.max(0, Math.floor(max));
   const now = Math.min(top, Math.max(0, Math.floor(Number.isFinite(value) ? value : 0)));
   const { filled, empty } = meterCells(now, top, cells);
@@ -44,12 +46,12 @@ export function Meter({ value, max, valueText, cells = METER_CELLS, warn = false
       data-warn={warn ? '' : undefined}
     >
       <span aria-hidden="true" class="meter__bar">
-        [
+        {brackets ? '[' : null}
         <span data-meter-cells="" class="meter__cells">
           <span class="meter__fill">{'█'.repeat(filled)}</span>
           <span class="meter__empty">{'·'.repeat(empty)}</span>
         </span>
-        ]
+        {brackets ? ']' : null}
       </span>{' '}
       <span aria-hidden="true" data-meter-pct="" class="meter__pct">
         {pct}%

@@ -1,0 +1,33 @@
+/* Goal meter (Story 1.18). DESIGN.md → Layout skeleton, Condensed goal meter; colors only from the phase aliases. */
+.goal-meter {
+  margin-top: 0.25rem;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+.goal-meter__next {
+  margin: 0;
+  color: var(--color-accent);
+}
+.goal-meter__conditions {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  font-size: 0.75rem;
+  color: var(--color-dim);
+}
+.goal-meter__row[data-met="true"] .goal-meter__mark,
+.goal-meter__row[data-met="true"] .goal-meter__state {
+  color: var(--color-accent);
+}
+
+/* One 24 px line under the strip on every tab but NEST. */
+.goal-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5ch;
+  min-height: 24px;
+  padding: 0 var(--shell-margin, 14px);
+  font-size: 0.75rem;
+  color: var(--color-dim);
+  border-bottom: 1px solid var(--color-line);
+}
