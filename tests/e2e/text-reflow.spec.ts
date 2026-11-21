@@ -166,6 +166,18 @@ for (const setup of SETUPS) {
       expect(found).toEqual([]);
     });
 
+    test('the Phase 1 upgrade cards fit the screen too (Story 4.6)', async ({ page }) => {
+      await seed(page, setup, {
+        phase: 'egg_laying',
+        resources: { eggs: 0, larvae: 0, workers: 2, food: 1_000_000, nestCapacity: 25 },
+        eggPipeline: { count: 0, progress: 0 },
+        larvaPipeline: { count: 0, progress: 0 },
+      });
+      await expect(page.locator('[data-action="buy-upgrade"]').first()).toBeAttached();
+      expect(await page.locator('[data-nest-host="click-power"] [data-card]').count()).toBeGreaterThanOrEqual(4);
+      expect(await layoutProblems(page)).toEqual([]);
+    });
+
     test('the save sheets and the SAVE FAILED marker fit the screen too (Story 2.2)', async ({ page }) => {
       // A save that couldn't be read: its sheet comes up over the game.
       await page.setViewportSize({ width: setup.width, height: setup.height });
