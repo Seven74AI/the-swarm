@@ -22,11 +22,24 @@ export async function tapContinue(
       return swarm.manager.getState().phase;
     });
   const before = await phase();
-  const press = () =>
-    cont.evaluate((el) => {
-      el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, button: 0 }));
-      el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1, button: 0 }));
-    });
+  // Press it programmatically, unless the phase has already moved. A click that "timed out"
+  // on a loaded runner may still have landed (#384): CONTINUE is gone by then, and an
+  // unbounded wait for it would hang until the test timeout.
+  const press = async () => {
+    if ((await phase()) !== before) return;
+    await cont
+      .evaluate(
+        (el) => {
+          el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, button: 0 }));
+          el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1, button: 0 }));
+        },
+        undefined,
+        { timeout: 5_000 },
+      )
+      .catch(async (e: unknown) => {
+        if ((await phase()) === before) throw e;
+      });
+  };
   if (await page.locator('[data-sheet="modal"]').isVisible()) {
     await press();
   } else {
