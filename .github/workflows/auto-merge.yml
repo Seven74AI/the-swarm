@@ -3,13 +3,19 @@ name: Auto-merge
 # Arms squash auto-merge on our own PRs as soon as they open, so they merge
 # by themselves once the required checks are green. CI stays the only gate.
 #
-# Skipped for: Dependabot PRs, PRs from forks, drafts (armed when marked ready).
+# Skipped for: PRs from forks, drafts (armed when marked ready).
+# Dependabot PRs get their own job: patch and minor updates are armed, major
+# updates are left for the owner to merge.
 #
 # Needs the AUTOMERGE_TOKEN secret: a fine-grained personal access token for
 # this repo with "Contents: read and write" and "Pull requests: read and write".
 # The built-in GITHUB_TOKEN would work for arming, but a merge it performs
 # does not trigger other workflows, so the Pages deploy on push to main would
 # silently stop running.
+#
+# Workflows that Dependabot triggers can only read Dependabot secrets, so the
+# same token must ALSO be saved under Settings → Secrets and variables →
+# Dependabot as AUTOMERGE_TOKEN.
 
 on:
   pull_request:
@@ -36,6 +42,53 @@ jobs:
           fi
 
       - name: 🔀 Enable squash auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.AUTOMERGE_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --squash "$PR_URL"
+
+  dependabot-auto-merge:
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: 🔎 Read Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Only an explicit patch or minor update is armed. Major, or anything
+      # Dependabot can't classify, waits for the owner.
+      - name: ⏸️ Leave other updates for the owner
+        if: >-
+          steps.meta.outputs.update-type != 'version-update:semver-patch' &&
+          steps.meta.outputs.update-type != 'version-update:semver-minor'
+        env:
+          UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+          NAMES: ${{ steps.meta.outputs.dependency-names }}
+        run: echo "::notice::Not auto-merging ${NAMES} (${UPDATE_TYPE:-unknown update type}); merge it by hand after checking the changelog."
+
+      - name: 🔑 Check token
+        if: >-
+          steps.meta.outputs.update-type == 'version-update:semver-patch' ||
+          steps.meta.outputs.update-type == 'version-update:semver-minor'
+        env:
+          TOKEN: ${{ secrets.AUTOMERGE_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::AUTOMERGE_TOKEN is not set as a Dependabot secret. See the header of .github/workflows/auto-merge.yml."
+            exit 1
+          fi
+
+      - name: 🔀 Enable squash auto-merge
+        if: >-
+          steps.meta.outputs.update-type == 'version-update:semver-patch' ||
+          steps.meta.outputs.update-type == 'version-update:semver-minor'
         env:
           GH_TOKEN: ${{ secrets.AUTOMERGE_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
