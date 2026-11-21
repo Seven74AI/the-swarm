@@ -135,6 +135,47 @@ describe('UIRoot — Phase-Based Panel Reveal', () => {
       expect(el.classList.contains('panel-unlocked')).toBe(true);
     });
 
+    /** An `animationend` for `name` dispatched on `target` (bubbles, like the browser's). */
+    const animationEnd = (target: Element, name: string) => {
+      const e = new Event('animationend', { bubbles: true });
+      Object.defineProperty(e, 'animationName', { value: name });
+      target.dispatchEvent(e);
+    };
+
+    it('the reveal plays once: when it ends, the reveal class and its stagger delay go', () => {
+      ui.mount(shellHosts(container));
+      const el = ui.createPanel('worker_assignment');
+      ui.showPanel('worker_assignment', 300);
+      expect(el.classList.contains('panel-revealed')).toBe(true);
+
+      // A child's animation ending bubbles up, but does not end the panel's reveal.
+      const child = el.appendChild(document.createElement('span'));
+      animationEnd(child, 'phaseReveal');
+      animationEnd(el, 'some-other-animation');
+      expect(el.classList.contains('panel-revealed')).toBe(true);
+
+      animationEnd(el, 'phaseReveal');
+      // Showing its tab again later must not replay the slide-in (it moved panels from under the pointer).
+      expect(el.classList.contains('panel-revealed')).toBe(false);
+      expect(el.style.animationDelay).toBe('');
+      expect(el.classList.contains('panel-unlocked')).toBe(true);
+    });
+
+    it('a panel unlocked in a hidden tab appears there without a reveal', () => {
+      ui.mount(shellHosts(container));
+      const el = ui.createPanel('worker_assignment');
+      const hiddenTab = document.createElement('section');
+      hiddenTab.hidden = true;
+      container.appendChild(hiddenTab).appendChild(el);
+
+      ui.showPanel('worker_assignment', 300);
+
+      expect(el.style.display).toBe('');
+      expect(el.classList.contains('panel-unlocked')).toBe(true);
+      expect(el.classList.contains('panel-revealed')).toBe(false);
+      expect(el.style.animationDelay).toBe('');
+    });
+
     it('showPanel removes legacy panel-awaiting-reveal if present', () => {
       ui.mount(shellHosts(container));
       const el = ui.createPanel('worker_assignment');

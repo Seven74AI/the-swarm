@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { settleReveals } from './helpers/reveal';
+import { openTab } from './helpers/tabs';
 
 /**
  * Story 1.22 (FR1, FR41, UX-DR18, UX-DR30): the NEST tab. Phase 1 reads top to
@@ -98,6 +99,16 @@ test.describe('NEST tab', () => {
     await page.waitForTimeout(1500);
     const ys = await page.evaluate(() => (window as unknown as { __eggYs: number[] }).__eggYs);
     for (let i = 1; i < ys.length; i++) expect(ys[i], `frame ${i}: ${ys[i - 1]} → ${ys[i]}`).toBeLessThanOrEqual(ys[i - 1] + 0.5);
+  });
+
+  test('switching tabs never replays the panel reveal', async ({ page }) => {
+    await seed(page, COLONY);
+    await openTab(page, 'wrkr');
+    await openTab(page, 'nest');
+    const running = await page.evaluate(() =>
+      document.getAnimations().filter((a) => (a.effect as KeyframeEffect | null)?.target?.matches('.panel-revealed')).length,
+    );
+    expect(running).toBe(0);
   });
 
   test('a tap lays eggs through the action with a +N response; a hold repeats', async ({ page }) => {

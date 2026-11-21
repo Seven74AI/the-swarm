@@ -119,13 +119,12 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
       await expect(sp).toHaveCount(0);
     });
 
-    test('Phase 1 panels have .panel-revealed class on load', async ({ page }) => {
+    test('Phase 1 panels are unlocked on load, and their reveal plays once', async ({ page }) => {
       // resource_panel is shown by onPhaseEnter during boot
       const resourcePanel = page.locator('.resource-panel');
-      const hasRevealed = await resourcePanel.evaluate((el) =>
-        el.classList.contains('panel-revealed'),
-      );
-      expect(hasRevealed).toBe(true);
+      await expect(resourcePanel).toHaveClass(/panel-unlocked/);
+      // The reveal class goes when its animation ends, so a tab switch can't replay it.
+      await expect(resourcePanel).not.toHaveClass(/panel-revealed/, { timeout: 10_000 });
     });
 
     test('Phase 2 panel appears after colony phase transition (no scroll needed)', async ({ page }) => {
@@ -151,7 +150,7 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
       await expect(wa).toBeAttached();
     });
 
-    test('panel-revealed class is applied to lazily loaded panels', async ({ page }) => {
+    test('lazily loaded panels are unlocked when their phase starts', async ({ page }) => {
       const data = makeSaveData({
         resources: { eggs: 5, larvae: 0, workers: 10, food: 200, nestCapacity: 50, wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0 },
       });
@@ -166,10 +165,11 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
       // The panels are revealed under the phase reveal (Story 1.20), which tapContinue waits out.
       await tapContinue(page);
 
-      // worker_assignment should now exist with panel-revealed class
+      // worker_assignment should now exist, unlocked (it sits in WRKR, a hidden tab, so it
+      // appears there without a reveal animation)
       const wa = page.locator('#worker-assignment');
       await expect(wa).toBeAttached({ timeout: 5000 });
-      await expect(wa).toHaveClass(/panel-revealed/);
+      await expect(wa).toHaveClass(/panel-unlocked/);
     });
   });
 

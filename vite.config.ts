@@ -1,8 +1,10 @@
 import { defineConfig } from 'vite';
 
-// E2E_BUILD=1 adds the Playwright harness pages to the build, so the E2E
-// suite can run against a bundled `vite preview` server instead of the dev
-// server. Never set for the Pages deploy.
+// E2E_BUILD=1 builds what the E2E suite runs against (served by `vite preview`):
+// a development-mode bundle (import.meta.env.DEV, so dev cheats and dev logging
+// are in, as on the dev server) that is not minified (CSS values stay as written),
+// plus the Playwright harness pages. Bundled pages load far faster than the dev
+// server's per-module transforms. Never set for the Pages deploy.
 const e2eBuild = process.env.E2E_BUILD === '1';
 
 export default defineConfig({
@@ -15,6 +17,8 @@ export default defineConfig({
     outDir: e2eBuild ? 'dist-e2e' : 'dist',
     sourcemap: false,
     ...(e2eBuild && {
+      minify: false,
+      cssMinify: false,
       rolldownOptions: {
         input: {
           main: 'index.html',

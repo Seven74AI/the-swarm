@@ -119,10 +119,16 @@ test.describe('Decision events (Story 1.28)', () => {
   });
 
   test('a costly timeout applies its outcome, writes it to the log and toasts it', async ({ page }) => {
+    // Paused clock: the 600 ms timer runs only on runFor(), so a slow runner can't let
+    // the popup expire before it has been seen.
+    await page.clock.install();
+    await page.clock.pauseAt(Date.now() + 1000);
     await seed(page, { id: 'overcrowding', remainingMs: 600 });
     const food = () => page.evaluate(() => (window as unknown as { __swarm: Swarm }).__swarm.manager.getState().resources.food);
-    await expect(popup(page)).toBeVisible({ timeout: 10_000 });
-    await expect(popup(page)).toHaveCount(0, { timeout: 5_000 });
+    await page.clock.runFor(100);
+    await expect(popup(page)).toBeVisible();
+    await page.clock.runFor(1500);
+    await expect(popup(page)).toHaveCount(0);
     expect(await openDecision(page)).toBeNull();
     await expect(page.locator('[data-toast]')).toContainText('IGNORED');
     await expect(page.locator('#activity-log')).toContainText('IGNORED');
