@@ -1,7 +1,7 @@
 import { signal, type ReadonlySignal } from '@preact/signals-core';
 import type { ActionResult } from '../../actions';
-import { selectBattlesWon } from '../../state/selectors';
-import { getRandomEnemy, scaleEnemy, type BattleResult, type EnemyDef } from '../../state/queries';
+import { selectBattlesWon, selectRng } from '../../state/selectors';
+import { peekEnemy, scaleEnemy, type BattleResult, type EnemyDef } from '../../state/queries';
 
 /** The replay of a battle that has already been resolved (Story 1.25, UX-DR26). */
 export type BattleReplay =
@@ -40,14 +40,18 @@ export interface WarSessionDeps {
   actions: { fight(enemyType?: string): ActionResult<BattleResult> };
   /** Runs when the replay ends: main opens the battle summary sheet here. */
   onBattleDone(result: BattleResult, enemy: EnemyDef): void;
-  /** The next enemy. Default: a random one, scaled to the battles won. */
+  /** The next enemy. Default: the one the game's generator draws next, scaled to the battles won. */
   drawEnemy?: () => EnemyDef;
 }
 
-/** The next enemy, scaled like the battle itself scales it (Story 4.1 seeds this). */
+/**
+ * The next enemy, scaled like the battle itself scales it: the one the game's
+ * seeded generator would draw next (Story 3.1), peeked without drawing it, so
+ * the same save shows the same enemy. Story 4.1 moves the enemy into state.
+ */
 function drawScaledEnemy(): EnemyDef {
   const won = selectBattlesWon.peek();
-  return scaleEnemy(getRandomEnemy(won), won);
+  return scaleEnemy(peekEnemy(selectRng.peek(), won), won);
 }
 
 /**

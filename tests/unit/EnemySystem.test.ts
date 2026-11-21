@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialState } from '../../src/state/GameState';
+import { rngFromSeed, rngStream } from '../../src/utils/rng';
 import {
   assessMatchup,
   getEnemyDef,
   getEnemyDefs,
   getRandomEnemy,
+  peekEnemy,
   scaleEnemy,
   type EnemyDef,
 } from '../../src/systems/EnemySystem';
@@ -96,8 +98,19 @@ describe('EnemySystem', () => {
   });
 
   describe('getRandomEnemy', () => {
+    // A fixed seed (Story 3.1): one stream drawn on across the rolls.
+    const rng = rngStream(rngFromSeed(31));
+
+    it('draws from the stream it is given: the same state gives the same enemy, and peeking does not draw', () => {
+      const state = rngFromSeed(8);
+      const a = rngStream(state);
+      expect(getRandomEnemy(5, a)).toEqual(getRandomEnemy(5, rngStream(state)));
+      expect(a.state).not.toBe(state);
+      expect(peekEnemy(state, 5)).toEqual(getRandomEnemy(5, rngStream(state)));
+    });
+
     it('returns a valid enemy def', () => {
-      const enemy = getRandomEnemy(0);
+      const enemy = getRandomEnemy(0, rng);
       const defs = getEnemyDefs();
       const found = defs.find((d) => d.type === enemy.type);
       expect(found).toBeDefined();
@@ -105,7 +118,7 @@ describe('EnemySystem', () => {
 
     it('never returns Scorpion when battlesWon < 5 (test 200 rolls)', () => {
       for (let i = 0; i < 200; i++) {
-        const enemy = getRandomEnemy(3);
+        const enemy = getRandomEnemy(3, rng);
         expect(enemy.type).not.toBe('scorpion');
       }
     });
@@ -113,7 +126,7 @@ describe('EnemySystem', () => {
     it('can return Scorpion when battlesWon >= 5 (test 500 rolls)', () => {
       let foundScorpion = false;
       for (let i = 0; i < 500; i++) {
-        const enemy = getRandomEnemy(5);
+        const enemy = getRandomEnemy(5, rng);
         if (enemy.type === 'scorpion') {
           foundScorpion = true;
           break;
@@ -125,7 +138,7 @@ describe('EnemySystem', () => {
     it('returns Red Ant most frequently (40% weight)', () => {
       const counts: Record<string, number> = {};
       for (let i = 0; i < 500; i++) {
-        const enemy = getRandomEnemy(0);
+        const enemy = getRandomEnemy(0, rng);
         counts[enemy.type] = (counts[enemy.type] || 0) + 1;
       }
       const redAntCount = counts['red_ant'] || 0;

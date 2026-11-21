@@ -4,6 +4,7 @@ import { isDecisionId } from '../data/content/decisions';
 import { PhaseStateMachine, reachedValues } from '../phases/PhaseStateMachine';
 import { normalizeChronicle, type ChronicleSave } from '../state/chronicle';
 import { isSeed, seedFrom } from '../state/seed';
+import { isRngState, rngFromSeed } from '../utils/rng';
 
 /**
  * Migration system for save data version upgrades.
@@ -605,6 +606,18 @@ function migrateV22toV23(data: SaveData): SaveData {
   return { ...data, version: 23, gameState: gs as unknown as GameState };
 }
 
+/**
+ * v23 → v24 (Story 3.1, AR9, ADR 0005): the seeded generator's state is in the
+ * save (`gameState.rng`). An older save starts its generator from its own seed
+ * (Story 1.34), so the same save always replays the same draws.
+ */
+function migrateV23toV24(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  const seed = isSeed(gs.seed) ? gs.seed : seedFrom(typeof data.timestamp === 'number' ? data.timestamp : 0);
+  const rng = isRngState(gs.rng) ? gs.rng : rngFromSeed(seed);
+  return { ...data, version: 24, gameState: { ...gs, rng } as unknown as GameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -629,6 +642,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   20: migrateV20toV21,
   21: migrateV21toV22,
   22: migrateV22toV23,
+  23: migrateV23toV24,
 };
 
 /**

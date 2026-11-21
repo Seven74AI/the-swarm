@@ -19,3 +19,17 @@ simulation and bug reports non-reproducible.
 - A seed reproduces a run or a reported bug.
 - Tests still assert invariants and outcome sets, never one specific outcome.
 - Adds the PRNG state to the save (one migration step).
+
+## Implementation (Story 3.1)
+
+- `src/utils/rng.ts`: mulberry32 (the generator MapSystem already used, so a given map seed lays out the same map).
+  The state is one u32, `GameState.rng` (save v24, started from `rngFromSeed(state.seed)`); `RngStream` draws from it,
+  with `between`, `intBetween`, `pick` and `chance` helpers.
+- The tick context carries `rng`, a stream opened on the state's `rng` at the tick's start; systems in the tick draw
+  from it and the step folds its state into the tick's one write. Actions (battles) open a stream on `state.rng` and
+  write the advanced state back.
+- Outcomes that run over game time (expedition and exploration rolls, probe launches) use `keyedStream(seed, run,
+  kind, id or tick)` instead of the shared stream. That keeps the Story 2.5 step-length invariance exact: the same
+  game time gives the same draws whatever the step length or the order things resolve in (per game time, never per call).
+- Systems take an optional `RngStream` (`resolveBattle`, `resolveExpedition`, `resolveExploration`, `generateMap`),
+  which tests use to pin a roll.

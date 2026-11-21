@@ -24,7 +24,8 @@ import {
  * - Offline catch-up never calls `tickDecisions`: no spawns, no countdown.
  *
  * Randomness comes in as `rand` (spawn time, which event, the roll that fixes
- * the risk). Story 3.1 (ADR 0005) replaces it with the seeded PRNG in state.
+ * the risk): main passes draws from the tick's seeded stream, `ctx.rng`
+ * (Story 3.1, ADR 0005), so the same state and seed spawn the same events.
  */
 
 export type DecisionTimerMode = 'normal' | 'double' | 'off';

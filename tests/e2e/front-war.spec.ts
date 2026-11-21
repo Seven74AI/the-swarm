@@ -3,8 +3,8 @@ import { openTab } from './helpers/tabs';
 
 /**
  * Story 1.25 (UX-DR10, UX-DR26): FRONT and its WAR segment. Combat RNG is
- * unseeded until Story 3.1, so a battle may end in any outcome: the specs
- * accept VICTORY | DEFEAT | DRAW and never assert one.
+ * seeded from the save (Story 3.1), but the specs still accept
+ * VICTORY | DEFEAT | DRAW and never assert one outcome.
  */
 
 async function seed(page: Page, gameState: Record<string, unknown>): Promise<void> {

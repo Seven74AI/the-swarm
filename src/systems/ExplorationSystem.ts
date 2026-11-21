@@ -1,5 +1,20 @@
 import type { GameState, SpaceExploration, SpaceProbe } from '../state/GameState';
 import { PLANETS, type PlanetDef } from '../data/planets';
+import { hashString, intBetween, keyedStream, pick, type RngStream } from '../utils/rng';
+
+/** Key the keyed streams of explorations and probe launches apart (Story 3.1). */
+const EXPLORATION_KEY = 2;
+const PROBE_TICK_KEY = 3;
+const PROBE_PLANET_KEY = 4;
+
+/**
+ * The rolls of one exploration (Story 3.1): fixed by the game's seed, the run
+ * (prestige count) and the exploration's id, so it comes back the same
+ * whatever the step length or the order it resolves in.
+ */
+export function explorationRolls(state: GameState, exploration: SpaceExploration): RngStream {
+  return keyedStream(state.seed, state.prestige.count, EXPLORATION_KEY, hashString(exploration.id));
+}
 
 export const MAX_ACTIVE_EXPLORATIONS = 3;
 
@@ -139,11 +154,12 @@ export function tickExplorations(state: GameState, dtSec: number): GameState {
 export function resolveExploration(
   state: GameState,
   exploration: SpaceExploration,
+  rng: RngStream = explorationRolls(state, exploration),
 ): GameState {
   const idx = state.spaceExplorations.findIndex((e) => e.id === exploration.id);
   if (idx === -1) return state;
 
-  const roll = Math.random();
+  const roll = rng.float();
   const risk = exploration.risk;
 
   let result: GameState = { ...state };
@@ -163,14 +179,14 @@ export function resolveExploration(
 
   // Space anomaly check (5% chance after any non-failure result)
   if (roll >= risk) {
-    const anomalyRoll = Math.random();
+    const anomalyRoll = rng.float();
     if (anomalyRoll < 0.05) {
       // Anomaly: bonus voidCrystals
       result = {
         ...result,
         resources: {
           ...result.resources,
-          voidCrystals: result.resources.voidCrystals + Math.floor(Math.random() * 5) + 1,
+          voidCrystals: result.resources.voidCrystals + intBetween(rng, 1, 5),
         },
       };
     }
@@ -245,17 +261,18 @@ function addSpaceLoot(
  * auto-launch explorations periodically. This follows the idle game
  * pattern where manual actions become automated as you progress.
  *
- * Each tick of game time launches with a chance; for a step of any length
- * (Story 2.5) the ticks until the next launch are drawn from the geometric
- * distribution that per-tick chance gives, so one long step launches what
- * many short ones would, on average.
+ * Each tick of game time launches with a chance. The roll for a tick is fixed
+ * by the game's seed, the run and that tick's number (Story 3.1), and the
+ * planet by the seed and the new exploration's id, so one long step launches
+ * exactly what many short ones would (Story 2.5), with no draw per call.
  *
  * Returns the updated state, or the same state if no auto-launch occurred.
  */
 export function tickProbeSwarm(state: GameState, dtSec: number): GameState {
-  let ticksLeft = Math.round(dtSec * 1000) / TICK_MS;
+  const ticks = Math.round(Math.round(dtSec * 1000) / TICK_MS);
+  const firstTick = Math.round(state.stats.playTimeMs / TICK_MS);
   let s = state;
-  while (ticksLeft > 0) {
+  for (let i = 0; i < ticks; i++) {
     const surveyData = s.resources.surveyData;
     if (surveyData < PROBE_SWARM_THRESHOLD) return s;
     // Already at max active explorations — nothing to do
@@ -263,13 +280,12 @@ export function tickProbeSwarm(state: GameState, dtSec: number): GameState {
 
     // Chance per tick when swarm is active: 5% + 0.5% per surveyData above threshold
     const chance = Math.min(1, 0.05 + (surveyData - PROBE_SWARM_THRESHOLD) * 0.005);
-    const roll = Math.random();
-    const wait = chance >= 1 ? 1 : Math.max(1, Math.ceil(Math.log(1 - roll) / Math.log(1 - chance)));
-    if (wait > ticksLeft) return s;
-    ticksLeft -= wait;
+    const roll = keyedStream(s.seed, s.prestige.count, PROBE_TICK_KEY, firstTick + i).float();
+    if (roll >= chance) continue;
 
     // Auto-launch to a random planet
-    const planet = PLANETS[Math.floor(Math.random() * PLANETS.length)];
+    const id = `spc_${s.nextIds.exploration}`;
+    const planet = pick(keyedStream(s.seed, s.prestige.count, PROBE_PLANET_KEY, hashString(id)), PLANETS);
     s = launchExploration(s, planet.name);
   }
   return s;

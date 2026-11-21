@@ -50,17 +50,6 @@ import { pipelineTolerance, rateTolerance, stageRates, WHOLE_UNIT_CARRY } from '
 
 const TICK_SEC = TICK_MS / 1000;
 
-/** A seeded generator for the random parts (mulberry32). */
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 const MAX_TICKS = 200;
 /** Fixed seed: the property tests are reproducible on every run (AC: seeded). */
 const SEED = 20_5;
@@ -352,22 +341,18 @@ describe('Story 2.5: systems give the same result for any step length', { timeou
   });
 
   it('probe swarm launches the same number of explorations on average for any step length', () => {
-    // Random by design (Story 3.1 seeds it): compare means over many seeded trials.
+    // Random by design, from the seed (Story 3.1): compare means over many seeded trials.
     const base = createInitialState();
     base.resources.surveyData = PROBE_SWARM_THRESHOLD;
     const trials = 400;
     const window = 40; // ticks: few enough that the active-exploration cap rarely binds
     const launches = (n: number, perStepTicks: number, seed: number) => {
-      const rand = mulberry32(seed);
-      const real = Math.random;
-      Math.random = rand;
-      try {
-        let s = base;
-        for (let t = 0; t < n; t += perStepTicks) s = tickProbeSwarm(s, (perStepTicks * TICK_MS) / 1000);
-        return s.spaceExplorations.length;
-      } finally {
-        Math.random = real;
+      let s: GameState = { ...base, seed };
+      for (let t = 0; t < n; t += perStepTicks) {
+        s = tickProbeSwarm(s, (perStepTicks * TICK_MS) / 1000);
+        s = { ...s, stats: { ...s.stats, playTimeMs: s.stats.playTimeMs + perStepTicks * TICK_MS } };
       }
+      return s.spaceExplorations.length;
     };
     let fineSum = 0;
     let coarseSum = 0;

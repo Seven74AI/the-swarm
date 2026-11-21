@@ -667,3 +667,38 @@ describe('v22 → v23: no pause in the save (Story 2.10, FR25)', () => {
     expect(out.gameState).toEqual(gs);
   });
 });
+
+describe('v23 → v24: the generator state is in the save (Story 3.1, ADR 0005)', () => {
+  const v23 = (gs: Record<string, unknown>): SaveData => ({
+    version: 23,
+    timestamp: 1_700_000_000_000,
+    playTimeMs: 0,
+    gameState: gs as unknown as GameState,
+  });
+  const isU32 = (n: unknown) => typeof n === 'number' && Number.isInteger(n) && n >= 0 && n < 2 ** 32;
+
+  it('seeds the generator from the save’s own seed, the same every time', () => {
+    const { rng: _drop, ...old } = { ...createInitialState(), seed: 777 };
+    const a = migrateSave(v23(old), 23, 24);
+    expect(a.version).toBe(24);
+    expect(isU32(a.gameState.rng)).toBe(true);
+    expect(migrateSave(v23(old), 23, 24).gameState.rng).toBe(a.gameState.rng);
+    const { rng: _d2, ...other } = { ...createInitialState(), seed: 778 };
+    expect(migrateSave(v23(other), 23, 24).gameState.rng).not.toBe(a.gameState.rng);
+  });
+
+  it('keeps a valid generator state and replaces a malformed one', () => {
+    expect(migrateSave(v23({ ...createInitialState(), rng: 4321 }), 23, 24).gameState.rng).toBe(4321);
+    for (const bad of [-1, 1.5, 'x', null, 2 ** 32]) {
+      expect(isU32(migrateSave(v23({ ...createInitialState(), rng: bad }), 23, 24).gameState.rng)).toBe(true);
+    }
+  });
+
+  it('keeps the rest of the save as it was', () => {
+    const gs = createInitialState();
+    const { rng: _drop, ...old } = gs;
+    const out = migrateSave(v23(old), 23, 24);
+    const { rng: _out, ...rest } = out.gameState;
+    expect(rest).toEqual(old);
+  });
+});

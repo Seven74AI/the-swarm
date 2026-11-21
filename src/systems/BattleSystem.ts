@@ -9,6 +9,7 @@ import {
   getSoldierMaxHp,
 } from './SoldierSystem';
 import { getPoisonDamagePerTick, consumeVenom } from './VenomSystem';
+import { between, intBetween, rngStream, type RngStream } from '../utils/rng';
 
 export type BattleOutcome = 'victory' | 'defeat' | 'draw';
 
@@ -34,13 +35,6 @@ export interface BattleResult {
 export const MAX_BATTLE_ROUNDS = 20;
 const MAX_ROUNDS = MAX_BATTLE_ROUNDS;
 
-function rng(min: number, max: number): number {
-  return min + Math.random() * (max - min);
-}
-
-function rollInt(min: number, max: number): number {
-  return Math.floor(rng(min, max + 0.9999));
-}
 
 export class BattleSystem {
   constructor(private bus: EventBus) {}
@@ -48,8 +42,12 @@ export class BattleSystem {
   /**
    * Fight one battle now. `enemyType` is the enemy the player saw on the enemy
    * card (Story 1.25); without it a random enemy is drawn.
+   *
+   * Every roll comes from `rng`, by default a stream of the game's generator
+   * (`state.rng`, Story 3.1): the same state fights the same battle, and the
+   * result carries the advanced generator state.
    */
-  resolveBattle(state: GameState, enemyType?: string): {
+  resolveBattle(state: GameState, enemyType?: string, rng: RngStream = rngStream(state.rng)): {
     newState: GameState;
     result: BattleResult;
   } {
@@ -72,7 +70,7 @@ export class BattleSystem {
     }
 
     // Pick and scale enemy
-    const baseEnemy = enemyType ? getEnemyDef(enemyType) : getRandomEnemy(state.battlesWon);
+    const baseEnemy = enemyType ? getEnemyDef(enemyType) : getRandomEnemy(state.battlesWon, rng);
     const enemy = scaleEnemy(baseEnemy, state.battlesWon);
 
     // Poison DoT: activate if Venom Lab Lv.1+ and venom in stock
@@ -107,10 +105,10 @@ export class BattleSystem {
 
       // First attacker
       if (playerFirst) {
-        const damage = (totalSoldierStrength / enemy.defense) * rng(0.85, 1.15);
+        const damage = (totalSoldierStrength / enemy.defense) * between(rng, 0.85, 1.15);
         enemyHp -= damage;
       } else {
-        const damage = (enemy.strength / soldierDefense) * rng(0.85, 1.15);
+        const damage = (enemy.strength / soldierDefense) * between(rng, 0.85, 1.15);
         playerHp -= damage;
       }
 
@@ -119,10 +117,10 @@ export class BattleSystem {
 
       // Second attacker
       if (playerFirst) {
-        const damage = (enemy.strength / soldierDefense) * rng(0.85, 1.15);
+        const damage = (enemy.strength / soldierDefense) * between(rng, 0.85, 1.15);
         playerHp -= damage;
       } else {
-        const damage = (totalSoldierStrength / enemy.defense) * rng(0.85, 1.15);
+        const damage = (totalSoldierStrength / enemy.defense) * between(rng, 0.85, 1.15);
         enemyHp -= damage;
       }
 
@@ -142,7 +140,7 @@ export class BattleSystem {
       soldiersLost = workingState.combatSoldiers;
     } else {
       soldiersLost = Math.round(
-        (enemy.strength / Math.max(soldierDefense, 0.1)) * rng(0.7, 1.3),
+        (enemy.strength / Math.max(soldierDefense, 0.1)) * between(rng, 0.7, 1.3),
       );
       soldiersLost = Math.max(0, Math.min(soldiersLost, workingState.combatSoldiers));
     }
@@ -156,11 +154,11 @@ export class BattleSystem {
     let venomGained = 0;
 
     if (victory) {
-      foodGained = rollInt(enemy.loot.foodMin, enemy.loot.foodMax);
+      foodGained = intBetween(rng, enemy.loot.foodMin, enemy.loot.foodMax);
 
       if (enemy.loot.specialResource) {
         const res = enemy.loot.specialResource;
-        const amount = rollInt(res.min, res.max);
+        const amount = intBetween(rng, res.min, res.max);
         if (res.type === 'chitin') chitinGained = amount;
         else if (res.type === 'silk') silkGained = amount;
         else if (res.type === 'venom') venomGained = amount;
@@ -168,7 +166,7 @@ export class BattleSystem {
 
       // Scorpion gives extra chitin on top of venom
       if (enemy.type === 'scorpion') {
-        chitinGained = rollInt(1, 5);
+        chitinGained = intBetween(rng, 1, 5);
       }
     }
 
@@ -209,6 +207,7 @@ export class BattleSystem {
     // Apply to state
     const newState: GameState = {
       ...workingState,
+      rng: rng.state,
       resources: {
         ...workingState.resources,
         food: workingState.resources.food + foodGained,

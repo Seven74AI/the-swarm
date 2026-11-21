@@ -1,5 +1,18 @@
 import type { Expedition, GameState } from '../state/GameState';
 import { clamp } from '../utils/math';
+import { chance, hashString, keyedStream, type RngStream } from '../utils/rng';
+
+/** Keys an expedition's outcome stream apart from the other keyed streams. */
+const EXPEDITION_KEY = 1;
+
+/**
+ * The rolls of one expedition (Story 3.1): fixed by the game's seed, the run
+ * (prestige count) and the expedition's id, so an expedition comes home the
+ * same whatever the step length or the order it resolves in.
+ */
+export function expeditionRolls(state: GameState, expedition: Expedition): RngStream {
+  return keyedStream(state.seed, state.prestige.count, EXPEDITION_KEY, hashString(expedition.id));
+}
 
 export const MAX_ACTIVE_EXPEDITIONS = 3;
 
@@ -100,11 +113,12 @@ export function tickExpeditions(state: GameState, dtSec: number): GameState {
 export function resolveExpedition(
   state: GameState,
   expedition: Expedition,
+  rng: RngStream = expeditionRolls(state, expedition),
 ): GameState {
   const idx = state.expeditions.findIndex((e) => e.id === expedition.id);
   if (idx === -1) return state;
 
-  const roll = Math.random();
+  const roll = rng.float();
   const risk = expedition.risk;
 
   let result: GameState = { ...state };
@@ -126,7 +140,7 @@ export function resolveExpedition(
     const scoutKilled = Math.min(expedition.scouts, Math.ceil(rawKilled * expedition.scouts / totalInExp));
     const warriorKilled = Math.min(expedition.warriors, rawKilled - scoutKilled);
     const actualKilled = scoutKilled + warriorKilled;
-    result = addLoot(result, expedition.destination, 0.5);
+    result = addLoot(result, expedition.destination, 0.5, rng);
     result = {
       ...result,
       soldiers: {
@@ -139,7 +153,7 @@ export function resolveExpedition(
     result = discoverTiles(result, 1);
   } else {
     // Full success: all soldiers return, full loot
-    result = addLoot(result, expedition.destination, 1.0);
+    result = addLoot(result, expedition.destination, 1.0, rng);
     result = {
       ...result,
       soldiers: {
@@ -164,6 +178,7 @@ function addLoot(
   state: GameState,
   destination: string,
   multiplier: number,
+  rng: RngStream,
 ): GameState {
   const upper = destination.toUpperCase();
   let food = Math.floor(20 * multiplier);
@@ -185,9 +200,9 @@ function addLoot(
       stone: state.resources.stone + stone,
       nectar: state.resources.nectar + nectar,
       // Rare space resource drops (10% chance each)
-      voidCrystals: state.resources.voidCrystals + (Math.random() < 0.1 ? 1 : 0),
-      antimatter: state.resources.antimatter + (Math.random() < 0.1 ? 1 : 0),
-      darkMatter: state.resources.darkMatter + (Math.random() < 0.1 ? 1 : 0),
+      voidCrystals: state.resources.voidCrystals + (chance(rng, 0.1) ? 1 : 0),
+      antimatter: state.resources.antimatter + (chance(rng, 0.1) ? 1 : 0),
+      darkMatter: state.resources.darkMatter + (chance(rng, 0.1) ? 1 : 0),
     },
   };
 }

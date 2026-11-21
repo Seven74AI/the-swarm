@@ -1,18 +1,5 @@
 import { TileType, type GameState, type Tile } from '../state/GameState';
-
-/**
- * Simple seeded PRNG (mulberry32).
- * Returns a function that produces deterministic random numbers in [0, 1).
- */
-function mulberry32(seed: number): () => number {
-  return () => {
-    seed |= 0;
-    seed = (seed + 0x6D2B79F5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+import { rngStream, type RngStream } from '../utils/rng';
 
 /** Weighted tile distribution for map generation. */
 const TILE_WEIGHTS: [TileType, number][] = [
@@ -44,11 +31,14 @@ export class MapSystem {
 
   /**
    * Generate the map layout using a weighted random distribution.
-   * Optional seed for deterministic generation (testing / seeded runs).
+   * The layout is drawn from `rng` (the tick's stream, Story 3.1), or from the
+   * game's generator (`state.rng`, advanced in the result) when none is given.
+   * An explicit `seed` (tests) gives that seed's layout and leaves `state.rng` alone.
    * All tiles remain undiscovered and unclaimed after generation.
    */
-  generateMap(state: GameState, seed?: number): GameState {
-    const rng = mulberry32(seed ?? Math.floor(Math.random() * 2147483647));
+  generateMap(state: GameState, seed?: number, stream?: RngStream): GameState {
+    const own = seed !== undefined;
+    const rng = own ? rngStream(seed) : (stream ?? rngStream(state.rng));
     const tiles: Tile[] = [];
 
     for (let y = 0; y < MapSystem.GRID_SIZE; y++) {
@@ -63,10 +53,7 @@ export class MapSystem {
       }
     }
 
-    return {
-      ...state,
-      mapTiles: tiles,
-    };
+    return own ? { ...state, mapTiles: tiles } : { ...state, mapTiles: tiles, rng: rng.state };
   }
 
   /**
@@ -106,8 +93,8 @@ export class MapSystem {
   /**
    * Pick a weighted random tile type using the given RNG.
    */
-  private pickWeightedType(rng: () => number): TileType {
-    let roll = rng() * TOTAL_WEIGHT;
+  private pickWeightedType(rng: RngStream): TileType {
+    let roll = rng.float() * TOTAL_WEIGHT;
     for (const [type, weight] of TILE_WEIGHTS) {
       roll -= weight;
       if (roll <= 0) return type;

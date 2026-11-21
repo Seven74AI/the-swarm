@@ -1,3 +1,4 @@
+import { pick, rngStream, type RngStream } from '../utils/rng';
 import type { GameState } from '../state/GameState';
 
 export interface EnemyDef {
@@ -138,11 +139,18 @@ export function getEnemyDefs(): EnemyDef[] {
   return [...ENEMY_DEFS];
 }
 
-export function getRandomEnemy(battlesWon: number): EnemyDef {
+/** A random enemy for this many battles won, drawn from `rng` (Story 3.1). */
+export function getRandomEnemy(battlesWon: number, rng: RngStream): EnemyDef {
   const table = battlesWon >= 5 ? FULL_TABLE : NO_BOSS_TABLE;
-  const idx = Math.floor(Math.random() * table.length);
-  const type = table[idx];
-  return getEnemyDef(type);
+  return getEnemyDef(pick(rng, table));
+}
+
+/**
+ * The enemy the game's generator would draw next, without drawing it: the
+ * enemy card shows it (Story 1.25), so the card is the same for the same save.
+ */
+export function peekEnemy(rngState: number, battlesWon: number): EnemyDef {
+  return getRandomEnemy(battlesWon, rngStream(rngState));
 }
 
 /**

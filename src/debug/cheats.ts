@@ -20,6 +20,7 @@ import { Phase, PHASE_ORDER } from '../phases/phases';
 import type { GameState } from '../state/GameState';
 import { isSeed } from '../state/seed';
 import { log } from '../utils/log';
+import { rngFromSeed } from '../utils/rng';
 import { HOUR_MS, OFFLINE_CAP_MAX_MS } from '../data/constants';
 
 /** Greps for this in the production bundle must find nothing. */
@@ -118,7 +119,8 @@ export function createCheats(deps: CheatDeps): Cheats {
 
     setSeed(seed) {
       if (!isSeed(seed)) return refuse('a seed is an integer from 0 to 2^32 − 1');
-      deps.write({ ...deps.read(), seed });
+      // The generator restarts from the new seed (Story 3.1), so the seed replays its run.
+      deps.write({ ...deps.read(), seed, rng: rngFromSeed(seed) });
       return OK;
     },
   };

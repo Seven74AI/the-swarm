@@ -81,8 +81,8 @@ export class GameLoop {
   bindTick(binding: TickBinding): (dtSec: number) => void {
     const tick = (dtSec: number): void => {
       if (this.halted) return;
-      const ctx = createTickContext(dtSec);
       const prev = binding.read();
+      const ctx = createTickContext(dtSec, prev.rng);
       let next: GameState;
       try {
         next = binding.step(prev, ctx);
