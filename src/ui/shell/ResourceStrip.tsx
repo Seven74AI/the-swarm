@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { formatDelta, formatStrip } from '../../utils/format';
 import { RESOURCE_BY_ID } from './resourceCatalog';
 import { Abbr } from '../primitives/Deco';
@@ -23,8 +23,24 @@ import './ResourceStrip.css';
  * Hooks: `[data-resource-strip]`, `[data-strip-cell=<id>]` with the legacy
  * `data-stat="<store>.<id>"` and `.critical-value` (E2E specs read those),
  * `[data-value]`, `[data-delta][data-trend=up|down|flat]`, `[data-capped]`,
- * `[data-strip-more]`.
+ * `[data-strip-more]`, `[data-flash]` (deltas flashing after a short return).
  */
+
+/** How long the strip's deltas flash after a short return (Story 2.9, UX-DR43): one flash. */
+export const STRIP_FLASH_MS = 600;
+
+/** True for `STRIP_FLASH_MS` after each change of `count` (a new flash restarts it). */
+function useFlash(count: number): boolean {
+  const [on, setOn] = useState(false);
+  const first = useRef(count);
+  useEffect(() => {
+    if (count === first.current) return;
+    setOn(true);
+    const t = setTimeout(() => setOn(false), STRIP_FLASH_MS);
+    return () => clearTimeout(t);
+  }, [count]);
+  return on;
+}
 
 /** Text scale above which the strip narrows to 3 cells. */
 export const LARGE_TEXT_SCALE = 1.25;
@@ -104,6 +120,7 @@ export function ResourceStrip({ feed, sheets, onOpenSettings, compact }: Resourc
   const narrowGrid = gridClass(useGridCols()) === 'narrow';
   const narrow = compact ?? (large || narrowGrid);
   useEffect(() => feed.retain(), [feed]);
+  const flashing = useFlash(feed.flashes.value);
 
   const snapshot = feed.snapshot.value;
   const ids = stripCells(snapshot, STRIP_CELLS);
@@ -117,6 +134,7 @@ export function ResourceStrip({ feed, sheets, onOpenSettings, compact }: Resourc
       class="resource-strip"
       data-resource-strip=""
       data-compact={String(narrow)}
+      data-flash={flashing ? '' : undefined}
       onClick={() => openResourceSheet(sheets, feed, { onOpenSettings })}
     >
       {shown.map((id) => (

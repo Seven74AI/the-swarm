@@ -394,6 +394,53 @@ export function getNextAction(state: GameState): NextAction {
   return { kind: 'none', key: next ? `none:${next.key}:${next.inSec}` : 'none', nextAffordable: next };
 }
 
+/**
+ * The offline summary's next move (Story 2.9, FR27, UX-DR24): what the button
+ * on the return sheet points at. `act` opens the target's tab; `wait` is the
+ * `NEXT AFFORDABLE: <item> IN ~<time>` line.
+ */
+export type ReturnMove =
+  | {
+      readonly kind: 'act';
+      /** The next-action rule that chose it, or `fallback` (see `getReturnMove`). */
+      readonly rule: NextActionRule | 'fallback';
+      readonly key: string;
+      readonly verb: string;
+      readonly target?: string;
+      /** The intent the target's own control performs (none for laying an egg). */
+      readonly intent?: ActionIntent;
+      readonly panel: PanelId;
+    }
+  | { readonly kind: 'wait'; readonly key: string; readonly name: string; readonly inSec: number };
+
+/** Allocation sources tried by the fallback, in order: jobs that bring no food first. */
+const FALLBACK_SOURCES: readonly WorkerRole[] = ['tend', 'dig', 'guard', 'gather'];
+
+/**
+ * The return summary's next move, never empty (Story 2.9). It is the
+ * next-action rule's (`getNextAction`): its suggestion, or its next affordable
+ * item. Only when the rule has neither (no income, nothing affordable) does it
+ * fall back to an allocation change WRKR accepts (a free worker to GATHER, else
+ * one off a job), and with no worker to move, to laying an egg on NEST, which
+ * is always allowed. Pure.
+ */
+export function getReturnMove(state: GameState): ReturnMove {
+  const next = getNextAction(state);
+  if (next.kind === 'act') {
+    return { kind: 'act', rule: next.rule, key: next.key, verb: next.verb, target: next.target, intent: next.intent, panel: next.panel };
+  }
+  if (next.nextAffordable) {
+    const { key, name, inSec } = next.nextAffordable;
+    return { kind: 'wait', key, name, inSec };
+  }
+  if (workersOpen(state) && state.resources.workers > 0) {
+    if (freeWorkers(state) > 0) return { ...allocate('affordable', 'assignWorker', 'gather'), rule: 'fallback' };
+    const from = FALLBACK_SOURCES.find((role) => state.workersAssigned[role] > 0);
+    if (from) return { ...allocate('affordable', 'unassignWorker', from), rule: 'fallback' };
+  }
+  return { kind: 'act', rule: 'fallback', key: 'lay_egg', verb: 'LAY', target: 'EGG', panel: 'click_button' };
+}
+
 /** Whether BUILD sells the item in this state (Story 1.24). */
 function soldOnBuild(s: GameState, ref: ItemRef): boolean {
   const panel = sellerIn(s, ref);

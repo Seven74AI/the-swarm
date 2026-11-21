@@ -17,7 +17,7 @@ import { startDecisionSession, tickDecisions } from './systems/DecisionSystem';
 import { getDecision, timeoutLine } from './data/content/decisions';
 import { processTick } from './engine/processTick';
 import { catchUp, type CatchUpDeps } from './engine/catchUp';
-import { createResumePath, resume, type OfflineLoadInfo } from './engine/resume';
+import { createResumePath, resume } from './engine/resume';
 import { render } from 'preact';
 import { computed, effect, signal } from '@preact/signals-core';
 import { App } from './ui/App';
@@ -28,7 +28,8 @@ import { createTabShell } from './ui/shell/tabShell';
 import { selectAffordableKeys, selectCanChoose, selectCapacityReached, selectGoalMet, selectStarving, selectLifetime, selectOpenDecision, selectPaused, selectPhase } from './state/selectors';
 import { AudioSystem } from './ui/AudioSystem';
 import { SaveManager } from './persistence/SaveManager';
-import { openOfflineSummary } from './ui/sheets/OfflineSummarySheet';
+import { openOfflineSummary, type OfflineSummary } from './ui/sheets/OfflineSummarySheet';
+import { getReturnMove } from './systems/NextAction';
 import { bindDecisionSheets, type DecisionSheets } from './ui/sheets/DecisionSheet';
 import { createToasts, type Toasts } from './ui/primitives/Toast';
 import { openTickFailure } from './ui/sheets/TickFailureSheet';
@@ -130,7 +131,7 @@ export function bootstrap(): {
   // SaveManager now refuses every save until the player picks LOAD BACKUP or START OVER.
   const opened = saveManager.open();
   const saved = opened.state ?? null;
-  let offlineSummary: OfflineLoadInfo | null = null;
+  let offlineSummary: OfflineSummary | null = null;
   // The event lines (Story 1.26, ADR 0018): kept beside the game state, written into every save.
   const chronicle = createChronicle(saved?.chronicle);
   saveManager.setChronicleSource(() => chronicle.snapshot());
@@ -172,7 +173,11 @@ export function bootstrap(): {
     halted: () => loop.isHalted(),
     onResumed: (result, before) => {
       const info = result.offline;
-      if (!info) return;
+      // Under 60 s (UX-DR43): no sheet; the strip's deltas flash once (Story 2.9).
+      if (!info) {
+        if (uiReady && result.elapsedMs > 0) resourceFeed.flash();
+        return;
+      }
       log.info('offline', `Ticks to simulate: ${info.offlineTicks} Elapsed: ${info.elapsedMs} Efficiency: ${info.efficiency}`);
       log.info('offline', `caught up in ${catchUpMs} ms`);
       bus.emit('offline_progress', {
@@ -182,9 +187,16 @@ export function bootstrap(): {
         resourcesBefore: before.resources,
         resourcesAfter: result.state.resources,
       });
-      // The summary opens once the UI is mounted (below), ahead of any decision sheet.
-      if (uiReady) openOfflineSummary(sheets, info);
-      else offlineSummary = info;
+      // The summary (Story 2.9): built from the before/after states, with the next move
+      // from the next-action rule. It opens once the UI is mounted (below), ahead of any decision sheet.
+      const summary: OfflineSummary = {
+        info,
+        before: { resources: before.resources, combatResources: before.combatResources },
+        after: { resources: result.state.resources, combatResources: result.state.combatResources },
+        move: getReturnMove(result.state),
+      };
+      if (uiReady) showOfflineSummary(summary);
+      else offlineSummary = summary;
     },
   });
   // Every save says when its state was last simulated to: the hide moment while hidden.
@@ -405,6 +417,12 @@ export function bootstrap(): {
     element: (panelId) => document.querySelector<HTMLElement>(`[data-panel="${panelId}"]`),
   });
 
+  // The offline summary's next move opens its target's tab and marks the panel (Story 2.9,
+  // UX-DR24), the way a chronicle line jumps. On NEST in Phase 1, closing the sheet is enough.
+  function showOfflineSummary(summary: OfflineSummary): void {
+    openOfflineSummary(sheets, summary, { onMove: (move) => move.kind === 'act' && jump.jump(move.panel) });
+  }
+
   // The colony's event lines, written into the chronicle from game events (Story 1.26). It draws
   // nothing: NEST and LOG are views of the chronicle (Story 1.36).
   new EventLog(bus, { chronicle });
@@ -553,7 +571,7 @@ export function bootstrap(): {
 
   // The offline summary opens once the UI is mounted. Its priority puts it ahead
   // of any decision sheet the first ticks request (Story 1.14).
-  if (offlineSummary) openOfflineSummary(sheets, offlineSummary);
+  if (offlineSummary) showOfflineSummary(offlineSummary);
   uiReady = true;
 
   // A cold load resumes once, from the save's lastSeenAt, AFTER the UI and its listeners

@@ -1,0 +1,29 @@
+/*
+ * Offline summary (Story 2.9; UX-DR24, mockups/key-sheets.html).
+ * Gains and losses by glyph; losses and warn lines in warn.
+ * Colors only through the --color-* aliases of ui/styles/tokens.css.
+ */
+
+.offline-efficiency {
+  color: var(--color-dim);
+}
+
+.offline-changes {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.offline-changes [data-trend="down"],
+.offline-warn {
+  color: var(--color-warn);
+}
+
+.offline-changes__glyph {
+  display: inline-block;
+  width: 15px;
+}

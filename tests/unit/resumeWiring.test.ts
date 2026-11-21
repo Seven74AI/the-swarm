@@ -112,8 +112,24 @@ describe('the one resume path, wired in main (Story 2.3)', () => {
     expect(resumes().length).toBe(n + 1);
   });
 
-  it('a return after 60 s or more opens the offline summary', () => {
+  it('a short return opens no sheet and flashes the strip deltas once (Story 2.9)', async () => {
+    const strip = () => document.querySelector('[data-resource-strip]');
+    expect(strip()).not.toBeNull();
+    awayAndBack(10_000, () => setVisibility('visible'));
+    vi.restoreAllMocks();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(swarm.sheets.state.value.open).toBeNull();
+    expect(strip()!.hasAttribute('data-flash')).toBe(true);
+  });
+
+  it('a return after 60 s or more opens the offline summary, with one next move (Story 2.9)', async () => {
     awayAndBack(5 * 60_000, () => setVisibility('visible'));
     expect(swarm.sheets.state.value.open?.priority).toBe('offline');
+    await new Promise((r) => setTimeout(r, 0));
+    const sheet = document.querySelector('.offline-summary-popup')!;
+    expect(sheet.querySelector('[data-sheet-headline]')!.textContent).toMatch(/^YOU WERE GONE \S.*\. THE NEST KEPT WORKING\.$/);
+    const moves = sheet.querySelectorAll('button[data-action="offline-next"], [data-next-action="none"]');
+    expect(moves).toHaveLength(1);
+    expect(moves[0].textContent).toMatch(/\S/);
   });
 });

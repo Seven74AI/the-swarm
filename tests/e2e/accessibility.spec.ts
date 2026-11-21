@@ -117,6 +117,26 @@ test.describe('sheets', () => {
     expect(await axe(page)).toEqual([]);
   });
 
+  test('the offline summary passes axe, takes focus and reads no decoration (Story 2.9)', async ({ page }) => {
+    // Two hours away, with upkeep outrunning food: gains, losses, a warn line and the next move.
+    const away = Date.now() - 2 * 3_600_000;
+    await page.addInitScript((save: string) => {
+      localStorage.setItem('the_swarm_save', save);
+      localStorage.setItem('the_swarm_onboarding', 'done');
+    }, JSON.stringify({
+      version: 18, timestamp: away, lastSeenAt: away, playTimeMs: 0,
+      gameState: { ...COMBAT, resources: { ...COMBAT.resources, food: 50 }, workersAssigned: { gather: 0, tend: 16, dig: 0, guard: 4, researchers: 0 } },
+    }));
+    await page.goto('/');
+    const dialog = page.locator('.offline-summary-popup');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('[data-sheet-headline]')).toBeFocused();
+    await expect(dialog.locator('[data-offline-warn="starved"]')).toBeVisible();
+    await expect(dialog.locator('[data-offline-change]').first()).toBeVisible();
+    expect(await axe(page)).toEqual([]);
+    expect((await spokenTree(page)).split('\n').filter((l) => DECORATION.test(l))).toEqual([]);
+  });
+
   test('a decision takes focus, is announced as a dialog and its choices are reachable', async ({ page }) => {
     await seed(page, {
       ...COMBAT,

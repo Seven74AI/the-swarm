@@ -2,7 +2,7 @@ import type { GameState } from '../state/GameState';
 import { RESUME_FULL_EFFICIENCY_MS } from '../data/constants';
 import { getOfflineEfficiency, planOffline, type OfflinePlan } from '../systems/OfflineProgression';
 import { log } from '../utils/log';
-import { catchUp, type CatchUpDeps } from './catchUp';
+import { catchUp, catchUpWithReport, type CatchUpDeps } from './catchUp';
 
 /**
  * What an offline resume (60 s or more) simulated: the offline summary's numbers.
@@ -12,6 +12,8 @@ import { catchUp, type CatchUpDeps } from './catchUp';
 export interface OfflineLoadInfo extends OfflinePlan {
   /** The offline efficiency used (`getOfflineEfficiency(state)`, Story 2.8). */
   efficiency: number;
+  /** Ms of the absence during which food stood at zero (Story 2.9, measured by catch-up). */
+  starvedMs: number;
 }
 
 export interface ResumeResult {
@@ -53,11 +55,12 @@ export function resume(state: GameState, elapsedMs: number, deps: CatchUpDeps): 
   const efficiency = getOfflineEfficiency(state);
   // At most getOfflineCapMs(state) of the gap is simulated (Story 2.4).
   const plan = planOffline(state, elapsed, efficiency);
+  const { state: after, report } = catchUpWithReport(state, plan.effectiveMs, plan.offlineTicks, deps);
   return {
-    state: catchUp(state, plan.effectiveMs, plan.offlineTicks, deps),
+    state: after,
     elapsedMs: elapsed,
     efficiency,
-    offline: { ...plan, efficiency },
+    offline: { ...plan, efficiency, starvedMs: report.starvedMs },
   };
 }
 
