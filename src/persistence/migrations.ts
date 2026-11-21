@@ -522,6 +522,34 @@ function migrateV19toV20(data: SaveData): SaveData {
   return { ...data, version: 20, lastSeenAt };
 }
 
+/**
+ * v20 → v21 (Story 2.5, AR4/AR20): rate-credited resources (food, wood, stone,
+ * nectar) are whole numbers, their fractions carried in `resourceRemainder`;
+ * each conversion carries its progress toward the next run in
+ * `conversions.remainder`. An older save's fractional stock is split into
+ * the whole part and its carry, so nothing is lost.
+ */
+const V21_CREDITED = ['food', 'wood', 'stone', 'nectar'] as const;
+function migrateV20toV21(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  const resources = { ...((gs.resources ?? {}) as Record<string, unknown>) };
+  const resourceRemainder: Record<string, number> = {};
+  for (const key of V21_CREDITED) {
+    const raw = resources[key];
+    const value = typeof raw === 'number' && Number.isFinite(raw) && raw > 0 ? raw : 0;
+    const whole = Math.floor(value);
+    if (typeof raw === 'number') resources[key] = whole;
+    resourceRemainder[key] = value - whole;
+  }
+  const conversions = { ...((gs.conversions ?? {}) as Record<string, unknown>) };
+  conversions.remainder = { voidCrystalSynthesis: 0, antimatterContainment: 0, darkMatterDetection: 0 };
+  return {
+    ...data,
+    version: 21,
+    gameState: { ...gs, resources, resourceRemainder, conversions } as unknown as GameState,
+  };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -543,6 +571,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   17: migrateV17toV18,
   18: migrateV18toV19,
   19: migrateV19toV20,
+  20: migrateV20toV21,
 };
 
 /**

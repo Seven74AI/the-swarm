@@ -11,11 +11,13 @@ import { tickConversions } from '../systems/ResourceConversionSystem';
 import { tickEntropy } from '../systems/EntropySystem';
 import { tickMissions, resolveMission } from '../systems/SpaceshipSystem';
 import { tickAutoProduction } from './AutoProductionLoop';
-import { getPrestigeBonuses } from '../systems/PrestigeBonusSystem';
 
 /**
- * Process a single tick for offline catch-up simulation.
- * Extracted so it can be reused by the main tick loop and offline processing.
+ * Advance the simulation by one step of `dtSec` (Story 2.5, AR4): the live
+ * tick (main's `step`, 50 ms) and offline catch-up both run it. Every system
+ * here gives the same result for one long step as for many short ones, within
+ * the tolerance stated in `tests/unit/engine/stepLength.test.ts`.
+ * Pure: events go to `events`, the state is returned, nothing is written.
  */
 export function processTick(
   state: GameState,
@@ -57,52 +59,91 @@ export function processTick(
   }
 
   newState = soldierSystem.tick(newState, dtSec, events);
+  // Automation and the prestige auto egg layer: whole eggs, into the egg pipeline.
   newState = tickAutoProduction(newState, dtSec);
 
-  // Auto-egg-layer from prestige tree (1 egg/sec)
-  const pBonuses = getPrestigeBonuses(newState);
-  if (pBonuses.autoEggLayer) {
-    newState = {
-      ...newState,
-      resources: {
-        ...newState.resources,
-        eggs: newState.resources.eggs + dtSec,
-      },
-      stats: {
-        ...newState.stats,
-        totalEggsLaid: newState.stats.totalEggsLaid + dtSec,
-      },
-      eggPipeline: {
-        ...newState.eggPipeline,
-        count: newState.eggPipeline.count + dtSec,
-      },
-    };
-  }
-
-  // Tick expedition timers
+  // Expedition system: tick timers and resolve completed ones
   newState = tickExpeditions(newState, dtSec);
   for (const exp of newState.expeditions) {
     if (exp.remainingMs <= 0) {
       newState = resolveExpedition(newState, exp);
+      // Emit expedition return event with result details
+      const totalSent = exp.scouts + exp.warriors;
+      const scoutsReturned = Math.min(exp.scouts, Math.max(0, newState.soldiers.scouts - (workingState.soldiers.scouts - exp.scouts)));
+      const warriorsReturned = Math.min(exp.warriors, Math.max(0, newState.soldiers.warriors - (workingState.soldiers.warriors - exp.warriors)));
+
+      let result: 'success' | 'partial' | 'failure' = 'failure';
+      if (scoutsReturned + warriorsReturned === totalSent) {
+        result = 'success';
+      } else if (scoutsReturned + warriorsReturned > 0) {
+        result = 'partial';
+      }
+
+      const oldResources = workingState.resources;
+      events.emit('expedition_return', {
+        destination: exp.destination,
+        result,
+        food: newState.resources.food - oldResources.food,
+        stone: newState.resources.stone - oldResources.stone,
+        nectar: newState.resources.nectar - oldResources.nectar,
+        wood: newState.resources.wood - oldResources.wood,
+        scoutsReturned,
+        warriorsReturned,
+        tilesDiscovered: newState.territory.ownedTiles - workingState.territory.ownedTiles,
+      });
+      workingState = newState;
     }
   }
 
-  // Tick space exploration timers
+  // Space exploration system: tick timers and resolve completed ones
   newState = tickExplorations(newState, dtSec);
   for (const exp of newState.spaceExplorations) {
     if (exp.remainingMs <= 0) {
       newState = resolveExploration(newState, exp);
+      // Emit exploration return event with result details
+      const oldResources = workingState.resources;
+      let result: 'success' | 'partial' | 'failure' = 'success';
+      if (newState.resources.voidCrystals === oldResources.voidCrystals &&
+          newState.resources.antimatter === oldResources.antimatter &&
+          newState.resources.darkMatter === oldResources.darkMatter) {
+        result = 'failure';
+      } else if (newState.resources.voidCrystals + newState.resources.antimatter + newState.resources.darkMatter <
+                 oldResources.voidCrystals + oldResources.antimatter + oldResources.darkMatter + 1) {
+        result = 'partial';
+      }
+      events.emit('exploration_return', {
+        destination: exp.destination,
+        result,
+        voidCrystals: newState.resources.voidCrystals - oldResources.voidCrystals,
+        antimatter: newState.resources.antimatter - oldResources.antimatter,
+        darkMatter: newState.resources.darkMatter - oldResources.darkMatter,
+      });
+      workingState = newState;
     }
   }
 
   // Probe Swarm: auto-launch explorations when enough surveyData accumulated
-  newState = tickProbeSwarm(newState);
+  newState = tickProbeSwarm(newState, dtSec);
+  workingState = newState;
 
-  // Tick spaceship missions
-  newState = tickMissions(newState);
+  // Spaceship system: tick missions and resolve returning ones
+  newState = tickMissions(newState, dtSec);
   for (const ship of newState.spaceships) {
     if (ship.status === 'returning') {
+      const oldVoidCrystals = newState.resources.voidCrystals;
+      const oldAntimatter = newState.resources.antimatter;
+      const oldDarkMatter = newState.resources.darkMatter;
       newState = resolveMission(ship.id, newState);
+      events.emit('spaceship_return', {
+        shipId: ship.id,
+        destination: ship.destinationName,
+        shipType: ship.type,
+        shipLevel: ship.level,
+        voidCrystals: newState.resources.voidCrystals - oldVoidCrystals,
+        antimatter: newState.resources.antimatter - oldAntimatter,
+        darkMatter: newState.resources.darkMatter - oldDarkMatter,
+      });
+      workingState = newState;
     }
   }
 

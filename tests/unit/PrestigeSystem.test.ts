@@ -507,7 +507,9 @@ describe('PrestigeSystem', () => {
       expect(result.eggPipeline.count).toBe(50);
       expect(result.eggPipeline.progress).toBe(0);
       expect(result.resources.food).toBe(25);
-      expect(result.resources.eggs).toBe(0); // other resources still reset
+      // Every egg in the pipeline is an egg on hand, so the cache hatches (Story 2.5).
+      expect(result.resources.eggs).toBe(result.eggPipeline.count);
+      expect(result.resources.larvae).toBe(0); // other resources still reset
     });
 
     it('starting resources: without purchase, starts with 0 eggs and 0 food (baseline)', () => {

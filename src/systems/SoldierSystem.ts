@@ -2,6 +2,7 @@ import type { EventBus } from '../engine/EventBus';
 import type { EventSink } from '../engine/events';
 import type { GameState } from '../state/GameState';
 import { upgradeCost } from '../utils/math';
+import { completedShare } from '../utils/decay';
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
 import { getMutationEffects } from './MutationSystem';
 
@@ -56,8 +57,9 @@ export class SoldierSystem {
     if (pipe.count === 0) return state;
 
     const prestigeBonuses = getPrestigeBonuses(state);
-    const trainRate = (pipe.count / SOLDIER_TRAIN_TIME) * prestigeBonuses.soldierTraining;
-    pipe.progress += trainRate * dtSec;
+    // Exact flow over the step (Story 2.5): one long step trains what many short ones do.
+    const trainK = prestigeBonuses.soldierTraining / SOLDIER_TRAIN_TIME;
+    pipe.progress += pipe.count * completedShare(trainK, dtSec);
     const completed = Math.floor(pipe.progress);
     pipe.progress -= completed;
 

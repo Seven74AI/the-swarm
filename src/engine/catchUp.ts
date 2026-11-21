@@ -6,6 +6,7 @@ import type { TerritorySystem } from '../systems/TerritorySystem';
 import { capOfflineMs, computeOfflineResourceDeltas } from '../systems/OfflineProgression';
 import { EventQueue } from './events';
 import { processTick } from './processTick';
+import { creditWhole } from '../utils/math';
 
 export interface CatchUpDeps {
   resourceSystem: ResourceSystem;
@@ -39,14 +40,26 @@ export function catchUp(state: GameState, ms: number, ticks: number, deps: Catch
   const territoryBonuses = deps.territorySystem.getBonuses(state);
   const d = computeOfflineResourceDeltas(state, totalDtSec, territoryBonuses);
 
+  // Credited in whole units, the fractions carried (Story 2.5, as in a live tick).
+  const rem = state.resourceRemainder;
+  const food = creditWhole(state.resources.food, rem.food, d.foodDelta);
+  const wood = creditWhole(state.resources.wood, rem.wood, d.woodDelta);
+  const stone = creditWhole(state.resources.stone, rem.stone, d.stoneDelta);
+  const nectar = creditWhole(state.resources.nectar, rem.nectar, d.nectarDelta);
   let s: GameState = {
     ...state,
     resources: {
       ...state.resources,
-      food: state.resources.food + d.foodDelta,
-      wood: state.resources.wood + d.woodDelta,
-      stone: state.resources.stone + d.stoneDelta,
-      nectar: state.resources.nectar + d.nectarDelta,
+      food: food.amount,
+      wood: wood.amount,
+      stone: stone.amount,
+      nectar: nectar.amount,
+    },
+    resourceRemainder: {
+      food: food.remainder,
+      wood: wood.remainder,
+      stone: stone.remainder,
+      nectar: nectar.remainder,
     },
     prestige: {
       ...state.prestige,

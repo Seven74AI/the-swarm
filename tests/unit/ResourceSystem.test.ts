@@ -3,6 +3,9 @@ import { EventBus } from '../../src/engine/EventBus';
 import { ResourceSystem, EGG_HATCH_TIME, LARVA_MATURE_TIME } from '../../src/systems/ResourceSystem';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 
+/** Food on hand plus the fraction of a unit carried to the next tick (Story 2.5). */
+const totalFood = (s: GameState) => s.resources.food + s.resourceRemainder.food;
+
 /**
  * ResourceSystem tests — behavior-focused.
  * No hardcoded formula outputs. Tests invariants, edge cases, and direction of change.
@@ -124,9 +127,9 @@ describe('ResourceSystem', () => {
       state.resources.workers = 1;
       state.resources.food = 100;
       const result = system.tick(state);
-      // With 1 worker: +1 produced, -0 consumed (floor(1/2)=0) → food increases
-      // Food should change (production or consumption happens)
-      expect(result.resources.food).not.toBe(state.resources.food);
+      // Food should change (production or consumption happens); a tick's share
+      // under one whole unit is carried in resourceRemainder (Story 2.5).
+      expect(totalFood(result)).not.toBe(totalFood(state));
     });
 
     it('many workers consume more food than they produce (unassigned)', () => {
@@ -157,7 +160,7 @@ describe('ResourceSystem', () => {
       state.resources.food = 100;
       const gathered = system.tick(state);
 
-      expect(gathered.resources.food).toBeGreaterThan(unassigned.resources.food);
+      expect(totalFood(gathered)).toBeGreaterThan(totalFood(unassigned));
     });
 
     it('zero workers produce zero net food change', () => {
@@ -326,7 +329,7 @@ describe('ResourceSystem', () => {
       // Workers should not decrease (no attrition)
       expect(result.resources.workers).toBe(30);
       // Food should still change (production/consumption continues)
-      expect(result.resources.food).not.toBe(state.resources.food);
+      expect(totalFood(result)).not.toBe(totalFood(state));
     });
 
     it('warehouse building bonus increases effective capacity', () => {

@@ -71,14 +71,14 @@ describe('SoldierSystem — pipeline-based', () => {
 
   describe('tick', () => {
     it('completes training at rate count/SOLDIER_TRAIN_TIME', () => {
-      // 75 in pipeline, rate = 75/75 = 1/tick with dtSec=1 (5x pacing nerf)
+      // 75 in pipeline: about one completes a second; a 2 s step completes some.
       state.soldierPipeline = { count: 75, progress: 0 };
       state.combatSoldiers = 0;
       const before = {
         count: state.soldierPipeline.count,
         soldiers: state.combatSoldiers,
       };
-      const result = system.tick(state, 1);
+      const result = system.tick(state, 2);
       expect(result.combatSoldiers).toBeGreaterThan(before.soldiers);
       expect(result.soldierPipeline.count).toBeLessThan(before.count);
     });
@@ -97,7 +97,7 @@ describe('SoldierSystem — pipeline-based', () => {
     });
 
     it('accumulates fractional progress', () => {
-      // 25 in pipeline, rate = 25/75 = 0.333/tick with dtSec=1 (5x pacing nerf)
+      // 25 in pipeline: a third of one completes a second; the fraction carries between ticks.
       state.soldierPipeline = { count: 25, progress: 0 };
       state.combatSoldiers = 0;
       const before = {
@@ -105,7 +105,7 @@ describe('SoldierSystem — pipeline-based', () => {
         soldiers: state.combatSoldiers,
       };
       let r = state;
-      for (let i = 0; i < 3; i++) r = system.tick(r, 1);
+      for (let i = 0; i < 6; i++) r = system.tick(r, 1);
       expect(r.combatSoldiers).toBeGreaterThan(before.soldiers);
       expect(r.soldierPipeline.count).toBeLessThan(before.count);
     });
@@ -215,7 +215,7 @@ describe('SoldierSystem — pipeline-based', () => {
       let count = -1;
       bus.subscribe('soldiers_changed', (p) => { count = (p as { soldiers: number }).soldiers; });
       state.soldierPipeline = { count: 75, progress: 0 };
-      system.tick(state, 1);
+      system.tick(state, 2);
       expect(count).toBeGreaterThan(-1);
     });
 

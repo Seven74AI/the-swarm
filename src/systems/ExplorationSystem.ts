@@ -245,21 +245,32 @@ function addSpaceLoot(
  * auto-launch explorations periodically. This follows the idle game
  * pattern where manual actions become automated as you progress.
  *
+ * Each tick of game time launches with a chance; for a step of any length
+ * (Story 2.5) the ticks until the next launch are drawn from the geometric
+ * distribution that per-tick chance gives, so one long step launches what
+ * many short ones would, on average.
+ *
  * Returns the updated state, or the same state if no auto-launch occurred.
  */
-export function tickProbeSwarm(state: GameState): GameState {
-  const surveyData = state.resources.surveyData;
-  if (surveyData < PROBE_SWARM_THRESHOLD) return state;
+export function tickProbeSwarm(state: GameState, dtSec: number): GameState {
+  let ticksLeft = Math.round(dtSec * 1000) / TICK_MS;
+  let s = state;
+  while (ticksLeft > 0) {
+    const surveyData = s.resources.surveyData;
+    if (surveyData < PROBE_SWARM_THRESHOLD) return s;
+    // Already at max active explorations — nothing to do
+    if (s.spaceExplorations.length >= MAX_ACTIVE_EXPLORATIONS) return s;
 
-  // Already at max active explorations — nothing to do
-  if (state.spaceExplorations.length >= MAX_ACTIVE_EXPLORATIONS) return state;
+    // Chance per tick when swarm is active: 5% + 0.5% per surveyData above threshold
+    const chance = Math.min(1, 0.05 + (surveyData - PROBE_SWARM_THRESHOLD) * 0.005);
+    const roll = Math.random();
+    const wait = chance >= 1 ? 1 : Math.max(1, Math.ceil(Math.log(1 - roll) / Math.log(1 - chance)));
+    if (wait > ticksLeft) return s;
+    ticksLeft -= wait;
 
-  // Base chance per tick when swarm is active: 5% + 0.5% per surveyData above threshold
-  const chance = 0.05 + (surveyData - PROBE_SWARM_THRESHOLD) * 0.005;
-  const roll = Math.random();
-  if (roll >= chance) return state;
-
-  // Auto-launch to a random planet
-  const planet = PLANETS[Math.floor(Math.random() * PLANETS.length)];
-  return launchExploration(state, planet.name);
+    // Auto-launch to a random planet
+    const planet = PLANETS[Math.floor(Math.random() * PLANETS.length)];
+    s = launchExploration(s, planet.name);
+  }
+  return s;
 }

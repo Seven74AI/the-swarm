@@ -604,3 +604,42 @@ describe('v19 → v20: the save says when the game was last seen (Story 2.3)', (
     expect(out.gameState).toEqual(gs);
   });
 });
+
+describe('v20 → v21: whole rate-credited resources with carried fractions (Story 2.5)', () => {
+  const v20 = (gs: Record<string, unknown>): SaveData => ({
+    version: 20,
+    timestamp: 1_700_000_000_000,
+    playTimeMs: 0,
+    gameState: gs as unknown as GameState,
+  });
+  const old = () => {
+    const gs = createInitialState() as unknown as Record<string, unknown>;
+    delete gs.resourceRemainder;
+    gs.conversions = { particleLab: 2 };
+    return gs;
+  };
+
+  it('splits a fractional stock into a whole number and its carry, losing nothing', () => {
+    const gs = old();
+    const resources = gs.resources as Record<string, number>;
+    resources.food = 16.75;
+    resources.stone = 3.5;
+    const out = migrateSave(v20(gs), 20, 21);
+    const r = out.gameState.resources;
+    expect(out.version).toBe(21);
+    for (const key of ['food', 'wood', 'stone', 'nectar'] as const) {
+      expect(Number.isInteger(r[key]), key).toBe(true);
+      const carry = out.gameState.resourceRemainder[key];
+      expect(carry).toBeGreaterThanOrEqual(0);
+      expect(carry).toBeLessThan(1);
+    }
+    expect(r.food + out.gameState.resourceRemainder.food).toBe(16.75);
+    expect(r.stone + out.gameState.resourceRemainder.stone).toBe(3.5);
+  });
+
+  it('starts every conversion with no carried progress and keeps the lab', () => {
+    const out = migrateSave(v20(old()), 20, 21);
+    expect(out.gameState.conversions.particleLab).toBe(2);
+    expect(Object.values(out.gameState.conversions.remainder).every((v) => v === 0)).toBe(true);
+  });
+});

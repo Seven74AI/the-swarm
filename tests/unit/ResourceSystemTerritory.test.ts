@@ -28,7 +28,7 @@ describe('ResourceSystem territory bonuses', () => {
         result = system.tick(result, bonuses);
       }
 
-      expect(result.resources.stone).toBeGreaterThan(0);
+      expect(result.resources.stone + result.resourceRemainder.stone).toBeGreaterThan(0);
     });
 
     it('nectar bonus increases nectar resources', () => {
@@ -40,7 +40,7 @@ describe('ResourceSystem territory bonuses', () => {
         result = system.tick(result, bonuses);
       }
 
-      expect(result.resources.nectar).toBeGreaterThan(0);
+      expect(result.resources.nectar + result.resourceRemainder.nectar).toBeGreaterThan(0);
     });
 
     it('food bonus stacks with regular food production', () => {
@@ -52,7 +52,9 @@ describe('ResourceSystem territory bonuses', () => {
       state.resources.food = 100;
       const withBonus = system.tick(state, bonuses);
 
-      expect(withBonus.resources.food).toBeGreaterThan(withoutBonus.resources.food);
+      // Whole units plus the carried fraction (Story 2.5).
+      expect(withBonus.resources.food + withBonus.resourceRemainder.food)
+        .toBeGreaterThan(withoutBonus.resources.food + withoutBonus.resourceRemainder.food);
     });
 
     it('multiple bonuses accumulate simultaneously', () => {

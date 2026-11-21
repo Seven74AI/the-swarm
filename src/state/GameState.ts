@@ -91,9 +91,12 @@ export interface GameState {
   larvaPipeline: Pipeline;
   /** Rate-based soldier training pipeline (replaces soldierTrainTimers[]) */
   soldierPipeline: Pipeline;
-  /** Integer accumulator for nest capacity expansion. Incremented each tick by digCount.
-   * When >= 20, converts to +1 nestCapacity. Ensures integer-only accumulation. */
+  /** Dig progress toward the next nest room, in dig-worker ticks: each dig worker
+   * adds one per 50 ms of game time (any step length, Story 2.5); 20 make +1 nestCapacity. */
   capacityAccumulator: number;
+  /** Fractions of a unit carried between steps for the resources credited at a rate
+   * (Story 2.5, AR20): the resources themselves stay whole numbers. Each in [0, 1). */
+  resourceRemainder: ResourceRemainder;
   workersAssigned: {
     gather: number;
     tend: number;
@@ -324,6 +327,16 @@ export type Battle =
 export interface ConversionState {
   /** Level of particle lab used for antimatter production (0 = not built) */
   particleLab: number;
+  /** Progress toward each conversion's next run, carried between steps (Story 2.5). Each in [0, 1). */
+  remainder: Record<'voidCrystalSynthesis' | 'antimatterContainment' | 'darkMatterDetection', number>;
+}
+
+/** Carried fractions of the rate-credited resources (Story 2.5). */
+export interface ResourceRemainder {
+  food: number;
+  wood: number;
+  stone: number;
+  nectar: number;
 }
 
 /**
@@ -420,6 +433,7 @@ export function createInitialState(): GameState {
     battlesLost: 0,
     soldierPipeline: { count: 0, progress: 0 },
     capacityAccumulator: 0,
+    resourceRemainder: { food: 0, wood: 0, stone: 0, nectar: 0 },
     victoryAchieved: false,
     phaseGoal: null,
     decision: { open: null, nextSpawnSessionMs: null },
@@ -465,6 +479,7 @@ export function createInitialState(): GameState {
     },
     conversions: {
       particleLab: 0,
+      remainder: { voidCrystalSynthesis: 0, antimatterContainment: 0, darkMatterDetection: 0 },
     },
     entropy: 0,
     entropyDampener: { level: 0 },

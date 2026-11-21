@@ -1,8 +1,10 @@
 import type { EventBus } from '../engine/EventBus';
 import type { EventSink } from '../engine/events';
-import type { GameState } from '../state/GameState';
+import type { GameState, ResourceRemainder } from '../state/GameState';
 import type { TerritoryBonuses } from './TerritorySystem';
-import { upgradeCost } from '../utils/math';
+import { creditWhole, upgradeCost } from '../utils/math';
+import { chainedShare, completedShare } from '../utils/decay';
+import { TICK_MS } from '../data/constants';
 import { getEffects } from './BuildingSystem';
 import { productionMultiplier, workerEfficiency } from '../engine/ProgressionCurve';
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
@@ -106,6 +108,7 @@ export const LARVA_MATURE_TIME = 50; // ticks (5x pacing nerf)
 const FOOD_PER_WORKER = 1;
 const FOOD_PER_GATHER = 2;
 const TEND_MULTIPLIER = 0.25; // each tend worker gives +25% hatch rate
+const DIG_TICKS_PER_ROOM = 20; // dig-worker ticks per +1 nestCapacity
 
 /**
  * ResourceSystem handles all resource mutations: clicking, ticking, buying.
@@ -173,25 +176,21 @@ export class ResourceSystem {
     const prestigeBonuses = getPrestigeBonuses(state);
     const mutationEffects = getMutationEffects(state);
 
-    // Egg pipeline rate
-    const eggPipe = state.eggPipeline;
+    // Pipeline rate constants (per second): a pipeline completes `count × k` items a second.
     const tendCount = state.workersAssigned.tend;
-    const hatchRate = eggPipe.count > 0
-      ? (eggPipe.count / EGG_HATCH_TIME) * (1 + tendCount * TEND_MULTIPLIER)
-        * prestigeBonuses.eggLaying * (1 + mutationEffects.hatchRate)
-      : 0;
-
-    // Larva pipeline rate
+    const hatchK = (1 / EGG_HATCH_TIME) * (1 + tendCount * TEND_MULTIPLIER)
+      * prestigeBonuses.eggLaying * (1 + mutationEffects.hatchRate);
+    const matureK = (1 / LARVA_MATURE_TIME) * prestigeBonuses.hatching;
+    const eggPipe = state.eggPipeline;
     const larvaPipe = state.larvaPipeline;
-    const matureRate = larvaPipe.count > 0
-      ? (larvaPipe.count / LARVA_MATURE_TIME) * prestigeBonuses.hatching
-      : 0;
 
     // ─── Phase 2: Apply all deltas (write-only) ───
 
-    // Scale by dtSec (e.g., 0.05 for 50ms)
-    const hatchDelta = hatchRate * dtSec;
-    const matureDelta = matureRate * dtSec;
+    // Exact flow over the step (Story 2.5): one long step moves what many short ones do.
+    // An egg can hatch and mature within one long step, so larvae also gain the chained share.
+    const hatchDelta = eggPipe.count * completedShare(hatchK, dtSec);
+    const matureDelta = larvaPipe.count * completedShare(matureK, dtSec)
+      + eggPipe.count * chainedShare(hatchK, matureK, dtSec);
 
     let eggs = state.resources.eggs;
     let larvae = state.resources.larvae;
@@ -200,6 +199,7 @@ export class ResourceSystem {
     let wood = state.resources.wood;
     let stone = state.resources.stone;
     let nectar = state.resources.nectar;
+    let remainder = state.resourceRemainder;
 
     let eggsChanged = false;
     let larvaeChanged = false;
@@ -209,75 +209,80 @@ export class ResourceSystem {
     let stoneChanged = false;
     let nectarChanged = false;
 
-    // Integer-only nest capacity accumulation: accumulate digCount each tick.
-    // When accumulator >= 20, gain +1 nestCapacity (1 capacity/sec/dig worker).
+    // Integer-only nest capacity: each dig worker adds one per tick of game time
+    // (TICK_MS, so any step length); 20 make +1 nestCapacity (1 capacity/sec/dig worker).
     const digCount = state.workersAssigned.dig;
     let capacityAccumulator = state.capacityAccumulator;
+    let nestCapacity = state.resources.nestCapacity;
     if (digCount > 0) {
-      capacityAccumulator += digCount;
-      while (capacityAccumulator >= 20) {
-        capacityAccumulator -= 20;
-        state = {
-          ...state,
-          resources: { ...state.resources, nestCapacity: state.resources.nestCapacity + 1 },
-        };
-      }
+      capacityAccumulator += digCount * (Math.round(dtSec * 1000) / TICK_MS);
+      const rooms = Math.floor(capacityAccumulator / DIG_TICKS_PER_ROOM);
+      capacityAccumulator -= rooms * DIG_TICKS_PER_ROOM;
+      nestCapacity += rooms;
     }
-    const effectiveNestCapacity = state.resources.nestCapacity + (getEffects('warehouse', state.buildings.warehouse.level).nestCapacity ?? 0);
+    const effectiveNestCapacity = nestCapacity + (getEffects('warehouse', state.buildings.warehouse.level).nestCapacity ?? 0);
 
     // Egg pipeline progress
     let newEggCount = eggPipe.count;
     let newEggProgress = eggPipe.progress + hatchDelta;
-    const hatched = Math.floor(newEggProgress);
+    let hatched = Math.floor(newEggProgress);
     newEggProgress -= hatched;
+    // Never more than the pipeline holds (every hatched egg leaves it).
+    hatched = Math.min(hatched, eggs, newEggCount);
 
     if (hatched > 0) {
-      const actual = Math.min(hatched, eggs);
-      eggs -= actual;
-      larvae += actual;
-      newEggCount = Math.max(0, newEggCount - actual);
+      eggs -= hatched;
+      larvae += hatched;
+      newEggCount -= hatched;
       eggsChanged = true;
       larvaeChanged = true;
     }
 
-    // Larva pipeline progress
-    let newLarvaCount = larvaPipe.count + (hatched > 0 ? hatched : 0);
+    // Larva pipeline progress: every hatched egg enters it.
+    let newLarvaCount = larvaPipe.count + hatched;
     let newLarvaProgress = larvaPipe.progress + matureDelta;
     const matured = Math.floor(newLarvaProgress);
     newLarvaProgress -= matured;
 
     if (matured > 0) {
-      const raw = Math.min(matured, larvae);
+      const raw = Math.min(matured, larvae, newLarvaCount);
       // Cap enforcement: clamp to available nest capacity
       const capacityRemaining = Math.max(0, effectiveNestCapacity - newWorkers);
       const actual = Math.min(raw, capacityRemaining);
       larvae -= actual;
       newWorkers += actual;
-      newLarvaCount = Math.max(0, newLarvaCount - actual);
+      newLarvaCount -= actual;
       if (actual > 0) {
         larvaeChanged = true;
         workersChanged = true;
       }
     }
 
-    // Deterministic resource production (skipped during closed-form offline catch-up)
+    // Deterministic resource production (skipped during closed-form offline catch-up).
+    // Credited in whole units; the fraction carries in resourceRemainder (Story 2.5).
     if (!skipDeterministicResources) {
+      const credit = (key: keyof ResourceRemainder, amount: number, delta: number): number => {
+        const r = creditWhole(amount, remainder[key], delta);
+        remainder = { ...remainder, [key]: r.remainder };
+        return r.amount;
+      };
       const workers = state.resources.workers;
       if (workers > 0) {
         const netFood = (rates.foodProducedPerSec - rates.foodConsumedPerSec) * dtSec;
-        food += netFood;
-        if (netFood !== 0) foodChanged = true;
+        const before = food;
+        food = credit('food', food, netFood);
+        if (food !== before) foodChanged = true;
       }
       if (rates.woodPerSec > 0) {
-        wood += rates.woodPerSec * dtSec;
+        wood = credit('wood', wood, rates.woodPerSec * dtSec);
         woodChanged = true;
       }
       if (rates.stonePerSec > 0) {
-        stone += rates.stonePerSec * dtSec;
+        stone = credit('stone', stone, rates.stonePerSec * dtSec);
         stoneChanged = true;
       }
       if (rates.nectarPerSec > 0) {
-        nectar += rates.nectarPerSec * dtSec;
+        nectar = credit('nectar', nectar, rates.nectarPerSec * dtSec);
         nectarChanged = true;
       }
     }
@@ -302,11 +307,12 @@ export class ResourceSystem {
         wood,
         stone,
         nectar,
-        nestCapacity: state.resources.nestCapacity,
+        nestCapacity,
       },
       eggPipeline: { count: newEggCount, progress: newEggProgress },
       larvaPipeline: { count: newLarvaCount, progress: newLarvaProgress },
       capacityAccumulator,
+      resourceRemainder: remainder,
     };
 
     if (eggsChanged) events.emit('eggs_changed', { eggs: result.resources.eggs });

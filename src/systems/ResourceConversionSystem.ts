@@ -81,6 +81,12 @@ const CONVERSIONS: ConversionDef[] = [
   },
 ];
 
+const NO_REMAINDER: Record<ConversionId, number> = {
+  voidCrystalSynthesis: 0,
+  antimatterContainment: 0,
+  darkMatterDetection: 0,
+};
+
 /** Get all conversion definitions in DAG order. */
 export function getConversionDefs(): ConversionDef[] {
   return CONVERSIONS;
@@ -154,13 +160,23 @@ export function tickConversions(state: GameState, dtSec: number = 1): GameState 
 
   let result: GameState = { ...state };
   const resources = { ...result.resources };
+  const remainder = { ...NO_REMAINDER, ...state.conversions.remainder };
 
   for (const def of CONVERSIONS) {
-    const rate = getConversionRate(state, def.id);
-    if (rate <= 0) continue;
+    // Runs a second while unlocked and staffed; inputs are checked per run below.
+    const rate = isConversionUnlocked(state, def.id) ? def.getRateCap(state) : 0;
+    if (rate <= 0) {
+      // A stopped conversion keeps no progress: it restarts from zero.
+      remainder[def.id] = 0;
+      continue;
+    }
 
-    // How many conversions can run this tick?
-    const maxConversions = Math.floor(rate * dtSec);
+    // How many conversions can run this step? The fraction carries to the next
+    // step (Story 2.5), so a rate under one run a tick still runs. Whole runs
+    // the inputs can't pay for are dropped, not banked.
+    const progress = remainder[def.id] + rate * dtSec;
+    const maxConversions = Math.floor(progress);
+    remainder[def.id] = progress - maxConversions;
 
     // Determine actual conversions by checking input availability
     let actualConversions = 0;
@@ -203,6 +219,8 @@ export function tickConversions(state: GameState, dtSec: number = 1): GameState 
     // Also update the state ref used by getConversionRate (but inputs check uses `resources`)
     state = result;
   }
+
+  result = { ...result, conversions: { ...state.conversions, remainder } };
 
   // Clamp all resources >= 0
   for (const key of Object.keys(result.resources) as Array<keyof GameState['resources']>) {
