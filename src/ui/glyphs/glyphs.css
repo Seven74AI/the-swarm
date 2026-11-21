@@ -1,0 +1,9 @@
+/* Line glyphs (Story 8.2): sized by the text they sit in, or by --glyph-size. */
+.glyph {
+  display: inline-block;
+  width: var(--glyph-size, 1.15em);
+  height: var(--glyph-size, 1.15em);
+  vertical-align: -0.2em;
+  flex: none;
+  overflow: visible;
+}

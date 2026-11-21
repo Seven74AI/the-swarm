@@ -46,7 +46,7 @@
 }
 .strip-cell__glyph {
   display: inline-block;
-  width: 15px;
+  --glyph-size: 0.9375rem;
   margin-right: 0.2em;
   color: var(--color-accent);
 }

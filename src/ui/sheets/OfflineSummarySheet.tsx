@@ -119,7 +119,7 @@ export function OfflineSummarySheet({ summary, onMove }: { summary: OfflineSumma
             <li key={def.id} data-offline-change={def.id} data-trend={delta > 0 ? 'up' : 'down'}>
               {delta < 0 && <span aria-hidden="true">▼ </span>}
               <span class="offline-changes__glyph" aria-hidden="true">
-                {def.glyph}
+                <def.glyph />
               </span>{' '}
               <Abbr shown={def.label} full={def.name} /> {formatDeltaFull(delta)}
             </li>

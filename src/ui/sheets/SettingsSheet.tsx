@@ -10,7 +10,7 @@ import './SettingsSheet.css';
  * The settings screen (Story 1.27; UX-DR32, EXPERIENCE.md → Settings).
  *
  * A modal sheet through the SheetController, opened from the resource sheet's
- * `[ SETTINGS ⚙ ]` (so it works in Phase 1) and from LOG. It reads and writes
+ * `[ SETTINGS gear ]` (so it works in Phase 1) and from LOG. It reads and writes
  * the settings store main passes in (ui/ never imports platform/ values): each
  * tap calls `store.update` at once, which stores it under the settings key.
  *

@@ -922,10 +922,6 @@ body.phase-space .top-bar {
   background: rgba(34, 197, 94, 0.06);
 }
 
-.prestige-tree-card-icon {
-  font-size: var(--type-display);
-}
-
 .prestige-tree-card-name {
   font-weight: bold;
   font-size: var(--type-aside);

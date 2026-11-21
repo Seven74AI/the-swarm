@@ -25,5 +25,5 @@
 
 .offline-changes__glyph {
   display: inline-block;
-  width: 15px;
+  --glyph-size: 0.9375rem;
 }

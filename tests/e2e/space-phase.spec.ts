@@ -303,7 +303,7 @@ test.describe('Space Phase — Neon Theme & Panels', () => {
     // Probe row should appear
     const probeRows = page.locator('#exploration-panel .expedition-row');
     await expect(probeRows).toHaveCount(1, { timeout: 3000 });
-    await expect(probeRows.first()).toContainText('⏳');
+    await expect(probeRows.first()).toContainText(/\d+s left/);
   });
 
   // ─── Theme Persistence ──────────────────────────────────────────

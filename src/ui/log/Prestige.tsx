@@ -53,20 +53,20 @@ export function PrestigeCard({ actions, confirmSettings }: { actions: Actions; c
   return (
     <div id="prestige-panel" class="panel prestige-panel" data-panel="prestige_panel" data-tooltip={PRESTIGE_TIP}>
       <div>
-        <div class="panel-title">✨ Legacy Prestige</div>
-        <Stat label="🏆 Legacy Points" value={String(legacyPoints)} />
-        <Stat label="🔄 Legacy" value={String(count)} />
+        <div class="panel-title">Legacy Prestige</div>
+        <Stat label="Legacy Points" value={String(legacyPoints)} />
+        <Stat label="Prestige Count" value={String(count)} />
         <button
           type="button"
           class="btn btn-tree"
           onClick={() => document.getElementById('prestige-tree-panel')?.scrollIntoView?.({ block: 'start' })}
         >
-          🌳 Prestige Tree
+          Prestige Tree
         </button>
-        {lifetimeLpEarned > 0 && <Stat label="⚡ Production Bonus" value={`+${bonusPercent}%`} />}
-        <Stat label="⏳ Offline Efficiency" value={`${percent(efficiency)}%`} />
-        <Stat label="⌛ Offline Cap" value={`${capHours} h`} />
-        <Stat class="projected" label="📊 Next Reset" value={available ? `+${selectProjectedLegacyPoints.value} LP` : '—'} />
+        {lifetimeLpEarned > 0 && <Stat label="Production Bonus" value={`+${bonusPercent}%`} />}
+        <Stat label="Offline Efficiency" value={`${percent(efficiency)}%`} />
+        <Stat label="Offline Cap" value={`${capHours} h`} />
+        <Stat class="projected" label="Next Reset" value={available ? `+${selectProjectedLegacyPoints.value} LP` : '—'} />
       </div>
       <div class="prestige-confirm">
         <HoldToConfirm
@@ -126,9 +126,9 @@ function PrestigeNeeds() {
 }
 
 const TYPE_LABEL: Readonly<Record<PrestigeUpgrade['type'], string>> = {
-  production: '📈 Production',
-  unlock: '🔓 Unlock',
-  offline: '⏳ Offline',
+  production: 'Production',
+  unlock: 'Unlock',
+  offline: 'Offline',
 };
 
 function UpgradeCard({ upgrade, actions }: { upgrade: PrestigeUpgrade; actions: Actions }) {
@@ -139,16 +139,15 @@ function UpgradeCard({ upgrade, actions }: { upgrade: PrestigeUpgrade; actions: 
   const state = purchased ? 'prestige-card-purchased' : short ? 'prestige-card-unaffordable' : 'prestige-card-available';
   return (
     <div class={`prestige-tree-card ${state}`}>
-      <div class="prestige-tree-card-icon">{upgrade.icon}</div>
       <div class="prestige-tree-card-name">{upgrade.name}</div>
       <div class="prestige-tree-card-type">{TYPE_LABEL[upgrade.type]}</div>
       <div class="prestige-tree-card-desc">{upgrade.description}</div>
       <div class="prestige-tree-card-footer">
         {purchased ? (
-          <span class="prestige-tree-purchased-badge">✅ Owned</span>
+          <span class="prestige-tree-purchased-badge">Owned</span>
         ) : (
           <>
-            <span class="prestige-tree-card-cost">{`🏆 ${upgrade.cost}`}</span>
+            <span class="prestige-tree-card-cost">{`${upgrade.cost} LP`}</span>
             <button
               type="button"
               class="btn btn-sm btn-tree-purchase"
@@ -170,8 +169,8 @@ export function PrestigeTree({ actions }: { actions: Actions }) {
   const all = selectPrestigeTree.value.purchased.length >= PRESTIGE_UPGRADES.length;
   return (
     <div id="prestige-tree-panel" class="panel prestige-tree-panel" data-panel="prestige_tree_panel">
-      <div class="panel-title">🌳 Prestige Tree</div>
-      <Stat class="prestige-tree-points" label="🏆 Available Points" value={String(selectPrestige.value.legacyPoints)} />
+      <div class="panel-title">Prestige Tree</div>
+      <Stat class="prestige-tree-points" label="Available Points" value={String(selectPrestige.value.legacyPoints)} />
       <div class="prestige-tree-grid">
         {PRESTIGE_UPGRADES.map((u) => (
           <UpgradeCard key={u.id} upgrade={u} actions={actions} />

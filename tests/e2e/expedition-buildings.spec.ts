@@ -153,7 +153,7 @@ test.describe('Expeditions', () => {
     const expRow = page.locator('.expedition-row');
     await expect(expRow).toBeVisible({ timeout: 3000 });
     await expect(expRow).toContainText('MEADOW');
-    await expect(expRow).toContainText('⏳');
+    await expect(expRow).toContainText(/\d+s left/);
 
     // Verify scout count label in expedition header shows deduction (5→4)
     // Auto-sends min(1, scouts)=1 scout

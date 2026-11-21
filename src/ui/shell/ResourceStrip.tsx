@@ -88,7 +88,7 @@ function Cell({ row }: { row: ResourceRow }) {
     >
       <span class="strip-cell__head">
         <span class="strip-cell__glyph" data-glyph="" aria-hidden="true">
-          {def.glyph}
+          <def.glyph />
         </span>
         <span class="strip-cell__label" data-label="" aria-hidden="true">
           {def.label}

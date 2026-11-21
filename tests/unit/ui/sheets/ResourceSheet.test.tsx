@@ -15,7 +15,7 @@ import { formatFull } from '../../../../src/utils/format';
 /**
  * Story 1.16 (UX-DR8): the resource sheet lists every unlocked resource with
  * its glyph, full name, exact integer (formatFull), rate (unit stated once in
- * the header), cap and source, and ends with [ SETTINGS ⚙ ].
+ * the header), cap and source, and ends with [ SETTINGS gear ].
  */
 
 let sheets: SheetController;
@@ -80,7 +80,7 @@ describe('resource sheet', () => {
     for (const r of rows()) expect(r.querySelector('[data-col="rate"]')!.textContent).not.toContain('/');
   });
 
-  it('ends with [ SETTINGS ⚙ ] after the list, which closes the sheet and opens settings', () => {
+  it('ends with [ SETTINGS gear ] after the list, which closes the sheet and opens settings', () => {
     const onOpenSettings = vi.fn();
     open(Phase.EGG_LAYING, {}, onOpenSettings);
     const settings = sheet().querySelector<HTMLButtonElement>('[data-action="settings"]')!;

@@ -1,8 +1,12 @@
 import type { ReadonlySignal } from '@preact/signals';
 
+/** Typed signs, not the emoji play/pause symbols (Story 8.2): `▷` to resume, `‖` to pause. */
+export const PLAY_SIGN = '\u25B7';
+export const PAUSE_SIGN = '\u2016';
+
 /**
  * The strip's top bar (Story 1.36, moved out of UIRoot): the page's one h1
- * (Story 1.32; the ant is decoration) and the pause button, which shows
+ * (Story 1.32) and the pause button, which shows
  * whether the game is paused. Hooks: `#top-bar`, `#pause-button`.
  * The pause is session state (Story 2.10): main passes it in, it is never in the game state.
  */
@@ -10,11 +14,9 @@ export function TopBar({ paused: pausedSignal, onTogglePause }: { paused: Readon
   const paused = pausedSignal.value;
   return (
     <div id="top-bar" class="top-bar">
-      <h1 class="game-title">
-        <span aria-hidden="true">🐜 </span>THE SWARM
-      </h1>
+      <h1 class="game-title">THE SWARM</h1>
       <button type="button" id="pause-button" class="pause-btn" aria-label="Pause game" onClick={onTogglePause}>
-        {paused ? '▶' : '⏸'}
+        {paused ? PLAY_SIGN : PAUSE_SIGN}
       </button>
       <span class="game-phase">Queen's Chamber</span>
     </div>

@@ -347,7 +347,7 @@ test.describe('Save/Load Robustness', () => {
     // Verify expedition is visible
     await expect(page.locator('.expedition-row')).toBeAttached({ timeout: 5000 });
     await expect(page.locator('.expedition-row')).toContainText('MEADOW');
-    await expect(page.locator('.expedition-row')).toContainText(/⏳ \d+s/);
+    await expect(page.locator('.expedition-row')).toContainText(/\d+s left/);
 
     // Save
     await saveGame(page);
@@ -360,7 +360,7 @@ test.describe('Save/Load Robustness', () => {
     const expeditionRow = page.locator('.expedition-row');
     await expect(expeditionRow).toBeAttached({ timeout: 5000 });
     await expect(expeditionRow).toContainText('MEADOW');
-    await expect(expeditionRow).toContainText(/⏳ \d+s/);
+    await expect(expeditionRow).toContainText(/\d+s left/);
   });
 
   test('save with buildings → reload → levels intact', async ({ page }) => {

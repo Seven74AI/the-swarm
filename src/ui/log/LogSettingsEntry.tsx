@@ -12,7 +12,11 @@ export function LogSettingsEntry({ onOpenSettings }: { onOpenSettings?: () => vo
   return (
     <section class="log-section" data-log-section="settings">
       <Button
-        verb={`[ SETTINGS ${GEAR_GLYPH} ]`}
+        verb={
+        <>
+          [ SETTINGS <GEAR_GLYPH /> ]
+        </>
+      }
         label="Settings"
         data-action="settings"
         disabled={onOpenSettings ? false : SETTINGS_NOT_READY}

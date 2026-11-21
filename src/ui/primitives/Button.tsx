@@ -10,8 +10,8 @@ export type ButtonVariant = 'primary' | 'secondary';
 export interface ButtonProps {
   /** `primary`: the one verb of a screen (`> ` prefix, cursor, accent border). Default `secondary`. */
   variant?: ButtonVariant;
-  /** The verb. Never truncated. */
-  verb: string;
+  /** The verb. Never truncated. Typed text, or text with an inline glyph (`[ SETTINGS gear ]`, then give `label`). */
+  verb: ComponentChildren;
   /** What the verb acts on. Truncated with an ellipsis when the label would not fit. */
   target?: string;
   /** Accessible name, only when the visible label is typed decoration (a stepper's `[+]`): the face is then hidden and this is read. Default: the visible verb and target (WCAG 2.5.3); the cost line is the description. */
