@@ -36,6 +36,14 @@ async function seed(page: Page, version: number, gameState: Record<string, unkno
   await expect(page.locator('[data-shell]')).toBeVisible();
 }
 
+/** Wait until this load's persist request has an outcome (the hint decision is made at the same moment). */
+const settled = (page: Page) =>
+  page.waitForFunction(
+    () =>
+      (window as unknown as { __swarm?: { platform: { durability: { status(): unknown } } } }).__swarm?.platform.durability.status() !=
+      null,
+  );
+
 const persistCalls = (page: Page) => page.evaluate(() => Number(sessionStorage.getItem('persist-calls') ?? '0'));
 
 /** An Egg Laying save whose goal is met (the v14 migration latches it). */
@@ -64,7 +72,7 @@ test.describe('persistent storage (desktop)', () => {
     await expect.poll(() => persistCalls(page)).toBe(1);
     await page.reload();
     await expect(page.locator('[data-shell]')).toBeVisible();
-    await page.waitForFunction(() => (window as unknown as { __swarm?: unknown }).__swarm !== undefined);
+    await settled(page);
     expect(await persistCalls(page)).toBe(1);
   });
 });
@@ -83,7 +91,7 @@ test.describe('add-to-home-screen hint (mobile browser)', () => {
     expect(await page.evaluate(() => localStorage.getItem('the_swarm_home_hint'))).not.toBeNull();
     await page.reload();
     await expect(page.locator('[data-shell]')).toBeVisible();
-    await page.waitForFunction(() => (window as unknown as { __swarm?: unknown }).__swarm !== undefined);
+    await settled(page);
     await expect(hint).toHaveCount(0);
   });
 
