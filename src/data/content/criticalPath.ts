@@ -31,8 +31,11 @@ export type ItemRef =
 export const CRITICAL_PATH: Readonly<Record<Phase, readonly ItemRef[]>> = {
   // Workers come from eggs: more eggs per tap is the only lever before roles.
   [Phase.EGG_LAYING]: [{ kind: 'upgrade', id: 'click_power' }],
-  // Colony grows workers; BUILD has nothing yet (Stories 3.4/3.5), so tapping stays the lever.
-  [Phase.COLONY]: [{ kind: 'upgrade', id: 'click_power' }],
+  // Colony grows workers: tapping stays the lever, then a Warehouse makes room for them (Story 3.5).
+  [Phase.COLONY]: [
+    { kind: 'upgrade', id: 'click_power' },
+    { kind: 'building', id: 'warehouse' },
+  ],
   // Battles won: survive (HP) and hit harder, then feed the colony.
   [Phase.COMBAT]: [
     { kind: 'mutation', id: 'tough_shells' },

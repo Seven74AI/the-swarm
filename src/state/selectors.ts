@@ -1,6 +1,7 @@
 import { computed, type ReadonlySignal } from '@preact/signals-core';
 import { gameState } from './gameSignal';
 import type { GameState, PhaseGoal } from './GameState';
+import type { Phase } from '../phases/phases';
 import { getEffects } from '../systems/BuildingSystem';
 import { computeResourceRates } from '../systems/ResourceSystem';
 import { affordableKeys } from './affordances';
@@ -24,7 +25,7 @@ import {
   isConversionUnlocked,
   type ConversionId,
 } from '../systems/ResourceConversionSystem';
-import { canBuild, type BuildingType } from '../systems/BuildingSystem';
+import { canBuild, isBuildingOpen, isBuildingUnlocked, type BuildingType } from '../systems/BuildingSystem';
 import { canStartProject, getAssignedResearchers, getProjectStatus } from '../systems/ResearchSystem';
 import {
   calculateLegacyPoints,
@@ -154,6 +155,8 @@ function memo<K, V>(cache: Map<K, ReadonlySignal<V>>, key: K, make: () => V): Re
 }
 
 const canBuilds = new Map<BuildingType, ReadonlySignal<boolean>>();
+const buildingsUnlocked = new Map<BuildingType, ReadonlySignal<boolean>>();
+const buildingsOpen = new Map<BuildingType, ReadonlySignal<boolean>>();
 const canChooses = new Map<string, ReadonlySignal<boolean>>();
 
 /** Whether a choice of the open decision event can be taken now (Story 1.28; false when none is open). */
@@ -170,6 +173,16 @@ const conversionUnlocks = new Map<ConversionId, ReadonlySignal<boolean>>();
 /** Whether the next level of a building is affordable now (BuildingSystem's own check). */
 export function selectCanBuild(id: BuildingType): ReadonlySignal<boolean> {
   return memo(canBuilds, id, () => canBuild(id, gameState.value));
+}
+
+/** Whether BUILD lists the building in this phase (Story 3.5). */
+export function selectBuildingUnlocked(id: BuildingType): ReadonlySignal<boolean> {
+  return memo(buildingsUnlocked, id, () => isBuildingUnlocked(id, selectPhase.value as Phase));
+}
+
+/** Whether the building's next level can be bought in this phase at any price (Story 3.5). */
+export function selectBuildingOpen(id: BuildingType): ReadonlySignal<boolean> {
+  return memo(buildingsOpen, id, () => isBuildingOpen(id, gameState.value));
 }
 
 /** A research project's status: locked, available, in_progress or completed. */

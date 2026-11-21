@@ -2,6 +2,10 @@ import type { GameState } from '../state/GameState';
 import { buildingUpgradeCost, softCapEffectiveness } from '../engine/ProgressionCurve';
 import { buildingBalance as B } from '../data/balance/buildings';
 import { recruitmentBalance } from '../data/balance/recruitment';
+import { BUILDING_UNLOCK_PHASE } from '../data/content/buildings';
+import { FIRST_PRODUCED_IN, type ProducedResource } from '../data/content/producers';
+import { isUnlocked } from '../data/content/tabs';
+import type { Phase } from '../phases/phases';
 
 export type BuildingType = 'barracks' | 'walls' | 'warehouse' | 'silk_weaving' | 'chitin_armory' | 'venom_lab';
 
@@ -44,7 +48,29 @@ export function getBuildCost(building: BuildingType, level: number): Cost {
   return cost;
 }
 
-export function canBuild(building: BuildingType, state: GameState): boolean {
+/** Whether BUILD sells the building in this phase (Story 3.5, `data/content/buildings.ts`). */
+export function isBuildingUnlocked(building: BuildingType, phase: Phase): boolean {
+  return isUnlocked(BUILDING_UNLOCK_PHASE[building], phase);
+}
+
+/**
+ * Whether every resource the level's price names has a producer by this phase
+ * (Story 3.5, FR7: no catch-22). The Lv.5+ surcharge asks the colony's own
+ * buildings for combat loot, so those levels wait for the battles.
+ */
+export function isLevelPayableIn(building: BuildingType, level: number, phase: Phase): boolean {
+  const cost = getBuildCost(building, level);
+  return (Object.keys(cost) as ProducedResource[]).every((k) => cost[k] <= 0 || isUnlocked(FIRST_PRODUCED_IN[k], phase));
+}
+
+/** Whether the building's next level can be bought in the state's phase, at any price. */
+export function isBuildingOpen(building: BuildingType, state: GameState): boolean {
+  const phase = state.phase as Phase;
+  return isBuildingUnlocked(building, phase) && isLevelPayableIn(building, state.buildings[building].level + 1, phase);
+}
+
+/** Whether the stocks cover the building's next level (affordability only; see `isBuildingOpen`). */
+export function canAffordBuild(building: BuildingType, state: GameState): boolean {
   const cost = getBuildCost(building, state.buildings[building].level + 1);
   return (
     state.resources.food >= cost.food &&
@@ -57,21 +83,15 @@ export function canBuild(building: BuildingType, state: GameState): boolean {
   );
 }
 
+/** Whether the player can buy the building's next level now: open in this phase and affordable. */
+export function canBuild(building: BuildingType, state: GameState): boolean {
+  return isBuildingOpen(building, state) && canAffordBuild(building, state);
+}
+
 export function build(building: BuildingType, state: GameState): GameState {
+  if (!canBuild(building, state)) return state;
   const nextLevel = state.buildings[building].level + 1;
   const cost = getBuildCost(building, nextLevel);
-
-  if (
-    state.resources.food < cost.food ||
-    state.resources.wood < cost.wood ||
-    state.resources.stone < cost.stone ||
-    state.resources.nectar < cost.nectar ||
-    state.combatResources.chitin < cost.chitin ||
-    state.combatResources.silk < cost.silk ||
-    state.combatResources.venom < cost.venom
-  ) {
-    return state;
-  }
 
   return {
     ...state,

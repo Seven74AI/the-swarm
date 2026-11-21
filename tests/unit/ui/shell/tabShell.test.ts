@@ -113,7 +113,7 @@ describe('tab shell (Story 1.15)', () => {
 
     it('ignores items on panels or tabs the phase has not revealed', () => {
       const { aff, shell } = setup(Phase.COLONY);
-      aff.value = 'mutation_panel:x|building_panel:warehouse';
+      aff.value = 'mutation_panel:x|research_panel:voidCrystalSynthesis';
       expect(shell.dots.value.size).toBe(0);
     });
   });

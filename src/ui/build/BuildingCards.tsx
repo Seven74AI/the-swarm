@@ -1,4 +1,4 @@
-import { selectBuildAction, selectBuildings, selectCanBuild } from '../../state/selectors';
+import { selectBuildAction, selectBuildingOpen, selectBuildingUnlocked, selectBuildings, selectCanBuild } from '../../state/selectors';
 import { getBuildCost, getEffects, itemKey, type BuildingType } from '../../state/queries';
 import { formatFull } from '../../utils/format';
 import { Button } from '../primitives/Button';
@@ -41,6 +41,8 @@ type Buy = (id: BuildingType) => { readonly ok: boolean };
 function BuildingCard({ def, selected, buy }: { def: BuildingCardDef; selected: boolean; buy: Buy }) {
   const level = selectBuildings.value[def.id].level;
   const affordable = selectCanBuild(def.id).value;
+  // A level whose price names a resource nothing makes yet waits (Story 3.5).
+  const open = selectBuildingOpen(def.id).value;
   const price = getBuildCost(def.id, level + 1);
   return (
     <div class="build-item" data-building={def.id}>
@@ -60,7 +62,7 @@ function BuildingCard({ def, selected, buy }: { def: BuildingCardDef; selected: 
             verb="BUY"
             target={`${def.name} LV.${level + 1}`}
             repeat
-            disabled={affordable ? false : 'NOT ENOUGH RESOURCES'}
+            disabled={affordable ? false : open ? 'NOT ENOUGH RESOURCES' : 'NOT YET'}
             onPress={() => buy(def.id)}
             data-action="buy-building"
           />
@@ -71,7 +73,8 @@ function BuildingCard({ def, selected, buy }: { def: BuildingCardDef; selected: 
 }
 
 /**
- * BUILD's building cards (Story 1.24, UX-DR17), drawn into the `#building-panel` host.
+ * BUILD's building cards (Story 1.24, UX-DR17), drawn into the `#building-panel` host:
+ * only the buildings open in this phase (Story 3.5, `data/content/buildings.ts`).
  * Hooks kept from the legacy BuildingPanel: `[data-building=<id>]`; each holds a Card
  * (`[data-card=<id>]`) and its BUY button (`[data-action="buy-building"]`).
  */
@@ -79,7 +82,7 @@ export function BuildingCards({ buy }: { buy: Buy }) {
   const selected = highlightedKey();
   return (
     <>
-      {BUILDING_CARDS.map((def) => (
+      {BUILDING_CARDS.filter((def) => selectBuildingUnlocked(def.id).value).map((def) => (
         <BuildingCard key={def.id} def={def} selected={selected === itemKey({ kind: 'building', id: def.id })} buy={buy} />
       ))}
     </>

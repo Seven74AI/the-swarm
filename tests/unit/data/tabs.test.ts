@@ -130,10 +130,10 @@ describe('tab registry', () => {
     expect(new Set(tabs).size).toBe(tabs.length);
   });
 
-  it('BUILD shows its header, the Click Power card, the offline research (2.8) and > BUY from Colony, then buildings, research and the converter in that order (Story 1.24)', () => {
+  it('BUILD shows its header, the Click Power card, the offline research (2.8), the buildings (3.5) and > BUY from Colony, then research and the converter, in that order (Story 1.24)', () => {
     expect(PANEL_PLACEMENT.build_primary.zone).toBe('primary');
     const colony = panelsForPhase(Phase.COLONY).filter((id) => PANEL_PLACEMENT[id].tab === 'build');
-    expect(colony).toEqual(['build_header', 'build_click_power', 'offline_research_panel', 'build_primary']);
+    expect(colony).toEqual(['build_header', 'build_click_power', 'offline_research_panel', 'building_panel', 'build_primary']);
     const space = panelsForPhase(Phase.SPACE).filter((id) => PANEL_PLACEMENT[id].tab === 'build' && !PANEL_PLACEMENT[id].zone);
     expect(space).toEqual(['build_header', 'build_click_power', 'offline_research_panel', 'building_panel', 'research_panel', 'resource_converter_panel']);
   });

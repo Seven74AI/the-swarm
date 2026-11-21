@@ -94,6 +94,54 @@ describe('Building cards (Story 1.24)', () => {
   });
 });
 
+describe('Building cards by phase (Story 3.5)', () => {
+  const colonyOwn = ['barracks', 'walls', 'warehouse'];
+  const workshops = ['silk_weaving', 'chitin_armory', 'venom_lab'];
+
+  it('Colony lists Barracks, Walls and Warehouse; Combat adds the workshops', () => {
+    gameState.value = makeState({ phase: Phase.COLONY });
+    const { container } = render(<BuildingCards buy={() => ({ ok: true })} />);
+    for (const id of colonyOwn) expect(building(container, id), id).not.toBeNull();
+    for (const id of workshops) expect(building(container, id), id).toBeNull();
+    act(() => {
+      gameState.value = makeState({ phase: Phase.COMBAT });
+    });
+    for (const id of [...colonyOwn, ...workshops]) expect(building(container, id), id).not.toBeNull();
+  });
+
+  it('BUY buys a Colony building in Colony through the action', () => {
+    const cost = getBuildCost('walls', 1);
+    let s = makeState({ phase: Phase.COLONY, resources: { ...broke, stone: cost.stone } });
+    gameState.value = s;
+    const actions = testActions(undefined, () => s, (n) => { s = n; gameState.value = n; });
+    const { container } = render(<BuildingCards buy={(id) => actions.buyBuilding(id)} />);
+    act(() => building(container, 'walls')!.querySelector('button')!.click());
+    expect(gameState.value.buildings.walls.level).toBeGreaterThan(0);
+  });
+
+  it('a level whose price needs a resource nothing makes yet shows a disabled BUY, even with the stock', () => {
+    // Find the first level of a colony building whose price names a combat resource (the Lv.5+ surcharge).
+    const level = Array.from({ length: 20 }, (_, i) => i).find((l) => {
+      const c = getBuildCost('walls', l + 1);
+      return c.silk + c.chitin + c.venom > 0;
+    })!;
+    const lots = 1e12;
+    gameState.value = makeState({
+      phase: Phase.COLONY,
+      resources: { food: lots, wood: lots, stone: lots, nectar: lots },
+      combatResources: { chitin: lots, silk: lots, venom: lots },
+      buildings: { walls: { level } },
+    });
+    const { container } = render(<BuildingCards buy={() => ({ ok: true })} />);
+    const btn = building(container, 'walls')!.querySelector('button')!;
+    expect(btn.getAttribute('aria-disabled')).toBe('true');
+    act(() => {
+      gameState.value = { ...gameState.value, phase: Phase.COMBAT };
+    });
+    expect(btn.getAttribute('aria-disabled')).toBeNull();
+  });
+});
+
 describe('Click Power on BUILD (Story 1.24, UX-DR18)', () => {
   const card = (root: ParentNode) => root.querySelector<HTMLElement>('[data-card="click_power"]');
 

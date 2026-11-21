@@ -80,7 +80,7 @@ function expectApplied(result: ActionResult, before: GameState): GameState {
 
 describe('actions write once, between ticks', () => {
   it('a valid action writes the state signal exactly once', () => {
-    given(rich());
+    given(rich({ phase: 'colony' }));
     const writes = vi.spyOn(gameState, 'value', 'set');
     writes.mockClear();
     try {
@@ -104,7 +104,7 @@ describe('actions write once, between ticks', () => {
   });
 
   it('events an action raises are delivered after its write', () => {
-    const before = given(rich());
+    const before = given(rich({ phase: 'colony' }));
     let seen: GameState | null = null;
     bus.subscribe('building_complete', () => {
       seen = gameState.value;
@@ -175,11 +175,14 @@ describe('nest', () => {
 });
 
 describe('buildings and automation', () => {
-  it('buys a building, refuses when unaffordable', () => {
-    let before = given(poor());
+  it('buys a building, refuses when unaffordable or before its phase (Story 3.5)', () => {
+    let before = given(rich());
+    expectRefused(actions.buyBuilding('warehouse'), 'locked', before);
+
+    before = given(poor({ phase: 'colony' }));
     expectRefused(actions.buyBuilding('warehouse'), 'cannot_afford', before);
 
-    before = given(rich());
+    before = given(rich({ phase: 'colony' }));
     const after = expectApplied(actions.buyBuilding('warehouse'), before);
     expect(after.buildings.warehouse.level).toBeGreaterThan(before.buildings.warehouse.level);
     expect(after.resources.wood).toBeLessThan(before.resources.wood);

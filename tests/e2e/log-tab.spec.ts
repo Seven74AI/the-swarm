@@ -19,7 +19,9 @@ type Line = { message: string; timestamp: number; target?: string };
 
 /**
  * Seed once per test: the init script runs again on reload, and must not
- * overwrite what the game saved before it.
+ * overwrite what the game saved before it. The seeded run has already seen
+ * its BUILD building panel open (Colony, Story 3.5), so that one-time line
+ * doesn't join the seeded log.
  */
 async function seed(page: Page, gameState: Record<string, unknown>, lines: Line[] = []): Promise<void> {
   await page.addInitScript((save: string) => {
@@ -27,7 +29,7 @@ async function seed(page: Page, gameState: Record<string, unknown>, lines: Line[
     sessionStorage.setItem('seeded', '1');
     localStorage.setItem('the_swarm_save', save);
     localStorage.setItem('the_swarm_onboarding', 'complete');
-  }, JSON.stringify({ version: 17, timestamp: Date.now(), playTimeMs: 0, gameState, chronicle: { entries: lines, milestones: [] } }));
+  }, JSON.stringify({ version: 17, timestamp: Date.now(), playTimeMs: 0, gameState, chronicle: { entries: lines, milestones: ['panel_building_panel'] } }));
   await page.goto('/');
   await expect(page.locator('[data-shell]')).toBeVisible();
 }
