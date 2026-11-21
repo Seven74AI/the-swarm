@@ -15,7 +15,6 @@ import { REFUSAL_REASONS, type ActionResult, type RefusalReason } from '../../sr
 import { ResourceSystem } from '../../src/systems/ResourceSystem';
 import { SoldierSystem, MAX_EQUIPMENT_LEVEL } from '../../src/systems/SoldierSystem';
 import { BattleSystem } from '../../src/systems/BattleSystem';
-import { DecisionSystem } from '../../src/systems/DecisionSystem';
 import { TerritorySystem } from '../../src/systems/TerritorySystem';
 import { MAX_ACTIVE_EXPEDITIONS } from '../../src/systems/ExpeditionSystem';
 import { MAX_PROBES } from '../../src/systems/ExplorationSystem';
@@ -26,6 +25,8 @@ import { RESEARCHES, AUTOMATION_BUILDINGS } from '../../src/systems/AutomationSy
 import { getProjects } from '../../src/systems/ResearchSystem';
 import { PRESTIGE_UPGRADES } from '../../src/data/prestigeTree';
 import { TileType } from '../../src/state/GameState';
+import { applyChoice } from '../../src/systems/DecisionSystem';
+import { getDecision } from '../../src/data/content/decisions';
 
 const LOTS = 1_000_000_000;
 
@@ -56,7 +57,6 @@ beforeEach(() => {
     resourceSystem: new ResourceSystem(bus),
     soldierSystem: new SoldierSystem(bus),
     battleSystem: new BattleSystem(bus),
-    decisionSystem: new DecisionSystem(bus),
     territorySystem: new TerritorySystem(),
   });
 });
@@ -538,10 +538,37 @@ describe('prestige', () => {
   });
 });
 
-describe('decisions', () => {
-  it('applies a known choice, refuses an unknown one', () => {
-    const before = given(rich());
-    expectRefused(actions.chooseDecision('no_such_event' as never, 'Nope'), 'unknown_id', before);
+describe('decisions (Story 1.28)', () => {
+  const withOpen = (s: GameState, id: 'overcrowding' | 'scout_report'): GameState => ({
+    ...s,
+    decision: { open: { id, remainingMs: id === 'overcrowding' ? 10_000 : null, openedAtSessionMs: 0, roll: 0.99 }, nextSpawnSessionMs: null },
+  });
+
+  it('refuses when no event is open, or the choice is unknown', () => {
+    let before = given(rich());
+    expectRefused(actions.chooseDecision('expand'), 'not_running', before);
+    before = given(withOpen(rich(), 'overcrowding'));
+    expectRefused(actions.chooseDecision('nope'), 'unknown_id', before);
+  });
+
+  it('refuses a choice the colony cannot pay for', () => {
+    const before = given(withOpen(poor(), 'overcrowding'));
+    expectRefused(actions.chooseDecision('expand'), 'cannot_afford', before);
+  });
+
+  it('applies the choice through applyChoice, closes the event, then announces it', () => {
+    const before = given(withOpen(rich(), 'overcrowding'));
+    const seen: Array<{ open: unknown; choice: string; timedOut: boolean }> = [];
+    bus.subscribe('decision_resolved', (p) => seen.push({ open: gameState.value.decision.open, choice: p.choice, timedOut: p.timedOut }));
+    const after = expectApplied(actions.chooseDecision('expand'), before);
+    expect(after).toEqual(applyChoice(before, getDecision('overcrowding'), 'expand'));
+    expect(after.decision.open).toBeNull();
+    expect(seen).toEqual([{ open: null, choice: 'expand', timedOut: false }]);
+  });
+
+  it('an unavoidable event can still be answered', () => {
+    const before = given(withOpen(rich(), 'scout_report'));
+    expect(expectApplied(actions.chooseDecision('stay_hidden'), before).decision.open).toBeNull();
   });
 });
 

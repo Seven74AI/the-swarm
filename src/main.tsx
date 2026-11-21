@@ -13,7 +13,8 @@ import { SoldierSystem } from './systems/SoldierSystem';
 import { BattleSystem } from './systems/BattleSystem';
 import { MapSystem } from './systems/MapSystem';
 import { TerritorySystem } from './systems/TerritorySystem';
-import { DecisionSystem } from './systems/DecisionSystem';
+import { startDecisionSession, tickDecisions } from './systems/DecisionSystem';
+import { getDecision, timeoutLine } from './data/content/decisions';
 import { tickExpeditions, resolveExpedition } from './systems/ExpeditionSystem';
 import { tickExplorations, resolveExploration, tickProbeSwarm } from './systems/ExplorationSystem';
 import { tickResearch } from './systems/ResearchSystem';
@@ -31,13 +32,14 @@ import { computed } from '@preact/signals-core';
 import { UIRoot } from './ui/UIRoot';
 import { App } from './ui/App';
 import { createTabShell } from './ui/shell/tabShell';
-import { selectAffordableKeys, selectGoalMet, selectLifetime, selectPhase } from './state/selectors';
+import { selectAffordableKeys, selectCanChoose, selectGoalMet, selectLifetime, selectOpenDecision, selectPhase } from './state/selectors';
 import { AudioSystem } from './ui/AudioSystem';
 import { SaveManager } from './persistence/SaveManager';
 import type { OfflineLoadInfo } from './persistence/SaveManager';
 import { computeOfflineResourceDeltas } from './systems/OfflineProgression';
 import { openOfflineSummary } from './ui/sheets/OfflineSummarySheet';
-import { bindDecisionSheets } from './ui/sheets/DecisionSheet';
+import { bindDecisionSheets, type DecisionSheets } from './ui/sheets/DecisionSheet';
+import { createToasts, type Toasts } from './ui/primitives/Toast';
 import { openTickFailure } from './ui/sheets/TickFailureSheet';
 import { openSettings } from './ui/sheets/SettingsSheet';
 import { buildDiagnostics, DIAGNOSTICS_FILENAME } from './debug/diagnostics';
@@ -102,7 +104,6 @@ export function bootstrap(): {
   saveManager: SaveManager;
   fsm: PhaseStateMachine;
   ui: UIRoot;
-  decisionSystem: DecisionSystem;
   audio: AudioSystem;
   actions: Actions;
   platform: Platform;
@@ -110,6 +111,8 @@ export function bootstrap(): {
   overlays: OverlayController;
   /** The event lines, saved with the game (Story 1.26). */
   chronicle: Chronicle;
+  /** One-line toasts (Story 1.12 primitive; first used by Story 1.28's costly timeouts). */
+  toasts: Toasts;
 } {
   // Platform services, built once and passed on (Story 1.10, D9). Only main
   // imports platform/ values; settings live under their own key, outside the save.
@@ -119,7 +122,6 @@ export function bootstrap(): {
   const resourceSystem = new ResourceSystem(bus);
   const soldierSystem = new SoldierSystem(bus);
   const battleSystem = new BattleSystem(bus);
-  const decisionSystem = new DecisionSystem(bus);
   const saveManager = new SaveManager();
   const audio = new AudioSystem();
   const loop = new GameLoop(ticker);
@@ -213,6 +215,16 @@ export function bootstrap(): {
     }
   }
 
+  // A new session for decision events (Story 1.28, D8): an open event comes back with
+  // its time left; the spawn time is drawn again on the session clock, so no event
+  // spawns in the first 2 minutes of foreground play, however long the save has run.
+  gameState.value = startDecisionSession(gameState.value);
+  // The session clock: ms of foreground ticks since this launch (never offline time).
+  let sessionMs = 0;
+  // Set once the UI is mounted (below); the tick only reads them.
+  let decisionSheets: DecisionSheets | null = null;
+  let decisionGate: () => boolean = () => false;
+
   const currentPhase = (gameState.value.phase as Phase) ?? Phase.EGG_LAYING;
 
   // One live tick (dtSec = 0.05 for 50ms ticks).
@@ -224,6 +236,7 @@ export function bootstrap(): {
     if (state.paused) return state;
 
     const { dtSec, events } = ctx;
+    sessionMs += Math.round(dtSec * 1000);
 
     // Generate map if tiles are all empty (first tick)
     let workingState = state;
@@ -382,11 +395,17 @@ export function bootstrap(): {
       },
     };
 
-    // Decision popup spawn check
-    const decisionEvent = decisionSystem.popEvent(newState, newState.stats.playTimeMs);
-    if (decisionEvent) {
-      events.emit('decision_event', decisionEvent);
-    }
+    // Decision events (Story 1.28, D8): spawn on the session clock, count down on game
+    // time only while the sheet is on screen, time out through applyChoice.
+    newState = tickDecisions(newState, {
+      sessionMs,
+      dtMs: Math.round(dtSec * 1000),
+      shown: decisionSheets?.shown() ?? false,
+      canSpawn: decisionGate(),
+      timers: platform.settings.settings.peek().decisionTimers,
+      rand: Math.random,
+      events,
+    });
 
     // The phase never changes in a tick (Story 1.19, D3): a met goal only
     // latches. The player commits it with CONTINUE (actions.continuePhase).
@@ -420,7 +439,7 @@ export function bootstrap(): {
   // Every player intent goes through an action (Story 1.6): the UI never
   // writes state or touches a system. Decision choices are an action too,
   // not a listener: no listener writes state (AR18).
-  const actions = createActions({ bus, resourceSystem, soldierSystem, battleSystem, decisionSystem, territorySystem, phases: fsm });
+  const actions = createActions({ bus, resourceSystem, soldierSystem, battleSystem, territorySystem, phases: fsm });
 
   // One sheet at a time (Story 1.14, D7): every sheet is requested here, drawn by App.
   const sheets = createSheetController();
@@ -434,7 +453,28 @@ export function bootstrap(): {
     markSeen: (phase) => actions.markRevealSeen(phase),
     reducedMotion: platform.settings.reducedMotion,
   });
-  bindDecisionSheets({ bus, sheets, choose: (type, choice) => actions.chooseDecision(type, choice) });
+  // The decision sheet renders state.decision.open (Story 1.28): it reopens after a reload,
+  // behind the offline summary and any overlay, and its countdown waits while it does.
+  decisionSheets = bindDecisionSheets({
+    sheets,
+    open: selectOpenDecision,
+    held: overlays.held,
+    timers: computed(() => platform.settings.settings.value.decisionTimers),
+    canChoose: selectCanChoose,
+    choose: (choice) => actions.chooseDecision(choice),
+    memory: platform.settings,
+  });
+  // No event spawns while an overlay or the offline summary is up (D8).
+  decisionGate = () => {
+    if (overlays.held.peek()) return false;
+    const s = sheets.state.peek();
+    return s.open?.priority !== 'offline' && !s.queue.some((q) => q.priority === 'offline');
+  };
+  // A costly timeout is logged (EventLog) and toasted once (Story 1.28).
+  const toasts = createToasts();
+  bus.subscribe('decision_resolved', ({ id, timedOut, policy }) => {
+    if (timedOut && policy === 'costly') toasts.show(timeoutLine(getDecision(id)));
+  });
   const resourceFeed = createResourceFeed();
   // The lay-mode setting (hold / toggle) for NEST's LAY EGG (Story 1.22).
   const layMode = computed(() => platform.settings.settings.value.layMode);
@@ -561,7 +601,7 @@ export function bootstrap(): {
   if (app) {
     // The Preact root hosts the legacy UIRoot (Story 1.7). render() mounts it synchronously,
     // so the panels exist before the phase's panels are revealed below.
-    render(<App legacy={ui} shell={shell} sheets={sheets} overlays={overlays} onContinue={actions.continuePhase} />, app);
+    render(<App legacy={ui} shell={shell} sheets={sheets} overlays={overlays} toasts={toasts} onContinue={actions.continuePhase} />, app);
   }
 
   // Start onboarding tutorial for new players (persisted via localStorage)
@@ -654,7 +694,7 @@ export function bootstrap(): {
 
   loop.start();
 
-  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, ui, decisionSystem, audio, actions, platform, sheets, overlays, chronicle };
+  return { bus, ticker, tick, loop, resourceSystem, saveManager, fsm, ui, audio, actions, platform, sheets, overlays, chronicle, toasts };
 }
 
 // processTick lives in engine/processTick.ts; re-exported for existing callers.

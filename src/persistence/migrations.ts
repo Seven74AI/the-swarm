@@ -1,5 +1,6 @@
 import type { SaveData } from './SaveManager';
-import type { GameState, PhaseGoal } from '../state/GameState';
+import type { GameState, OpenDecision, PhaseGoal } from '../state/GameState';
+import { isDecisionId } from '../data/content/decisions';
 import { PhaseStateMachine, reachedValues } from '../phases/PhaseStateMachine';
 import { normalizeChronicle, type ChronicleSave } from '../state/chronicle';
 
@@ -467,6 +468,35 @@ function migrateV16toV17(data: SaveData): SaveData {
   return { ...data, version: 17, chronicle };
 }
 
+/** A saved open decision event, or null if it is missing or malformed. */
+function normalizeOpenDecision(raw: unknown): OpenDecision | null {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+  if (!isDecisionId(r.id)) return null;
+  if (r.remainingMs !== null && !finite(r.remainingMs)) return null;
+  if (!finite(r.openedAtSessionMs) || !finite(r.roll)) return null;
+  return {
+    id: r.id,
+    remainingMs: r.remainingMs === null ? null : Math.max(0, Math.floor(r.remainingMs as number)),
+    openedAtSessionMs: Math.floor(r.openedAtSessionMs),
+    roll: Math.min(1, Math.max(0, r.roll)),
+  };
+}
+
+/**
+ * v17 → v18 (Story 1.28, D8, N3): the open decision event goes into the save
+ * with its remaining time, so closing the app is no escape. Older saves had
+ * none open (events lived only in the UI). A malformed slot is dropped. The
+ * spawn time is per session, so it is never carried over.
+ */
+function migrateV17toV18(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  const raw = gs.decision !== null && typeof gs.decision === 'object' ? (gs.decision as Record<string, unknown>) : {};
+  const decision = { open: normalizeOpenDecision(raw.open), nextSpawnSessionMs: null };
+  return { ...data, version: 18, gameState: { ...gs, decision } as unknown as GameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -485,6 +515,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   14: migrateV14toV15,
   15: migrateV15toV16,
   16: migrateV16toV17,
+  17: migrateV17toV18,
 };
 
 /**

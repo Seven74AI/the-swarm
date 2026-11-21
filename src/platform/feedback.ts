@@ -17,12 +17,12 @@ export function bindHapticFeedback(bus: EventBus, haptics: Haptics): () => void 
   const onPhase = play('heavy');
   const onBattle = ({ victory }: { victory: boolean }) => haptics.play(victory ? 'medium' : 'double');
   bus.subscribe('egg_clicked', onEgg);
-  bus.subscribe('decision_event', onDecision);
+  bus.subscribe('decision_spawned', onDecision);
   bus.subscribe('battle_completed', onBattle);
   bus.subscribe('phase_committed', onPhase);
   return () => {
     bus.unsubscribe('egg_clicked', onEgg);
-    bus.unsubscribe('decision_event', onDecision);
+    bus.unsubscribe('decision_spawned', onDecision);
     bus.unsubscribe('battle_completed', onBattle);
     bus.unsubscribe('phase_committed', onPhase);
   };

@@ -1,7 +1,7 @@
 import type { GameState } from '../state/GameState';
 import type { Phase } from '../phases/phases';
 import type { BattleResult } from '../systems/BattleSystem';
-import type { DecisionEvent } from '../systems/DecisionSystem';
+import type { DecisionId, IgnorePolicy } from '../data/content/decisions';
 import type { SpaceshipType } from '../systems/SpaceshipSystem';
 
 /** Payload of an event that carries no data. */
@@ -46,9 +46,10 @@ export interface SwarmEvents {
   battle_completed: BattleResult;
 
   // ── Decisions ──
-  decision_event: DecisionEvent;
-  decision_chosen: { type: DecisionEvent['type']; choice: string };
-  decision_applied: { type: string; choice: string };
+  /** A decision event opened (Story 1.28): `state.decision.open` holds it. */
+  decision_spawned: { id: DecisionId };
+  /** A decision event closed, by a choice or (`timedOut`) by its countdown, with `choice: 'ignore'`. */
+  decision_resolved: { id: DecisionId; choice: string; timedOut: boolean; policy: IgnorePolicy };
 
   // ── Phases and narrative ──
   /** CONTINUE entered the next phase (Story 1.19; replaces `phase_changed`). */

@@ -1,3 +1,4 @@
+import type { DecisionId } from '../data/content/decisions';
 export enum TileType {
   EMPTY = 'empty',
   FOREST = 'forest',
@@ -30,6 +31,21 @@ export interface Mutation {
   id: string;
   /** Whether this mutation has been purchased. */
   purchased: boolean;
+}
+
+/**
+ * The open decision event (Story 1.28, N3). `remainingMs` is game time left on
+ * its countdown, in the event's own time (the `double` timer setting slows the
+ * countdown; it doesn't change this number); `null` for an untimed event.
+ * `roll` (0–1) is drawn at spawn and decides any risk, so the outcome is fixed
+ * while the event waits, across saves.
+ */
+export interface OpenDecision {
+  id: DecisionId;
+  remainingMs: number | null;
+  /** Session clock when it opened (a reloaded event keeps the old session's value). */
+  openedAtSessionMs: number;
+  roll: number;
 }
 
 /** A met phase goal, latched until CONTINUE (Story 1.19). */
@@ -149,6 +165,16 @@ export interface GameState {
    * prestige clears it. Null while the goal is not met.
    */
   phaseGoal: PhaseGoal | null;
+  /**
+   * Decision events (Story 1.28, D8). `open` is saved, so an open event comes
+   * back after a reload with the same time left. `nextSpawnSessionMs` is on the
+   * session clock (foreground play since this launch); every launch resets it
+   * to `null` (drawn on the first foreground tick).
+   */
+  decision: {
+    open: OpenDecision | null;
+    nextSpawnSessionMs: number | null;
+  };
   /**
    * What survives every run (arch D4). `revealsSeen`: the phases whose reveal
    * has played to the end once (Story 1.20); from then on it can be skipped.
@@ -388,6 +414,7 @@ export function createInitialState(): GameState {
     capacityAccumulator: 0,
     victoryAchieved: false,
     phaseGoal: null,
+    decision: { open: null, nextSpawnSessionMs: null },
     lifetime: { revealsSeen: [] },
     spaceship: {
       level: 0,

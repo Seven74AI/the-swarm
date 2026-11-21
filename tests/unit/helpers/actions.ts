@@ -4,7 +4,6 @@ import type { GameState } from '../../../src/state/GameState';
 import { ResourceSystem } from '../../../src/systems/ResourceSystem';
 import { SoldierSystem } from '../../../src/systems/SoldierSystem';
 import { BattleSystem } from '../../../src/systems/BattleSystem';
-import { DecisionSystem } from '../../../src/systems/DecisionSystem';
 import { TerritorySystem } from '../../../src/systems/TerritorySystem';
 
 /**
@@ -22,7 +21,6 @@ export function testActions(
     resourceSystem: new ResourceSystem(bus),
     soldierSystem: new SoldierSystem(bus),
     battleSystem: new BattleSystem(bus),
-    decisionSystem: new DecisionSystem(bus),
     territorySystem: new TerritorySystem(),
     store,
   });

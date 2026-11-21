@@ -18,7 +18,7 @@ describe('haptic feedback wiring (Story 1.10, FR41)', () => {
     const h = recorder();
     bindHapticFeedback(bus, h);
     bus.emit('egg_clicked', {});
-    bus.emit('decision_event', EVENT_SAMPLES.decision_event);
+    bus.emit('decision_spawned', EVENT_SAMPLES.decision_spawned);
     bus.emit('battle_completed', { ...EVENT_SAMPLES.battle_completed, victory: true });
     bus.emit('battle_completed', { ...EVENT_SAMPLES.battle_completed, victory: false });
     bus.emit('phase_committed', EVENT_SAMPLES.phase_committed);
@@ -38,7 +38,7 @@ describe('haptic feedback wiring (Story 1.10, FR41)', () => {
     const bus = new EventBus();
     const h = recorder();
     bindHapticFeedback(bus, h);
-    const felt = ['egg_clicked', 'decision_event', 'battle_completed', 'phase_committed'];
+    const felt = ['egg_clicked', 'decision_spawned', 'battle_completed', 'phase_committed'];
     for (const name of EVENT_NAMES.filter((n) => !felt.includes(n))) bus.emit(name, EVENT_SAMPLES[name] as never);
     expect(h.played).toEqual([]);
   });

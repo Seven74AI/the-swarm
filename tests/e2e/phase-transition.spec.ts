@@ -158,15 +158,19 @@ test.describe('Phase reveal (fake clock)', () => {
   test('a decision event during the reveal waits until it ends', async ({ page }) => {
     await tapContinue(page, undefined, { reveal: 'keep' });
     await expect(page.locator(REVEAL)).toBeVisible();
-    await page.evaluate(() =>
-      (window as unknown as { __swarm: Swarm }).__swarm.bus.emit('decision_event', {
-        type: 'beetle',
-        title: 'BEETLE SIGHTING',
-        description: 'A beetle wanders near the nest.',
-        choices: [{ label: 'Ignore', description: 'Nothing happens.' }],
-      }),
-    );
+    // An event opening now (Story 1.28: the sheet follows state.decision.open) waits for the reveal.
+    await page.evaluate(() => {
+      const m = (window as unknown as { __swarm: { manager: { getState(): Record<string, unknown>; setState(s: unknown): void } } }).__swarm.manager;
+      const s = m.getState();
+      m.setState({
+        ...s,
+        decision: { open: { id: 'overcrowding', remainingMs: 40_000, openedAtSessionMs: 0, roll: 0.5 }, nextSpawnSessionMs: null },
+      });
+    });
     await expect(page.locator('#decision-popup')).toHaveCount(0);
+    const left = () =>
+      page.evaluate(() => (window as unknown as { __swarm: { manager: { getState(): { decision: { open: { remainingMs: number } | null } } } } }).__swarm.manager.getState().decision.open?.remainingMs);
+    expect(await left()).toBe(40_000);
     await waitOutReveal(page);
     await expect(page.locator('#decision-popup')).toBeVisible();
   });

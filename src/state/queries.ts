@@ -31,7 +31,7 @@ export {
 } from '../systems/SoldierSystem';
 export type { BattleOutcome, BattleResult } from '../systems/BattleSystem';
 export { assessMatchup, getEnemyDef, getEnemyDefs, getRandomEnemy, scaleEnemy, type EnemyDef, type Matchup } from '../systems/EnemySystem';
-export type { DecisionEvent } from '../systems/DecisionSystem';
+export { displayRemainingMs, isTimed, type DecisionTimerMode } from '../systems/DecisionSystem';
 export {
   canStartProject,
   getAssignedResearchers,

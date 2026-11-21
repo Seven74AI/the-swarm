@@ -1,4 +1,5 @@
 import { effect } from '@preact/signals-core';
+import { getDecision, timeoutLine, type DecisionId } from '../../data/content/decisions';
 import type { EventBus } from '../../engine/EventBus';
 import type { PanelId } from '../../data/content/tabs';
 import { createChronicle, type Chronicle, type ChronicleEntry } from '../../state/chronicle';
@@ -206,6 +207,13 @@ export class EventLog {
     };
     bus.subscribe('probe_launch', onProbeLaunchCb);
     this.unsubscribeHandles.push(() => bus.unsubscribe('probe_launch', onProbeLaunchCb));
+
+    // A costly decision timed out (Story 1.28): what ignoring it cost goes into the log.
+    const onDecisionCb = (p: { id: DecisionId; timedOut: boolean; policy: string }) => {
+      if (p.timedOut && p.policy === 'costly') this.addEntry(timeoutLine(getDecision(p.id)));
+    };
+    bus.subscribe('decision_resolved', onDecisionCb);
+    this.unsubscribeHandles.push(() => bus.unsubscribe('decision_resolved', onDecisionCb));
 
     const onNarrativeCb = (payload: unknown) => {
       const p = payload as { message: string };

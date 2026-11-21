@@ -67,7 +67,7 @@ describe('SaveManager', () => {
       const raw = localStorage.getItem('the_swarm_save');
       expect(raw).not.toBeNull();
       const parsed = JSON.parse(raw!);
-      expect(parsed.version).toBe(17);
+      expect(parsed.version).toBe(18);
       expect(parsed.timestamp).toBeGreaterThanOrEqual(before);
     });
   });
@@ -113,6 +113,13 @@ describe('SaveManager', () => {
         JSON.stringify({ version: 16, timestamp: Date.now(), playTimeMs: 0, gameState: createInitialState() }),
       );
       expect(saveManager.load()!.chronicle.entries).toEqual([]);
+    });
+
+    it('keeps an open decision event with its time left (Story 1.28)', () => {
+      const open = { id: 'overcrowding' as const, remainingMs: 12_345, openedAtSessionMs: 99_000, roll: 0.25 };
+      const state = { ...createInitialState(), decision: { open, nextSpawnSessionMs: 150_000 } };
+      saveManager.save(state, 0, true);
+      expect(new SaveManager().load()!.gameState.decision.open).toEqual(open);
     });
 
     it('drops a malformed chronicle instead of failing the load', () => {

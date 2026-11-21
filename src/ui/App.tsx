@@ -7,6 +7,7 @@ import type { SheetController } from './shell/SheetController';
 import { SheetHost } from './shell/SheetHost';
 import type { OverlayController } from './shell/OverlayController';
 import { OverlayHost } from './shell/OverlayHost';
+import { ToastHost, type Toasts } from './primitives/Toast';
 
 export type { LegacyUi } from './shell/Shell';
 
@@ -31,6 +32,7 @@ export function App({
   sheets,
   onContinue,
   overlays,
+  toasts,
 }: {
   legacy: LegacyUi;
   shell: TabShell;
@@ -38,10 +40,13 @@ export function App({
   /** CONTINUE on NEST (Story 1.19): `actions.continuePhase`. */
   onContinue?: () => { readonly ok: boolean } | void;
   overlays?: OverlayController;
+  /** One-line toasts, drawn above the primary zone (Story 1.28 first uses them). */
+  toasts?: Toasts;
 }) {
   return (
     <>
       <Shell shell={shell} legacy={legacy} onContinue={onContinue} />
+      {toasts && <ToastHost toasts={toasts} />}
       {sheets && <SheetHost sheets={sheets} held={overlays?.held} />}
       {overlays && <OverlayHost overlays={overlays} />}
     </>

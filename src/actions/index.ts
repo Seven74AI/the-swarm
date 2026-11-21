@@ -8,7 +8,6 @@
  * the resulting `Actions` object and never touches a system itself.
  */
 import type { ActionDeps } from './context';
-import type { DecisionEvent } from '../systems/DecisionSystem';
 import type { WorkerRole } from '../systems/ResourceSystem';
 import type { MoveSource } from '../systems/Workforce';
 import type { RoleId } from '../data/content/roles';
@@ -79,7 +78,7 @@ export function createActions(deps: ActionDeps) {
     continuePhase: () => continuePhase(deps),
     markRevealSeen: (phase: Phase) => markRevealSeen(deps, phase),
     // Decisions
-    chooseDecision: (type: DecisionEvent['type'], choice: string) => chooseDecision(deps, type, choice),
+    chooseDecision: (choice: string) => chooseDecision(deps, choice),
   };
   return {
     ...actions,
