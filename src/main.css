@@ -228,57 +228,6 @@ html, body {
   border-color: #b8942e; /* amber accent */
 }
 
-/* ── Click Button ── */
-.click-button-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.click-button {
-  font-size: 1.5rem;
-  padding: 1.5rem 3rem;
-  border: 2px solid var(--accent);
-  border-radius: 50%;
-  width: 160px;
-  height: 160px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: transform var(--anim-micro), box-shadow var(--anim-micro);
-  user-select: none;
-}
-
-.click-button:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 20px rgba(184, 148, 46, 0.3);
-}
-
-.click-button:active {
-  transform: scale(0.95);
-  box-shadow: 0 0 40px rgba(184, 148, 46, 0.5);
-}
-
-.click-counter {
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-}
-
-.click-button-at-capacity {
-  opacity: 0.4 !important;
-  cursor: not-allowed !important;
-  border-color: var(--text-secondary) !important;
-  color: var(--text-secondary) !important;
-}
-
-.click-button-at-capacity:hover {
-  transform: none !important;
-  box-shadow: none !important;
-}
-
 /* ── Number Display ── */
 .number-display {
   display: block;
@@ -353,60 +302,6 @@ html, body {
   }
 }
 
-/* ── Click Particle ── */
-.click-particle {
-  position: absolute;
-  top: 50%;
-  left: calc(50% + var(--click-offset-x, 0px));
-  color: var(--accent-glow);
-  font-weight: bold;
-  font-size: 1rem;
-  pointer-events: none;
-  z-index: 10;
-  white-space: nowrap;
-  text-shadow: 0 0 6px var(--accent-glow);
-  animation: click-particle-float var(--anim-click-particle) ease-out forwards;
-}
-
-@keyframes click-particle-float {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.5);
-  }
-  15% {
-    opacity: 1;
-    transform: translate(-50%, calc(-50% - 10px)) scale(1.1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, calc(-50% - 60px)) scale(0.6);
-  }
-}
-
-/* ── Burst Particle (radiating dots on click) ── */
-.burst-particle {
-  position: fixed;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--accent-glow);
-  box-shadow: 0 0 6px var(--accent-glow);
-  pointer-events: none;
-  z-index: 20;
-  animation: burst-expand var(--anim-burst) ease-out forwards;
-}
-
-@keyframes burst-expand {
-  0% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0);
-  }
-}
-
 /* ── Progress Bar ── */
 .progress-bar {
   width: 100%;
@@ -450,28 +345,6 @@ html, body {
 
 .progress-fill.capacity-full {
   background: #e74c3c; /* red */
-}
-
-/* ── Event Log ── */
-.event-log {
-  /* max-height and overflow-y moved to .event-log-entries for virtual scrolling */
-}
-
-.event-log-entries {
-  max-height: calc(200px - 1.6rem);
-  overflow-y: auto;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-
-.log-entry {
-  padding: 0.1rem 0;
-  border-bottom: 1px solid rgba(61, 53, 40, 0.3);
-}
-
-.log-entry:first-child {
-  color: var(--text-primary);
 }
 
 /* Section titles (AutomationPanel) */
@@ -951,13 +824,6 @@ body.phase-space .top-bar {
   50% { box-shadow: 0 0 20px rgba(0, 204, 255, 0.6); }
 }
 
-body.phase-space #click-egg {
-  animation: neon-pulse var(--anim-pulse) ease-in-out infinite;
-  border-color: var(--accent);
-  background: radial-gradient(circle, rgba(0, 100, 150, 0.5), rgba(10, 10, 20, 0.9));
-  color: var(--accent-glow);
-  text-shadow: 0 0 8px rgba(64, 221, 255, 0.5);
-}
 
 /* Progress bar neon styling */
 body.phase-space .progress-fill {

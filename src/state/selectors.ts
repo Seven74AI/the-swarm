@@ -72,6 +72,7 @@ export const selectResearch = slice('research');
 export const selectConversions = slice('conversions');
 export const selectPrestigeTree = slice('prestigeTree');
 export const selectMutations = slice('mutations');
+export const selectUpgrades = slice('upgrades');
 
 // --- Derived slices (primitives, so they notify only when the number changes) ---------------
 

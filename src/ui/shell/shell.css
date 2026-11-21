@@ -109,6 +109,30 @@
   height: 100%;
 }
 
+.tab-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-width: var(--shell-max-width);
+  margin-inline: auto;
+  background: var(--color-bg);
+}
+
+.shell-primary {
+  bottom: calc(var(--shell-tab-bar) + var(--shell-safe-bottom));
+  height: var(--shell-primary-zone);
+  border-top: 1px solid var(--color-line);
+}
+
+.shell[data-tab-bar-shown="false"] .shell-primary {
+  bottom: var(--shell-safe-bottom);
+}
+
+.shell-primary-slot {
+  height: 100%;
+}
+
 /* The lay-egg button as NEST's primary action: full width, one 48 px row. */
 .shell-primary .click-button-container {
   flex-direction: row;

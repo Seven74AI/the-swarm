@@ -180,10 +180,14 @@ test.describe('Decision Popups (GM-2)', () => {
     // primary zone, under the sheet, so it is pressed programmatically here.
     const clickBtn = page.locator('#click-egg');
     await expect(clickBtn).toBeEnabled({ timeout: 5_000 });
+    const clicks = () => page.evaluate(() => {
+      const swarm = (window as unknown as { __swarm: { manager: { getState(): { stats: { totalClicks: number } } } } }).__swarm;
+      return swarm.manager.getState().stats.totalClicks;
+    });
+    const clicksBefore = await clicks();
     await clickBtn.evaluate((el) => (el as HTMLElement).click());
-    // Verify clicks incremented
-    const clickCounter = page.locator('.click-counter');
-    await expect(clickCounter).toContainText(/Clicks: (?!0)/, { timeout: 5_000 });
+    // Verify clicks incremented (Story 1.22 removed the legacy "Clicks:" counter)
+    await expect.poll(clicks, { timeout: 5_000 }).toBeGreaterThan(clicksBefore);
 
     // Dismiss the popup by clicking a choice
     const firstButton = popup.locator('button').first();

@@ -115,6 +115,11 @@ const TEND_MULTIPLIER = 0.25; // each tend worker gives +25% hatch rate
  * Phase 2 applies all deltas (write-only), Phase 3 clamps all resources >= 0.
  * This prevents ordering bugs where production/consumption order matters.
  */
+/** Eggs one tap lays at a Click Power level (FR1: 1 per tap plus 1 per level). */
+export function eggsPerTap(clickPowerLevel: number): number {
+  return 1 + clickPowerLevel;
+}
+
 export class ResourceSystem {
   constructor(private bus: EventBus) {}
 
@@ -122,7 +127,7 @@ export class ResourceSystem {
    * Lay eggs. Adds eggs and pushes them into the hatching pipeline.
    */
   clickEgg(state: GameState): GameState {
-    const eggsPerClick = 1 + (state.upgrades.click_power ?? 0);
+    const eggsPerClick = eggsPerTap(state.upgrades.click_power ?? 0);
 
     const result: GameState = {
       ...state,
