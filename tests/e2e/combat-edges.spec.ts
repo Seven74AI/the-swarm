@@ -1,3 +1,4 @@
+import { visibleText } from './helpers/text';
 import { test, expect, type Page } from '@playwright/test';
 import { openTab } from './helpers/tabs';
 
@@ -369,8 +370,8 @@ test.describe('Save/Load Robustness', () => {
     // Verify building levels in UI
     const buildingPanel = page.locator('.building-panel');
     await expect(buildingPanel).toBeAttached({ timeout: 5000 });
-    await expect(buildingPanel).toContainText('LV.2 →');
-    await expect(buildingPanel).toContainText('LV.1 →');
+    await expect.poll(() => visibleText(buildingPanel)).toContain('LV.2 →');
+    await expect.poll(() => visibleText(buildingPanel)).toContain('LV.1 →');
 
     // Save
     await saveGame(page);
@@ -384,8 +385,8 @@ test.describe('Save/Load Robustness', () => {
     const reloadedPanel = page.locator('.building-panel');
     await expect(reloadedPanel).toBeAttached({ timeout: 5000 });
     await expect(reloadedPanel).toContainText('BARRACKS', { timeout: 3000 });
-    await expect(reloadedPanel).toContainText('LV.2 →', { timeout: 3000 });
-    await expect(reloadedPanel).toContainText('LV.1 →', { timeout: 3000 });
+    await expect.poll(() => visibleText(reloadedPanel), { timeout: 3000 }).toContain('LV.2 →');
+    await expect.poll(() => visibleText(reloadedPanel), { timeout: 3000 }).toContain('LV.1 →');
   });
 
   test('save corruption recovery — malformed JSON', async ({ page }) => {

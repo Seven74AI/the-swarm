@@ -8,6 +8,7 @@
  * it. Sighted players see exactly the same characters as before.
  */
 import type { ComponentChildren } from 'preact';
+import { ABBREVIATIONS, ABBREVIATION_PATTERN } from '../../data/content/abbreviations';
 
 /** A short form on screen, the full word for assistive tech ("CHTN" → "Chitin", "◊" → "Food"). */
 export function Abbr({ shown, full }: { shown: ComponentChildren; full: string }) {
@@ -41,12 +42,15 @@ export function Arrow() {
   );
 }
 
-const TOKEN = / · | → /;
+/** A separator, an arrow, or a registered short form (`LV.`, `STR`, `CHTN`; Story 1.33). */
+const TOKEN = new RegExp(` · | → |${ABBREVIATION_PATTERN.source}`);
 
 /**
- * A typed line with its separators and arrows made decoration: `'A · B → C'`
- * looks the same but reads "A, B to C". Anything that isn't a string is
- * passed through as is.
+ * A typed line with its decoration made visual only: `'LV.2 → 3 · 5 CHTN'`
+ * looks the same but reads "level 2 to 3, 5 chitin". Separators and arrows
+ * (Story 1.32) and the short forms of `data/content/abbreviations.ts`
+ * (Story 1.33) are replaced. Anything that isn't a string is passed through
+ * as is.
  */
 export function decorate(text: ComponentChildren): ComponentChildren {
   if (typeof text !== 'string' || !TOKEN.test(text)) return text;
@@ -55,7 +59,13 @@ export function decorate(text: ComponentChildren): ComponentChildren {
   let key = 0;
   for (let m = TOKEN.exec(rest); m; m = TOKEN.exec(rest)) {
     if (m.index > 0) out.push(rest.slice(0, m.index));
-    out.push(m[0] === ' · ' ? <Sep key={key++} /> : <Arrow key={key++} />);
+    if (m[0] === ' · ') out.push(<Sep key={key++} />);
+    else if (m[0] === ' → ') out.push(<Arrow key={key++} />);
+    else {
+      // `LV.2` reads "level 2": a short form glued to a number keeps a space before it.
+      const glued = /^[0-9]/.test(rest.slice(m.index + m[0].length));
+      out.push(<Abbr key={key++} shown={m[0]} full={glued ? `${ABBREVIATIONS[m[0]]} ` : ABBREVIATIONS[m[0]]} />);
+    }
     rest = rest.slice(m.index + m[0].length);
   }
   if (rest) out.push(rest);

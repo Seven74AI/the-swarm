@@ -175,7 +175,7 @@ export function Button(props: ButtonProps) {
           {target && ' '}
           {target && (
             <span class="swarm-btn__target" data-target="">
-              {target}
+              {decorate(target)}
             </span>
           )}
         </span>

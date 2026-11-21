@@ -268,9 +268,9 @@ test.describe('Offline Progression — Popup Lifecycle', () => {
     await expect(page.locator('.offline-overlay')).toBeVisible();
 
     const popupText = await popup.textContent();
-    expect(popupText).toContain('Welcome Back');
-    expect(popupText).toContain('You were gone for');
-    expect(popupText).toContain('Catch-up efficiency');
+    expect(popupText).toContain('THE NEST KEPT WORKING.');
+    expect(popupText).toContain('YOU WERE GONE');
+    expect(popupText).toContain('CATCH-UP EFFICIENCY');
   });
 
   test('popup does NOT appear for absence < 30s', async ({ page }) => {
@@ -310,7 +310,7 @@ test.describe('Offline Progression — Popup Lifecycle', () => {
     await expect(popup).toBeVisible({ timeout: 5000 });
     const text = await popup.textContent();
     // 3h should format as "3h" (not "3h 0m")
-    expect(text).toMatch(/3h/);
+    expect(text).toMatch(/3H/);
   });
 
   test('popup shows minutes+seconds for <1h absence', async ({ page }) => {
@@ -320,7 +320,7 @@ test.describe('Offline Progression — Popup Lifecycle', () => {
     await expect(popup).toBeVisible({ timeout: 5000 });
     const text = await popup.textContent();
     // 5 min absence should show minutes, not hours
-    expect(text).toMatch(/5m/);
+    expect(text).toMatch(/5M/);
   });
 
 });
@@ -690,7 +690,7 @@ test.describe('Offline Progression — Edge Cases', () => {
     await expect(popup).toBeVisible({ timeout: 5000 });
     const text = await popup.textContent();
     // Duration in popup shows raw elapsed (24h), but effective is capped at 8h
-    expect(text).toContain('Welcome Back');
+    expect(text).toContain('THE NEST KEPT WORKING.');
   });
 
   test('popup shows efficiency percentage correctly', async ({ page }) => {

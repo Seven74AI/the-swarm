@@ -1,3 +1,4 @@
+import { colonyLine } from '../data/content/colonyLines';
 import type { EventBus } from '../engine/EventBus';
 import type { GameState } from '../state/GameState';
 import { getEnemyDef, getRandomEnemy, scaleEnemy } from './EnemySystem';
@@ -65,7 +66,7 @@ export class BattleSystem {
           foodGained: 0,
           specialLoot: { chitin: 0, silk: 0, venom: 0 },
           poisonDamageDealt: 0,
-          narrative: 'No soldiers available for battle.',
+          narrative: colonyLine('battle_no_soldiers'),
         },
       };
     }
@@ -174,22 +175,23 @@ export class BattleSystem {
     // Build narrative
     let narrative: string;
     if (victory) {
-      narrative = `⚔️ ${workingState.combatSoldiers} soldiers defeated a ${enemy.name}. ${soldiersLost} fell. +${foodGained} food.`;
+      const soldiers = workingState.combatSoldiers;
+      narrative = colonyLine('battle_victory', { soldiers, enemy: enemy.name, lost: soldiersLost, food: foodGained });
       if (poisonDamageDealt > 0) {
-        narrative += ` Venom contributed ${poisonDamageDealt.toFixed(1)} poison damage.`;
+        narrative += ` ${colonyLine('battle_venom', { damage: Math.floor(poisonDamageDealt) })}`;
       }
       const specialParts: string[] = [];
       if (chitinGained > 0) specialParts.push(`${chitinGained} chitin`);
       if (silkGained > 0) specialParts.push(`${silkGained} silk`);
       if (venomGained > 0) specialParts.push(`${venomGained} venom`);
       if (specialParts.length > 0) {
-        narrative += ` The colony salvages ${specialParts.join(', ')} from the ${enemy.name} carcass.`;
+        narrative += ` ${colonyLine('battle_salvage', { loot: specialParts.join(', '), enemy: enemy.name })}`;
       }
     } else if (defeat) {
-      narrative = `💀 ${workingState.combatSoldiers} soldiers were slaughtered by a ${enemy.name}. None survived.`;
+      narrative = colonyLine('battle_defeat', { enemy: enemy.name, soldiers: workingState.combatSoldiers });
     } else {
       // Draw: max rounds exceeded, enemy flees
-      narrative = `⚔️ After a long skirmish, the ${enemy.name} fled. ${soldiersLost} soldiers fell.`;
+      narrative = colonyLine('battle_draw', { enemy: enemy.name, lost: soldiersLost });
     }
 
     const result: BattleResult = {

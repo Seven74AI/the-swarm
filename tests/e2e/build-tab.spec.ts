@@ -72,7 +72,7 @@ test.describe('BUILD tab', () => {
     const before = await state(page);
     await primary.click();
     await expect.poll(async () => (await state(page)).clickPower).toBeGreaterThan(before.clickPower);
-    await expect(card.locator('.card__level')).toContainText(`LV.${before.clickPower + 1} →`);
+    await expect.poll(() => visibleText(card.locator('.card__level'))).toContain(`LV.${before.clickPower + 1} →`);
   });
 
   test('in Expansion the building cards show level change, effect and cost; > BUY follows the highlight', async ({ page }) => {

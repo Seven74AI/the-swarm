@@ -23,7 +23,7 @@ const TOOLTIP_STEPS: TooltipConfig[] = [
   {
     id: 'click_egg',
     targetSelector: '#click-egg',
-    text: 'Click to lay an egg!',
+    text: 'Tap to lay an egg.',
     position: 'below',
   },
   {

@@ -149,7 +149,7 @@ test.describe('Combat', () => {
     await expect(summary(page)).toBeVisible({ timeout: 5000 });
 
     await openTab(page, 'nest');
-    await expect(page.locator('#activity-log')).toContainText(/Scouts report|march to meet|soldiers defeated|soldiers were slaughtered|fled/, { timeout: 5000 });
+    await expect(page.locator('#activity-log')).toContainText(/SCOUTS SPOT|MARCH ON THE|SOLDIERS BEAT|KILLS ALL|RETREATS/, { timeout: 5000 });
 
     await summary(page).locator('[data-sheet-close]').click();
     await expect(summary(page)).toBeHidden();

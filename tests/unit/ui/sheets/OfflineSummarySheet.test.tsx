@@ -36,21 +36,21 @@ describe('offline summary sheet', () => {
     expect(document.querySelector('.offline-overlay')).not.toBeNull();
   });
 
-  it('welcomes the player back with the time away and the catch-up efficiency', () => {
+  it('tells the player how long they were away, with the time away and the catch-up efficiency', () => {
     act(() => void openOfflineSummary(sheets, info({ efficiency: 0.75 })));
     const text = popup()!.textContent!;
-    expect(text).toContain('Welcome Back');
-    expect(text).toContain('You were gone for');
-    expect(popup()!.querySelector('.offline-duration')?.textContent).toContain(formatAway(info().elapsedMs));
+    expect(text).toContain('THE NEST KEPT WORKING.');
+    expect(text).toContain('YOU WERE GONE');
+    expect(popup()!.querySelector('.offline-duration')?.textContent).toContain(formatAway(info().elapsedMs).toUpperCase());
     expect(popup()!.querySelector('.offline-efficiency')?.textContent).toContain('75%');
   });
 
-  it('has exactly one button, which returns to the colony and removes sheet and scrim', () => {
+  it('has exactly one button, which goes back to the nest and removes sheet and scrim', () => {
     const onDismiss = vi.fn();
     act(() => void openOfflineSummary(sheets, info(), onDismiss));
     const buttons = popup()!.querySelectorAll('button');
     expect(buttons).toHaveLength(1);
-    expect(buttons[0].textContent).toMatch(/return|continue/i);
+    expect(buttons[0].textContent).toMatch(/back to the nest/i);
     act(() => buttons[0].click());
     expect(onDismiss).toHaveBeenCalledTimes(1);
     expect(popup()).toBeNull();

@@ -3,6 +3,7 @@ import { EventLog } from '../../src/ui/panels/EventLog';
 import { EventBus } from '../../src/engine/EventBus';
 import { Phase } from '../../src/phases/phases';
 import { getDecision } from '../../src/data/content/decisions';
+import { COLONY_LINES } from '../../src/data/content/colonyLines';
 
 describe('EventLog', () => {
   let bus: EventBus;
@@ -44,7 +45,7 @@ describe('EventLog', () => {
     it('logs expedition_launch', () => {
       bus.emit('expedition_launch', { scouts: 2, warriors: 1, destination: 'FOREST' });
       const entries = getEntries();
-      expect(entries.some((e) => e.includes('expedition') && e.includes('FOREST'))).toBe(true);
+      expect(entries.some((e) => e.includes('EXPEDITION') && e.includes('FOREST') && e.includes('2 SCOUTS AND 1 WARRIOR'))).toBe(true);
     });
 
     it('logs expedition_return success', () => {
@@ -53,7 +54,7 @@ describe('EventLog', () => {
         scoutsReturned: 1, warriorsReturned: 2, tilesDiscovered: 2,
       });
       const entries = getEntries();
-      expect(entries.some((e) => e.includes('triumphant') && e.includes('MEADOW'))).toBe(true);
+      expect(entries.some((e) => e.includes('RETURNS FROM MEADOW') && e.includes('30 FOOD'))).toBe(true);
     });
 
     it('logs expedition_return partial with casualties', () => {
@@ -62,7 +63,7 @@ describe('EventLog', () => {
         scoutsReturned: 0, warriorsReturned: 1, tilesDiscovered: 1,
       });
       const entries = getEntries();
-      expect(entries.some((e) => e.includes('battered'))).toBe(true);
+      expect(entries.some((e) => e.includes('LIMPS BACK FROM MOUNTAIN') && e.includes('1 WARRIOR'))).toBe(true);
     });
 
     it('logs expedition_return failure', () => {
@@ -71,7 +72,7 @@ describe('EventLog', () => {
         scoutsReturned: 0, warriorsReturned: 0, tilesDiscovered: 0,
       });
       const entries = getEntries();
-      expect(entries.some((e) => e.includes('lost') || e.includes('No one returned'))).toBe(true);
+      expect(entries.some((e) => e.includes('ENEMY NEST DOES NOT RETURN'))).toBe(true);
     });
   });
 
@@ -103,15 +104,13 @@ describe('EventLog', () => {
     it('logs construction message for first unlock (level 1)', () => {
       bus.emit('building_complete', { building: 'barracks', level: 1 });
       const msg = getLatestEntry();
-      expect(msg).toContain('Barracks constructed');
-      expect(msg).toContain('new building rises');
+      expect(msg).toContain('BARRACKS STANDS');
     });
 
     it('logs upgrade message for level > 1', () => {
       bus.emit('building_complete', { building: 'barracks', level: 3 });
       const msg = getLatestEntry();
-      expect(msg).toContain('Barracks upgraded to level 3');
-      expect(msg).toContain('grows stronger');
+      expect(msg).toContain('BARRACKS REACHES LEVEL 3');
     });
   });
 
@@ -126,9 +125,9 @@ describe('EventLog', () => {
         darkMatter: 0,
       });
       const msg = getLatestEntry();
-      expect(msg).toContain('Scouts return from Mars');
-      expect(msg).toContain('5 void crystals');
-      expect(msg).toContain('2 antimatter');
+      expect(msg).toContain('SCOUTS RETURN FROM MARS');
+      expect(msg).toContain('5 VOID CRYSTALS');
+      expect(msg).toContain('2 ANTIMATTER');
     });
 
     it('logs scouts return on partial', () => {
@@ -140,8 +139,8 @@ describe('EventLog', () => {
         darkMatter: 3,
       });
       const msg = getLatestEntry();
-      expect(msg).toContain('Scouts return from Venus');
-      expect(msg).toContain('3 dark matter');
+      expect(msg).toContain('SCOUTS RETURN FROM VENUS');
+      expect(msg).toContain('3 DARK MATTER');
     });
 
     it('logs failure when no resources gained', () => {
@@ -153,8 +152,8 @@ describe('EventLog', () => {
         darkMatter: 0,
       });
       const msg = getLatestEntry();
-      expect(msg).toContain('Scouts return from Jupiter');
-      expect(msg).toContain('yielded nothing');
+      expect(msg).toContain('SCOUTS RETURN FROM JUPITER');
+      expect(msg).toContain('WITH NOTHING');
     });
 
     it('does not mention zero-value resources', () => {
@@ -166,9 +165,9 @@ describe('EventLog', () => {
         darkMatter: 0,
       });
       const msg = getLatestEntry();
-      expect(msg).toContain('7 antimatter');
-      expect(msg).not.toContain('void crystals');
-      expect(msg).not.toContain('dark matter');
+      expect(msg).toContain('7 ANTIMATTER');
+      expect(msg).not.toContain('VOID CRYSTALS');
+      expect(msg).not.toContain('DARK MATTER');
     });
   });
 
@@ -177,7 +176,7 @@ describe('EventLog', () => {
     it('logs probe launch with destination', () => {
       bus.emit('probe_launch', { destination: 'Alpha Centauri' });
       const msg = getLatestEntry();
-      expect(msg).toContain('Probe launched toward Alpha Centauri');
+      expect(msg).toContain('A PROBE LEAVES FOR ALPHA CENTAURI');
     });
   });
 
@@ -208,7 +207,7 @@ describe('EventLog', () => {
       bus.emit('phase_committed', { from: Phase.EGG_LAYING, to: Phase.COLONY });
       bus.emit('phase_committed', { from: Phase.EGG_LAYING, to: Phase.COLONY }); // second should be ignored
       const entries = getEntries();
-      const colonyEntries = entries.filter((e) => e.includes('colony takes shape'));
+      const colonyEntries = entries.filter((e) => e.endsWith(COLONY_LINES.phase_colony.text));
       expect(colonyEntries.length).toBe(1);
     });
   });
@@ -219,7 +218,7 @@ describe('EventLog', () => {
       log.notifyWorkerCount(10);
       log.notifyWorkerCount(50); // should not fire again
       const entries = getEntries();
-      const humEntries = entries.filter((e) => e.includes('colony hums'));
+      const humEntries = entries.filter((e) => e.endsWith(COLONY_LINES.tenth_worker.text));
       expect(humEntries.length).toBe(1);
     });
   });
@@ -249,9 +248,9 @@ describe('EventLog', () => {
         bus.emit('building_complete', { building: 'nest', level: i + 2 });
       }
       expect(lines()).toHaveLength(3);
-      expect(lines()[0].textContent).toContain('level 6');
-      expect(lines()[1].textContent).toContain('level 5');
-      expect(lines()[2].textContent).toContain('level 4');
+      expect(lines()[0].textContent).toContain('LEVEL 6');
+      expect(lines()[1].textContent).toContain('LEVEL 5');
+      expect(lines()[2].textContent).toContain('LEVEL 4');
     });
 
     it('prefixes the newest line with "> " and older ones with "· "', () => {
@@ -271,7 +270,7 @@ describe('EventLog', () => {
       bus.emit('panel_revealed', { panelId: 'spaceship_panel' });
       bus.emit('panel_revealed', { panelId: 'expedition_panel' });
       bus.emit('panel_revealed', { panelId: 'soldier_panel' });
-      expect(lines()[0].textContent).toContain('looks to the stars');
+      expect(lines()[0].textContent).toBe('> ' + COLONY_LINES.phase_space.text);
       expect(log.entries()).toHaveLength(5);
     });
 
@@ -279,7 +278,7 @@ describe('EventLog', () => {
       bus.emit('phase_committed', { from: Phase.EXPANSION, to: Phase.SPACE });
       await Promise.resolve();
       bus.emit('panel_revealed', { panelId: 'spaceship_panel' });
-      expect(lines()[0].textContent).toContain('Spaceship');
+      expect(lines()[0].textContent).toBe('> ' + COLONY_LINES.panel_spaceship.text);
     });
 
     it('keeps older entries in memory for the LOG tab', () => {

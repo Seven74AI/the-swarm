@@ -331,7 +331,7 @@ describe('Transition SPACE → TRANSCENDENCE', () => {
       narrativeMessage = (payload as { message: string }).message;
     });
     SPACE_TO_TRANSCENDENCE.onEnter!(state, bus);
-    expect(narrativeMessage).toContain('transcend');
+    expect(narrativeMessage).toContain('TRANSCENDS');
   });
 
   it('onEnter returns state with victoryAchieved set to true', () => {

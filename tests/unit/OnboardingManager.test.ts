@@ -55,7 +55,7 @@ describe('OnboardingManager', () => {
       const overlay = document.querySelector('.onboarding-overlay');
       expect(overlay).not.toBeNull();
       const text = document.querySelector('.onboarding-tooltip-text');
-      expect(text?.textContent).toBe('Click to lay an egg!');
+      expect(text?.textContent).toBe('Tap to lay an egg.');
     });
 
     it('does not show tooltip when onboarding is complete', () => {
@@ -99,7 +99,7 @@ describe('OnboardingManager', () => {
       mgr.start();
 
       const text = document.querySelector('.onboarding-tooltip-text');
-      expect(text?.textContent).toBe('Click to lay an egg!');
+      expect(text?.textContent).toBe('Tap to lay an egg.');
     });
 
     it('marks onboarding complete after dismissing all steps', () => {
