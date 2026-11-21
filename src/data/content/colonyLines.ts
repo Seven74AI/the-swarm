@@ -42,7 +42,7 @@ const lines = {
 
   // A panel opens (once per run).
   panel_soldier: { text: 'SOLDIERS CAN TRAIN NOW.', from: Phase.COMBAT },
-  panel_building: { text: 'BUILDINGS CAN RISE NOW.', from: Phase.EXPANSION },
+  panel_building: { text: 'BUILDINGS CAN RISE NOW.', from: Phase.COLONY },
   panel_expedition: { text: 'EXPEDITIONS CAN LEAVE NOW.', from: Phase.EXPANSION },
   panel_spaceship: { text: 'A SHIP CAN BE BUILT NOW.', from: Phase.SPACE },
 
