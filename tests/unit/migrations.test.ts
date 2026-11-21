@@ -702,3 +702,64 @@ describe('v23 → v24: the generator state is in the save (Story 3.1, ADR 0005)'
     expect(rest).toEqual(old);
   });
 });
+
+describe('v24 → v25: every count is a whole number (Story 3.3, FR34)', () => {
+  const v24 = (gs: GameState): SaveData => ({
+    version: 24,
+    timestamp: 1_700_000_000_000,
+    playTimeMs: 0,
+    gameState: gs,
+  });
+  /** A save written while a soft-capped warehouse let fractions of ants mature. */
+  const fractional = (): GameState => {
+    const gs = createInitialState();
+    gs.resources = {
+      ...gs.resources,
+      eggs: 4, larvae: 47.25, workers: 138.875, food: 16.5, voidCrystals: 2.5, antimatter: 0.4, darkMatter: -3,
+    };
+    gs.resourceRemainder = { ...gs.resourceRemainder, food: 0.75 };
+    gs.eggPipeline = { count: 4, progress: 0.5 };
+    gs.larvaPipeline = { count: 47.25, progress: 0.25 };
+    gs.combatResources = { chitin: 3.5, silk: 0, venom: 1 };
+    gs.combatSoldiers = 2.5;
+    gs.entropy = 140;
+    return gs;
+  };
+
+  it('makes every resource a whole number ≥ 0 and keeps the pipelines in step', () => {
+    const out = migrateSave(v24(fractional()), 24, 25);
+    expect(out.version).toBe(25);
+    const gs = out.gameState;
+    for (const [key, value] of Object.entries(gs.resources)) {
+      expect(Number.isInteger(value) && value >= 0, `resources.${key} = ${value}`).toBe(true);
+    }
+    expect(gs.resources.eggs).toBe(gs.eggPipeline.count);
+    expect(gs.resources.larvae).toBe(gs.larvaPipeline.count);
+    for (const value of [...Object.values(gs.combatResources), gs.combatSoldiers]) expect(Number.isInteger(value)).toBe(true);
+  });
+
+  it('never adds what the save did not hold, and carries a credited fraction', () => {
+    const before = fractional();
+    const gs = migrateSave(v24(structuredClone(before)), 24, 25).gameState;
+    const carried = before.resourceRemainder as unknown as Record<string, number>;
+    for (const key of Object.keys(before.resources) as (keyof GameState['resources'])[]) {
+      const held = Math.max(0, before.resources[key]) + (carried[key] ?? 0);
+      expect(gs.resources[key], key).toBeLessThanOrEqual(held);
+    }
+    // A rate-credited stock keeps its fraction in the carry: nothing is lost.
+    expect(gs.resources.food + gs.resourceRemainder.food).toBe(before.resources.food + before.resourceRemainder.food);
+    expect(gs.resourceRemainder.food).toBeGreaterThanOrEqual(0);
+    expect(gs.resourceRemainder.food).toBeLessThan(1);
+  });
+
+  it('keeps entropy a 0–100 meter', () => {
+    const gs = migrateSave(v24(fractional()), 24, 25).gameState;
+    expect(gs.entropy).toBeGreaterThanOrEqual(0);
+    expect(gs.entropy).toBeLessThanOrEqual(100);
+  });
+
+  it('keeps a save that was already whole as it was', () => {
+    const gs = createInitialState();
+    expect(migrateSave(v24(structuredClone(gs)), 24, 25).gameState).toEqual(gs);
+  });
+});

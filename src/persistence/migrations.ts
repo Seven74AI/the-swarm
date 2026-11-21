@@ -618,6 +618,62 @@ function migrateV23toV24(data: SaveData): SaveData {
   return { ...data, version: 24, gameState: { ...gs, rng } as unknown as GameState };
 }
 
+/** A stored count as a whole number ≥ 0 (anything else counts as none). */
+function wholeCount(raw: unknown): number {
+  return typeof raw === 'number' && Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 0;
+}
+
+/** Entropy's meter range (Story 3.3); kept here so the step stays as it shipped. */
+const V25_ENTROPY_MAX = 100;
+
+/**
+ * v24 → v25 (Story 3.3, FR34): every count is a whole number. A soft-capped
+ * warehouse (Lv.6 and up) gave a fractional nest capacity, so fractions of
+ * larvae matured into fractions of workers, and older conversions could leave
+ * fractional crystals. Each resource is floored (and anything below 0 or not
+ * a number becomes 0); a rate-credited stock (food, wood, stone, nectar)
+ * folds its fraction into its carry, so nothing is lost there. The egg and
+ * larva pipelines, combat loot and soldiers are floored the same way, and
+ * entropy, a meter, is held to 0–100. A whole save is unchanged.
+ */
+function migrateV24toV25(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  const obj = (v: unknown): Record<string, unknown> => (v !== null && typeof v === 'object' ? (v as Record<string, unknown>) : {});
+  const oldResources = obj(gs.resources);
+  const oldRemainder = obj(gs.resourceRemainder);
+  const resources: Record<string, unknown> = { ...oldResources };
+  const resourceRemainder: Record<string, unknown> = { ...oldRemainder };
+  for (const [key, raw] of Object.entries(oldResources)) {
+    if (typeof raw !== 'number') continue;
+    if ((V21_CREDITED as readonly string[]).includes(key)) {
+      const carry = typeof oldRemainder[key] === 'number' && Number.isFinite(oldRemainder[key]) ? Math.max(0, oldRemainder[key] as number) : 0;
+      const total = (Number.isFinite(raw) && raw > 0 ? raw : 0) + carry;
+      resources[key] = Math.floor(total);
+      resourceRemainder[key] = total - Math.floor(total);
+    } else {
+      resources[key] = wholeCount(raw);
+    }
+  }
+  const pipeline = (v: unknown) => {
+    const p = obj(v);
+    return typeof p.count === 'number' ? { ...p, count: wholeCount(p.count) } : v;
+  };
+  const counts = (v: unknown) =>
+    Object.fromEntries(Object.entries(obj(v)).map(([k, n]) => [k, typeof n === 'number' ? wholeCount(n) : n]));
+  const next: Record<string, unknown> = { ...gs, resources };
+  for (const key of ['eggPipeline', 'larvaPipeline', 'soldierPipeline']) {
+    if (gs[key] !== undefined) next[key] = pipeline(gs[key]);
+  }
+  if (gs.resourceRemainder !== undefined) next.resourceRemainder = resourceRemainder;
+  if (gs.combatResources !== undefined) next.combatResources = counts(gs.combatResources);
+  if (typeof gs.combatSoldiers === 'number') next.combatSoldiers = wholeCount(gs.combatSoldiers);
+  if (gs.soldiers !== undefined) next.soldiers = counts(gs.soldiers);
+  if (typeof gs.entropy === 'number') {
+    next.entropy = Number.isFinite(gs.entropy) ? Math.min(V25_ENTROPY_MAX, Math.max(0, gs.entropy)) : 0;
+  }
+  return { ...data, version: 25, gameState: next as unknown as GameState };
+}
+
 /** Registry of migration functions keyed by source version */
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
@@ -643,6 +699,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   21: migrateV21toV22,
   22: migrateV22toV23,
   23: migrateV23toV24,
+  24: migrateV24toV25,
 };
 
 /**

@@ -34,6 +34,7 @@ import {
   isPrestigeAvailable,
 } from '../systems/PrestigeSystem';
 import { getOfflineCapMs, getOfflineEfficiency } from '../systems/OfflineProgression';
+import { entropyMeter } from '../systems/EntropySystem';
 import type { PrestigeUpgradeId } from '../data/prestigeTree';
 import type { ResearchProjectId, ResearchProjectStatus } from './GameState';
 import { conditionMet, goalFor, goalPercent, type GoalCondition, type Transition } from '../phases/transitions';
@@ -454,6 +455,9 @@ export const selectProjectedLegacyPoints = computed(() => {
 export const selectOfflineEfficiency = computed(() => getOfflineEfficiency(gameState.value));
 /** The offline cap in ms (Story 2.4), raised by the Legacy cap nodes (Story 2.8). */
 export const selectOfflineAwayLimitMs = computed(() => getOfflineCapMs(gameState.value));
+
+/** Entropy as shown (Story 3.3): a whole percent, 0–100. A meter, not a resource. */
+export const selectEntropyMeter = computed(() => entropyMeter(gameState.value));
 
 const canPurchaseUpgrades = new Map<PrestigeUpgradeId, ReadonlySignal<boolean>>();
 /** Whether a Legacy-tree upgrade can be bought now. */

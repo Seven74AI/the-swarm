@@ -101,6 +101,16 @@ export function tickEntropy(state: GameState, dtSec: number = 1): GameState {
 }
 
 /**
+ * Entropy as the player sees it (Story 3.3, FR34): a meter from 0 to
+ * `ENTROPY_MAX`, rounded to a whole percent. Entropy is not a resource: it
+ * lives outside `state.resources`, accumulates as a fraction and is never
+ * spent, so only the display rounds it.
+ */
+export function entropyMeter(state: GameState): number {
+  return Math.min(ENTROPY_MAX, Math.max(0, Math.round(state.entropy)));
+}
+
+/**
  * Check if entropy is currently triggering a threshold event.
  * Returns true if entropy >= 25 (the first threshold).
  */
