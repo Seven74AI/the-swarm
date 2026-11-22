@@ -71,6 +71,7 @@ function BuildingCard({ def, selected, buy }: { def: BuildingCardDef; selected: 
             verb="BUY"
             target={`${def.name} LV.${level + 1}`}
             repeat
+            gain={{ unit: 'LV' }}
             disabled={affordable ? false : maxed ? 'BUILT' : open ? 'NOT ENOUGH RESOURCES' : 'NOT YET'}
             onPress={() => buy(def.id)}
             data-action="buy-building"

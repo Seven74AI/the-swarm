@@ -1,4 +1,6 @@
-import { useMemo } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import type { ComponentChildren } from 'preact';
+import { feelBalance } from '../../data/balance/feel';
 import type { NestView } from '../../state/nestView';
 import { formatFull } from '../../utils/format';
 import { Sep } from '../primitives/Deco';
@@ -21,12 +23,36 @@ import './scenes.css';
  * a group labelled with its counts, and each chamber's label is a button
  * with that chamber's exact counts, from the view, never from the drawn ants.
  *
- * Hooks: `[data-scene="nest"]`, `svg [data-scene-part]`, `button[data-chamber]`.
+ * Game feel (Story 8.9, UX-DR37): a creature that arrives after the first
+ * draw is wrapped in `[data-arrive=<kind>]`: an egg appears beside the queen,
+ * a larva after it, a worker walks into its chamber (scenes.css, once, over
+ * `feelBalance.arriveMs`; none under reduced motion). The camera pull-back is
+ * a prop: Story 8.7's container passes `zoom` (1 = close) and the drawing
+ * eases to it over `feelBalance.cameraPullBackMs` (`[data-camera]`).
+ *
+ * Hooks: `[data-scene="nest"]`, `svg [data-scene-part]`, `button[data-chamber]`,
+ * `[data-arrive]`, `[data-camera=close|pulled-back]`.
  */
 
 export interface NestSceneProps {
   readonly view: NestView;
   readonly onChamber: (id: ChamberId) => void;
+  /** The camera's scale, 1 = close (default). Below 1 the scene has pulled back (Story 8.7 sets it). */
+  readonly zoom?: number;
+}
+
+type ArriveKind = 'egg' | 'larva' | 'worker';
+
+/** Marks a creature as arriving if it first draws after the scene's first draw; the mark is fixed at mount. */
+function Arrival({ kind, live, children }: { kind: ArriveKind; live: boolean; children: ComponentChildren }) {
+  const [arriving] = useState(live);
+  return arriving ? (
+    <g data-arrive={kind} class={`nest-svg__arrive nest-svg__arrive--${kind}`}>
+      {children}
+    </g>
+  ) : (
+    <>{children}</>
+  );
 }
 
 const count = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
@@ -114,12 +140,23 @@ function Queen({ t }: { t: Token }) {
   );
 }
 
-export function NestScene({ view, onChamber }: NestSceneProps) {
+export function NestScene({ view, onChamber, zoom = 1 }: NestSceneProps) {
   const layout = useMemo(() => nestLayout(view), [view]);
+  // False during the first draw: what is there when the scene opens doesn't arrive.
+  const drawn = useRef(false);
+  useEffect(() => {
+    drawn.current = true;
+  }, []);
+  const live = drawn.current;
   const soilH = layout.height - layout.surfaceY;
   return (
     <div class="nest-scene-view" data-scene="nest" role="group" aria-label={nestAriaLabel(view)}>
-      <div class="nest-stage" data-crt-surface="">
+      <div
+        class="nest-stage"
+        data-crt-surface=""
+        data-camera={zoom < 1 ? 'pulled-back' : 'close'}
+        style={{ '--scene-zoom': String(zoom), '--camera-ms': `${feelBalance.cameraPullBackMs}ms`, '--arrive-ms': `${feelBalance.arriveMs}ms` }}
+      >
         <svg class="nest-svg" data-line-work="" viewBox={`0 0 ${layout.width} ${layout.height}`} aria-hidden="true" focusable="false">
           <defs>
             <pattern id="nest-grain" width={14} height={12} patternUnits="userSpaceOnUse">
@@ -151,14 +188,20 @@ export function NestScene({ view, onChamber }: NestSceneProps) {
             <path key={c.id} data-scene-part="chamber" data-chamber-wall={c.id} class="nest-svg__chamber" d={c.wall} />
           ))}
           {layout.eggs.map((t, i) => (
-            <ellipse key={i} data-scene-part="egg" class="nest-svg__egg" rx={4} ry={2.8} transform={at(t)} />
+            <Arrival key={i} kind="egg" live={live}>
+              <ellipse data-scene-part="egg" class="nest-svg__egg" rx={4} ry={2.8} transform={at(t)} />
+            </Arrival>
           ))}
           {layout.larvae.map((t, i) => (
-            <path key={i} data-scene-part="larva" class="nest-svg__larva" stroke-linecap="round" d="M-4 2 q4 -8 8 0" transform={at(t)} />
+            <Arrival key={i} kind="larva" live={live}>
+              <path data-scene-part="larva" class="nest-svg__larva" stroke-linecap="round" d="M-4 2 q4 -8 8 0" transform={at(t)} />
+            </Arrival>
           ))}
           <Queen t={layout.queen} />
           {layout.workers.map((t, i) => (
-            <Ant key={i} t={t} />
+            <Arrival key={i} kind="worker" live={live}>
+              <Ant t={t} />
+            </Arrival>
           ))}
         </svg>
         {layout.chambers.map((c) => (

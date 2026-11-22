@@ -76,3 +76,38 @@ describe('NestScene (Story 8.5)', () => {
     expect(opened).toEqual(['brood', 'workers']);
   });
 });
+
+describe('NestScene game feel (Story 8.9)', () => {
+  afterEach(cleanup);
+
+  it('a creature that arrives after the first draw arrives (an egg by the queen, a larva, a worker walking in); the first draw does not', () => {
+    const r = render(<NestScene view={view(2, 2, 1)} onChamber={() => {}} />);
+    expect(r.container.querySelectorAll('[data-arrive]').length).toBe(0);
+    r.rerender(<NestScene view={view(3, 3, 2)} onChamber={() => {}} />);
+    for (const kind of ['egg', 'larva', 'worker']) {
+      const arrived = r.container.querySelectorAll(`[data-arrive="${kind}"]`);
+      expect(arrived.length, kind).toBe(1);
+      expect(arrived[0].querySelector(`[data-scene-part="${kind}"]`), kind).not.toBeNull();
+    }
+  });
+
+  it('a creature keeps its arrival mark only from the draw it arrived in, never on the ones already there', () => {
+    const r = render(<NestScene view={view(1, 1, 0)} onChamber={() => {}} />);
+    r.rerender(<NestScene view={view(1, 2, 0)} onChamber={() => {}} />);
+    r.rerender(<NestScene view={view(1, 3, 0)} onChamber={() => {}} />);
+    const eggs = [...r.container.querySelectorAll('[data-scene-part="egg"]')];
+    expect(eggs[0].closest('[data-arrive]')).toBeNull();
+    expect(eggs[1].closest('[data-arrive]')).not.toBeNull();
+    expect(eggs[2].closest('[data-arrive]')).not.toBeNull();
+  });
+
+  it('takes a camera zoom from its container (Story 8.7) and eases to it; close by default', () => {
+    const r = render(<NestScene view={view(1, 1, 1)} onChamber={() => {}} />);
+    const stage = () => r.container.querySelector<HTMLElement>('[data-camera]')!;
+    expect(stage().getAttribute('data-camera')).toBe('close');
+    r.rerender(<NestScene view={view(1, 1, 1)} onChamber={() => {}} zoom={0.5} />);
+    expect(stage().getAttribute('data-camera')).toBe('pulled-back');
+    expect(stage().style.getPropertyValue('--scene-zoom')).toBe('0.5');
+    expect(stage().style.getPropertyValue('--camera-ms')).toMatch(/^\d+ms$/);
+  });
+});

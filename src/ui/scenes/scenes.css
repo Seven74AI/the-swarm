@@ -149,3 +149,39 @@
   margin-top: 0.25rem;
   color: var(--color-dim);
 }
+
+/*
+ * Game feel (Story 8.9, UX-DR37). A creature that arrives fades in once (one
+ * luminance change, flash rule UX-DR38): an egg beside the queen, a larva, and
+ * a worker that walks in from the tunnel side. Durations come from
+ * `feelBalance` through `--arrive-ms` and `--camera-ms` on the stage.
+ */
+.nest-svg__arrive {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: nest-arrive var(--arrive-ms, 0ms) ease-out both;
+}
+.nest-svg__arrive--worker {
+  animation-name: nest-walk-in;
+}
+@keyframes nest-arrive {
+  from { opacity: 0; transform: scale(0.4); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nest-walk-in {
+  from { opacity: 0; transform: translate(-18px, -6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The camera (Story 8.7 sets the zoom): the drawing eases to it. */
+.nest-svg {
+  transform: scale(var(--scene-zoom, 1));
+  transition: transform var(--camera-ms, 0ms) ease-out;
+}
+
+:root[data-reduced-motion="true"] .nest-svg__arrive {
+  animation: none;
+}
+:root[data-reduced-motion="true"] .nest-svg {
+  transition: none;
+}

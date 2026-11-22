@@ -9,25 +9,49 @@ import type { EventBus } from '../engine/EventBus';
 import type { SwarmEvents } from '../engine/events';
 import type { BattleResult } from '../systems/BattleSystem';
 import type { Audio, SoundCue } from './audio';
-import type { HapticPattern, Haptics } from './haptics';
+import type { Haptics } from './haptics';
+import { GAME_FEEL, hapticFor } from './gameFeel';
 
-/** Play the juice-table patterns (EXPERIENCE.md, Game Feel & Juice). Returns an unbind. */
+/**
+ * Play the game-feel table's haptics (`GAME_FEEL`, Story 8.9) for its events.
+ * A press row vibrates at the press instead (`bindPressHaptics`). Returns an unbind.
+ */
 export function bindHapticFeedback(bus: EventBus, haptics: Haptics): () => void {
-  const play = (pattern: HapticPattern) => () => haptics.play(pattern);
-  const onEgg = play('light');
-  const onDecision = play('light');
-  const onPhase = play('heavy');
-  const onBattle = ({ victory }: { victory: boolean }) => haptics.play(victory ? 'medium' : 'double');
-  bus.subscribe('egg_clicked', onEgg);
-  bus.subscribe('decision_spawned', onDecision);
-  bus.subscribe('battle_completed', onBattle);
-  bus.subscribe('phase_committed', onPhase);
+  const unbinds: Array<() => void> = [];
+  for (const row of GAME_FEEL) {
+    if (row.haptic === 'none' || row.press) continue;
+    for (const event of row.events) {
+      const fn = (payload: unknown) => {
+        const pattern = hapticFor(row, payload);
+        if (pattern) haptics.play(pattern);
+      };
+      bus.subscribe(event, fn as never);
+      unbinds.push(() => bus.unsubscribe(event, fn as never));
+    }
+  }
   return () => {
-    bus.unsubscribe('egg_clicked', onEgg);
-    bus.unsubscribe('decision_spawned', onDecision);
-    bus.unsubscribe('battle_completed', onBattle);
-    bus.unsubscribe('phase_committed', onPhase);
+    for (const u of unbinds.splice(0)) u();
   };
+}
+
+/** A button that takes the press haptic: a hold-repeat buy or assign (`Button` marks it). */
+const PRESS_SELECTOR = '[data-feel="press"]:not([aria-disabled="true"])';
+
+/**
+ * "Light on press" for a buy (Story 8.9): one haptic at pointer-down on a
+ * `[data-feel="press"]` button, so a hold vibrates once, not at every repeat.
+ * The button's inverse state is the visual of the same press. Returns an unbind.
+ */
+export function bindPressHaptics(root: Pick<EventTarget, 'addEventListener' | 'removeEventListener'>, haptics: Haptics): () => void {
+  const pattern = GAME_FEEL.find((r) => r.press)?.haptic;
+  const onDown = (e: Event) => {
+    if (typeof pattern !== 'string' || pattern === 'none') return;
+    if ((e as PointerEvent).button !== undefined && (e as PointerEvent).button !== 0) return;
+    const target = e.target as Element | null;
+    if (typeof target?.closest === 'function' && target.closest(PRESS_SELECTOR)) haptics.play(pattern);
+  };
+  root.addEventListener('pointerdown', onDown, { capture: true, passive: true });
+  return () => root.removeEventListener('pointerdown', onDown, { capture: true });
 }
 
 /**

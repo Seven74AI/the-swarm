@@ -8,6 +8,7 @@ import { LayEggButton } from '../../../../src/ui/nest/LayEggButton';
 import { HOLD_DELAY_MS, REPEAT_INTERVAL_MS } from '../../../../src/ui/primitives/holdRepeat';
 import { testActions } from '../../helpers/actions';
 import type { LayMode } from '../../../../src/platform/settings';
+import { feelBalance } from '../../../../src/data/balance/feel';
 
 /**
  * Story 1.22 (FR1, FR41): LAY EGG lays through the action, answers each tap
@@ -125,5 +126,41 @@ describe('LayEggButton (Story 1.22)', () => {
     gameState.value = { ...s, resources: { ...s.resources, workers: s.resources.nestCapacity } };
     const { container } = render(<LayEggButton lay={() => ({ ok: true })} variant="primary" layMode={signal<LayMode>('hold')} />);
     expect(container.querySelector('#click-egg')!.classList.contains('click-button-at-capacity')).toBe(true);
+  });
+});
+
+describe('LayEggButton game feel (Story 8.9)', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    gameState.value = initial;
+  });
+
+  it('the +N types in next to EGG', () => {
+    const { button, container } = setup();
+    act(() => tap(button));
+    const particle = container.querySelector('.click-particle')!;
+    expect(particle.querySelector('[data-type-in]')?.textContent).toMatch(/^\+\d+$/);
+    expect(particle.textContent).toMatch(/EGG$/);
+  });
+
+  it('a long hold floats +N at most floatMaxPerSec times in any second', () => {
+    const { button, container } = setup();
+    const created: number[] = [];
+    const seen = new Set<Element>();
+    fireEvent.pointerDown(button, { pointerId: 1, button: 0 });
+    for (let t = 0; t < 3000; t += 10) {
+      act(() => void vi.advanceTimersByTime(10));
+      for (const el of container.querySelectorAll('.click-particle')) if (!seen.has(el)) (seen.add(el), created.push(t));
+    }
+    fireEvent.pointerUp(button, { pointerId: 1, button: 0 });
+    expect(created.length).toBeGreaterThan(1);
+    for (const t of created) expect(created.filter((u) => u >= t && u < t + 1000).length).toBeLessThanOrEqual(feelBalance.floatMaxPerSec);
+  });
+
+  it('is not marked for the buy press haptic: each lay already plays its own tick', () => {
+    const { button } = setup();
+    expect(button.getAttribute('data-feel')).not.toBe('press');
   });
 });

@@ -1,0 +1,18 @@
+/*
+ * Typed-in text (Story 8.9). One clip step per character (Swarm Mono is
+ * monospaced), left to right. No color: it reveals what is already drawn.
+ * A single reveal is one luminance change per element (flash rule, UX-DR38).
+ */
+.type-in {
+  display: inline-block;
+  animation: type-in var(--type-in-ms, 0ms) steps(var(--type-in-chars, 1), end) both;
+}
+
+@keyframes type-in {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+:root[data-reduced-motion="true"] .type-in {
+  animation: none;
+}

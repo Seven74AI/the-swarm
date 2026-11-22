@@ -7,6 +7,7 @@ import { formatFull } from '../../utils/format';
 import { Abbr, decorate } from '../primitives/Deco';
 import { RESOURCE_BY_ID } from '../shell/resourceCatalog';
 import '../war/war.css';
+import { TypeIn } from '../primitives/TypeIn';
 
 /**
  * The battle summary sheet (Story 1.25, UX-DR25 in part), opened at the
@@ -73,7 +74,7 @@ export function BattleSummarySheet({
   return (
     <ModalSheet
       action={change && onChange ? <Change advice={change} onChange={onChange} /> : undefined}
-      headline={decorate(HEADLINE[result.outcome])}
+      headline={<TypeIn text={HEADLINE[result.outcome]}>{decorate(HEADLINE[result.outcome])}</TypeIn>}
       id="battle-result"
       class="battle-result"
       data-battle-summary=""

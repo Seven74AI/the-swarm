@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, useState } from 'preact/hooks';
 import { useComputed, useSignal } from '@preact/signals';
 import { HOLD_DELAY_MS, repeatDelay } from './holdRepeat';
 import { decorate } from './Deco';
+import { Floats, useFloats } from './floats';
 import './Button.css';
 
 export type ButtonVariant = 'primary' | 'secondary';
@@ -21,8 +22,10 @@ export interface ButtonProps {
    * is set. Returning a refusal (an `ActionResult` with `ok: false`) stops the repeat.
    */
   onPress: () => { readonly ok: boolean } | void;
-  /** Hold repeats the action (buy, assign, lay). */
+  /** Hold repeats the action (buy, assign, lay). Such a button takes the press haptic (`data-feel="press"`, Story 8.9). */
   repeat?: boolean;
+  /** What one accepted press gains, floated as `+N UNIT` (at most 8 a second, Story 8.9). */
+  gain?: { readonly amount?: number; readonly unit: string };
   /** Why the button can't be used right now. Shown on the cost line; the button never fires. */
   disabled?: string | false;
   /** The cost line under the label (ignored while `disabled` gives a reason). */
@@ -61,9 +64,13 @@ interface Hold {
  *   reduced motion is in effect (`:root[data-reduced-motion="true"]`).
  *   With the single inversion per press, this keeps a held button under
  *   3 luminance changes per second (flash rule, UX-DR38).
+ * - Game feel (Story 8.9): a `repeat` button is `data-feel="press"`, which main
+ *   answers with one light haptic at pointer-down (`bindPressHaptics`); with
+ *   `gain`, each accepted press floats `+N UNIT` (`floats.tsx`, at most 8 a second).
  */
 export function Button(props: ButtonProps) {
-  const { variant = 'secondary', verb, target, label, onPress, repeat = false, disabled = false, cost, id, className, ...hooks } = props;
+  const { variant = 'secondary', verb, target, label, onPress, repeat = false, gain, disabled = false, cost, id, className, ...hooks } = props;
+  const floats = useFloats();
   const pressed = useSignal(false);
   const blink = useComputed(() => String(!pressed.value));
   const [blinkRun, setBlinkRun] = useState(0);
@@ -88,7 +95,9 @@ export function Button(props: ButtonProps) {
   /** Run the action once; true while it is accepted. */
   function fire(): boolean {
     const result = press.current();
-    return !(result && result.ok === false);
+    const ok = !(result && result.ok === false);
+    if (ok && gain) floats.spawn(gain.amount ?? 1);
+    return ok;
   }
 
   function step(): void {
@@ -150,6 +159,7 @@ export function Button(props: ButtonProps) {
       data-variant={isDisabled ? 'disabled' : variant}
       data-kind={variant}
       data-pressed={pressed}
+      data-feel={repeat ? 'press' : undefined}
       aria-disabled={isDisabled ? 'true' : undefined}
       aria-describedby={costLine != null ? costId : undefined}
       onPointerDown={onPointerDown}
@@ -190,6 +200,7 @@ export function Button(props: ButtonProps) {
           {decorate(costLine)}
         </span>
       )}
+      {gain && <Floats floats={floats.list} unit={gain.unit} />}
     </button>
   );
 }
