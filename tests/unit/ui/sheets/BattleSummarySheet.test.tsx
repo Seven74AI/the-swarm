@@ -125,3 +125,16 @@ describe('battle summary: the cause and the change (Story 4.3)', () => {
     expect(none.sheet()!.querySelector('[data-cause]')).not.toBeNull();
   });
 });
+
+describe('battle summary game feel (Story 8.9)', () => {
+  it('the headline types in, for every outcome', () => {
+    for (const outcome of ['victory', 'defeat', 'draw'] as const) {
+      const { sheet } = open(result({ outcome, victory: outcome === 'victory' }));
+      const typed = sheet()!.querySelector('[data-sheet-headline] [data-type-in]');
+      expect(typed, outcome).not.toBeNull();
+      expect(typed!.getAttribute('style') ?? '', outcome).toContain('--type-in-chars');
+      cleanup();
+      document.body.replaceChildren();
+    }
+  });
+});

@@ -43,6 +43,7 @@ function RecruitRow({ item, actions }: { item: (typeof KINDS)[number]; actions: 
         verb="RECRUIT"
         target={item.label}
         repeat
+        gain={{ unit: item.label }}
         onPress={item.verb === 'scout' ? actions.recruitScout : actions.recruitWarrior}
         disabled={reason}
         cost={

@@ -8,6 +8,7 @@
 .swarm-btn {
   appearance: none;
   box-sizing: border-box;
+  position: relative; /* anchors its floating +N (Story 8.9) */
   display: inline-flex;
   flex-direction: column;
   justify-content: center;

@@ -9,6 +9,7 @@ import { ModalSheet } from '../shell/Sheet';
 import { Button } from '../primitives/Button';
 import { Meter } from '../primitives/Meter';
 import type { CoachMarkMemory } from '../primitives/CoachMark';
+import { TypeIn } from '../primitives/TypeIn';
 
 /**
  * The decision sheet (Story 1.28, UX-DR23, N3; Story 1.14 made it a sheet).
@@ -101,7 +102,7 @@ export function DecisionSheet({ deps }: { deps: DecisionSheetDeps }) {
   if (!open || !def) return null;
   return (
     <ModalSheet
-      headline={def.title}
+      headline={<TypeIn text={def.title} />}
       id="decision-popup"
       headlineClass="decision-popup-title"
       dismissible={false}

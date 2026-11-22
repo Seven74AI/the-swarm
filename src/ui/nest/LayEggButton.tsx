@@ -2,15 +2,14 @@ import type { ReadonlySignal } from '@preact/signals';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { selectEffectiveNestCapacity, selectStats, selectWorkers } from '../../state/selectors';
 import type { LayMode } from '../../platform/settings';
-import { formatInt } from '../../utils/format';
 import { Button } from '../primitives/Button';
 import { REPEAT_INTERVAL_MS } from '../primitives/holdRepeat';
+import { Floats, useFloats } from '../primitives/floats';
+import { feelBalance } from '../../data/balance/feel';
 import './nest.css';
 
 /** How long a `+N` particle lives (its CSS float animation is shorter). */
-export const PARTICLE_MS = 1000;
-/** At most this many particles at once, so a held or toggled lay never piles them up. */
-const MAX_PARTICLES = 6;
+export const PARTICLE_MS = feelBalance.floatLifeMs;
 
 export interface LayEggButtonProps {
   /** Lays eggs: `actions.layEgg`. */
@@ -19,11 +18,6 @@ export interface LayEggButtonProps {
   variant: 'primary' | 'secondary';
   /** The lay-mode setting (Phase 1): hold repeats, toggle starts and stops laying. Only the primary action toggles. */
   layMode?: ReadonlySignal<LayMode>;
-}
-
-interface Particle {
-  readonly id: number;
-  readonly text: string;
 }
 
 /**
@@ -41,39 +35,20 @@ interface Particle {
  * the primary action toggles instead: one tap starts laying at
  * `REPEAT_INTERVAL_MS` (the same rate), the next tap stops it
  * (`[data-laying]`).
+ *
+ * Game feel (Story 8.9): the `+N` types in next to EGG, at most
+ * `feelBalance.floatMaxPerSec` times a second (`useFloats`; faster lays add
+ * up into the next `+N`). The button is `data-feel="lay"`, not `press`: each
+ * lay's `egg_clicked` already plays the light tick.
  */
 export function LayEggButton({ lay, variant, layMode }: LayEggButtonProps) {
   const toggle = variant === 'primary' && layMode?.value === 'toggle';
   const cap = selectEffectiveNestCapacity.value;
   const atCapacity = cap > 0 && selectWorkers.value >= cap;
   const [laying, setLaying] = useState(false);
-  const [particles, setParticles] = useState<readonly Particle[]>([]);
-  const nextId = useRef(0);
-  const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
+  const floats = useFloats();
   const layRef = useRef(lay);
   layRef.current = lay;
-
-  useEffect(
-    () => () => {
-      for (const t of timers.current) clearTimeout(t);
-      timers.current.clear();
-    },
-    [],
-  );
-
-  function remove(id: number): void {
-    setParticles((list) => list.filter((p) => p.id !== id));
-  }
-
-  function spawn(text: string): void {
-    const id = nextId.current++;
-    setParticles((list) => [...list, { id, text }].slice(-MAX_PARTICLES));
-    const t = setTimeout(() => {
-      timers.current.delete(t);
-      remove(id);
-    }, PARTICLE_MS);
-    timers.current.add(t);
-  }
 
   /** One lay through the action, with its `+N`. */
   function layOnce(): { readonly ok: boolean } {
@@ -81,7 +56,7 @@ export function LayEggButton({ lay, variant, layMode }: LayEggButtonProps) {
     const result = layRef.current();
     if (result.ok) {
       const laid = Math.floor(selectStats.peek().totalEggsLaid - before);
-      if (laid > 0) spawn(`+${formatInt(laid)} EGG`);
+      if (laid > 0) floats.spawn(laid);
     }
     return result;
   }
@@ -115,12 +90,9 @@ export function LayEggButton({ lay, variant, layMode }: LayEggButtonProps) {
         repeat={!toggle}
         onPress={toggle ? () => setLaying((on) => !on) : layOnce}
         data-action="lay-egg"
+        data-feel="lay"
       />
-      {particles.map((p) => (
-        <span key={p.id} class="click-particle" aria-hidden="true" onAnimationEnd={() => remove(p.id)}>
-          {p.text}
-        </span>
-      ))}
+      <Floats floats={floats.list} unit="EGG" className="click-particle" />
     </div>
   );
 }

@@ -173,6 +173,7 @@ function TrainButton({ actions }: { actions: WarActions }) {
       verb="TRAIN"
       target="SOLDIER"
       repeat
+      gain={{ unit: 'SOLDIER' }}
       onPress={actions.trainSoldier}
       disabled={reason}
       cost={

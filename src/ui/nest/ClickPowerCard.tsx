@@ -60,6 +60,7 @@ export function ClickPowerCard({ buy, place = 'nest' }: { buy: () => { readonly 
           verb="BUY"
           target={`CLICK POWER LV.${level + 1}`}
           repeat
+          gain={{ unit: 'LV' }}
           disabled={affordable ? false : 'NOT ENOUGH FOOD'}
           onPress={buy}
           data-action="buy-click-power"

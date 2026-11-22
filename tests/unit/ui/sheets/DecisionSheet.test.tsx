@@ -169,3 +169,12 @@ describe('decision sheet', () => {
     expect(sheets.state.value.queue).toHaveLength(0);
   });
 });
+
+describe('decision sheet game feel (Story 8.9)', () => {
+  it('the sheet rises and its headline types in, with the whole title there to read', () => {
+    const def = byPolicy('costly');
+    show(def);
+    const typed = popup()!.querySelector('[data-sheet-headline] [data-type-in]');
+    expect(typed?.textContent).toBe(def.title);
+  });
+});
