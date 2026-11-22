@@ -50,6 +50,8 @@ export interface WebPlatformEnv extends CapabilityEnv, BrowserEnv, Omit<Lifecycl
   readonly matchMedia?: ViewportEnv['matchMedia'];
   readonly navigator?: CapabilityEnv['navigator'] & { readonly storage?: StorageManagerLike };
   readonly localStorage?: RemovableStore;
+  /** The browser's file helpers and the capability probes' text-scale read share it. */
+  readonly document?: NonNullable<BrowserEnv['document']> & NonNullable<CapabilityEnv['document']>;
 }
 
 /** `navigator.storage`, or undefined where it is missing or reading it throws. */

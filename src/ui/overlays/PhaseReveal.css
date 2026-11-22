@@ -68,6 +68,7 @@
   letter-spacing: 0.1em;
   overflow-wrap: anywhere;
   animation: phase-reveal-name 600ms ease-out both;
+  text-shadow: var(--crt-text-glow); /* accent text of 15 px and up (Story 8.4) */
 }
 
 .phase-reveal__line {
@@ -77,6 +78,7 @@
   font-size: var(--type-value);
   line-height: 1.4;
   color: var(--color-accent);
+  text-shadow: var(--crt-text-glow); /* accent text of 15 px and up (Story 8.4) */
 }
 .phase-reveal__line::after {
   content: "\2588" / "";

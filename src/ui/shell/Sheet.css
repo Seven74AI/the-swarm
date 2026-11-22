@@ -66,6 +66,7 @@
   line-height: 1.2;
   letter-spacing: 0.02em;
   color: var(--color-accent);
+  text-shadow: var(--crt-text-glow); /* accent text of 15 px and up (Story 8.4) */
 }
 .sheet__headline:focus {
   outline: none;

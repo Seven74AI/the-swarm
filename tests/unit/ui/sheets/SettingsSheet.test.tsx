@@ -26,6 +26,8 @@ const caps = (over: Partial<Capabilities> = {}): Capabilities => ({
   standalone: false,
   reducedMotion: false,
   moreContrast: false,
+  reducedTransparency: false,
+  textScale: 1,
   mobile: false,
   ...over,
 });
@@ -122,6 +124,24 @@ describe('settings screen', () => {
     open();
     expect(options('crt').map((o) => o.dataset.option).sort()).toEqual(['full', 'off', 'scene']);
     expect(row('crt').textContent).toMatch(/CONTRAST/);
+  });
+
+  it('says why CRT effects are off when the device turned them off at boot, until a choice is made (Story 8.4)', () => {
+    open({}, caps({ moreContrast: true }));
+    const notes = () => [...row('crt').querySelectorAll('[data-setting-note]')].map((n) => n.textContent ?? '');
+    expect(notes().some((n) => /OFF/.test(n) && /DEVICE/.test(n))).toBe(true);
+    act(() => options('crt').find((o) => o.dataset.option === 'scene')!.click());
+    expect(notes().some((n) => /DEVICE/.test(n))).toBe(false);
+  });
+
+  it('says CRT effects are off under reduced motion (Story 8.4)', () => {
+    open({}, caps({ reducedMotion: true }));
+    expect(row('crt').textContent).toMatch(/REDUCED MOTION/);
+  });
+
+  it('names no reason when CRT effects are on', () => {
+    open();
+    expect(row('crt').textContent).not.toMatch(/DEVICE|REDUCED MOTION/);
   });
 
   it('offers decision timers normal, ×2 and off', () => {

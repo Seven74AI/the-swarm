@@ -1,6 +1,6 @@
 import { useContext, useLayoutEffect, useState } from 'preact/hooks';
 import type { Capabilities } from '../../platform/capabilities';
-import type { KeyBindings, Settings, SettingsStore, ShortcutId } from '../../platform/settings';
+import type { CrtOffReason, KeyBindings, Settings, SettingsStore, ShortcutId } from '../../platform/settings';
 import { Button } from '../primitives/Button';
 import { ModalSheet, SheetContext } from '../shell/Sheet';
 import type { SheetController } from '../shell/SheetController';
@@ -15,9 +15,10 @@ import './SettingsSheet.css';
  * tap calls `store.update` at once, which stores it under the settings key.
  *
  * Rows: sound, haptics, reduced motion, CRT effects (FULL says it lowers
- * contrast), decision timers, confirm style, hold duration, lay mode, keyboard
- * shortcuts on/off and one remap control per shortcut, then PAUSE (Story
- * 2.10: closes the settings and pauses; in-session only), EXPORT SAVE and
+ * contrast; a second line says why the effects are OFF, Story 8.4), decision
+ * timers, confirm style, hold duration, lay mode, keyboard shortcuts on/off
+ * and one remap control per shortcut, then PAUSE (Story 2.10: closes the
+ * settings and pauses; in-session only), EXPORT SAVE and
  * IMPORT SAVE (Story 2.11: the save only, never these settings), REPLAY INTRO
  * EXPORT DIAGNOSTICS and EXPORT TELEMETRY (Story 3.10: the local play
  * telemetry, as a file; nothing is ever sent). The web build has no notifications toggle (owner,
@@ -31,8 +32,8 @@ import './SettingsSheet.css';
  */
 
 export interface SettingsScreenDeps {
-  /** The settings store (Story 1.10), from main. */
-  readonly store: Pick<SettingsStore, 'settings' | 'update'>;
+  /** The settings store (Story 1.10), from main. `crtOffBy` says why CRT effects are OFF (Story 8.4). */
+  readonly store: Pick<SettingsStore, 'settings' | 'update'> & Partial<Pick<SettingsStore, 'crtOffBy'>>;
   readonly capabilities: Capabilities;
   /** Download the diagnostics file (main builds it). */
   readonly onExportDiagnostics: () => void;
@@ -56,8 +57,15 @@ interface ChoiceRow<K extends ChoiceKey = ChoiceKey> {
   readonly key: K;
   readonly title: string;
   readonly options: readonly { readonly value: Settings[K]; readonly label: string }[];
-  readonly note?: (caps: Capabilities) => string | null;
+  /** Lines under the row; `crtOff` is why CRT effects are OFF though the choice isn't. */
+  readonly note?: (caps: Capabilities, crtOff: CrtOffReason | null) => string | readonly string[] | null;
 }
+
+/** Why CRT effects are OFF in effect (Story 8.4). */
+const CRT_OFF_NOTE: Readonly<Record<CrtOffReason, string>> = {
+  reducedMotion: 'OFF WHILE REDUCED MOTION IS ON.',
+  device: 'OFF FOR NOW: THIS DEVICE ASKS FOR MORE CONTRAST OR LARGER TEXT. PICK A SETTING TO USE IT.',
+};
 
 const ON_OFF = [
   { value: true, label: 'ON' },
@@ -95,7 +103,10 @@ const ROWS: readonly ChoiceRow[] = [
       { value: 'full', label: 'FULL' },
       { value: 'off', label: 'OFF' },
     ],
-    note: () => 'FULL PUTS SCANLINES OVER TEXT TOO: CONTRAST IS REDUCED.',
+    note: (_caps, crtOff) => [
+      'FULL PUTS SCANLINES OVER TEXT TOO: CONTRAST IS REDUCED.',
+      ...(crtOff ? [CRT_OFF_NOTE[crtOff]] : []),
+    ],
   }),
   row({
     key: 'decisionTimers',
@@ -169,7 +180,8 @@ export function rebind(bindings: KeyBindings, id: ShortcutId, key: string): KeyB
 function Choices({ r, store, caps }: { r: ChoiceRow; store: SettingsScreenDeps['store']; caps: Capabilities }) {
   const current = store.settings.value[r.key];
   const titleId = `setting-${r.key}`;
-  const note = r.note?.(caps) ?? null;
+  const note = r.note?.(caps, store.crtOffBy?.value ?? null) ?? null;
+  const notes = note === null ? [] : typeof note === 'string' ? [note] : note;
   return (
     <li class="settings-row" data-setting={r.key}>
       <span class="settings-row__title" id={titleId}>
@@ -189,11 +201,11 @@ function Choices({ r, store, caps }: { r: ChoiceRow; store: SettingsScreenDeps['
           </button>
         ))}
       </div>
-      {note && (
-        <p class="settings-row__note" data-setting-note="">
-          {note}
+      {notes.map((n) => (
+        <p key={n} class="settings-row__note" data-setting-note="">
+          {n}
         </p>
-      )}
+      ))}
     </li>
   );
 }

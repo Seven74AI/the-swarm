@@ -2,6 +2,7 @@ import './ui/styles/tokens.css';
 import './ui/styles/typography.css';
 import './ui/styles/base.css';
 import './ui/styles/motion.css';
+import './ui/styles/crt.css';
 import { log } from './utils/log';
 import { EventBus } from './engine/EventBus';
 import type { TickContext } from './engine/TickContext';
@@ -63,6 +64,7 @@ import type { GameState } from './state/GameState';
 import { OnboardingManager } from './ui/OnboardingManager';
 import { bindPhaseTheme } from './ui/theme/phaseTheme';
 import { bindCrt, bindReducedMotion } from './ui/theme/reducedMotion';
+import { bindScanlinePixels } from './ui/theme/crt';
 import { createAnnouncer } from './ui/shell/announcer';
 import { bindAnnouncements, battleLine, IMPORT_FAILED_LINE, SAVE_FAILED_LINE, SAVE_RECOVERED_LINE, UPDATE_READY_LINE } from './ui/shell/announcements';
 import { SaveFailedMarker } from './ui/shell/SaveFailedMarker';
@@ -293,8 +295,10 @@ export function bootstrap(): {
   bindPhaseTheme(document.documentElement);
   // Reduced motion in effect (Story 1.10 setting, OS by default) as one root attribute (Story 1.11).
   bindReducedMotion(document.documentElement, platform.settings.reducedMotion);
-  // CRT effects in effect (Story 1.32): OFF under reduced motion; Story 8.4 draws them.
+  // CRT effects in effect (Story 1.32, 8.4): OFF under reduced motion and, from boot, where the
+  // device asks for contrast; crt.css draws them, scanlines in whole device pixels.
   bindCrt(document.documentElement, platform.settings.crt);
+  bindScanlinePixels(document.documentElement);
 
   // Every player intent goes through an action (Story 1.6): the UI never
   // writes state or touches a system. Decision choices are an action too,

@@ -42,6 +42,7 @@
   color: var(--color-accent);
   font-size: var(--type-value);
   font-weight: 700;
+  text-shadow: var(--crt-text-glow); /* accent text of 15 px and up (Story 8.4) */
 }
 
 /* Disabled (any button): dim label, 1 px dashed edge, no opacity fade. */
@@ -62,6 +63,7 @@
   background: var(--color-accent);
   border-color: var(--color-accent);
   color: var(--color-on-accent);
+  text-shadow: none; /* the label is no longer accent text */
 }
 
 .swarm-btn__line {
@@ -121,6 +123,7 @@
   font-weight: 400;
   color: inherit;
   overflow-wrap: anywhere;
+  text-shadow: none; /* under 15 px: no glow inherited from the label (Story 8.4) */
 }
 
 .swarm-btn[data-variant="primary"] .swarm-btn__cost {

@@ -1,0 +1,78 @@
+/*
+ * CRT effects (Story 8.4, UX-DR36; DESIGN.md → Elevation & Depth), keyed to
+ * the mode in effect, `<html data-crt="scene|full|off">` (settings.crt: the
+ * player's choice, OFF under reduced motion and, from boot, where the device
+ * asks for more contrast, reduced transparency or a text scale above 130%).
+ *
+ * - SCENE (default): scanlines only on scene surfaces (`[data-crt-surface]`:
+ *   the vector scene and the full-screen overlays), drawn under their text, so
+ *   text, the strip, the tab bar and sheets never sit under a scanline and the
+ *   contrast table holds. Line-work (`[data-line-work]`) glows 3 px in the
+ *   accent; accent text of 15 px and larger takes `--crt-text-glow`, at most
+ *   2 px at no more than 35% (tests/unit/ui/theme/crtEffects.test.ts).
+ * - FULL: scanlines over everything, text included; the setting says that
+ *   contrast is reduced.
+ * - OFF: no scanlines and no glow: every shadow is removed.
+ *
+ * Scanlines are measured in `--crt-px`, a whole number of device pixels near
+ * one CSS pixel (ui/theme/crt.ts writes it on the root), so fractional-DPR
+ * screens show no moiré. Colors only through the --color-* aliases.
+ */
+:root {
+  --crt-px: 1px;
+  --crt-text-glow: 0 0 2px color-mix(in srgb, var(--color-accent) 35%, transparent);
+  --crt-line-glow: drop-shadow(0 0 3px var(--color-accent));
+  /* One dark line, one unit thick, every three units. */
+  --crt-scanlines: repeating-linear-gradient(
+    to bottom,
+    transparent 0 calc(2 * var(--crt-px)),
+    color-mix(in srgb, var(--color-bg) 55%, transparent) calc(2 * var(--crt-px)) calc(3 * var(--crt-px))
+  );
+}
+
+:root[data-crt="off"] {
+  --crt-text-glow: none;
+  --crt-line-glow: none;
+}
+
+/* Vector line-work glows (SCENE and FULL; `none` when OFF). */
+[data-line-work] {
+  filter: var(--crt-line-glow);
+}
+
+/* SCENE: scanlines over the surface's backdrop and line-work, under its text. */
+[data-crt-surface] {
+  isolation: isolate;
+}
+
+:root[data-crt="scene"] [data-crt-surface]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: var(--crt-scanlines);
+}
+
+/* A surface lays out its children in flex, so z-index lifts them without moving them. */
+:root[data-crt="scene"] [data-crt-surface] > :not(svg, canvas, [data-line-work]) {
+  z-index: 2;
+}
+
+/* FULL: scanlines over everything, above every layer; they never take a tap. */
+:root[data-crt="full"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+  background: var(--crt-scanlines);
+}
+
+/* OFF: no glow of any kind, the legacy box glows included. */
+:root[data-crt="off"] body *,
+:root[data-crt="off"] body *::before,
+:root[data-crt="off"] body *::after {
+  text-shadow: none !important;
+  box-shadow: none !important;
+}

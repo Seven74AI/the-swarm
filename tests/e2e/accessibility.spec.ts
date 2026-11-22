@@ -169,6 +169,23 @@ test.describe('sheets', () => {
     expect(await axe(page)).toEqual([]);
   });
 
+  test('the CRT row, OFF at boot on a device that asks for more contrast, passes axe and stays operable (Story 8.4)', async ({ page }) => {
+    await page.emulateMedia({ contrast: 'more' });
+    await seed(page, COMBAT);
+    await expect(page.locator('html')).toHaveAttribute('data-crt', 'off');
+    await page.locator('[data-resource-strip]').click();
+    await page.locator('[data-resource-sheet] [data-action="settings"]').click();
+    const row = page.locator('[data-setting="crt"]');
+    await expect(row.getByRole('group', { name: 'CRT EFFECTS' })).toBeVisible();
+    await expect(row.locator('[data-setting-note]').filter({ hasText: 'DEVICE' })).toBeVisible();
+    expect(await axe(page)).toEqual([]);
+    // By keyboard: focus SCENE and press it.
+    await row.locator('[data-option="scene"]').focus();
+    await page.keyboard.press('Enter');
+    await expect(row.locator('[data-option="scene"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('html')).toHaveAttribute('data-crt', 'scene');
+  });
+
   test('LOG → LEGACY with what the next prestige needs passes axe and reads no decoration (Story 5.1)', async ({ page }) => {
     // A run after a prestige: LEGACY stays, and every requirement is short.
     await seed(page, {
