@@ -4,6 +4,7 @@ import { options } from 'preact';
 import { NestScene } from '../../../../src/ui/scenes/NestScene';
 import { createSceneClock, type SceneClock } from '../../../../src/ui/scenes/sceneClock';
 import { sceneBalance } from '../../../../src/data/balance/scene';
+import { CAMERA_CLOSE, cameraZoom } from '../../../../src/ui/scenes/nestCamera';
 import { formatFull } from '../../../../src/utils/format';
 import type { NestView } from '../../../../src/state/nestView';
 
@@ -12,7 +13,7 @@ import type { NestView } from '../../../../src/state/nestView';
  * creatures, and every exact number sits next to it as HTML text.
  */
 
-const view = (workers: number, eggs: number, larvae: number): NestView => ({ workers, eggs, larvae });
+const view = (workers: number, eggs: number, larvae: number, starving = false): NestView => ({ workers, eggs, larvae, starving });
 
 function scene(v: NestView, onChamber: (id: string) => void = () => {}) {
   return render(<NestScene view={v} onChamber={onChamber} />).container;
@@ -229,5 +230,61 @@ describe('NestScene game feel (Story 8.9)', () => {
     }
     expect(diffed).toBe(0);
     expect([...arrived].map((a) => a.getAttribute('transform'))).not.toEqual(before);
+  });
+});
+
+describe('NestScene: the nest grows, wanders and starves (Story 8.7)', () => {
+  afterEach(cleanup);
+  const zooms = sceneBalance.cameraSteps.map((_, i) => cameraZoom(i));
+  const stageOf = (c: Element) => c.querySelector<HTMLElement>('[data-scene="nest"] .nest-stage')!;
+  const labelAt = (c: Element, id: string) => {
+    const b = c.querySelector<HTMLElement>(`button[data-chamber="${id}"]`)!;
+    return { x: parseFloat(b.style.left), y: parseFloat(b.style.top) };
+  };
+
+  it('scales the drawing about a fixed point, so a zoom of 1 is the closest camera step', () => {
+    const stage = stageOf(scene(view(3, 2, 1)));
+    expect(Number(stage.style.getPropertyValue('--camera-close'))).toBe(CAMERA_CLOSE);
+    expect(stage.style.getPropertyValue('--camera-origin')).toMatch(/^[\d.]+% [\d.]+%$/);
+  });
+
+  it('keeps each chamber label on the stage at every camera step, and moves it with the camera', () => {
+    const places = zooms.map((zoom) => {
+      const c = render(<NestScene view={view(30, 3, 2)} onChamber={() => {}} zoom={zoom} />).container;
+      const at = { brood: labelAt(c, 'brood'), workers: labelAt(c, 'workers') };
+      for (const p of Object.values(at)) {
+        for (const v of [p.x, p.y]) {
+          expect(v).toBeGreaterThanOrEqual(0);
+          expect(v).toBeLessThanOrEqual(100);
+        }
+      }
+      cleanup();
+      return at;
+    });
+    expect(places[0].brood).not.toEqual(places[places.length - 1].brood);
+  });
+
+  it('thins a starving colony: fewer ants drawn, the same exact count in the labels', () => {
+    for (const workers of [12, 5_000]) {
+      const fed = scene(view(workers, 0, 0)).querySelectorAll('[data-scene-part="worker"]').length;
+      cleanup();
+      const c = scene(view(workers, 0, 0, true));
+      expect(c.querySelectorAll('[data-scene-part="worker"]').length).toBeLessThan(fed);
+      expect(c.querySelector('[data-chamber="workers"]')!.textContent).toContain(formatFull(workers));
+      expect(c.querySelector('[data-scene="nest"]')!.getAttribute('aria-label')).toContain(`${workers} workers`);
+      expect(c.querySelector('[data-scene="nest"]')!.hasAttribute('data-starving')).toBe(true);
+      cleanup();
+    }
+    expect(scene(view(12, 0, 0)).querySelector('[data-scene="nest"]')!.hasAttribute('data-starving')).toBe(false);
+  });
+
+  it('hatches an egg into a larva: a larva that arrives breaks out of an egg shell', () => {
+    const r = render(<NestScene view={view(0, 3, 1)} onChamber={() => {}} />);
+    expect(r.container.querySelector('[data-scene-part="hatch-shell"]')).toBeNull();
+    r.rerender(<NestScene view={view(0, 2, 2)} onChamber={() => {}} />);
+    expect(r.container.querySelectorAll('[data-scene-part="hatch-shell"]')).toHaveLength(1);
+    expect(r.container.querySelectorAll('[data-arrive="larva"]')).toHaveLength(1);
+    // The shell is drawing, not a counted creature: the brood still holds exactly the drawn eggs.
+    expect(r.container.querySelectorAll('[data-scene-part="egg"]')).toHaveLength(2);
   });
 });

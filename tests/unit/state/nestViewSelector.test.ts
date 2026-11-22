@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { effect } from '@preact/signals-core';
 import { gameState } from '../../../src/state/gameSignal';
-import { selectNestView } from '../../../src/state/selectors';
+import { selectNestView, selectStarving } from '../../../src/state/selectors';
 import { makeState } from '../helpers/makeState';
 
 /**
@@ -42,5 +42,18 @@ describe('selectNestView (Story 8.5)', () => {
     expect(runs).toBe(2);
     expect(selectNestView.value.eggs).toBeGreaterThan(s.resources.eggs);
     stop();
+  });
+
+  it('says whether the colony is starving, by the same rule as the rest of the game (Story 8.7)', () => {
+    gameState.value = makeState({ resources: { eggs: 0, larvae: 0, workers: 40, food: 1_000 } });
+    expect(selectNestView.value.starving).toBe(selectStarving.value);
+    expect(selectNestView.value.starving).toBe(false);
+    gameState.value = makeState({
+      resources: { eggs: 0, larvae: 0, workers: 40, food: 0 },
+      workersAssigned: { gather: 0, tend: 40, dig: 0, guard: 0, researchers: 0 },
+    });
+    expect(selectStarving.value).toBe(true);
+    expect(selectNestView.value.starving).toBe(true);
+    expect(selectNestView.value.workers).toBe(40);
   });
 });

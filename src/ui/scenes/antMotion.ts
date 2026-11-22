@@ -6,15 +6,15 @@ import type { Ant, Point, Token, Tunnel } from './nestLayout';
  * visual time (`sceneClock`), so the same ant at the same time is always in
  * the same pose and nothing about an ant is stored anywhere.
  *
- * A chamber ant sways forward and back along its heading and turns a little;
- * a tunnel walker goes from one end of its tunnel to the other and back,
- * facing the way it walks. Under reduced motion the clock stands still, so
- * every ant keeps one pose.
+ * A chamber ant wanders gently round where it rests (Story 8.7), facing the
+ * way it goes; a tunnel walker goes from one end of its tunnel to the other
+ * and back, facing the way it walks. Under reduced motion the clock stands
+ * still, so every ant keeps one pose.
  */
 
-/** How far a chamber ant sways along its heading, and how far it turns, in viewBox units and degrees. */
-const SWAY = 2;
-const TURN = 12;
+/** A wander's second axis is this much shorter, and this much faster, than its first. */
+const WANDER_SQUASH = 0.5;
+const WANDER_BEAT = 1.37;
 
 const round = (n: number): number => Math.round(n * 10) / 10;
 const TAU = 2 * Math.PI;
@@ -50,12 +50,32 @@ export function antPose(ant: Ant, tunnels: readonly Tunnel[], t: number): Token 
     const p = tunnelPoint(tunnel, u);
     return { x: round(p.x), y: round(p.y), angle: Math.round(tunnelHeading(tunnel, u) + (out ? 0 : 180)) };
   }
-  const cycle = TAU * (t / sceneBalance.antSwayMs + ant.start);
-  const along = SWAY * Math.sin(cycle);
+  return wander(ant, t);
+}
+
+/**
+ * A chamber ant's wander: a slow closed loop round where it rests (two
+ * sines out of step), up to `wanderReach` along its heading's axes, each
+ * ant at its own pace and phase. It faces the way it is going.
+ */
+function wander(ant: Ant, t: number): Token {
+  const reach = sceneBalance.wanderReach;
+  const period = sceneBalance.wanderMs * (0.8 + 0.4 * ((ant.start * 7) % 1));
+  const a = TAU * (t / period + ant.start);
+  const b = TAU * ((t * WANDER_BEAT) / period + 2 * ant.start);
   const rad = (ant.angle * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  // Along the ant's heading, and across it (shorter).
+  const u = reach * Math.sin(a);
+  const v = reach * WANDER_SQUASH * Math.sin(b);
+  const du = Math.cos(a);
+  const dv = WANDER_SQUASH * WANDER_BEAT * Math.cos(b);
+  const dx = du * cos - dv * sin;
+  const dy = du * sin + dv * cos;
   return {
-    x: round(ant.x + Math.cos(rad) * along),
-    y: round(ant.y + Math.sin(rad) * along),
-    angle: Math.round(ant.angle + TURN * Math.sin(cycle / 2)),
+    x: round(ant.x + u * cos - v * sin),
+    y: round(ant.y + u * sin + v * cos),
+    angle: Math.round((Math.atan2(dy, dx) * 180) / Math.PI),
   };
 }

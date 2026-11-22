@@ -17,7 +17,7 @@ import { sceneBalance } from '../../../src/data/balance/scene';
 
 const q = new URLSearchParams(location.search);
 const n = (k: string) => Math.max(0, Math.floor(Number(q.get(k) ?? 0)));
-const start = { workers: n('workers'), eggs: n('eggs'), larvae: n('larvae') };
+const start = { workers: n('workers'), eggs: n('eggs'), larvae: n('larvae'), starving: false };
 
 function Harness() {
   const [view, setView] = useState(start);

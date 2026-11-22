@@ -10,7 +10,7 @@ import { sceneBalance } from '../../../../src/data/balance/scene';
  * walkers go along their tunnel and back. Invariants only.
  */
 
-const layout = nestLayout({ eggs: 0, larvae: 0, workers: 5_000 });
+const layout = nestLayout({ eggs: 0, larvae: 0, workers: 5_000, starving: false });
 const workers = layout.chambers.find((c) => c.id === 'workers')!;
 const TIMES = Array.from({ length: 40 }, (_, i) => i * 997);
 
@@ -59,5 +59,32 @@ describe('antPose (Story 8.6)', () => {
 
   it('never moves more ants than the animation budget', () => {
     expect(layout.workers.length).toBeLessThanOrEqual(sceneBalance.animatedAntsMax);
+  });
+});
+
+describe('wandering (Story 8.7)', () => {
+  const still = layout.workers.filter((w) => w.tunnel === null);
+  const LONG = Array.from({ length: 200 }, (_, i) => i * 211);
+
+  it('lets a chamber ant wander: over time it covers ground in two directions, not one line', () => {
+    for (const a of still) {
+      const ps = LONG.map((t) => antPose(a, layout.tunnels, t));
+      const xs = ps.map((p) => p.x);
+      const ys = ps.map((p) => p.y);
+      expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(1);
+      expect(Math.max(...ys) - Math.min(...ys)).toBeGreaterThan(1);
+    }
+  });
+
+  it('wanders gently: never far from where it rests, and never fast', () => {
+    for (const a of still) {
+      for (const t of LONG) {
+        const p = antPose(a, layout.tunnels, t);
+        expect(Math.hypot(p.x - a.x, p.y - a.y)).toBeLessThanOrEqual(sceneBalance.wanderReach * Math.SQRT2 + 0.1);
+        const q = antPose(a, layout.tunnels, t + 100);
+        // Under a tenth of the reach in a tenth of a second.
+        expect(Math.hypot(q.x - p.x, q.y - p.y)).toBeLessThan(sceneBalance.wanderReach / 10 + 0.2);
+      }
+    }
   });
 });

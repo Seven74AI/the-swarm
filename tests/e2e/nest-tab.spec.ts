@@ -304,4 +304,92 @@ test.describe('NEST tab', () => {
     );
     expect(await antTransforms(page)).toEqual(before);
   });
+
+  // Story 8.7 (UX-DR34): the camera pulls back as the colony grows; a starving colony thins.
+  const colonyOf = (workers: number, fed = true) => ({
+    ...COLONY,
+    resources: { ...COLONY.resources, workers, food: fed ? 1_000_000 : 0, nestCapacity: 100_000 },
+    // Fed: everyone gathers. Starving: nobody does, and the store is empty.
+    workersAssigned: fed ? { gather: workers, tend: 0, dig: 0, guard: 0, researchers: 0 } : { gather: 0, tend: workers, dig: 0, guard: 0, researchers: 0 },
+  });
+  const steps = sceneBalance.cameraSteps;
+  const nestScene = (page: Page) => page.locator('[data-nest-scene] [data-scene="nest"]');
+  const stage = (page: Page) => nestScene(page).locator('.nest-stage');
+  /** The drawing's on-screen scale: its drawn width over the stage's. */
+  const drawnScale = (page: Page) =>
+    stage(page).evaluate((el) => el.querySelector('svg.nest-svg')!.getBoundingClientRect().width / el.getBoundingClientRect().width);
+  const addWorkers = (page: Page, n: number) =>
+    page.evaluate((k) => (window as unknown as { __swarm: { cheats: { addResources(a: object): unknown } } }).__swarm.cheats.addResources({ workers: k }), n);
+  const cheatsReady = (page: Page) => page.waitForFunction(() => (window as unknown as { __swarm?: { cheats?: unknown } }).__swarm?.cheats);
+
+  test('the camera frames a young colony close and steps back at each threshold (Story 8.7)', async ({ page }) => {
+    for (const step of steps) {
+      await seed(page, colonyOf(Math.max(step.workers, 1)));
+      await expect.poll(() => drawnScale(page)).toBeCloseTo(step.zoom, 1);
+    }
+  });
+
+  for (const size of [
+    { width: 320, height: 568 },
+    { width: 320, height: 400 },
+  ]) {
+    test(`an individually drawn worker is never under the minimum, even pulled back on a ${size.width}×${size.height} phone (Story 8.7)`, async ({ page }) => {
+      await page.setViewportSize(size);
+      const last = steps[steps.length - 1];
+      await seed(page, colonyOf(last.workers));
+      await expect.poll(() => drawnScale(page)).toBeCloseTo(last.zoom, 1);
+      const lengths = await nestScene(page).locator('[data-scene-part="worker"]').evaluateAll((els) =>
+        els.map((g) => {
+          // The body's length in its own units, times the on-screen scale of those units.
+          const box = (g as SVGGraphicsElement).getBBox();
+          const m = (g as SVGGraphicsElement).getScreenCTM()!;
+          return box.width * Math.hypot(m.a, m.b);
+        }),
+      );
+      expect(lengths.length).toBeGreaterThan(0);
+      for (const px of lengths) expect(px).toBeGreaterThanOrEqual(sceneBalance.antMinPx);
+    });
+  }
+
+  test('crossing a threshold eases the camera out, and the labels stay on the stage (Story 8.7)', async ({ page }) => {
+    await seed(page, colonyOf(steps[1].workers - 1));
+    await cheatsReady(page);
+    const before = await drawnScale(page);
+    await addWorkers(page, 1);
+    await expect(stage(page)).toHaveAttribute('data-camera', 'pulled-back');
+    // On the way out, a sample lies between the two framings.
+    const samples: number[] = [];
+    await expect
+      .poll(async () => {
+        samples.push(await drawnScale(page));
+        return samples[samples.length - 1];
+      })
+      .toBeCloseTo(steps[1].zoom, 1);
+    expect(samples.some((s) => s < before - 0.01 && s > steps[1].zoom + 0.01)).toBe(true);
+    const box = (await stage(page).boundingBox())!;
+    for (const id of ['brood', 'workers']) {
+      const b = (await nestScene(page).locator(`button[data-chamber="${id}"]`).boundingBox())!;
+      expect(b.x).toBeGreaterThanOrEqual(box.x - 1);
+      expect(b.x + b.width).toBeLessThanOrEqual(box.x + box.width + 1);
+    }
+  });
+
+  test('under reduced motion the camera jumps to the new framing (Story 8.7)', async ({ page }) => {
+    await seed(page, colonyOf(steps[1].workers - 1), { reducedMotion: 'on' });
+    await cheatsReady(page);
+    await addWorkers(page, 1);
+    await expect(stage(page)).toHaveAttribute('data-camera', 'pulled-back');
+    expect(await drawnScale(page)).toBeCloseTo(steps[1].zoom, 1);
+  });
+
+  test('a starving colony visibly thins while its labels keep the exact count (Story 8.7)', async ({ page }) => {
+    const workers = 40;
+    await seed(page, colonyOf(workers));
+    const fed = await nestScene(page).locator('[data-scene-part="worker"]').count();
+    await seed(page, colonyOf(workers, false));
+    await expect(nestScene(page)).toHaveAttribute('data-starving', '');
+    await expect.poll(() => nestScene(page).locator('[data-scene-part="worker"]').count()).toBeLessThan(fed);
+    await expect(nestScene(page).locator('[data-chamber="workers"]')).toContainText(String(workers));
+    await expect(nestScene(page)).toHaveAttribute('aria-label', new RegExp(`^Nest: ${workers} workers`));
+  });
 });
