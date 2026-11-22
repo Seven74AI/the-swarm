@@ -8,6 +8,7 @@
  * open mandibles, six jointed legs and short antennae. It is drawn in
  * `currentColor`, so it takes the phase accent and cross-fades with the
  * palette. It is decoration: the reveal's line names the threat in words.
+ * As line-work it takes the CRT glow (Story 8.4, `[data-line-work]`).
  * Hooks: `[data-creature="enemy"]`.
  */
 export function EnemyCreature({ class: extra }: { readonly class?: string }) {
@@ -15,6 +16,7 @@ export function EnemyCreature({ class: extra }: { readonly class?: string }) {
     <svg
       class={extra ? `enemy-creature ${extra}` : 'enemy-creature'}
       data-creature="enemy"
+      data-line-work=""
       viewBox="0 0 96 64"
       fill="none"
       stroke="currentColor"

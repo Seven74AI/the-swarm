@@ -39,7 +39,7 @@ desktop columns tabbed rail-last.
 - **Reduced motion** (`ui/styles/motion.css`, keyed to `:root[data-reduced-motion="true"]`): every transition in
   `body` ends at once and every animation runs once for 1 ms (so `animationend` still fires); the palette fade and
   the legacy theme shift take 300 ms. `settings.crt` is the CRT mode in effect (OFF under reduced motion), bound to
-  `<html data-crt>` for Story 8.4.
+  `<html data-crt>`; Story 8.4 draws it (ADR 0046).
 
 ## Consequences
 

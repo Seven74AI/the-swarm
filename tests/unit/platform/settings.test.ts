@@ -14,6 +14,8 @@ const caps = (over: Partial<Capabilities> = {}): Capabilities => ({
   standalone: false,
   reducedMotion: false,
   moreContrast: false,
+  reducedTransparency: false,
+  textScale: 1,
   mobile: false,
   ...over,
 });
@@ -77,6 +79,60 @@ describe('settings store (Story 1.10)', () => {
     expect(store.crt.value).toBe('off');
     // The choice itself is kept for when motion comes back.
     expect(store.settings.value.crt).toBe('full');
+  });
+
+  describe('CRT effects at boot (Story 8.4, UX-DR36)', () => {
+    const stored = (crt: string) =>
+      memoryStore({ [SETTINGS_KEY]: JSON.stringify({ version: SETTINGS_VERSION, settings: { crt } }) });
+
+    it.each([
+      ['the OS asks for more contrast', { moreContrast: true }],
+      ['the OS asks for reduced transparency', { reducedTransparency: true }],
+      ['the text scale is above 130%', { textScale: 1.31 }],
+    ])('are OFF at boot when %s, whatever the stored choice', (_why, over) => {
+      for (const crt of ['scene', 'full']) {
+        const store = createSettingsStore({ storage: stored(crt), capabilities: caps(over) });
+        expect(store.crt.value).toBe('off');
+        expect(store.crtOffBy.value).toBe('device');
+        // The choice itself is not overwritten.
+        expect(store.settings.value.crt).toBe(crt);
+      }
+    });
+
+    it('keep the choice at a text scale of 130% or less and without those OS requests', () => {
+      for (const textScale of [1, 1.25, 1.3]) {
+        const store = createSettingsStore({ storage: stored('full'), capabilities: caps({ textScale }) });
+        expect(store.crt.value).toBe('full');
+        expect(store.crtOffBy.value).toBeNull();
+      }
+    });
+
+    it('follow a CRT choice the player makes after boot, even the one already stored', () => {
+      const store = createSettingsStore({ storage: stored('scene'), capabilities: caps({ moreContrast: true }) });
+      expect(store.crt.value).toBe('off');
+      store.update({ crt: 'scene' });
+      expect(store.crt.value).toBe('scene');
+      expect(store.crtOffBy.value).toBeNull();
+      store.update({ crt: 'full' });
+      expect(store.crt.value).toBe('full');
+    });
+
+    it('other settings changes do not turn them back on', () => {
+      const store = createSettingsStore({ storage: stored('scene'), capabilities: caps({ reducedTransparency: true }) });
+      store.update({ sound: true });
+      expect(store.crt.value).toBe('off');
+    });
+
+    it('say reduced motion is why they are off, while it is on', () => {
+      const store = createSettingsStore({ storage: stored('scene'), capabilities: caps({ reducedMotion: true }) });
+      expect(store.crt.value).toBe('off');
+      expect(store.crtOffBy.value).toBe('reducedMotion');
+    });
+
+    it('name no reason when the player chose OFF', () => {
+      const store = createSettingsStore({ storage: stored('off'), capabilities: caps({ moreContrast: true }) });
+      expect(store.crtOffBy.value).toBeNull();
+    });
   });
 
   it('writes every change to its key at once, with its version', () => {

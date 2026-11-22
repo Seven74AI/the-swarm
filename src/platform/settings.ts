@@ -22,6 +22,19 @@ const READABLE_VERSIONS: readonly number[] = [1, 2, SETTINGS_VERSION];
 /** `os` follows the device's reduced-motion preference. */
 export type ReducedMotionSetting = 'os' | 'on' | 'off';
 export type CrtMode = 'scene' | 'full' | 'off';
+/**
+ * Why the CRT effects in effect are OFF though the choice isn't: reduced
+ * motion (Story 1.32), or the device at boot (Story 8.4: the OS asks for more
+ * contrast or reduced transparency, or the text scale is above 130%).
+ */
+export type CrtOffReason = 'reducedMotion' | 'device';
+/** Text scale above which CRT effects start OFF (Story 8.4, UX-DR36). */
+export const CRT_MAX_TEXT_SCALE = 1.3;
+
+/** The device asks for readability over looks: CRT effects start OFF (Story 8.4). */
+export function crtOffAtBoot(capabilities: Capabilities): boolean {
+  return capabilities.moreContrast || capabilities.reducedTransparency || capabilities.textScale > CRT_MAX_TEXT_SCALE;
+}
 /** `double` gives decision events twice the time; `off` removes timers. */
 export type DecisionTimers = 'normal' | 'double' | 'off';
 export type ConfirmStyle = 'hold' | 'twoTaps';
@@ -184,8 +197,15 @@ export interface SettingsStore {
   readonly settings: ReadonlySignal<Settings>;
   /** Reduced motion in effect: the player's choice, or the OS's when `os`. */
   readonly reducedMotion: ReadonlySignal<boolean>;
-  /** CRT effects in effect: the player's choice, but OFF under reduced motion (UX-DR39, Story 1.32). */
+  /**
+   * CRT effects in effect: the player's choice, but OFF under reduced motion
+   * (UX-DR39, Story 1.32), and OFF from boot where the device asks for more
+   * contrast, reduced transparency or a text scale above 130% (UX-DR36, Story
+   * 8.4) until the player picks a CRT setting in this session.
+   */
   readonly crt: ReadonlySignal<CrtMode>;
+  /** Why `crt` is OFF though the choice isn't, or null. */
+  readonly crtOffBy: ReadonlySignal<CrtOffReason | null>;
   /** Apply the valid fields of `patch` and write them to storage at once. */
   update(patch: Partial<Settings>): void;
 }
@@ -202,12 +222,22 @@ export function createSettingsStore({ storage, capabilities }: SettingsDeps): Se
     const choice = settings.value.reducedMotion;
     return choice === 'os' ? capabilities.reducedMotion : choice === 'on';
   });
-  const crt = computed<CrtMode>(() => (reducedMotion.value ? 'off' : settings.value.crt));
+  // Session only: the next boot asks the device again.
+  const deviceOff = signal(crtOffAtBoot(capabilities));
+  const crtOffBy = computed<CrtOffReason | null>(() => {
+    if (settings.value.crt === 'off') return null;
+    if (reducedMotion.value) return 'reducedMotion';
+    return deviceOff.value ? 'device' : null;
+  });
+  const crt = computed<CrtMode>(() => (crtOffBy.value ? 'off' : settings.value.crt));
   return {
     settings,
     reducedMotion,
     crt,
+    crtOffBy,
     update(patch) {
+      // Picking a CRT setting, even the stored one, is the player's word over the device's.
+      if (VALID.crt((patch as { crt?: unknown } | null)?.crt)) deviceOff.value = false;
       const next = merge(settings.value, patch);
       if ((Object.keys(VALID) as (keyof Settings)[]).every((k) => sameValue(next[k], settings.value[k]))) return;
       settings.value = next;

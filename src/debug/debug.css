@@ -25,6 +25,7 @@
   margin: 0.75rem 0 0.5rem;
   font-size: var(--type-value);
   color: var(--color-accent);
+  text-shadow: var(--crt-text-glow); /* accent text of 15 px and up (Story 8.4) */
 }
 
 .debug-overlay__stats {

@@ -15,6 +15,7 @@ import './PausedOverlay.css';
  *
  * The pause itself is session state owned by the resume path (in-session only:
  * hiding the page ends it); this only shows it and asks for the end.
+ * It is a CRT scene surface (Story 8.4, `[data-crt-surface]`): scanlines under its text.
  * Hooks: `[data-overlay="paused"]`, `[data-paused-line]`.
  */
 
@@ -55,6 +56,7 @@ export function PausedOverlay({ done }: { done: () => void }) {
       aria-describedby="paused-overlay-hint"
       tabIndex={-1}
       data-overlay="paused"
+      data-crt-surface=""
       onPointerDown={(e) => {
         e.preventDefault();
         doneRef.current();
