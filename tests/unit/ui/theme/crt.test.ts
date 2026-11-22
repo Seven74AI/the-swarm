@@ -41,22 +41,33 @@ describe('bindScanlinePixels', () => {
     return { env, change, listeners };
   }
 
-  it('writes the unit onto the root as --crt-px and follows pixel-ratio changes', () => {
-    const root = document.createElement('div');
+  /** The `--crt-px` the binding's stylesheet sets on `:root`, in CSS px. */
+  const unitIn = (doc: Document): number => {
+    const sheet = doc.querySelector('style[data-crt-px]');
+    const m = /--crt-px:\s*([\d.]+)px/.exec(sheet?.textContent ?? '');
+    return m ? parseFloat(m[1]) : Number.NaN;
+  };
+
+  it('sets the unit as --crt-px on :root in its own stylesheet, never inline, and follows pixel-ratio changes', () => {
+    const doc = document.implementation.createHTMLDocument('crt');
     const { env, change, listeners } = fakeEnv(1.5);
-    const dispose = bindScanlinePixels(root, env);
-    const unit = () => parseFloat(root.style.getPropertyValue('--crt-px'));
-    expect(unit() * 1.5).toBeCloseTo(Math.round(unit() * 1.5), 6);
+    const dispose = bindScanlinePixels(doc, env);
+    expect(unitIn(doc) * 1.5).toBeCloseTo(Math.round(unitIn(doc) * 1.5), 6);
+    // The root keeps no inline style: the phase aliases' rule (phase-tokens.spec) holds.
+    expect(doc.documentElement.getAttribute('style')).toBeNull();
+    expect(doc.querySelectorAll('style[data-crt-px]')).toHaveLength(1);
     change(3);
-    expect(unit() * 3).toBeCloseTo(Math.round(unit() * 3), 6);
+    expect(unitIn(doc) * 3).toBeCloseTo(Math.round(unitIn(doc) * 3), 6);
+    expect(doc.querySelectorAll('style[data-crt-px]')).toHaveLength(1);
     dispose();
     expect(listeners.size).toBe(0);
+    expect(doc.querySelector('style[data-crt-px]')).toBeNull();
   });
 
   it('works without matchMedia', () => {
-    const root = document.createElement('div');
-    const dispose = bindScanlinePixels(root, { devicePixelRatio: 2 });
-    expect(root.style.getPropertyValue('--crt-px')).toMatch(/px$/);
+    const doc = document.implementation.createHTMLDocument('crt');
+    const dispose = bindScanlinePixels(doc, { devicePixelRatio: 2 });
+    expect(unitIn(doc)).toBeGreaterThan(0);
     dispose();
   });
 });

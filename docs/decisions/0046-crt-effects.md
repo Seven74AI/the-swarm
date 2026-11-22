@@ -28,7 +28,8 @@ glows of 12 to 15 px at 50 to 60%, far past the 2 px / 35% the design allows.
   - OFF: both tokens are `none`, and every `text-shadow` and `box-shadow` in the page is removed (`!important`, as
     `motion.css` does for reduced motion), the legacy box glows included. Elevation shadows go too: they are scrim
     on near-black and carry no information.
-- **Device pixels.** Scanlines are measured only in `--crt-px`, which `ui/theme/crt.ts` writes on the root:
+- **Device pixels.** Scanlines are measured only in `--crt-px`, which `ui/theme/crt.ts` sets on `:root` from a stylesheet of its own
+  (`<style data-crt-px>`, never an inline style, so the root keeps no inline style):
   `round(dpr) / dpr` CSS px, a whole number of device pixels near one CSS pixel, updated on pixel-ratio change.
   One dark line every three units.
 - **OFF at boot.** `Capabilities` gains `reducedTransparency` and `textScale` (root font size / 16, read once). The

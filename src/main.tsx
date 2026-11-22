@@ -298,7 +298,7 @@ export function bootstrap(): {
   // CRT effects in effect (Story 1.32, 8.4): OFF under reduced motion and, from boot, where the
   // device asks for contrast; crt.css draws them, scanlines in whole device pixels.
   bindCrt(document.documentElement, platform.settings.crt);
-  bindScanlinePixels(document.documentElement);
+  bindScanlinePixels(document);
 
   // Every player intent goes through an action (Story 1.6): the UI never
   // writes state or touches a system. Decision choices are an action too,

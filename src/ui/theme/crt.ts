@@ -1,9 +1,12 @@
 /**
  * Scanline pixels (Story 8.4, UX-DR36): scanlines are drawn in device pixels
- * to avoid moiré on fractional-DPR screens. Their unit, `--crt-px` on the
- * root, is a whole number of device pixels near one CSS pixel; crt.css draws
- * every scanline in it. It follows pixel-ratio changes (zoom, a move to
- * another screen). Returns a disposer.
+ * to avoid moiré on fractional-DPR screens. Their unit, `--crt-px` on
+ * `:root`, is a whole number of device pixels near one CSS pixel; crt.css
+ * draws every scanline in it. It is set by a stylesheet of its own
+ * (`<style data-crt-px>`), never inline, so the root carries no inline style
+ * (the phase aliases are only ever moved by its attribute). It follows
+ * pixel-ratio changes (zoom, a move to another screen). Returns a disposer,
+ * which removes the stylesheet.
  */
 
 interface MediaWatch {
@@ -23,11 +26,14 @@ export function scanlinePx(dpr: number): number {
   return Math.max(1, Math.round(ratio)) / ratio;
 }
 
-export function bindScanlinePixels(root: HTMLElement, env: PixelEnv = window): () => void {
+export function bindScanlinePixels(doc: Document, env: PixelEnv = window): () => void {
   let watch: MediaWatch | null = null;
+  const sheet = doc.createElement('style');
+  sheet.setAttribute('data-crt-px', '');
+  (doc.head ?? doc.documentElement).appendChild(sheet);
   const apply = () => {
     const dpr = env.devicePixelRatio ?? 1;
-    root.style.setProperty('--crt-px', `${scanlinePx(dpr)}px`);
+    sheet.textContent = `:root { --crt-px: ${scanlinePx(dpr)}px; }`;
     watch?.removeEventListener?.('change', apply);
     // A media query for the current ratio fires once the ratio changes.
     try {
@@ -41,5 +47,6 @@ export function bindScanlinePixels(root: HTMLElement, env: PixelEnv = window): (
   return () => {
     watch?.removeEventListener?.('change', apply);
     watch = null;
+    sheet.remove();
   };
 }
