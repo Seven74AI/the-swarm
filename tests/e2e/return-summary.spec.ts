@@ -3,7 +3,7 @@ import { test, expect, type Page } from '@playwright/test';
 /**
  * Story 2.9 (FR23, FR27, UX-DR24, UX-DR43): every return starts with a decision.
  * After 60 s or more away the offline summary opens first, focused, with what
- * changed, warn lines and one next move that opens the target's tab; under
+ * changed and warn lines, and no suggestion of what to do next; under
  * 60 s no sheet opens and the strip deltas flash once. Invariants only.
  */
 
@@ -53,18 +53,13 @@ test.describe('the return summary (Story 2.9)', () => {
     await expect(summary(page).locator('[data-offline-cap]')).toHaveCount(0);
   });
 
-  test('its one next move closes it and opens the tab that holds the target, marked', async ({ page }) => {
+  test('it suggests nothing to buy: the only button goes back to the nest', async ({ page }) => {
     await seedAway(page, HUNGRY_COLONY, 2 * HOUR);
-    const move = summary(page).locator('button[data-action="offline-next"]');
-    await expect(move).toBeVisible({ timeout: 10_000 });
-    await expect(move).toHaveCount(1);
-    const panel = await move.getAttribute('data-next-panel');
-    expect(panel).toBeTruthy();
-    await move.click();
+    await expect(summary(page)).toBeVisible({ timeout: 10_000 });
+    await expect(summary(page).locator('button[data-action="offline-next"]')).toHaveCount(0);
+    await expect(summary(page).locator('[data-next-action]')).toHaveCount(0);
+    await summary(page).locator('[data-sheet-close]').click();
     await expect(summary(page)).toHaveCount(0);
-    const target = page.locator(`[data-panel="${panel}"]`);
-    await expect(target).toBeVisible();
-    await expect(target).toHaveAttribute('data-jumped', '');
   });
 
   test('past the cap it says the nest stopped growing, reading the live cap', async ({ page }) => {

@@ -59,7 +59,7 @@ import { conditionMet, goalFor, goalPercent, type GoalCondition, type Transition
 
 export type { GoalCondition, Transition } from '../phases/transitions';
 export type { MoveSource, Reallocation } from '../systems/Workforce';
-export type { ActionIntent, NextAction, NextActionRule, NoAction, ReturnMove, SuggestedAction } from '../systems/NextAction';
+export type { ActionIntent, NextAction, NextActionRule, NoAction, SuggestedAction } from '../systems/NextAction';
 
 /**
  * Slice selectors over the single game-state signal (ADR 0001, arch D5, #186).
