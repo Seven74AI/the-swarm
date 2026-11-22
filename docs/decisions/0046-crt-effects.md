@@ -14,7 +14,7 @@ glows of 12 to 15 px at 50 to 60%, far past the 2 px / 35% the design allows.
 
 - **Two hooks.** `[data-crt-surface]` marks a scene surface: the nest scene, the phase reveal and the PAUSED overlay
   (the full-screen overlays). Shell parts (strip, tab bar, sheets) never carry it
-  (`tests/unit/ui/theme/crtEffects.test.ts`). `[data-line-work]` marks vector line-work (the enemy creature now; the
+  (`tests/unit/ui/theme/crtEffects.test.ts`). `[data-line-work]` marks vector line-work (the enemy creature and the
   vector scenes of Story 8.5 onwards).
 - **`ui/styles/crt.css`** holds every effect, keyed to `data-crt`:
   - SCENE: a surface's `::after` draws the scanlines (`z-index: 1`, `pointer-events: none`); its direct children

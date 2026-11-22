@@ -46,7 +46,7 @@ hidden carried a fresh timestamp, which hid the time away from the next cold loa
 
 ## Consequences
 
-- The offline summary now opens from 60 s away (it was 30 s). Gaps under 60 s, on a cold load included, show no sheet.
+- The offline summary opens from 60 s away (it was 30 s). Gaps under 60 s, on a cold load included, show no sheet.
 - Later stories change what `resume` does, not where it is called from. They are 2.4 (one cap; the 4 h, 8 h and frame
   caps stay until then), 2.6 (macro-steps), 2.7 (offline-only rules), 2.8 (the efficiency curve), 2.9 (the summary
   and strip flash) and 2.10 (hiding ends the pause).

@@ -36,7 +36,7 @@ coach mark on LAY EGG. ADR 0025 already said Story 8.10 replaces the tooltips wi
   state, no `Math.random` (a fixed sequence places the colony). The logo is drawn as block cells in an SVG inside the
   `THE SWARM` heading, so it fits any width and text size; screen readers get the words.
 - **Coach mark host** (`ui/shell/CoachHost.tsx`): `createCoach()` → `show({ concept, text, target })`; App draws the
-  one requested `CoachMark` for the element the selector finds. The coach mark caption now sits above a target in
+  one requested `CoachMark` for the element the selector finds. The coach mark caption sits above a target in
   the lower half of the screen (LAY EGG is in the primary zone).
 - **The tooltip onboarding is removed** (`ui/OnboardingManager.ts`, `ui/OnboardingTooltip.ts`, their CSS and tests;
   `tests/arch/architecture.test.ts` keeps them gone).

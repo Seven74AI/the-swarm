@@ -40,4 +40,4 @@ Three screens must agree, the rule must be testable without a DOM, and the UI ma
 - New purchasable content must be added to `listItems()` (and to a critical-path table if it serves a goal).
 - `NEXT AFFORDABLE` estimates use the rates the state implies (net food, territory wood/stone/nectar); stocks with no
   steady income (combat drops, space resources, workers) make an item unreachable by waiting, and it is skipped.
-- Phase 6's TRANSCEND label arrives with the Transcendence goal; today no transition leaves Transcendence.
+- Phase 6's TRANSCEND label arrives with the Transcendence goal; no transition leaves Transcendence.

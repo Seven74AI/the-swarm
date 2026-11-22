@@ -29,7 +29,7 @@ away, and only `main` may import `debug/`. There was no seed in the state yet (S
   in main, exposed as `window.__swarm.cheats` once loaded. Each reads once and writes once with a spread.
   `setPhase` moves forward only, through `PhaseStateMachine.commit` for every phase in between (new
   `transitionFrom(phase)`), and flushes `phase_committed` after the write. `timeSkip(hours)` (≤ 24 h) runs the
-  offline catch-up, now `engine/catchUp.ts` (shared with resume-on-load), at full efficiency.
+  offline catch-up, `engine/catchUp.ts` (shared with resume-on-load), at full efficiency.
   `tests/unit/debug/productionBuild.test.ts` builds the real config and asserts the bundle has none of the cheat
   code (`CHEATS_MARKER` and the cheat names) but does have the overlay.
 

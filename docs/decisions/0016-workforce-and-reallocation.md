@@ -19,9 +19,9 @@ out of `resources.workers`, and the old `assignResearcher` could take a worker t
   `moveWorkers(s, from, to, count)` (`from` may be `'free'`). They return the same state when a step can't be taken.
 - **Actions**: `actions.stepRole(role, delta)` applies a whole ×1/×10/×MAX step in one write (refusing
   `no_free_workers` / `none_assigned`); `actions.moveWorkers(from, to, count)` moves in one write.
-  `assignResearcher` now takes only a free worker.
+  `assignResearcher` takes only a free worker.
 - **Reallocation rule** `getReallocation(state)`: it answers the same critical states as `getNextAction`
-  (`isFoodCritical`, `isCapacityCritical`, now exported from `NextAction.ts`), sized for WRKR: food → the fewest
+  (`isFoodCritical`, `isCapacityCritical`, exported from `NextAction.ts`), sized for WRKR: food → the fewest
   workers to GATHER that stop the loss (free first, then TEND, DIG, GUARD above `minGuards`); capacity → every free
   worker to DIG, else one from TEND; otherwise null. `selectReallocation` hands back the same object while the
   suggestion is unchanged. `WorkersPrimary` reuses the target lock of ADR 0015.

@@ -20,7 +20,7 @@ not be hovered and could not be dismissed (WCAG 1.4.13).
     `click()`: exactly what a tap does, refusals included. Only with focus on the page or on that button; a focused
     control keeps Space, Enter and the arrow keys.
   - `tab1`–`tab5` press the Nth button of the visible tab bar (so scroll memory and dots behave as on a tap).
-  - `pause` calls `UIRoot.togglePause()` (now public). Space no longer pauses.
+  - `pause` calls `UIRoot.togglePause()` (public). Space no longer pauses.
   - `close` calls `SheetController.dismiss()`.
 - **Nothing fires** when shortcuts are off, with Ctrl/Alt/Meta, on auto-repeat, in text fields, while an overlay is
   up, while a press or hold runs (`[data-pressed="true"]`), while a remap listens (`[data-listening="true"]`), or when

@@ -45,5 +45,5 @@ the resource sheet, the corrupt-save sheet and the map/star/chamber peeks are st
 - Every new sheet (battle summary, resource sheet, corrupt save, peeks) is a `sheets.open({ priority, render })` call
   from main or a screen that receives the controller; no feature mounts its own overlay.
 - The legacy decision events keep 2–3 choices in the sheet body until the decision-event content stories (D8) bring
-  two choices, an ignore line and a timer meter. Their 30 s auto-dismiss now counts only while the sheet is open.
+  two choices, an ignore line and a timer meter. Their 30 s auto-dismiss counts only while the sheet is open.
 - The overlay layer (phase reveal, cinematic, ending) is a separate story; it will hold decision events back.

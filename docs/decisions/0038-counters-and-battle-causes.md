@@ -23,7 +23,7 @@ this", so the relation between upgrades and traits has to be data the game can r
 - **Three fight effects, so every mutation counters something:** `webStrikers` (Efficient Gatherers: more soldiers
   strike past a web's limit), `healPerRound` (Accelerated Hatching: the army recovers hit points each round, never
   past its start), `firstStrike` (Swift Soldiers: the army strikes before any enemy, a swift one included). They
-  join `Army` in `CombatRounds`. Potent Venom's share now raises `getPoisonDamagePerTick`.
+  join `Army` in `CombatRounds`. Potent Venom's share raises `getPoisonDamagePerTick`.
 - **`counterFor(cause, state)`** (`src/systems/Counters.ts`, re-exported by `state/queries`) returns the cheapest
   open WAR card (equipment below its last level with its workshop built, or an unowned mutation whose prerequisite
   is owned) marked strong against `cause.trait`, with its price and whether it is affordable now; an

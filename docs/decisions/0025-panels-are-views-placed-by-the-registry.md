@@ -33,7 +33,7 @@ the old pattern alive for new code to copy.
   `ui/panels/`, until Epic 6 rebuilds them.
 - **Moved out of UIRoot:** the top bar and pause button (`ui/shell/TopBar.tsx`; main's `togglePause`, and the
   `.game-paused` body class follows `selectPaused`), the EventLog (`ui/log/EventLog.ts`, which only writes the
-  chronicle and now forwards `workers_changed` to the tenth-worker line itself), NEST's lines (`ui/nest/EventLines.tsx`),
+  chronicle and forwards `workers_changed` to the tenth-worker line itself), NEST's lines (`ui/nest/EventLines.tsx`),
   WRKR's food stock (`ui/wrkr/FoodStock.tsx`), LEGACY's prestige card and tree (`ui/log/Prestige.tsx`, with new
   prestige selectors) and Transcendence (`ui/endgame/Transcendence.tsx`). `OnboardingTooltip` moved beside
   `OnboardingManager` (Story 8.10 replaces both with coach marks). `open_prestige_tree` is gone: the tree button
