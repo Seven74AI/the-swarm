@@ -126,6 +126,14 @@ test.describe('type rules on screen', () => {
     }
   });
 
+  test('the nest scene\'s chamber labels and peek sheets keep the type rules (Story 8.5)', async ({ page }) => {
+    for (const chamber of ['brood', 'workers']) {
+      await page.locator(`[data-scene="nest"] button[data-chamber="${chamber}"]`).click();
+      await expect(page.locator(`[data-chamber-peek="${chamber}"]`)).toBeVisible();
+      expect.soft(await typeRuleBreaks(page), chamber).toEqual([]);
+    }
+  });
+
   test('the resource and settings sheets keep the type rules', async ({ page }) => {
     await page.locator('[data-resource-strip]').click();
     await expect(page.getByRole('dialog').locator('[data-resource-list]')).toBeVisible();

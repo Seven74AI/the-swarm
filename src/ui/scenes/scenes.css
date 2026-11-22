@@ -1,0 +1,151 @@
+/*
+ * The nest scene (Story 8.5; DESIGN.md → Nest scene, UX-DR34). Vector line-work
+ * in the phase's accent on its bg: soil an accent fill at 7 %, grain at 30 %,
+ * faint strata, pebble outlines and a grass line; tunnels are round-capped bg
+ * strokes over a slightly wider accent stroke at 55 % (carved walls); chambers
+ * are bg shapes with a 2 px wall; creatures are solid accent.
+ * Colors only through the --color-* aliases (tokens.css).
+ */
+
+.nest-scene-view {
+  width: 100%;
+}
+
+/*
+ * The stage keeps the drawing's aspect ratio, so the HTML labels (placed in
+ * percent) stay on their chambers. Flexible height: clamp(120px, …, 220px).
+ */
+.nest-stage {
+  position: relative;
+  width: min(100%, calc(clamp(120px, 30dvh, 220px) * 36 / 19));
+  aspect-ratio: 36 / 19;
+  margin-inline: auto;
+}
+
+.nest-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* The glow on the line-work is a CRT effect: Story 8.4 adds it under `data-crt`. */
+
+.nest-svg__soil {
+  fill: var(--color-accent);
+  fill-opacity: 0.07;
+}
+
+.nest-svg__grain {
+  fill: url(#nest-grain);
+}
+
+.nest-svg__grain-dot {
+  fill: var(--color-accent);
+  fill-opacity: 0.3;
+}
+
+.nest-svg__strata path {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-opacity: 0.12;
+}
+
+.nest-svg__pebble {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-opacity: 0.35;
+}
+
+.nest-svg__grass {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-opacity: 0.7;
+}
+
+.nest-svg__tunnel-wall {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-opacity: 0.55;
+  stroke-width: 15;
+}
+
+.nest-svg__tunnel {
+  fill: none;
+  stroke: var(--color-bg);
+  stroke-width: 12;
+}
+
+.nest-svg__chamber {
+  fill: var(--color-bg);
+  stroke: var(--color-accent);
+  stroke-opacity: 0.55;
+  stroke-width: 2;
+}
+
+.nest-svg__creature {
+  fill: var(--color-accent);
+}
+
+.nest-svg__legs {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 0.8;
+  stroke-linecap: round;
+}
+
+.nest-svg__egg {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 1.4;
+}
+
+.nest-svg__larva {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2.6;
+}
+
+/*
+ * Chamber labels: HTML text at the chamber's anchor, meta/dim on a bg plate.
+ * The button is the 44 px target; the plate is what shows.
+ */
+.nest-chamber {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-dim);
+  font-family: var(--font-mono);
+  font-size: var(--type-meta);
+  line-height: 1.3;
+  text-align: center;
+  cursor: pointer;
+}
+
+.nest-chamber__plate {
+  padding: 0 2px;
+  background: var(--color-bg);
+}
+
+.nest-chamber:hover .nest-chamber__plate,
+.nest-chamber:focus-visible .nest-chamber__plate {
+  color: var(--color-accent);
+}
+
+/* The chamber peek sheet (Story 8.5): that chamber's counts. */
+.chamber-peek__line {
+  margin: 0;
+  font-size: var(--type-aside);
+}
+
+.chamber-peek__line + .chamber-peek__line {
+  margin-top: 0.25rem;
+  color: var(--color-dim);
+}

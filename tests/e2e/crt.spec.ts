@@ -104,13 +104,15 @@ const shadowed = (page: Page) =>
   );
 
 const PRIMARY = '[data-variant="primary"]';
+/** The nest scene's surface (Story 8.5): the stage that holds the drawing and its chamber labels. */
+const NEST_SURFACE = '[data-nest-scene] [data-crt-surface]';
 
 test.describe('SCENE (default)', () => {
   test('scanlines are on the nest scene only, never on the strip, the tab bar or sheets', async ({ page }) => {
     await seed(page);
     await expect(page.locator('html')).toHaveAttribute('data-crt', 'scene');
     await expect(page.locator('[data-nest-scene]')).toBeVisible();
-    expect(await scanlinesOn(page, '[data-nest-scene]')).toBe(true);
+    expect(await scanlinesOn(page, NEST_SURFACE)).toBe(true);
     expect((await bodyScanlines(page)).on).toBe(false);
 
     for (const shell of ['[data-resource-strip]', '[data-tab-bar]']) {
@@ -130,7 +132,7 @@ test.describe('SCENE (default)', () => {
 
   test('on a scene surface the text sits above the scanlines', async ({ page }) => {
     await seed(page);
-    const scene = page.locator('[data-nest-scene]');
+    const scene = page.locator(NEST_SURFACE);
     await expect(scene).toBeVisible();
     const stack = await scene.evaluate((el) => ({
       lines: Number(getComputedStyle(el, '::after').zIndex),
@@ -192,7 +194,7 @@ test('OFF removes the scanlines and every glow', async ({ page }) => {
   await seed(page, { crt: 'off' });
   await expect(page.locator('html')).toHaveAttribute('data-crt', 'off');
   await expect(page.locator('[data-nest-scene]')).toBeVisible();
-  expect(await scanlinesOn(page, '[data-nest-scene]')).toBe(false);
+  expect(await scanlinesOn(page, NEST_SURFACE)).toBe(false);
   expect((await bodyScanlines(page)).on).toBe(false);
   expect(await shadowed(page)).toEqual([]);
   expect(await lineWorkFilter(page)).toBe('none');

@@ -17,7 +17,7 @@ import { SaveFailedMarker } from './shell/SaveFailedMarker';
 import { PhaseLine, phaseClass } from './shell/GoalMeter';
 import type { ConfirmSettings } from './primitives/HoldToConfirm';
 import { NestPrimary } from './nest/NestPrimary';
-import { NestScene } from './nest/NestScene';
+import { NestSceneArea } from './nest/NestSceneArea';
 import { ClickPowerCard } from './nest/ClickPowerCard';
 import { NestUpgradeCards, NestUpgradesHeading } from './nest/NestUpgradeCard';
 import { EventLines } from './nest/EventLines';
@@ -103,7 +103,7 @@ export function gameViews(d: GameViewDeps): ShellViews {
         <>
           <PhaseIndicator />
           <div data-nest-host="scene">
-            <NestScene lay={d.actions.layEgg} automation={d.actions} />
+            <NestSceneArea lay={d.actions.layEgg} automation={d.actions} sheets={d.sheets} />
           </div>
           <Panel id="event_log">
             <EventLines chronicle={d.chronicle} jump={d.jump} />

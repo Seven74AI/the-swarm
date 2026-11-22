@@ -214,6 +214,20 @@ for (const setup of SETUPS) {
       expect(found).toEqual([]);
     });
 
+    test('the nest scene\'s chamber labels and peek sheets fit the screen too (Story 8.5)', async ({ page }) => {
+      await seed(page, setup);
+      await openTab(page, 'nest');
+      const found: string[] = [];
+      for (const chamber of ['brood', 'workers']) {
+        const button = page.locator(`[data-scene="nest"] button[data-chamber="${chamber}"]`);
+        await button.scrollIntoViewIfNeeded();
+        await button.click();
+        await expect(page.locator(`[data-chamber-peek="${chamber}"]`)).toBeVisible();
+        found.push(...(await layoutProblems(page)).map((p) => `${chamber} peek: ${p}`));
+      }
+      expect(found).toEqual([]);
+    });
+
     test('the save sheets and the SAVE FAILED marker fit the screen too (Story 2.2)', async ({ page }) => {
       // A save that couldn't be read: its sheet comes up over the game.
       await page.setViewportSize({ width: setup.width, height: setup.height });

@@ -232,4 +232,35 @@ test.describe('NEST tab', () => {
     await btn.click();
     await expect.poll(async () => Object.values((await state(page)).upgrades).reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
   });
+
+  test('the nest scene draws the colony, labels its exact counts, and each chamber opens its peek sheet (Story 8.5)', async ({ page }) => {
+    await page.clock.install();
+    await page.clock.pauseAt(Date.now() + 1000);
+    await seed(page, { ...COLONY, resources: { ...COLONY.resources, eggs: 3, larvae: 2 }, eggPipeline: { count: 3, progress: 0 }, larvaPipeline: { count: 2, progress: 0 } });
+    const scene = page.locator('[data-nest-scene] [data-scene="nest"]');
+    await expect(scene).toBeVisible();
+    for (const part of ['soil', 'grass', 'tunnel', 'chamber', 'queen', 'worker']) {
+      await expect(scene.locator(`svg [data-scene-part="${part}"]`).first()).toBeAttached();
+    }
+    const r = (await page.evaluate(() =>
+      (window as unknown as { __swarm: { manager: { getState(): { resources: Record<string, number> } } } }).__swarm.manager.getState().resources,
+    )) as Record<string, number>;
+    const [workers, eggs, larvae] = [r.workers, r.eggs, r.larvae].map(Math.floor);
+    const n = (k: number, one: string, many: string) => `${k} ${k === 1 ? one : many}`;
+    await expect(scene).toHaveAttribute('aria-label', `Nest: ${n(workers, 'worker', 'workers')}, ${n(eggs, 'egg', 'eggs')}, ${n(larvae, 'larva', 'larvae')}`);
+
+    await scene.getByRole('button', { name: /^Brood:/ }).click();
+    const brood = page.locator('[data-sheet="peek"][data-chamber-peek="brood"]');
+    await expect(brood).toBeVisible();
+    await expect(brood.locator('[data-chamber-count="eggs"]')).toHaveText(String(eggs));
+    await expect(brood.locator('[data-chamber-count="larvae"]')).toHaveText(String(larvae));
+    // A newer peek replaces it.
+    await scene.getByRole('button', { name: /^Workers:/ }).click();
+    const peek = page.locator('[data-sheet="peek"][data-chamber-peek="workers"]');
+    await expect(peek).toBeVisible();
+    await expect(brood).toHaveCount(0);
+    await expect(peek.locator('[data-chamber-count="workers"]')).toHaveText(String(workers));
+    await peek.locator('[data-sheet-close]').click();
+    await expect(peek).toHaveCount(0);
+  });
 });
