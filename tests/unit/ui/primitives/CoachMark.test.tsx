@@ -99,4 +99,26 @@ describe('CoachMark', () => {
     expect(got!.getAttribute('aria-label') ?? got!.textContent).toMatch(/got it/i);
     t.done();
   });
+
+  it('sits below its target, or above it when the target is in the lower half of the screen (Story 8.10: LAY EGG)', () => {
+    const place = (top: number) => {
+      const target = document.createElement('button');
+      document.body.appendChild(target);
+      target.getBoundingClientRect = () => ({ top, left: 10, width: 100, height: 40, bottom: top + 40, right: 110, x: 10, y: top, toJSON: () => ({}) });
+      const view = render(<CoachMark concept="lay-egg" text="Tap to lay an egg." target={target} memory={memory()} />);
+      const caption = view.container.querySelector<HTMLElement>('.coach-mark__caption')!;
+      const out = { top: caption.style.top, bottom: caption.style.bottom };
+      cleanup();
+      target.remove();
+      return out;
+    };
+    const vh = window.innerHeight;
+    const high = place(Math.floor(vh * 0.1));
+    expect(high.top).not.toBe('');
+    expect(high.bottom).toBe('');
+    const low = place(Math.floor(vh * 0.8));
+    // Anchored to the target's top edge from below, so the caption never leaves the screen.
+    expect(low.top).toBe('');
+    expect(parseFloat(low.bottom)).toBeGreaterThan(vh - Math.floor(vh * 0.8) - 1);
+  });
 });

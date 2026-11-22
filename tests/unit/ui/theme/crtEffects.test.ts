@@ -49,9 +49,11 @@ const decl = (body: string, prop: string) =>
 const CSS_FILES = filesUnder(SRC, '.css');
 const ALL = rules(CSS_FILES);
 const CRT = rules([CRT_CSS]);
+/** A rule whose selector list holds `selector` (`:root, [data-palette]` counts for `:root`, Story 8.10). */
+const inList = (r: Rule, selector: string) => r.selector.split(',').some((s) => s.trim() === selector);
 const rootVar = (name: string, selector = ':root') =>
-  CRT.find((r) => r.selector === selector && decl(r.body, name) !== undefined)?.body &&
-  decl(CRT.find((r) => r.selector === selector && decl(r.body, name) !== undefined)!.body, name);
+  CRT.find((r) => inList(r, selector) && decl(r.body, name) !== undefined)?.body &&
+  decl(CRT.find((r) => inList(r, selector) && decl(r.body, name) !== undefined)!.body, name);
 
 describe('CRT effects (Story 8.4)', () => {
   it('text glow is at most 2 px at no more than 35% of the accent', () => {

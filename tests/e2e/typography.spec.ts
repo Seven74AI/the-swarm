@@ -1,5 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { openTab, type TabId, type SegmentId } from './helpers/tabs';
+import { seedSave } from './helpers/seed';
+import { TITLE_BEATS } from '../../src/data/content/titleCinematic';
 
 /**
  * Story 8.1 (UX-DR2): the game draws in its own monospace font, so the
@@ -111,6 +113,26 @@ test('the first screen keeps the type rules', async ({ page }) => {
   await seed(page, { phase: 'egg_laying', resources: { eggs: 3, workers: 0, food: 50, nestCapacity: 50 } });
   await expect(page.locator('[data-nest-primary="lay"]')).toBeVisible();
   expect(await typeRuleBreaks(page)).toEqual([]);
+});
+
+test('the title cinematic keeps the type rules, every stage (Story 8.10)', async ({ page }) => {
+  await page.setViewportSize(PHONE);
+  await page.clock.install();
+  await page.clock.pauseAt(Date.now() + 1000);
+  // A first launch: no save, no intro flag.
+  await seedSave(page, null, { introSeen: false });
+  await page.goto('/');
+  const cinematic = page.locator('[data-overlay="title-cinematic"]');
+  await expect(cinematic).toHaveAttribute('data-stage', 'playing');
+  await page.clock.runFor(TITLE_BEATS.eggMs);
+  await expect(page.locator('[data-title-line]')).not.toBeEmpty();
+  expect.soft(await typeRuleBreaks(page), 'playing').toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(cinematic).toHaveAttribute('data-stage', 'title');
+  expect.soft(await typeRuleBreaks(page), 'title frame').toEqual([]);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('[data-title-alone]')).toBeVisible();
+  expect(await typeRuleBreaks(page), 'alone').toEqual([]);
 });
 
 test.describe('type rules on screen', () => {

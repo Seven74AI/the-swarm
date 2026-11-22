@@ -71,7 +71,8 @@ const LEGACY_PANELS: readonly string[] = [
   'ui/panels/refusal.ts', // `explain()`, used only by the panels above
 ];
 /** Files and folders of the old panel system that must not come back (Story 1.36). */
-const REMOVED_LEGACY_UI = ['ui/UIRoot.ts', 'ui/components', 'ui/shell/hosts.ts'];
+// The tooltip onboarding is replaced by the title cinematic and the LAY EGG coach mark (Story 8.10).
+const REMOVED_LEGACY_UI = ['ui/UIRoot.ts', 'ui/components', 'ui/shell/hosts.ts', 'ui/OnboardingManager.ts', 'ui/OnboardingTooltip.ts'];
 
 /**
  * Known `Math.random` uses in `systems/`, with how many each file has.

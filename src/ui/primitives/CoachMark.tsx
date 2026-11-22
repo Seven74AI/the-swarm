@@ -44,6 +44,14 @@ function boxOf(el: HTMLElement | null): Box | null {
   return { top: r.top, left: r.left, width: r.width, height: r.height };
 }
 
+/** Below the target, or above it when the target is in the lower half (a primary action), so it stays on screen. */
+function captionPlace(box: Box | null): Record<string, string> | undefined {
+  if (!box) return undefined;
+  const vh = typeof window === 'undefined' ? 0 : window.innerHeight;
+  if (vh > 0 && box.top + box.height / 2 > vh / 2) return { bottom: `${vh - box.top + 8}px` };
+  return { top: `${box.top + box.height + 8}px` };
+}
+
 function markSeen(memory: CoachMarkMemory, concept: string): void {
   const seen = memory.settings.value.coachMarksSeen;
   if (seen.includes(concept)) return;
@@ -92,7 +100,7 @@ export function CoachMark({ concept, text, target, memory }: CoachMarkProps) {
       )}
       <div
         class="coach-mark__caption"
-        style={box ? { top: `${box.top + box.height + 8}px` } : undefined}
+        style={captionPlace(box)}
         onPointerDown={consume}
       >
         <p class="coach-mark__text" role="status" aria-live="polite">
