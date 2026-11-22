@@ -45,11 +45,9 @@ export interface SettingsScreenDeps {
   readonly onImportSave: () => void;
   /** Download the play telemetry as a file (Story 3.10; main builds it). It is never sent anywhere. */
   readonly onExportTelemetry: () => void;
-  /** Play the title cinematic again (Story 8.10). Until it exists the button says why it can't. */
-  readonly onReplayIntro?: () => void;
+  /** Play the title cinematic again (Story 8.10; main's replay: the save and the intro flag stay as they are). */
+  readonly onReplayIntro: () => void;
 }
-
-export const INTRO_NOT_READY = 'The intro is not in this build yet';
 
 type ChoiceKey = Exclude<keyof Settings, 'keyBindings' | 'coachMarksSeen'>;
 
@@ -268,6 +266,21 @@ function ShortcutRemap({ store }: { store: SettingsScreenDeps['store'] }) {
   );
 }
 
+/** REPLAY INTRO (Story 8.10): the settings close first, so the cinematic plays over the colony and no sheet waits behind it. */
+function ReplayIntroButton({ onReplayIntro }: { onReplayIntro: () => void }) {
+  const { close } = useContext(SheetContext);
+  return (
+    <Button
+      verb="REPLAY INTRO"
+      data-action="replay-intro"
+      onPress={() => {
+        close();
+        onReplayIntro();
+      }}
+    />
+  );
+}
+
 /** PAUSE: the settings close first, so the PAUSED line is over the colony itself. */
 function PauseButton({ onPause }: { onPause: () => void }) {
   const { close } = useContext(SheetContext);
@@ -296,12 +309,7 @@ export function SettingsSheet({ store, capabilities, onExportDiagnostics, onPaus
         <PauseButton onPause={onPause} />
         <Button verb="EXPORT SAVE" data-action="export-save" onPress={onExportSave} />
         <Button verb="IMPORT SAVE" data-action="import-save" onPress={onImportSave} />
-        <Button
-          verb="REPLAY INTRO"
-          data-action="replay-intro"
-          disabled={onReplayIntro ? false : INTRO_NOT_READY}
-          onPress={() => onReplayIntro?.()}
-        />
+        <ReplayIntroButton onReplayIntro={onReplayIntro} />
         <Button verb="EXPORT DIAGNOSTICS" data-action="export-diagnostics" onPress={onExportDiagnostics} />
         <Button verb="EXPORT TELEMETRY" data-action="export-telemetry" onPress={onExportTelemetry} />
       </div>

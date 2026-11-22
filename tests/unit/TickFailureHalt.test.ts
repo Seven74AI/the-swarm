@@ -3,6 +3,7 @@ import { ResourceSystem } from '../../src/systems/ResourceSystem';
 import { MAX_FAILED_TICKS } from '../../src/engine/GameLoop';
 import type { GameState } from '../../src/state/GameState';
 import { log } from '../../src/utils/log';
+import { INTRO_FLAG_KEY } from '../../src/platform/storage/introFlag';
 
 /**
  * Story 1.17, wired in main: with a system stubbed to throw, 3 failed ticks stop
@@ -34,6 +35,8 @@ let savedAtHalt: GameState;
 // the tests pass in any order (e.g. `vitest --sequence.shuffle`).
 beforeAll(async () => {
   localStorage.clear();
+  // A launch after the first: no title cinematic over the sheet (Story 8.10).
+  localStorage.setItem(INTRO_FLAG_KEY, 'seen');
   document.body.innerHTML = '<div id="app"></div>';
   await import('../../src/main');
   swarm = (window as unknown as { __swarm: Swarm }).__swarm;

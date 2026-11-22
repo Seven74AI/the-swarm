@@ -3,6 +3,7 @@ import { gameTimePasses } from './helpers/time';
 import AxeBuilder from '@axe-core/playwright';
 import { openTab, type TabId, type SegmentId } from './helpers/tabs';
 import { tapContinue } from './helpers/phase';
+import { seedSave } from './helpers/seed';
 
 /**
  * Story 1.32 (UX-DR39, UX-DR40, NFR15): screen readers and reduced motion get
@@ -150,6 +151,30 @@ for (const [name, vp] of [['phone', PHONE], ['desktop', DESKTOP]] as const) {
     for (const b of await page.locator('[data-action="buy-upgrade"]').all()) await expect(b).toHaveAccessibleName(/^BUY [A-Z ]+/);
   });
 }
+
+test.describe('title cinematic (Story 8.10)', () => {
+  test('every stage passes axe and reads no decoration; the skip and the wake are named, focused buttons', async ({ page }) => {
+    await page.setViewportSize(PHONE);
+    // A first launch: no save, no intro flag.
+    await seedSave(page, null, { introSeen: false });
+    await page.goto('/');
+    const cinematic = page.getByRole('dialog', { name: 'THE SWARM' });
+    await expect(cinematic).toHaveAttribute('data-stage', 'playing');
+    await expect(page.getByRole('button', { name: 'SKIP INTRO' })).toBeFocused();
+    expect(await axe(page)).toEqual([]);
+    expect((await spokenTree(page)).split('\n').filter((l) => DECORATION.test(l))).toEqual([]);
+    await page.keyboard.press('Space');
+    await expect(cinematic).toHaveAttribute('data-stage', 'title');
+    const wake = page.getByRole('button', { name: 'TAP TO WAKE THE QUEEN', exact: true });
+    await expect(wake).toBeFocused();
+    await expect(cinematic.getByRole('heading', { name: 'THE SWARM' })).toBeVisible();
+    expect(await axe(page)).toEqual([]);
+    expect((await spokenTree(page)).split('\n').filter((l) => DECORATION.test(l))).toEqual([]);
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('status').filter({ hasText: 'A QUEEN, ALONE.' })).toBeVisible();
+    expect(await axe(page)).toEqual([]);
+  });
+});
 
 test.describe('sheets', () => {
   test.beforeEach(async ({ page }) => {

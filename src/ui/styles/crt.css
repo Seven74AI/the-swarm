@@ -20,6 +20,11 @@
  */
 :root {
   --crt-px: 1px;
+}
+
+/* Derived from the color aliases, so a surface that pins a palette (`[data-palette]`, the title cinematic) recomputes them. */
+:root,
+[data-palette] {
   --crt-text-glow: 0 0 2px color-mix(in srgb, var(--color-accent) 35%, transparent);
   --crt-line-glow: drop-shadow(0 0 3px var(--color-accent));
   /* One dark line, one unit thick, every three units. */
@@ -30,7 +35,8 @@
   );
 }
 
-:root[data-crt="off"] {
+:root[data-crt="off"],
+:root[data-crt="off"] [data-palette] {
   --crt-text-glow: none;
   --crt-line-glow: none;
 }

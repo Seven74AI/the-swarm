@@ -41,7 +41,8 @@ once, with no lasting sign and no way to keep a copy.
   fail; tapping it opens `ui/sheets/SaveFailedSheet.tsx` (explains, EXPORT SAVE). The next good write clears it.
   A failed write never touches the primary (the store writes the primary last; a refused `setItem` leaves it).
 - **Intro flag** (`src/platform/storage/introFlag.ts`, `platform.introFlag`): the onboarding flag moved behind
-  platform/ too. `OnboardingManager` receives it and `hasSave` (any status but `empty`).
+  platform/ too. `OnboardingManager` receives it and `hasSave` (any status but `empty`). (Story 8.10: the flag is
+  the title cinematic's, `the_swarm_intro_seen`, and the tooltip onboarding is gone; see ADR 0048.)
 - **Boundary:** `tests/arch/architecture.test.ts` fails on `localStorage` / `sessionStorage` outside platform/.
 
 ## Consequences

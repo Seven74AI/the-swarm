@@ -1,6 +1,15 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const CHROMIUM_ARGS = ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox'];
+const ORIGIN = 'http://localhost:5173';
+
+/**
+ * Every test starts with the title cinematic seen (Story 8.10, its own key): a
+ * spec without a save would otherwise open on the 11 s cinematic. The
+ * cinematic's own spec clears it (`test.use({ storageState: NO_STORAGE })`);
+ * `seedSave(page, state, { introSeen: false })` (tests/e2e/helpers/seed.ts) removes it for one page.
+ */
+const INTRO_SEEN = { name: 'the_swarm_intro_seen', value: 'seen' };
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -21,6 +30,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         launchOptions: { args: CHROMIUM_ARGS },
+        storageState: { cookies: [], origins: [{ origin: ORIGIN, localStorage: [INTRO_SEEN] }] },
       },
     },
     {
@@ -37,7 +47,7 @@ export default defineConfig({
         // storage-durability.spec tests the hint itself.
         storageState: {
           cookies: [],
-          origins: [{ origin: 'http://localhost:5173', localStorage: [{ name: 'the_swarm_home_hint', value: 'seen' }] }],
+          origins: [{ origin: ORIGIN, localStorage: [{ name: 'the_swarm_home_hint', value: 'seen' }, INTRO_SEEN] }],
         },
       },
     },

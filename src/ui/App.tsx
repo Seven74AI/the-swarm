@@ -15,6 +15,8 @@ import { appGridCols } from './primitives/charGrid';
 import { createCharGrid } from './shell/charGrid';
 import { LiveRegion } from './shell/LiveRegion';
 import type { Announcer } from './shell/announcer';
+import { CoachHost, type Coach } from './shell/CoachHost';
+import type { CoachMarkMemory } from './primitives/CoachMark';
 
 export type { ShellViews } from './shell/Shell';
 
@@ -32,6 +34,9 @@ export type { ShellViews } from './shell/Shell';
  * `overlays` is the overlay layer (Story 1.20): the playing overlay is drawn last,
  * above everything, and no sheet is drawn while it is up.
  *
+ * `coach` draws the one coach mark main asks for (Story 8.10: LAY EGG, once the
+ * queen wakes from the title cinematic), above the shell and below sheets.
+ *
  * The character grid (Story 1.31): the shell measures its columns, and every
  * Preact root (sheets and tab hosts included) reads them through `appGridCols`.
  */
@@ -45,6 +50,7 @@ export function App({
   toasts,
   tabKeys,
   announcer,
+  coach,
 }: {
   views?: ShellViews;
   /** Which panels the session has revealed (main reveals them on boot and on each phase commit). */
@@ -60,6 +66,8 @@ export function App({
   tabKeys?: ReadonlySignal<readonly string[]>;
   /** The polite live region's lines (Story 1.32). */
   announcer?: Announcer;
+  /** The coach mark host and where "seen" is remembered (settings, Story 1.12). */
+  coach?: { readonly coach: Coach; readonly memory: CoachMarkMemory };
 }) {
   const grid = useMemo(() => createCharGrid({ root: document.documentElement, cols: appGridCols }), []);
   useEffect(() => () => grid.dispose(), [grid]);
@@ -68,6 +76,7 @@ export function App({
       <Shell shell={shell} views={views} onContinue={onContinue} tabKeys={tabKeys} grid={grid} />
       {toasts && <ToastHost toasts={toasts} />}
       {announcer && <LiveRegion announcer={announcer} />}
+      {coach && <CoachHost coach={coach.coach} memory={coach.memory} />}
       {sheets && <SheetHost sheets={sheets} held={overlays?.held} />}
       {overlays && <OverlayHost overlays={overlays} />}
     </PanelRevealContext.Provider>
