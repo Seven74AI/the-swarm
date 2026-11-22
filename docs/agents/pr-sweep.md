@@ -93,7 +93,7 @@ Land every Dependabot update in **one** PR instead of fixing them one by one.
 Oldest first. This limit is separate from the 3-issue limit.
 
 1. **Merge conflict** (`mergeable_state: dirty`): merge `origin/main` into the branch. Never rebase, amend or
-   force-push. If `pnpm-lock.yaml` conflicts, take `main`'s copy and run `pnpm install` to regenerate it.
+   force-push: these branches may belong to someone else. If `pnpm-lock.yaml` conflicts, take `main`'s copy and run `pnpm install` to regenerate it.
 2. **Red CI.**
    - Read the failed job logs: `gh api repos/Seven74AI/the-swarm/actions/runs/<id>/jobs`, then the job's logs.
    - Reproduce locally, fix the root cause on the PR's branch, and run the failing check locally to show it passes.
