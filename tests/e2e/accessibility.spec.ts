@@ -57,9 +57,11 @@ const COMBAT = {
 const TABS: readonly [TabId, SegmentId?][] = [['nest'], ['wrkr'], ['build'], ['front', 'war'], ['log']];
 
 /**
- * axe, WCAG 2 A/AA. Colour contrast is left to its own pass: the legacy
- * main.css colours are migrated to the phase tokens in Story 8.3, and DESIGN.md
- * owns the measured contrast table.
+ * axe, WCAG 2 A/AA. Colour contrast is left to its own pass: every colour is a
+ * phase token (Story 8.3, palette.spec.ts), and DESIGN.md owns the measured
+ * contrast table (tests/unit/phaseTokens.test.ts recomputes it). axe still flags
+ * the decorative `edge` cells and the strip's `dim` labels, which that table rates
+ * on their own terms.
  */
 async function axe(page: Page) {
   const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice']).disableRules(['color-contrast']).analyze();

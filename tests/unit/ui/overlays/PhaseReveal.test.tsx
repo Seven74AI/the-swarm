@@ -100,4 +100,26 @@ describe('PhaseReveal', () => {
     act(() => void vi.advanceTimersByTime(REVEAL_MS));
     expect(done).toHaveBeenCalledTimes(1);
   });
+
+  // Story 8.3 (UX-DR27, DESIGN.md → Phase reveal): the Combat reveal is where the first enemy creature is drawn.
+  it('draws an enemy creature in the Combat reveal: vector line-work in the phase color, decoration only', () => {
+    show({ phase: Phase.COMBAT });
+    const drawn = q<SVGSVGElement>('[data-overlay="phase-reveal"] [data-creature="enemy"]');
+    expect(drawn).not.toBeNull();
+    expect(drawn!.tagName.toLowerCase()).toBe('svg');
+    expect(drawn!.getAttribute('aria-hidden')).toBe('true');
+    expect(drawn!.querySelectorAll('path, ellipse, circle, line, polyline').length).toBeGreaterThan(0);
+    // It takes the phase color like everything else: no color of its own.
+    for (const el of [drawn!, ...drawn!.querySelectorAll('*')]) {
+      for (const attr of ['fill', 'stroke', 'color', 'style']) {
+        const v = el.getAttribute(attr);
+        if (v !== null) expect(v, `${el.tagName} ${attr}`).toMatch(/^(none|currentColor)$/);
+      }
+    }
+  });
+
+  it.each([Phase.EGG_LAYING, Phase.COLONY])('draws no enemy in the %s reveal', (phase) => {
+    show({ phase });
+    expect(q('[data-creature="enemy"]')).toBeNull();
+  });
 });
