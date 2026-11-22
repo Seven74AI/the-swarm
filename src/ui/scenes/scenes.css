@@ -212,10 +212,16 @@
  * NestScene through the same camera, ease with them (same time and curve, so
  * an anchored label stays on its chamber all the way).
  */
+/*
+ * The camera's frame: it clips the scaled drawing to the stage. `contain: paint`
+ * clips without making the frame a scroll container, so the drawing scaled past
+ * the frame adds to no one's scroll size (the text-reflow checks read real
+ * overflow, and the frame holds no text: the chamber labels sit outside it).
+ */
 .nest-camera {
   position: absolute;
   inset: 0;
-  overflow: hidden;
+  contain: paint;
 }
 .nest-svg {
   transform-origin: var(--camera-origin, 50% 50%);
