@@ -54,6 +54,7 @@ import type { PrestigeUpgradeId } from '../data/prestigeTree';
 import { progressionBalance } from '../data/balance/progression';
 import { PERCENT } from '../data/constants';
 import type { ResearchProjectId, ResearchProjectStatus } from './GameState';
+import { nestViewOf, sameNestView, type NestView } from './nestView';
 import { conditionMet, goalFor, goalPercent, type GoalCondition, type Transition } from '../phases/transitions';
 
 export type { GoalCondition, Transition } from '../phases/transitions';
@@ -133,6 +134,20 @@ export const selectWorkers = computed(() => selectResources.value.workers);
 export const selectNestCapacity = computed(() => selectResources.value.nestCapacity);
 export const selectLarvae = computed(() => selectResources.value.larvae);
 export const selectResearchers = computed(() => selectWorkersAssigned.value.researchers);
+
+let lastNestView: NestView | null = null;
+/**
+ * The nest scene's view (Story 8.5, AR14): whole workers, eggs and larvae.
+ * Keeps its reference while no count changes, so a tick that only moves food
+ * notifies nobody. The scene reads it through a 4 Hz throttle
+ * (`ui/scenes/throttledSignal.ts`, `sceneBalance.viewRefreshMs`).
+ */
+export const selectNestView = computed<NestView>(() => {
+  const next = nestViewOf(selectResources.value);
+  if (lastNestView && sameNestView(lastNestView, next)) return lastNestView;
+  lastNestView = next;
+  return next;
+});
 
 /** Base nest capacity plus the warehouse bonus (there is no `getEffectiveNestCapacity()`). */
 export const selectEffectiveNestCapacity = computed(
