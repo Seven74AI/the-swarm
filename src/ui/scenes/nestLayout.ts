@@ -1,6 +1,6 @@
 import type { NestView } from '../../state/nestView';
 import { sceneBalance } from '../../data/balance/scene';
-import { between, hashString, keyedStream, type RngStream } from '../../utils/rng';
+import { between, hashString, keyedStream, pick, type RngStream } from '../../utils/rng';
 
 /**
  * The nest cross-section as geometry (Story 8.5, AR14, N1): a pure function
@@ -13,6 +13,13 @@ import { between, hashString, keyedStream, type RngStream } from '../../utils/rn
  *
  * Coordinates are viewBox units (`width` × `height`). Chamber label anchors
  * are fractions of the scene (0..1), for the HTML labels laid over it.
+ *
+ * Story 8.6 (AR14, N1): a chamber whose creatures, all drawn, would cover
+ * more than `sceneBalance.cloudCoverage` of its area draws the extras as one
+ * dot-cloud path. The worker chamber keeps `cloudAntsMin` to
+ * `animatedAntsMax` individual ants on top, and the whole scene never has
+ * more than `animatedAntsMax` of them. Every creature is counted once: drawn,
+ * or in its chamber's `cloud.count`.
  */
 
 export type ChamberId = 'brood' | 'workers';
@@ -22,6 +29,33 @@ export interface Token {
   readonly x: number;
   readonly y: number;
   readonly angle: number;
+}
+
+/** A point in viewBox units. */
+export interface Point {
+  readonly x: number;
+  readonly y: number;
+}
+
+/** An individual worker: where it rests, and how it moves (`ui/scenes/antMotion.ts`). */
+export interface Ant extends Token {
+  /** The tunnel it walks along and back, or null for an ant swaying in its chamber. */
+  readonly tunnel: string | null;
+  /** Where in its cycle it starts (0..1), so the ants never move in step. */
+  readonly start: number;
+}
+
+/** A round-capped tunnel: its path, and the same centre line as a cubic curve from end to end. */
+export interface Tunnel {
+  readonly id: string;
+  readonly d: string;
+  readonly curve: readonly [Point, Point, Point, Point];
+}
+
+/** A chamber's dot cloud: how many creatures it stands for, and its dots as one path (empty when none). */
+export interface Cloud {
+  readonly count: number;
+  readonly d: string;
 }
 
 export interface ChamberGeometry {
@@ -34,6 +68,9 @@ export interface ChamberGeometry {
   readonly wall: string;
   /** Where its HTML label sits, as fractions of the scene's width and height. */
   readonly label: { readonly x: number; readonly y: number };
+  /** Its floor area (the `rx`/`ry` ellipse), in square viewBox units. */
+  readonly area: number;
+  readonly cloud: Cloud;
 }
 
 export interface Pebble {
@@ -52,13 +89,35 @@ export interface NestLayout {
   readonly strata: readonly string[];
   readonly pebbles: readonly Pebble[];
   /** Centre lines of the round-capped tunnels. */
-  readonly tunnels: readonly { readonly id: string; readonly d: string }[];
+  readonly tunnels: readonly Tunnel[];
   readonly chambers: readonly ChamberGeometry[];
   readonly queen: Token;
   readonly eggs: readonly Token[];
   readonly larvae: readonly Token[];
-  readonly workers: readonly Token[];
+  readonly workers: readonly Ant[];
 }
+
+// --- Creature shapes (drawn by NestScene; their areas decide when a chamber clouds) ------------
+
+/** Workers are drawn at this scale, so one is never under 12 px long on a phone (DESIGN.md). */
+export const ANT_SCALE = 1.4;
+/** A worker's abdomen, thorax and head, along its heading, before `ANT_SCALE`. */
+export const ANT_BODY = [
+  { cx: -3.4, rx: 2.6, ry: 1.7 },
+  { cx: 0, rx: 1.6, ry: 1.2 },
+  { cx: 2.8, rx: 1.4, ry: 1.4 },
+] as const;
+/** An egg's outlined oval. */
+export const EGG_SHAPE = { rx: 4, ry: 2.8 } as const;
+/** A larva's curl and its stroke width (scenes.css draws it at the same width). */
+export const LARVA_PATH = 'M-4 2 q4 -8 8 0';
+const LARVA_LENGTH = 12;
+const LARVA_STROKE = 2.6;
+
+/** The area one drawn worker covers (its body, legs aside), in square viewBox units. */
+export const ANT_AREA = Math.PI * ANT_BODY.reduce((sum, e) => sum + e.rx * e.ry, 0) * ANT_SCALE * ANT_SCALE;
+/** The area one drawn egg and one drawn larva cover. */
+export const BROOD_AREA = { egg: Math.PI * EGG_SHAPE.rx * EGG_SHAPE.ry, larva: LARVA_LENGTH * LARVA_STROKE } as const;
 
 // --- Fixed geometry (layout constants of the drawing, in viewBox units) ------------------------
 
@@ -77,6 +136,11 @@ const WALL_WOBBLE = 0.06;
 /** Creatures stay within this share of a chamber's radii, inside its irregular wall. */
 const INNER = 0.75;
 const LABEL_GAP = 4;
+/** The worker chamber's cloud fills this share of its radii. */
+const CLOUD_IN = 0.85;
+/** A cloud dot's side, in viewBox units (about a pixel at 1×; DESIGN.md: 1–1.5 px). */
+const DOT_MIN = 1;
+const DOT_MAX = 1.5;
 
 interface Ellipse {
   readonly cx: number;
@@ -105,10 +169,30 @@ function pointIn(e: Ellipse, rng: RngStream): Token {
   return { x: round(e.cx + Math.cos(t) * r * e.rx), y: round(e.cy + Math.sin(t) * r * e.ry), angle: Math.floor(between(rng, 0, 360)) };
 }
 
-function tokens(kind: string, count: number, max: number, area: Ellipse): Token[] {
-  const n = Math.max(0, Math.min(Math.floor(count), max));
+function tokens(kind: string, n: number, area: Ellipse): Token[] {
   return Array.from({ length: n }, (_, i) => pointIn(area, keyedStream(hashString(kind), i)));
 }
+
+const whole = (n: number): number => (Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
+
+/** `n` dots of a cloud as path commands, each placed by `(key, i)` alone, so a growing cloud keeps its dots. */
+function cloudDots(key: string, n: number, area: Ellipse): string {
+  let d = '';
+  const k = hashString(key);
+  for (let i = 0; i < n; i++) {
+    const rng = keyedStream(k, i);
+    const t = between(rng, 0, 2 * Math.PI);
+    const r = Math.sqrt(rng.float());
+    const size = Math.round(between(rng, DOT_MIN, DOT_MAX) * 10) / 10;
+    const x = round(area.cx + Math.cos(t) * r * area.rx - size / 2);
+    const y = round(area.cy + Math.sin(t) * r * area.ry - size / 2);
+    d += `M${x} ${y}h${size}v${size}h-${size}z`;
+  }
+  return d;
+}
+
+/** How many of `count` creatures, each covering `each`, are drawn one by one in a chamber of `area`. */
+const fitting = (area: number, each: number): number => Math.floor((sceneBalance.cloudCoverage * area) / each);
 
 /** A closed, smooth, slightly irregular ellipse (quadratic curves through midpoints). */
 function wallPath(id: ChamberId, e: Ellipse): string {
@@ -158,37 +242,113 @@ function pebbles(): Pebble[] {
   });
 }
 
-function tunnels(): { id: string; d: string }[] {
+const cubicPath = (c: Tunnel['curve']): string =>
+  `M${round(c[0].x)} ${round(c[0].y)} C${round(c[1].x)} ${round(c[1].y)} ${round(c[2].x)} ${round(c[2].y)} ${round(c[3].x)} ${round(c[3].y)}`;
+
+/** A quadratic curve as the same cubic. */
+const fromQuadratic = (a: Point, q: Point, b: Point): Tunnel['curve'] => [
+  a,
+  { x: a.x + (2 / 3) * (q.x - a.x), y: a.y + (2 / 3) * (q.y - a.y) },
+  { x: b.x + (2 / 3) * (q.x - b.x), y: b.y + (2 / 3) * (q.y - b.y) },
+  b,
+];
+
+function tunnels(): Tunnel[] {
   const b = CHAMBERS.brood;
   const w = CHAMBERS.workers;
+  const entrance = { x: ENTRANCE_X, y: SURFACE_Y };
   const broodTop = { x: b.cx + b.rx * 0.6, y: b.cy - b.ry * 0.6 };
   const workersTop = { x: w.cx - w.rx * 0.45, y: w.cy - w.ry * 0.7 };
   const broodSide = { x: b.cx + b.rx * 0.8, y: b.cy + b.ry * 0.4 };
   const workersSide = { x: w.cx - w.rx * 0.8, y: w.cy - w.ry * 0.2 };
-  return [
-    { id: 'entrance', d: `M${ENTRANCE_X} ${SURFACE_Y} C${ENTRANCE_X - 2} 34 ${round(broodTop.x + 14)} ${round(broodTop.y - 6)} ${round(broodTop.x)} ${round(broodTop.y)}` },
-    { id: 'down', d: `M${ENTRANCE_X} ${SURFACE_Y} C${ENTRANCE_X + 6} 50 ${round(workersTop.x - 4)} ${round(workersTop.y - 20)} ${round(workersTop.x)} ${round(workersTop.y)}` },
-    { id: 'between', d: `M${round(broodSide.x)} ${round(broodSide.y)} Q${round((broodSide.x + workersSide.x) / 2)} ${round(workersSide.y + 6)} ${round(workersSide.x)} ${round(workersSide.y)}` },
+  const curves: { id: string; curve: Tunnel['curve'] }[] = [
+    { id: 'entrance', curve: [entrance, { x: ENTRANCE_X - 2, y: 34 }, { x: broodTop.x + 14, y: broodTop.y - 6 }, broodTop] },
+    { id: 'down', curve: [entrance, { x: ENTRANCE_X + 6, y: 50 }, { x: workersTop.x - 4, y: workersTop.y - 20 }, workersTop] },
+    {
+      id: 'between',
+      curve: fromQuadratic(broodSide, { x: (broodSide.x + workersSide.x) / 2, y: workersSide.y + 6 }, workersSide),
+    },
   ];
+  return curves.map((t) => ({ ...t, d: cubicPath(t.curve) }));
 }
 
 function part(c: Ellipse, at: { x: number; y: number; rx: number; ry: number }): Ellipse {
   return { cx: c.cx + at.x * c.rx, cy: c.cy + at.y * c.ry, rx: at.rx * c.rx, ry: at.ry * c.ry };
 }
 
-function chamber(id: ChamberId): ChamberGeometry {
+const areaOf = (e: Ellipse): number => Math.PI * e.rx * e.ry;
+
+function chamber(id: ChamberId, cloud: Cloud): ChamberGeometry {
   const e = CHAMBERS[id];
   return {
     id,
     ...e,
     wall: wallPath(id, e),
     label: { x: e.cx / WIDTH, y: Math.min(1, (e.cy + e.ry + LABEL_GAP) / HEIGHT) },
+    area: areaOf(e),
+    cloud,
   };
+}
+
+/**
+ * The brood's split: every egg and larva while they fit under the coverage
+ * threshold; past it, both are drawn in the same proportion, so the drawn ones
+ * just fit, and the rest become the cloud.
+ */
+function broodSplit(eggs: number, larvae: number): { eggs: number; larvae: number; cloud: Cloud } {
+  const budget = sceneBalance.cloudCoverage * areaOf(CHAMBERS.brood);
+  const total = eggs * BROOD_AREA.egg + larvae * BROOD_AREA.larva;
+  if (total <= budget) return { eggs, larvae, cloud: { count: 0, d: '' } };
+  const k = budget / total;
+  const drawnEggs = Math.floor(eggs * k);
+  const drawnLarvae = Math.floor(larvae * k);
+  const eggExtra = eggs - drawnEggs;
+  const larvaExtra = larvae - drawnLarvae;
+  const extra = eggExtra + larvaExtra;
+  // Past the dot cap, the dots are shared in proportion; under it, one dot per creature.
+  const eggDots = extra <= sceneBalance.cloudDotsMax ? eggExtra : Math.floor((sceneBalance.cloudDotsMax * eggExtra) / extra);
+  const larvaDots = Math.min(larvaExtra, sceneBalance.cloudDotsMax - eggDots);
+  const brood = CHAMBERS.brood;
+  return {
+    eggs: drawnEggs,
+    larvae: drawnLarvae,
+    cloud: { count: extra, d: cloudDots('cloud-egg', eggDots, part(brood, EGGS_IN)) + cloudDots('cloud-larva', larvaDots, part(brood, LARVAE_IN)) },
+  };
+}
+
+/**
+ * The worker chamber's split: every worker while they fit under the threshold
+ * and the animation budget; past either, `cloudAntsMin` to `animatedAntsMax`
+ * individual ants (as many as fit under the threshold), the rest the cloud.
+ */
+function workerSplit(workers: number): { drawn: number; cloud: Cloud } {
+  const w = CHAMBERS.workers;
+  const fits = fitting(areaOf(w), ANT_AREA);
+  if (workers <= Math.min(fits, sceneBalance.animatedAntsMax)) return { drawn: workers, cloud: { count: 0, d: '' } };
+  const drawn = Math.min(workers, Math.max(sceneBalance.cloudAntsMin, Math.min(fits, sceneBalance.animatedAntsMax)));
+  const count = workers - drawn;
+  const area = { ...w, rx: w.rx * CLOUD_IN, ry: w.ry * CLOUD_IN };
+  return { drawn, cloud: { count, d: count > 0 ? cloudDots('cloud-workers', Math.min(count, sceneBalance.cloudDotsMax), area) : '' } };
+}
+
+/** The individual workers: placed by index, every `tunnelWalkerEvery`-th one walking a tunnel. */
+function ants(n: number, area: Ellipse, routes: readonly Tunnel[]): Ant[] {
+  const place = tokens('worker', n, area);
+  const every = sceneBalance.tunnelWalkerEvery;
+  return place.map((t, i) => {
+    const rng = keyedStream(hashString('worker-motion'), i);
+    const start = rng.float();
+    const tunnel = i % every === every - 1 ? pick(rng, routes).id : null;
+    return { ...t, tunnel, start };
+  });
 }
 
 export function nestLayout(view: NestView): NestLayout {
   const brood = CHAMBERS.brood;
   const workers = CHAMBERS.workers;
+  const b = broodSplit(whole(view.eggs), whole(view.larvae));
+  const w = workerSplit(whole(view.workers));
+  const routes = tunnels();
   return {
     width: WIDTH,
     height: HEIGHT,
@@ -196,11 +356,11 @@ export function nestLayout(view: NestView): NestLayout {
     grass: grassPath(),
     strata: STRATA_Y.map((y, i) => stratumPath(i, y)),
     pebbles: pebbles(),
-    tunnels: tunnels(),
-    chambers: [chamber('brood'), chamber('workers')],
+    tunnels: routes,
+    chambers: [chamber('brood', b.cloud), chamber('workers', w.cloud)],
     queen: { x: round(brood.cx + QUEEN_AT.x * brood.rx), y: round(brood.cy + QUEEN_AT.y * brood.ry), angle: 0 },
-    eggs: tokens('egg', view.eggs, sceneBalance.drawnEggsMax, part(brood, EGGS_IN)),
-    larvae: tokens('larva', view.larvae, sceneBalance.drawnLarvaeMax, part(brood, LARVAE_IN)),
-    workers: tokens('worker', view.workers, sceneBalance.drawnWorkersMax, { ...workers, rx: workers.rx * INNER, ry: workers.ry * INNER }),
+    eggs: tokens('egg', b.eggs, part(brood, EGGS_IN)),
+    larvae: tokens('larva', b.larvae, part(brood, LARVAE_IN)),
+    workers: ants(w.drawn, { ...workers, rx: workers.rx * INNER, ry: workers.ry * INNER }, routes),
   };
 }

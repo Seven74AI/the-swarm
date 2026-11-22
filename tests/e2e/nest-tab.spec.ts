@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { settleReveals } from './helpers/reveal';
 import { openTab } from './helpers/tabs';
+import { sceneBalance } from '../../src/data/balance/scene';
 
 /**
  * Story 1.22 (FR1, FR41, UX-DR18, UX-DR30): the NEST tab. Phase 1 reads top to
@@ -262,5 +263,45 @@ test.describe('NEST tab', () => {
     await expect(peek.locator('[data-chamber-count="workers"]')).toHaveText(String(workers));
     await peek.locator('[data-sheet-close]').click();
     await expect(peek).toHaveCount(0);
+  });
+
+  // Story 8.6 (AR14): thousands of ants draw as a dot cloud under at most the budget of moving ants.
+  const BIG = {
+    ...COLONY,
+    resources: { ...COLONY.resources, workers: 4_000, eggs: 900, larvae: 400, food: 1_000_000, nestCapacity: 100_000 },
+    workersAssigned: { gather: 4_000, tend: 0, dig: 0, guard: 0, researchers: 0 },
+    eggPipeline: { count: 900, progress: 0 },
+    larvaPipeline: { count: 400, progress: 0 },
+  };
+  const antTransforms = (page: Page) =>
+    page.locator('[data-scene="nest"] [data-scene-part="worker"]').evaluateAll((els) => els.map((e) => e.getAttribute('transform')));
+
+  test('a colony of thousands draws a dot cloud with at most the budget of ants, and they move (Story 8.6)', async ({ page }) => {
+    await seed(page, BIG);
+    const scene = page.locator('[data-nest-scene] [data-scene="nest"]');
+    await expect(scene.locator('svg [data-scene-part="cloud"][data-cloud="workers"]')).toBeAttached();
+    await expect(scene.locator('svg [data-scene-part="cloud"][data-cloud="brood"]')).toBeAttached();
+    const ants = await scene.locator('[data-scene-part="worker"]').count();
+    expect(ants).toBeGreaterThanOrEqual(sceneBalance.cloudAntsMin);
+    expect(ants).toBeLessThanOrEqual(sceneBalance.animatedAntsMax);
+    const before = await antTransforms(page);
+    await expect.poll(() => antTransforms(page)).not.toEqual(before);
+  });
+
+  test('under reduced motion the ants hold still (Story 8.6)', async ({ page }) => {
+    await seed(page, BIG, { reducedMotion: 'on' });
+    await expect(page.locator('[data-scene="nest"] [data-scene-part="cloud"]').first()).toBeAttached();
+    const before = await antTransforms(page);
+    expect(before.length).toBeGreaterThan(0);
+    // Many frames go by: a running loop would have moved them.
+    await page.evaluate(
+      () =>
+        new Promise<void>((done) => {
+          let frames = 0;
+          const next = () => (++frames >= 30 ? done() : requestAnimationFrame(next));
+          requestAnimationFrame(next);
+        }),
+    );
+    expect(await antTransforms(page)).toEqual(before);
   });
 });

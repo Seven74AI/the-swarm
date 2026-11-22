@@ -27,6 +27,18 @@
   width: 100%;
   height: 100%;
 }
+
+/*
+ * The moving ants (Story 8.6): a second SVG over the scene, on its own
+ * compositor layer, so a frame repaints only the ants. Taps go through to
+ * the chamber labels.
+ */
+.nest-svg--ants {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  will-change: transform;
+}
 /* The glow on the line-work is a CRT effect: Story 8.4 adds it under `data-crt`. */
 
 .nest-svg__soil {
@@ -148,4 +160,22 @@
 .chamber-peek__line + .chamber-peek__line {
   margin-top: 0.25rem;
   color: var(--color-dim);
+}
+
+/*
+ * The dot cloud (Story 8.6): one path of 1–1.5 px dots per crowded chamber,
+ * in the accent, denser at the chamber's heart and fading to its walls.
+ */
+.nest-svg__cloud {
+  fill: url(#nest-cloud-fade);
+}
+
+.nest-svg__cloud-core {
+  stop-color: var(--color-accent);
+  stop-opacity: 0.85;
+}
+
+.nest-svg__cloud-edge {
+  stop-color: var(--color-accent);
+  stop-opacity: 0.3;
 }

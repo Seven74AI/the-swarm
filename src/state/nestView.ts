@@ -5,7 +5,7 @@ import type { GameState } from './GameState';
  * scene gets this as a prop and never reads the state itself; the chamber
  * labels print these numbers, never a count of drawn ants.
  *
- * Later stories extend it (Story 8.6: starving, coverage; Story 8.7: camera).
+ * Later stories extend it (Story 8.7: camera, starving). The dot cloud (Story 8.6) is worked out by `nestLayout` from these counts.
  */
 export interface NestView {
   readonly workers: number;
