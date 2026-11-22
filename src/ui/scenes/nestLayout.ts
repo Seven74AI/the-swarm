@@ -20,6 +20,13 @@ import { between, hashString, keyedStream, pick, type RngStream } from '../../ut
  * `animatedAntsMax` individual ants on top, and the whole scene never has
  * more than `animatedAntsMax` of them. Every creature is counted once: drawn,
  * or in its chamber's `cloud.count`.
+ *
+ * Story 8.7 (UX-DR34): the first workers settle near their chamber's door
+ * (`DOOR`), so the close camera (`nestCamera.ts`, about `cameraOrigin`) sees a
+ * young colony. A starving colony (`view.starving`) draws only
+ * `sceneBalance.starvingShown` of its individual workers and of its cloud's
+ * dots; the ants it leaves out are `thinned`, and the labels, which come from
+ * the view, keep the exact count.
  */
 
 export type ChamberId = 'brood' | 'workers';
@@ -95,18 +102,27 @@ export interface NestLayout {
   readonly eggs: readonly Token[];
   readonly larvae: readonly Token[];
   readonly workers: readonly Ant[];
+  /** Workers a starving colony leaves out of the drawing (0 when fed): drawn + cloud + thinned = all workers. */
+  readonly thinned: number;
+  /**
+   * The camera's fixed point (`nestCamera.ts`): the drawing scales about it,
+   * so the close camera frames the queen's chamber and the workers' door.
+   */
+  readonly cameraOrigin: Point;
 }
 
 // --- Creature shapes (drawn by NestScene; their areas decide when a chamber clouds) ------------
 
-/** Workers are drawn at this scale, so one is never under 12 px long on a phone (DESIGN.md). */
-export const ANT_SCALE = 1.4;
+/** Workers are drawn at this scale (with `nestCamera.MIN_STAGE_PX`, never under 12 px long on screen). */
+export const ANT_SCALE = 1.5;
 /** A worker's abdomen, thorax and head, along its heading, before `ANT_SCALE`. */
 export const ANT_BODY = [
   { cx: -3.4, rx: 2.6, ry: 1.7 },
   { cx: 0, rx: 1.6, ry: 1.2 },
   { cx: 2.8, rx: 1.4, ry: 1.4 },
 ] as const;
+/** A drawn worker's length, abdomen to head, in viewBox units. */
+export const ANT_LENGTH = (ANT_BODY[2].cx + ANT_BODY[2].rx - (ANT_BODY[0].cx - ANT_BODY[0].rx)) * ANT_SCALE;
 /** An egg's outlined oval. */
 export const EGG_SHAPE = { rx: 4, ry: 2.8 } as const;
 /** A larva's curl and its stroke width (scenes.css draws it at the same width). */
@@ -122,6 +138,8 @@ export const BROOD_AREA = { egg: Math.PI * EGG_SHAPE.rx * EGG_SHAPE.ry, larva: L
 // --- Fixed geometry (layout constants of the drawing, in viewBox units) ------------------------
 
 const WIDTH = 360;
+/** The drawing's width in viewBox units. */
+export const SCENE_WIDTH = WIDTH;
 const HEIGHT = 190;
 const SURFACE_Y = 18;
 const ENTRANCE_X = 180;
@@ -158,6 +176,17 @@ const CHAMBERS: Readonly<Record<ChamberId, Ellipse>> = {
 const QUEEN_AT = { x: -0.4, y: 0.1 };
 const EGGS_IN = { x: 0.35, y: -0.15, rx: 0.4, ry: 0.45 };
 const LARVAE_IN = { x: 0.3, y: 0.35, rx: 0.4, ry: 0.3 };
+/**
+ * The worker chamber's door side, as fractions of its radii (inside the ants'
+ * area): the first workers settle around it, by the tunnel from the brood.
+ */
+const DOOR_AT = { x: -0.6, y: -0.35 };
+/**
+ * The camera's fixed point (Story 8.7). At 2× the frame is the half of the
+ * drawing from (origin / 2) on: x 28–208, y 40.5–135.5 here, which holds the
+ * queen, the whole brood chamber and the workers' door.
+ */
+const CAMERA_ORIGIN = { x: 56, y: 81 };
 
 const round = (n: number): number => Math.round(n * 10) / 10;
 const stream = (...keys: string[]): RngStream => keyedStream(...keys.map(hashString));
@@ -320,20 +349,42 @@ function broodSplit(eggs: number, larvae: number): { eggs: number; larvae: numbe
  * The worker chamber's split: every worker while they fit under the threshold
  * and the animation budget; past either, `cloudAntsMin` to `animatedAntsMax`
  * individual ants (as many as fit under the threshold), the rest the cloud.
+ * Starving (Story 8.7), only `starvingShown` of the individual ants (at least
+ * one) and of the cloud's dots are drawn; the ants left out are `thinned`.
  */
-function workerSplit(workers: number): { drawn: number; cloud: Cloud } {
+function workerSplit(workers: number, starving: boolean): { drawn: number; thinned: number; cloud: Cloud } {
   const w = CHAMBERS.workers;
   const fits = fitting(areaOf(w), ANT_AREA);
-  if (workers <= Math.min(fits, sceneBalance.animatedAntsMax)) return { drawn: workers, cloud: { count: 0, d: '' } };
-  const drawn = Math.min(workers, Math.max(sceneBalance.cloudAntsMin, Math.min(fits, sceneBalance.animatedAntsMax)));
-  const count = workers - drawn;
+  const shown = (n: number, least: number) => (starving ? Math.max(least, Math.floor(n * sceneBalance.starvingShown)) : n);
+  const full =
+    workers <= Math.min(fits, sceneBalance.animatedAntsMax)
+      ? workers
+      : Math.min(workers, Math.max(sceneBalance.cloudAntsMin, Math.min(fits, sceneBalance.animatedAntsMax)));
+  const drawn = Math.min(full, shown(full, 1));
+  const count = workers - full;
   const area = { ...w, rx: w.rx * CLOUD_IN, ry: w.ry * CLOUD_IN };
-  return { drawn, cloud: { count, d: count > 0 ? cloudDots('cloud-workers', Math.min(count, sceneBalance.cloudDotsMax), area) : '' } };
+  const dots = shown(Math.min(count, sceneBalance.cloudDotsMax), 0);
+  return { drawn, thinned: full - drawn, cloud: { count, d: dots > 0 ? cloudDots('cloud-workers', dots, area) : '' } };
 }
 
-/** The individual workers: placed by index, every `tunnelWalkerEvery`-th one walking a tunnel. */
+/** The point the first workers settle around, in viewBox units. */
+export const DOOR: Point = {
+  x: round(CHAMBERS.workers.cx + DOOR_AT.x * CHAMBERS.workers.rx),
+  y: round(CHAMBERS.workers.cy + DOOR_AT.y * CHAMBERS.workers.ry),
+};
+
+/**
+ * The individual workers: placed by index, every `tunnelWalkerEvery`-th one
+ * walking a tunnel. Ant `i` sits on the line from the door to its own point
+ * in the chamber, the nearer the door the younger the colony it arrived in,
+ * so the first ones gather in view of the close camera. Both ends lie inside
+ * the ants' area, and so does every point between them.
+ */
 function ants(n: number, area: Ellipse, routes: readonly Tunnel[]): Ant[] {
-  const place = tokens('worker', n, area);
+  const place = tokens('worker', n, area).map((t, i) => {
+    const k = Math.sqrt(Math.min(1, (i + 1) / sceneBalance.doorFillAnts));
+    return { ...t, x: round(DOOR.x + (t.x - DOOR.x) * k), y: round(DOOR.y + (t.y - DOOR.y) * k) };
+  });
   const every = sceneBalance.tunnelWalkerEvery;
   return place.map((t, i) => {
     const rng = keyedStream(hashString('worker-motion'), i);
@@ -347,7 +398,7 @@ export function nestLayout(view: NestView): NestLayout {
   const brood = CHAMBERS.brood;
   const workers = CHAMBERS.workers;
   const b = broodSplit(whole(view.eggs), whole(view.larvae));
-  const w = workerSplit(whole(view.workers));
+  const w = workerSplit(whole(view.workers), view.starving === true);
   const routes = tunnels();
   return {
     width: WIDTH,
@@ -362,5 +413,7 @@ export function nestLayout(view: NestView): NestLayout {
     eggs: tokens('egg', b.eggs, part(brood, EGGS_IN)),
     larvae: tokens('larva', b.larvae, part(brood, LARVAE_IN)),
     workers: ants(w.drawn, { ...workers, rx: workers.rx * INNER, ry: workers.ry * INNER }, routes),
+    thinned: w.thinned,
+    cameraOrigin: CAMERA_ORIGIN,
   };
 }

@@ -10,6 +10,8 @@ import { sceneBalance } from '../../../../src/data/balance/scene';
 import { formatFull } from '../../../../src/utils/format';
 import { testActions } from '../../helpers/actions';
 import { makeState } from '../../helpers/makeState';
+import { onCameraPullBack } from '../../../../src/ui/nest/cameraPullBack';
+import { cameraZoom } from '../../../../src/ui/scenes/nestCamera';
 
 /**
  * NEST's scene area: the nest scene (Story 8.5) in place of the Story 1.22
@@ -108,5 +110,42 @@ describe('NestSceneArea (Story 1.22, Story 8.5)', () => {
     expect(peek.querySelector('[data-chamber-count="workers"]')!.textContent).toBe('20');
     expect(peek.querySelector('[data-chamber-count="gather"]')!.textContent).toBe('8');
     expect(peek.querySelector('[data-chamber-count="free"]')).not.toBeNull();
+  });
+
+  it('hands the scene its starving flag, so a starving colony thins while the label keeps the count (Story 8.7)', () => {
+    gameState.value = makeState({ resources: { eggs: 0, larvae: 0, workers: 30, food: 0 }, workersAssigned: { gather: 0, tend: 30, dig: 0, guard: 0, researchers: 0 } });
+    const c = area();
+    expect(c.querySelector('[data-scene="nest"]')!.hasAttribute('data-starving')).toBe(true);
+    expect(c.querySelector('[data-chamber="workers"]')!.textContent).toContain('30');
+  });
+
+  it('sets the scene camera zoom from the colony size, and announces each pull-back through onCameraPullBack (Story 8.7)', () => {
+    vi.useFakeTimers();
+    const steps = sceneBalance.cameraSteps;
+    gameState.value = makeState({ resources: { eggs: 0, larvae: 0, workers: steps[0].workers, food: 1_000 } });
+    const heard: { from: number; to: number }[] = [];
+    const stop = onCameraPullBack((p) => heard.push(p));
+    const c = area();
+    const stage = () => c.querySelector('[data-scene="nest"] [data-camera]')!;
+    expect(stage().getAttribute('data-camera')).toBe('close');
+    expect(heard).toEqual([]);
+    const s = gameState.value;
+    act(() => {
+      gameState.value = { ...s, resources: { ...s.resources, workers: steps[1].workers } };
+    });
+    act(() => {
+      vi.advanceTimersByTime(sceneBalance.viewRefreshMs);
+    });
+    expect(stage().getAttribute('data-camera')).toBe('pulled-back');
+    expect(heard).toEqual([{ from: cameraZoom(0), to: cameraZoom(1) }]);
+    stop();
+    const t = gameState.value;
+    act(() => {
+      gameState.value = { ...t, resources: { ...t.resources, workers: steps[2].workers } };
+    });
+    act(() => {
+      vi.advanceTimersByTime(sceneBalance.viewRefreshMs);
+    });
+    expect(heard).toHaveLength(1);
   });
 });

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
-import { ANT_AREA, BROOD_AREA, nestLayout, type ChamberGeometry, type NestLayout, type Token } from '../../../../src/ui/scenes/nestLayout';
+import { ANT_AREA, BROOD_AREA, DOOR, nestLayout, type ChamberGeometry, type NestLayout, type Token } from '../../../../src/ui/scenes/nestLayout';
 import { sceneBalance } from '../../../../src/data/balance/scene';
 import type { NestView } from '../../../../src/state/nestView';
 
@@ -11,7 +11,7 @@ import type { NestView } from '../../../../src/state/nestView';
  * creatures than the colony holds; every creature inside its chamber.
  */
 
-const view = (eggs: number, larvae: number, workers: number): NestView => ({ eggs, larvae, workers });
+const view = (eggs: number, larvae: number, workers: number, starving = false): NestView => ({ eggs, larvae, workers, starving });
 
 function inside(t: Token, c: ChamberGeometry): boolean {
   const dx = (t.x - c.cx) / c.rx;
@@ -135,10 +135,10 @@ describe('nestLayout: the dot cloud (Story 8.6)', () => {
 
   it('never animates more than the budget of ants in the whole scene, whatever the colony', () => {
     fc.assert(
-      fc.property(fc.nat(10_000_000), fc.nat(10_000_000), fc.nat(10_000_000), (eggs, larvae, workers) => {
-        const l = nestLayout(view(eggs, larvae, workers));
+      fc.property(fc.nat(10_000_000), fc.nat(10_000_000), fc.nat(10_000_000), fc.boolean(), (eggs, larvae, workers, starving) => {
+        const l = nestLayout(view(eggs, larvae, workers, starving));
         expect(l.workers.length).toBeLessThanOrEqual(sceneBalance.animatedAntsMax);
-        expect(l.workers.length + chamberOf(l, 'workers').cloud.count).toBe(workers);
+        expect(l.workers.length + chamberOf(l, 'workers').cloud.count + l.thinned).toBe(workers);
         expect(l.eggs.length + l.larvae.length + chamberOf(l, 'brood').cloud.count).toBe(eggs + larvae);
       }),
       { numRuns: 60 },
@@ -178,5 +178,38 @@ describe('nestLayout: the dot cloud (Story 8.6)', () => {
     expect(l.larvae.length).toBeGreaterThan(0);
     const covered = l.eggs.length * BROOD_AREA.egg + l.larvae.length * BROOD_AREA.larva;
     expect(covered / chamberOf(l, 'brood').area).toBeLessThanOrEqual(sceneBalance.cloudCoverage);
+  });
+});
+
+describe('nestLayout: a growing, starving colony (Story 8.7)', () => {
+  const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+  const fromDoor = (t: Token) => Math.hypot(t.x - DOOR.x, t.y - DOOR.y);
+
+  it('settles the first workers by the chamber door, so a young colony is in view of the close camera', () => {
+    const l = nestLayout(view(0, 0, sceneBalance.animatedAntsMax));
+    const first = l.workers.slice(0, 10).map(fromDoor);
+    const last = l.workers.slice(-10).map(fromDoor);
+    expect(mean(first)).toBeLessThan(mean(last));
+  });
+
+  it('draws fewer ants for a starving colony, and counts the missing ones as thinned', () => {
+    for (const workers of [2, 12, 40, 500, 5_000, 1_000_000]) {
+      const fed = nestLayout(view(0, 0, workers));
+      const starving = nestLayout(view(0, 0, workers, true));
+      const fedCloud = dots(chamberOf(fed, 'workers').cloud.d).length;
+      const starvingCloud = dots(chamberOf(starving, 'workers').cloud.d).length;
+      expect(starving.workers.length + starvingCloud).toBeLessThan(fed.workers.length + fedCloud);
+      expect(starving.workers.length).toBeLessThanOrEqual(fed.workers.length);
+      expect(starving.thinned).toBeGreaterThan(0);
+      expect(fed.thinned).toBe(0);
+      // The ants still drawn are the same ants, in the same places.
+      expect(fed.workers.slice(0, starving.workers.length)).toEqual(starving.workers);
+    }
+  });
+
+  it('still draws a lone starving worker, and thins nothing but the workers', () => {
+    const l = nestLayout(view(4, 3, 1, true));
+    expect(l.workers.length).toBe(1);
+    expect([l.eggs.length, l.larvae.length]).toEqual([4, 3]);
   });
 });

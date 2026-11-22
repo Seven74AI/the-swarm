@@ -128,6 +128,8 @@
   justify-content: center;
   min-width: 44px;
   min-height: 44px;
+  /* Its own width even when the camera pins it to the stage's edge (Story 8.7); never wider than the stage. */
+  width: max-content;
   max-width: 100%;
   margin: 0;
   padding: 0;
@@ -203,15 +205,55 @@
   to { opacity: 1; transform: none; }
 }
 
-/* The camera (Story 8.7 sets the zoom): the drawing eases to it. */
+/*
+ * The camera (Story 8.7, UX-DR34): `--scene-zoom` is its step (1 = close).
+ * The drawings scale by it times `--camera-close` about `--camera-origin`,
+ * inside a clipped frame, and ease there; the chamber labels, placed by
+ * NestScene through the same camera, ease with them (same time and curve, so
+ * an anchored label stays on its chamber all the way).
+ */
+/*
+ * The camera's frame: it clips the scaled drawing to the stage. `contain: paint`
+ * clips without making the frame a scroll container, so the drawing scaled past
+ * the frame adds to no one's scroll size (the text-reflow checks read real
+ * overflow, and the frame holds no text: the chamber labels sit outside it).
+ */
+.nest-camera {
+  position: absolute;
+  inset: 0;
+  contain: paint;
+}
 .nest-svg {
-  transform: scale(var(--scene-zoom, 1));
+  transform-origin: var(--camera-origin, 50% 50%);
+  transform: scale(calc(var(--scene-zoom, 1) * var(--camera-close, 1)));
   transition: transform var(--camera-ms, 0ms) ease-out;
+}
+.nest-chamber {
+  transition-property: left, top, transform;
+  transition-duration: var(--camera-ms, 0ms);
+  transition-timing-function: ease-out;
+}
+
+/* A larva that arrives (Story 8.7) breaks out of its egg: the shell fades as the larva grows in. */
+.nest-svg__hatch-shell {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 1.4;
+  opacity: 0;
+  animation: nest-hatch-shell var(--arrive-ms, 0ms) ease-out;
+}
+@keyframes nest-hatch-shell {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
 :root[data-reduced-motion="true"] .nest-svg__arrive {
   animation: none;
 }
-:root[data-reduced-motion="true"] .nest-svg {
+:root[data-reduced-motion="true"] .nest-svg,
+:root[data-reduced-motion="true"] .nest-chamber {
   transition: none;
+}
+:root[data-reduced-motion="true"] .nest-svg__hatch-shell {
+  display: none;
 }
