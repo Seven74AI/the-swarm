@@ -19,7 +19,9 @@ import {
   type Reallocation,
 } from '../../state/selectors';
 import type { Phase } from '../../phases/phases';
-import { formatDelta, formatFull } from '../../utils/format';
+import { formatFull } from '../../utils/format';
+import { roleBalance } from '../../data/balance/roles';
+import { HOUR_MS } from '../../data/constants';
 import { Button } from '../primitives/Button';
 import { MultiplierRow, Stepper, type Multiplier } from '../primitives/Stepper';
 import { lockedTarget, type TargetLock } from '../shell/targetLock';
@@ -34,23 +36,44 @@ export interface WorkersActions {
 }
 
 const NO_FREE = 'no free workers';
-/** Kept from the legacy WorkerAssignment panel (nest-capacity-ui.spec reads it). */
-const DIG_TOOLTIP = 'Each Dig worker adds +1 capacity per second.';
+/** How long one digger takes per nest room, read from the balance (never restated). */
+const DIG_TOOLTIP = `Each digger digs one nest room in about ${Math.round(roleBalance.digMsPerRoom / HOUR_MS)}h. Tunnels dig faster.`;
 
 const plural = (n: number, one: string) => (n === 1 ? `one ${one}` : `${n} ${one}s`);
 
-/** `UPKEEP n / PRODUCTION n` and the net; a negative net in `warn` with ▼ (DESIGN.md → Upkeep readout). */
+/**
+ * One precision for the whole food line: a decimal while the rates are small,
+ * whole numbers once they reach 100. Exported for the tests.
+ */
+export function foodLineDecimals(production: number, upkeep: number): number {
+  return Math.max(Math.abs(production), Math.abs(upkeep)) < 100 ? 1 : 0;
+}
+
+/**
+ * Food in, food eaten and the net, all per second (DESIGN.md → Upkeep readout).
+ * All three share one precision and the net is worked out from the rounded
+ * parts, so the line always adds up; a negative net is in `warn` with ▼.
+ */
 function UpkeepReadout() {
-  const upkeep = selectFoodUpkeepPerSec.value;
-  const production = selectFoodProductionPerSec.value;
+  const rawUp = selectFoodUpkeepPerSec.value;
+  const rawProd = selectFoodProductionPerSec.value;
+  const dec = foodLineDecimals(rawProd, rawUp);
+  const scale = 10 ** dec;
+  const upkeep = Math.round(rawUp * scale);
+  const production = Math.round(rawProd * scale);
   const net = production - upkeep;
+  const show = (scaled: number) => (dec === 0 ? formatFull(scaled) : (scaled / scale).toFixed(dec));
   const trend = net < 0 ? 'down' : net > 0 ? 'up' : 'flat';
+  const sign = net < 0 ? '−' : net > 0 ? '+' : '';
   return (
     <p class="wrkr-upkeep" data-upkeep="">
-      UPKEEP <span data-upkeep-value="">{formatFull(upkeep)}</span> / PRODUCTION{' '}
-      <span data-production-value="">{formatFull(production)}</span>{' '}
+      FOOD IN +<span data-production-value="">{show(production)}</span>/S
+      <Sep />
+      EATEN −<span data-upkeep-value="">{show(upkeep)}</span>/S
+      <Sep />
       <span class="wrkr-upkeep__net worker-summary-value" data-net="" data-trend={trend}>
-        {trend === 'down' && <span aria-hidden="true">▼ </span>}NET {formatDelta(net)}/S
+        {trend === 'down' && <span aria-hidden="true">▼ </span>}NET {sign}
+        {show(Math.abs(net))}/S
       </span>
     </p>
   );

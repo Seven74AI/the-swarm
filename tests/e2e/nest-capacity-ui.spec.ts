@@ -137,7 +137,7 @@ test.describe('Nest Capacity UI', () => {
     expect(atCapacity).toBe(false);
   });
 
-  test('dig worker has tooltip with capacity per second', async ({ page }) => {
+  test('dig worker has a tooltip about digging nest rooms', async ({ page }) => {
     await seedAndGoto(page, {
       resources: { eggs: 10, larvae: 5, workers: 22, food: 500, nestCapacity: 25 },
       workersAssigned: { gather: 0, tend: 0, dig: 0, guard: 0, researchers: 0 },
@@ -151,7 +151,8 @@ test.describe('Nest Capacity UI', () => {
 
     // Should have data-tooltip attribute
     const tooltip = await digRow.getAttribute('data-tooltip');
-    expect(tooltip).toContain('capacity per second');
+    expect(tooltip).toContain('nest room');
+    expect(tooltip).not.toMatch(/per second/i);
   });
 
   test('worker assignment shows capacity display line', async ({ page }) => {
