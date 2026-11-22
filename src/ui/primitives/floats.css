@@ -1,0 +1,26 @@
+/*
+ * A floating `+N` (Story 8.9): rises and fades once, over its button.
+ * Colors only through the phase aliases; size from the type roles.
+ */
+.float-gain {
+  position: absolute;
+  right: 0.75rem;
+  top: 0;
+  color: var(--color-accent);
+  font-size: var(--type-body);
+  font-weight: 700;
+  pointer-events: none;
+  white-space: nowrap;
+  animation: float-gain-rise 0.9s ease-out forwards;
+}
+
+@keyframes float-gain-rise {
+  0% { opacity: 0; transform: translateY(0); }
+  15% { opacity: 1; transform: translateY(-6px); }
+  100% { opacity: 0; transform: translateY(-36px); }
+}
+
+/* Reduced motion: no floating `+N` (EXPERIENCE.md). */
+:root[data-reduced-motion="true"] .float-gain {
+  display: none;
+}

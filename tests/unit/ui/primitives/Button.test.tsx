@@ -260,3 +260,39 @@ describe('Button accessible name (Story 1.12)', () => {
     expect(getByRole('button', { name: 'Add one gatherer' })).toBeTruthy();
   });
 });
+
+describe('Button game feel (Story 8.9)', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+  });
+
+  it('a hold-repeat button (a buy, an assign) is marked for the press haptic; a plain one is not', () => {
+    const { container } = render(
+      <>
+        <Button verb="BUY" repeat onPress={() => OK} data-action="buy" />
+        <Button verb="OK" onPress={() => OK} data-action="ok" />
+      </>,
+    );
+    expect(container.querySelector('[data-action="buy"]')!.getAttribute('data-feel')).toBe('press');
+    expect(container.querySelector('[data-action="ok"]')!.getAttribute('data-feel')).toBeNull();
+  });
+
+  it('with a gain, each accepted press floats +N UNIT; a refused press floats nothing', () => {
+    let ok = true;
+    const { container } = render(<Button verb="BUY" repeat gain={{ unit: 'LV' }} onPress={() => (ok ? OK : refuse('cannot_afford'))} />);
+    const el = button(container);
+    fireEvent.pointerDown(el, { pointerId: 1, button: 0 });
+    fireEvent.pointerUp(el, { pointerId: 1, button: 0 });
+    const floats = container.querySelectorAll('[data-float]');
+    expect(floats.length).toBe(1);
+    expect(floats[0].textContent).toMatch(/^\+1 LV$/);
+    expect(floats[0].getAttribute('aria-hidden')).toBe('true');
+    ok = false;
+    act(() => void vi.advanceTimersByTime(2000));
+    fireEvent.pointerDown(el, { pointerId: 2, button: 0 });
+    fireEvent.pointerUp(el, { pointerId: 2, button: 0 });
+    expect(container.querySelectorAll('[data-float]').length).toBe(0);
+  });
+});

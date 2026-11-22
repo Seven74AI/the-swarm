@@ -1,4 +1,6 @@
-import { useMemo, useRef } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import type { ComponentChildren } from 'preact';
+import { feelBalance } from '../../data/balance/feel';
 import type { NestView } from '../../state/nestView';
 import { formatFull } from '../../utils/format';
 import { Sep } from '../primitives/Deco';
@@ -32,7 +34,18 @@ import './scenes.css';
  * They sit in a second SVG over the first, on its own compositor layer, so a
  * frame repaints the ants alone and not the soil, the tunnels and the cloud.
  *
- * Hooks: `[data-scene="nest"]`, `svg [data-scene-part]`, `button[data-chamber]`.
+ * Game feel (Story 8.9, UX-DR37): a creature that arrives after the first
+ * draw is wrapped in `[data-arrive=<kind>]`, fixed at its mount: an egg
+ * appears beside the queen, a larva after it, a worker walks into its chamber
+ * (a one-off CSS animation over `feelBalance.arriveMs` on the wrapper, so no
+ * frame re-renders and the ants' own per-frame transform is untouched; none
+ * under reduced motion). Only drawn creatures arrive: the cloud and the
+ * 50-ant budget are unchanged. The camera pull-back is a prop: Story 8.7's
+ * container passes `zoom` (1 = close) and the drawings ease to it over
+ * `feelBalance.cameraPullBackMs` (`[data-camera]`).
+ *
+ * Hooks: `[data-scene="nest"]`, `svg [data-scene-part]`, `button[data-chamber]`,
+ * `[data-arrive]`, `[data-camera=close|pulled-back]`.
  */
 
 export interface NestSceneProps {
@@ -40,6 +53,22 @@ export interface NestSceneProps {
   readonly onChamber: (id: ChamberId) => void;
   /** The clock the ants move on (the shared scene clock unless a test hands in its own). */
   readonly clock?: SceneClock;
+  /** The camera's scale, 1 = close (default). Below 1 the scene has pulled back (Story 8.7 sets it). */
+  readonly zoom?: number;
+}
+
+type ArriveKind = 'egg' | 'larva' | 'worker';
+
+/** Marks a creature as arriving if it first draws after the scene's first draw; the mark is fixed at mount. */
+function Arrival({ kind, live, children }: { kind: ArriveKind; live: boolean; children: ComponentChildren }) {
+  const [arriving] = useState(live);
+  return arriving ? (
+    <g data-arrive={kind} class={`nest-svg__arrive nest-svg__arrive--${kind}`}>
+      {children}
+    </g>
+  ) : (
+    <>{children}</>
+  );
 }
 
 const count = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
@@ -102,7 +131,7 @@ const at = (t: Token) => `translate(${t.x} ${t.y}) rotate(${t.angle})`;
 const antAt = (t: Token) => `${at(t)} scale(${ANT_SCALE})`;
 
 /** The individual workers, moved every frame by the scene clock without a render. */
-function Ants({ ants, tunnels, clock }: { ants: readonly Ant[]; tunnels: readonly Tunnel[]; clock: SceneClock }) {
+function Ants({ ants, tunnels, clock, live }: { ants: readonly Ant[]; tunnels: readonly Tunnel[]; clock: SceneClock; live: boolean }) {
   const nodes = useRef<(SVGGElement | null)[]>([]);
   useSceneClock((t) => {
     for (let i = 0; i < ants.length; i++) nodes.current[i]?.setAttribute('transform', antAt(antPose(ants[i], tunnels, t)));
@@ -111,8 +140,8 @@ function Ants({ ants, tunnels, clock }: { ants: readonly Ant[]; tunnels: readonl
   return (
     <>
       {ants.map((a, i) => (
+        <Arrival key={i} kind="worker" live={live}>
         <g
-          key={i}
           ref={(el) => {
             nodes.current[i] = el;
           }}
@@ -125,6 +154,7 @@ function Ants({ ants, tunnels, clock }: { ants: readonly Ant[]; tunnels: readonl
           ))}
           <path class="nest-svg__legs" d="M-1 -1 l-1.5 -2.5 M0 -1 l0.5 -3 M1 -1 l2 -2.2 M-1 1 l-1.5 2.5 M0 1 l0.5 3 M1 1 l2 2.2" />
         </g>
+        </Arrival>
       ))}
     </>
   );
@@ -143,12 +173,23 @@ function Queen({ t }: { t: Token }) {
   );
 }
 
-export function NestScene({ view, onChamber, clock = sceneClock() }: NestSceneProps) {
+export function NestScene({ view, onChamber, clock = sceneClock(), zoom = 1 }: NestSceneProps) {
   const layout = useMemo(() => nestLayout(view), [view]);
+  // False during the first draw: what is there when the scene opens doesn't arrive.
+  const drawn = useRef(false);
+  useEffect(() => {
+    drawn.current = true;
+  }, []);
+  const live = drawn.current;
   const soilH = layout.height - layout.surfaceY;
   return (
     <div class="nest-scene-view" data-scene="nest" role="group" aria-label={nestAriaLabel(view)}>
-      <div class="nest-stage" data-crt-surface="">
+      <div
+        class="nest-stage"
+        data-crt-surface=""
+        data-camera={zoom < 1 ? 'pulled-back' : 'close'}
+        style={{ '--scene-zoom': String(zoom), '--camera-ms': `${feelBalance.cameraPullBackMs}ms`, '--arrive-ms': `${feelBalance.arriveMs}ms` }}
+      >
         <svg class="nest-svg" data-line-work="" viewBox={`0 0 ${layout.width} ${layout.height}`} aria-hidden="true" focusable="false">
           <defs>
             <pattern id="nest-grain" width={14} height={12} patternUnits="userSpaceOnUse">
@@ -187,16 +228,20 @@ export function NestScene({ view, onChamber, clock = sceneClock() }: NestScenePr
             c.cloud.d ? <path key={c.id} data-scene-part="cloud" data-cloud={c.id} class="nest-svg__cloud" d={c.cloud.d} /> : null,
           )}
           {layout.eggs.map((t, i) => (
-            <ellipse key={i} data-scene-part="egg" class="nest-svg__egg" rx={EGG_SHAPE.rx} ry={EGG_SHAPE.ry} transform={at(t)} />
+            <Arrival key={i} kind="egg" live={live}>
+              <ellipse data-scene-part="egg" class="nest-svg__egg" rx={EGG_SHAPE.rx} ry={EGG_SHAPE.ry} transform={at(t)} />
+            </Arrival>
           ))}
           {layout.larvae.map((t, i) => (
-            <path key={i} data-scene-part="larva" class="nest-svg__larva" stroke-linecap="round" d={LARVA_PATH} transform={at(t)} />
+            <Arrival key={i} kind="larva" live={live}>
+              <path data-scene-part="larva" class="nest-svg__larva" stroke-linecap="round" d={LARVA_PATH} transform={at(t)} />
+            </Arrival>
           ))}
           <Queen t={layout.queen} />
         </svg>
         {/* The moving ants on a layer of their own: a frame repaints only them, never the soil and the cloud. */}
         <svg class="nest-svg nest-svg--ants" data-line-work="" viewBox={`0 0 ${layout.width} ${layout.height}`} aria-hidden="true" focusable="false">
-          <Ants ants={layout.workers} tunnels={layout.tunnels} clock={clock} />
+          <Ants ants={layout.workers} tunnels={layout.tunnels} clock={clock} live={live} />
         </svg>
         {layout.chambers.map((c) => (
           <ChamberButton key={c.id} chamber={c} view={view} onChamber={onChamber} />

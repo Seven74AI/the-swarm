@@ -72,7 +72,7 @@ import { openHomeScreenHint } from './ui/sheets/HomeScreenHintSheet';
 import { bindDurability } from './persistence/durability';
 import { createWebPlatform, type Platform } from './platform';
 import { serviceWorkerWanted } from './platform/serviceWorker';
-import { bindHapticFeedback, bindSoundFeedback } from './platform/feedback';
+import { bindHapticFeedback, bindPressHaptics, bindSoundFeedback } from './platform/feedback';
 import type { Audio } from './platform/audio';
 
 /**
@@ -623,10 +623,12 @@ export function bootstrap(): {
   // A prestige starts the run over: telemetry closes the phase it left (Story 3.10).
   bus.subscribe('prestige_triggered', () => telemetry.phase(gameState.peek().phase));
 
-  // ── Haptics (Story 1.10) and sound (Story 8.8) ──
+  // ── Haptics (Story 1.10), sound (Story 8.8) and the game-feel table (Story 8.9) ──
   // The Audio service is silent until sound is on AND a gesture has unlocked it;
   // every cue's moment also shows on screen (SOUND_EVENTS in platform/feedback.ts).
   bindHapticFeedback(bus, platform.haptics);
+  // A buy's light haptic plays at the press, once per press (Story 8.9, GAME_FEEL in platform/gameFeel.ts).
+  bindPressHaptics(document, platform.haptics);
   const atBind = gameState.peek().resources;
   bindSoundFeedback(bus, platform.audio, { workers: atBind.workers, larvae: atBind.larvae });
 
