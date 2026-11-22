@@ -8,7 +8,7 @@ The spec for a long, unattended session that builds every MVP story (issues #231
 2. Set the goal:
 
 ```text
-/goal Follow docs/agents/run-all-stories.md. Done when every open issue in Seven74AI/the-swarm whose title starts with "Story " and that is labelled ready-for-agent is either closed or relabelled ready-for-human. Prove it by running: gh api 'repos/Seven74AI/the-swarm/issues?state=open&labels=ready-for-agent&per_page=100' --jq '[.[] | select(.title|startswith("Story "))] | length' and showing it prints 0. Never weaken a CI check, never force-push, never merge a PR yourself.
+/goal Follow docs/agents/run-all-stories.md. Done when every open issue in Seven74AI/the-swarm whose title starts with "Story " and that is labelled ready-for-agent is either closed or relabelled ready-for-human. Prove it by running: gh api 'repos/Seven74AI/the-swarm/issues?state=open&labels=ready-for-agent&per_page=100' --jq '[.[] | select(.title|startswith("Story "))] | length' and showing it prints 0. Never weaken a CI check, never force-push except `--force-with-lease` on your own feature branch, never merge a PR yourself.
 ```
 
 If the session ends early, start a new one with the same goal: all state lives in GitHub, so it picks up from the lowest open story.
@@ -44,7 +44,7 @@ Build order is the issue number, ascending (Epic 1 → 2 → 3 → 4 → 5, then
 
 ### Hard limits
 
-Never force-push, never push to main, never merge a PR yourself (never call `PUT /pulls/<n>/merge`), never change repo settings or branch protection. Edit `.github/workflows/` only when the story is about CI (Story 1.35), and then only by adding a step inside an existing job. Don't run `gds-dev-story`, `gds-quick-dev` or `bmad-build`; they bypass the issue → PR → CI flow. Don't create stories for Epics 6 or 7; they're written after the MVP playtest.
+Never force-push (the one exception: `git push --force-with-lease` on your own feature branch after a rebase), never push to main, never merge a PR yourself (never call `PUT /pulls/<n>/merge`), never change repo settings or branch protection. Edit `.github/workflows/` only when the story is about CI (Story 1.35), and then only by adding a step inside an existing job. Don't run `gds-dev-story`, `gds-quick-dev` or `bmad-build`; they bypass the issue → PR → CI flow. Don't create stories for Epics 6 or 7; they're written after the MVP playtest.
 
 ### Long sessions
 

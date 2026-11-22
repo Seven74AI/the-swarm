@@ -14,7 +14,9 @@ Live: https://seven74ai.github.io/the-swarm/ (GitHub Pages, deploys on push to `
 - **Test invariants, never balance numbers.** `expect(eggs).toBeLessThan(before)`, not `toBe(9)`.
 - **All resources are integers** — `Math.floor()` every computed amount.
 - **One spread-based state write per tick.** Never mutate state in place.
-- **Never force-push. Never add `|| true` or `--if-present` to CI steps.**
+- **Never force-push `main` or a branch someone else pushes to.** On your own feature branch, after a rebase,
+  `git push --force-with-lease` is allowed (never plain `--force`); don't push a `-v2` copy instead.
+- **Never add `|| true` or `--if-present` to CI steps.**
 - Before starting an issue, check whether the code already implements it — the tracker has lagged behind the code before.
 
 ## Commands
