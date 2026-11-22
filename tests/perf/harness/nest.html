@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en" data-phase="colony" data-crt="scene">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nest scene perf harness</title>
+  <style>
+    body { margin: 0; padding: 16px 0; background: var(--color-bg); }
+  </style>
+</head>
+<body>
+  <!-- `pnpm perf` harness (Story 8.6): the nest scene alone, for its frame time. Built only by tests/perf/nestScene.perf.ts. -->
+  <div id="harness"></div>
+  <script type="module" src="./nest.tsx"></script>
+</body>
+</html>

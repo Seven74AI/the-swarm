@@ -1,8 +1,10 @@
-import { useMemo } from 'preact/hooks';
+import { useMemo, useRef } from 'preact/hooks';
 import type { NestView } from '../../state/nestView';
 import { formatFull } from '../../utils/format';
 import { Sep } from '../primitives/Deco';
-import { nestLayout, type ChamberGeometry, type ChamberId, type Token } from './nestLayout';
+import { ANT_BODY, ANT_SCALE, EGG_SHAPE, LARVA_PATH, nestLayout, type Ant, type ChamberGeometry, type ChamberId, type Token, type Tunnel } from './nestLayout';
+import { antPose } from './antMotion';
+import { sceneClock, useSceneClock, type SceneClock } from './sceneClock';
 import './scenes.css';
 
 /**
@@ -21,12 +23,23 @@ import './scenes.css';
  * a group labelled with its counts, and each chamber's label is a button
  * with that chamber's exact counts, from the view, never from the drawn ants.
  *
+ * Story 8.6 (AR14): a crowded chamber draws its extras as one dot-cloud
+ * path (`[data-scene-part="cloud"]`, faded by a radial gradient on the phase
+ * accent), under at most `sceneBalance.animatedAntsMax` individual ants. The
+ * ants move on the shared scene clock: each frame sets their `transform`
+ * directly, so a frame re-renders nothing; a re-render (at most 4 times a
+ * second, when the view changes) draws them at the clock's current time.
+ * They sit in a second SVG over the first, on its own compositor layer, so a
+ * frame repaints the ants alone and not the soil, the tunnels and the cloud.
+ *
  * Hooks: `[data-scene="nest"]`, `svg [data-scene-part]`, `button[data-chamber]`.
  */
 
 export interface NestSceneProps {
   readonly view: NestView;
   readonly onChamber: (id: ChamberId) => void;
+  /** The clock the ants move on (the shared scene clock unless a test hands in its own). */
+  readonly clock?: SceneClock;
 }
 
 const count = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
@@ -86,18 +99,34 @@ function ChamberButton({ chamber, view, onChamber }: { chamber: ChamberGeometry;
 }
 
 const at = (t: Token) => `translate(${t.x} ${t.y}) rotate(${t.angle})`;
-/** Workers are drawn at this scale, so one is never under 12 px long on a phone (DESIGN.md). */
-const ANT_SCALE = 1.4;
+const antAt = (t: Token) => `${at(t)} scale(${ANT_SCALE})`;
 
-/** A worker: abdomen, thorax, head, along its heading. */
-function Ant({ t }: { t: Token }) {
+/** The individual workers, moved every frame by the scene clock without a render. */
+function Ants({ ants, tunnels, clock }: { ants: readonly Ant[]; tunnels: readonly Tunnel[]; clock: SceneClock }) {
+  const nodes = useRef<(SVGGElement | null)[]>([]);
+  useSceneClock((t) => {
+    for (let i = 0; i < ants.length; i++) nodes.current[i]?.setAttribute('transform', antAt(antPose(ants[i], tunnels, t)));
+  }, clock);
+  const now = clock.now();
   return (
-    <g data-scene-part="worker" class="nest-svg__creature" transform={`${at(t)} scale(${ANT_SCALE})`}>
-      <ellipse cx={-3.4} rx={2.6} ry={1.7} />
-      <ellipse rx={1.6} ry={1.2} />
-      <circle cx={2.8} r={1.4} />
-      <path class="nest-svg__legs" d="M-1 -1 l-1.5 -2.5 M0 -1 l0.5 -3 M1 -1 l2 -2.2 M-1 1 l-1.5 2.5 M0 1 l0.5 3 M1 1 l2 2.2" />
-    </g>
+    <>
+      {ants.map((a, i) => (
+        <g
+          key={i}
+          ref={(el) => {
+            nodes.current[i] = el;
+          }}
+          data-scene-part="worker"
+          class="nest-svg__creature"
+          transform={antAt(antPose(a, tunnels, now))}
+        >
+          {ANT_BODY.map((e, j) => (
+            <ellipse key={j} cx={e.cx} rx={e.rx} ry={e.ry} />
+          ))}
+          <path class="nest-svg__legs" d="M-1 -1 l-1.5 -2.5 M0 -1 l0.5 -3 M1 -1 l2 -2.2 M-1 1 l-1.5 2.5 M0 1 l0.5 3 M1 1 l2 2.2" />
+        </g>
+      ))}
+    </>
   );
 }
 
@@ -114,7 +143,7 @@ function Queen({ t }: { t: Token }) {
   );
 }
 
-export function NestScene({ view, onChamber }: NestSceneProps) {
+export function NestScene({ view, onChamber, clock = sceneClock() }: NestSceneProps) {
   const layout = useMemo(() => nestLayout(view), [view]);
   const soilH = layout.height - layout.surfaceY;
   return (
@@ -127,6 +156,10 @@ export function NestScene({ view, onChamber }: NestSceneProps) {
               <circle class="nest-svg__grain-dot" cx={9} cy={8} r={0.6} />
               <circle class="nest-svg__grain-dot" cx={5} cy={10} r={0.7} />
             </pattern>
+            <radialGradient id="nest-cloud-fade">
+              <stop class="nest-svg__cloud-core" offset="0" />
+              <stop class="nest-svg__cloud-edge" offset="1" />
+            </radialGradient>
           </defs>
           <rect data-scene-part="soil" class="nest-svg__soil" x={0} y={layout.surfaceY} width={layout.width} height={soilH} />
           <rect data-scene-part="grain" class="nest-svg__grain" x={0} y={layout.surfaceY} width={layout.width} height={soilH} />
@@ -150,16 +183,20 @@ export function NestScene({ view, onChamber }: NestSceneProps) {
           {layout.chambers.map((c) => (
             <path key={c.id} data-scene-part="chamber" data-chamber-wall={c.id} class="nest-svg__chamber" d={c.wall} />
           ))}
+          {layout.chambers.map((c) =>
+            c.cloud.d ? <path key={c.id} data-scene-part="cloud" data-cloud={c.id} class="nest-svg__cloud" d={c.cloud.d} /> : null,
+          )}
           {layout.eggs.map((t, i) => (
-            <ellipse key={i} data-scene-part="egg" class="nest-svg__egg" rx={4} ry={2.8} transform={at(t)} />
+            <ellipse key={i} data-scene-part="egg" class="nest-svg__egg" rx={EGG_SHAPE.rx} ry={EGG_SHAPE.ry} transform={at(t)} />
           ))}
           {layout.larvae.map((t, i) => (
-            <path key={i} data-scene-part="larva" class="nest-svg__larva" stroke-linecap="round" d="M-4 2 q4 -8 8 0" transform={at(t)} />
+            <path key={i} data-scene-part="larva" class="nest-svg__larva" stroke-linecap="round" d={LARVA_PATH} transform={at(t)} />
           ))}
           <Queen t={layout.queen} />
-          {layout.workers.map((t, i) => (
-            <Ant key={i} t={t} />
-          ))}
+        </svg>
+        {/* The moving ants on a layer of their own: a frame repaints only them, never the soil and the cloud. */}
+        <svg class="nest-svg nest-svg--ants" data-line-work="" viewBox={`0 0 ${layout.width} ${layout.height}`} aria-hidden="true" focusable="false">
+          <Ants ants={layout.workers} tunnels={layout.tunnels} clock={clock} />
         </svg>
         {layout.chambers.map((c) => (
           <ChamberButton key={c.id} chamber={c} view={view} onChamber={onChamber} />

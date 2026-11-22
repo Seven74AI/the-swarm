@@ -1,6 +1,9 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, cleanup, fireEvent } from '@testing-library/preact';
+import { options } from 'preact';
 import { NestScene } from '../../../../src/ui/scenes/NestScene';
+import { createSceneClock, type SceneClock } from '../../../../src/ui/scenes/sceneClock';
+import { sceneBalance } from '../../../../src/data/balance/scene';
 import { formatFull } from '../../../../src/utils/format';
 import type { NestView } from '../../../../src/state/nestView';
 
@@ -46,11 +49,14 @@ describe('NestScene (Story 8.5)', () => {
 
   it('hides the drawing from assistive tech and colors it only with phase tokens', () => {
     const c = scene(view(3, 2, 1));
-    const svg = c.querySelector('svg')!;
-    expect(svg.getAttribute('aria-hidden')).toBe('true');
-    // No color is spelled in the drawing: it is styled by class, through the phase's --color-* tokens.
-    expect(svg.outerHTML).not.toMatch(/#[0-9a-f]{3,8}\b|rgb\(|hsl\(/i);
-    expect(svg.outerHTML).not.toMatch(/\b(fill|stroke)="/);
+    const svgs = [...c.querySelectorAll('svg')];
+    expect(svgs.length).toBeGreaterThan(0);
+    for (const svg of svgs) {
+      expect(svg.getAttribute('aria-hidden')).toBe('true');
+      // No color is spelled in the drawing: it is styled by class, through the phase's --color-* tokens.
+      expect(svg.outerHTML).not.toMatch(/#[0-9a-f]{3,8}\b|rgb\(|hsl\(/i);
+      expect(svg.outerHTML).not.toMatch(/\b(fill|stroke)="/);
+    }
   });
 
   it('labels each chamber with its exact counts, from the view and not from the drawn ants', () => {
@@ -74,5 +80,93 @@ describe('NestScene (Story 8.5)', () => {
     expect(buttons[1].getAttribute('aria-label')).toBe('Workers: 26');
     for (const b of buttons) fireEvent.click(b);
     expect(opened).toEqual(['brood', 'workers']);
+  });
+});
+
+/** A scene clock cranked by hand: `frame()` runs the next frame. */
+function manualClock(): { clock: SceneClock; frame: () => void } {
+  let cb: ((ts: number) => void) | null = null;
+  let now = 0;
+  const clock = createSceneClock({
+    requestFrame: (f) => {
+      cb = f;
+      return 1;
+    },
+    cancelFrame: () => {
+      cb = null;
+    },
+    isHidden: () => false,
+    isReducedMotion: () => false,
+    watch: () => () => {},
+  });
+  return {
+    clock,
+    frame: () => {
+      const f = cb;
+      cb = null;
+      now += 250;
+      f?.(now);
+    },
+  };
+}
+
+describe('NestScene: thousands of ants (Story 8.6)', () => {
+  afterEach(cleanup);
+
+  it('draws a big colony as a dot cloud with at most the budget of individual ants on top', () => {
+    const c = scene(view(25_000, 4_000, 2_000));
+    const ants = c.querySelectorAll('[data-scene-part="worker"]').length;
+    expect(ants).toBeGreaterThanOrEqual(sceneBalance.cloudAntsMin);
+    expect(ants).toBeLessThanOrEqual(sceneBalance.animatedAntsMax);
+    const clouds = [...c.querySelectorAll('svg path[data-scene-part="cloud"]')];
+    expect(clouds.map((p) => p.getAttribute('data-cloud')).sort()).toEqual(['brood', 'workers']);
+    for (const p of clouds) expect(p.getAttribute('d')).toMatch(/^M/);
+    // The cloud is under the ants: every ant comes after it in paint order.
+    const workersCloud = c.querySelector('[data-cloud="workers"]')!;
+    const firstAnt = c.querySelector('[data-scene-part="worker"]')!;
+    expect(workersCloud.compareDocumentPosition(firstAnt) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('draws no cloud for a small colony', () => {
+    expect(scene(view(3, 2, 1)).querySelector('[data-scene-part="cloud"]')).toBeNull();
+  });
+
+  it('keeps the cloud colored by phase tokens only', () => {
+    for (const svg of scene(view(25_000, 4_000, 2_000)).querySelectorAll('svg')) {
+      expect(svg.outerHTML).not.toMatch(/#[0-9a-f]{3,8}\b|rgb\(|hsl\(/i);
+      expect(svg.outerHTML).not.toMatch(/\b(fill|stroke|stop-color|stop-opacity)="/);
+    }
+  });
+
+  it('moves the ants on the scene clock without re-rendering anything', () => {
+    const { clock, frame } = manualClock();
+    const c = render(<NestScene view={view(5_000, 10, 10)} onChamber={() => {}} clock={clock} />).container;
+    const ants = () => [...c.querySelectorAll('[data-scene-part="worker"]')].map((a) => a.getAttribute('transform'));
+    const label = c.querySelector('[data-chamber="workers"]')!;
+    const before = ants();
+    let diffed = 0;
+    const prev = options.diffed;
+    options.diffed = (vnode) => {
+      diffed++;
+      prev?.(vnode);
+    };
+    try {
+      frame();
+      frame();
+    } finally {
+      options.diffed = prev;
+    }
+    expect(diffed).toBe(0);
+    expect(ants()).not.toEqual(before);
+    expect(c.querySelector('[data-chamber="workers"]')).toBe(label);
+  });
+
+  it('stops listening to the clock when it goes away', async () => {
+    const { clock } = manualClock();
+    const r = render(<NestScene view={view(50, 0, 0)} onChamber={() => {}} clock={clock} />);
+    expect(clock.isRunning()).toBe(true);
+    r.unmount();
+    // Effect cleanups run after the unmount settles.
+    await vi.waitFor(() => expect(clock.isRunning()).toBe(false));
   });
 });
