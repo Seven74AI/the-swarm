@@ -1,48 +1,13 @@
-/* THE SWARM — Dark theme, ant-appropriate muted earth tones */
-
-/* Register custom properties for smooth animated transitions between phase themes */
-@property --bg-primary {
-  syntax: '<color>';
-  inherits: true;
-  initial-value: #1a1614;
-}
-@property --bg-secondary {
-  syntax: '<color>';
-  inherits: true;
-  initial-value: #241e1a;
-}
-@property --accent-glow {
-  syntax: '<color>';
-  inherits: true;
-  initial-value: #b8942e;
-}
-@property --border {
-  syntax: '<color>';
-  inherits: true;
-  initial-value: #3d3528;
-}
-@property --text-primary {
-  syntax: '<color>';
-  inherits: true;
-  initial-value: #d4c4a8;
-}
+/*
+ * THE SWARM — legacy panel styles.
+ * Colors come only from the phase aliases in ui/styles/tokens.css (Story 8.3, FR43):
+ * no hex, no rgb() and no per-phase overrides here. The palette cross-fade on a
+ * phase commit is PhaseReveal.css's; boot and prestige repaint at once.
+ */
 
 :root {
-  --bg-primary: #1a1614;
-  --bg-secondary: #241e1a;
-  --bg-panel: #2d2620;
-  --text-primary: #d4c4a8;
-  --text-secondary: #9e8b6f;
-  --text-muted: #6b5e4a;
-  --accent: #8b6914;
-  --accent-glow: #b8942e;
-  --success: #5a7a3a;
-  --danger: #8b3a3a;
-  --border: #3d3528;
-
   /* Animation durations — semantic custom properties */
   --anim-panel-reveal: 0.6s;      /* panel appears when phase unlocks */
-  --anim-theme-shift: 3s;         /* color theme transition between phases */
   --anim-particle: 0.8s;          /* resource up/down particles */
   --anim-click-particle: 0.9s;    /* click float particle */
   --anim-burst: 0.5s;             /* burst expansion particle */
@@ -64,15 +29,14 @@
 
 html, body {
   height: 100%;
-  background: var(--bg-primary);
-  color: var(--text-primary);
+  background: var(--color-bg);
+  color: var(--color-accent);
   font-family: var(--font-mono);
   /* The player's text size, not a fixed 16 px (Story 1.31, NFR7). */
   font-size: 100%;
   line-height: 1.5;
   overflow-x: hidden;
   touch-action: manipulation;
-  transition: --bg-primary var(--anim-theme-shift) ease, --bg-secondary var(--anim-theme-shift) ease, --accent-glow var(--anim-theme-shift) ease, --border var(--anim-theme-shift) ease, --text-primary var(--anim-theme-shift) ease, background-color var(--anim-theme-shift) ease, color var(--anim-theme-shift) ease;
 }
 
 #app {
@@ -85,8 +49,8 @@ html, body {
 
 /* Utility classes */
 .panel {
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
+  background: var(--color-raised);
+  border: 1px solid var(--color-line);
   border-radius: 4px;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -97,12 +61,12 @@ html, body {
 }
 
 .panel-title {
-  color: var(--accent);
+  color: var(--color-accent);
   font-size: var(--type-body);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-line);
   padding-bottom: 0.25rem;
 }
 
@@ -113,18 +77,18 @@ html, body {
 }
 
 .stat-label {
-  color: var(--text-secondary);
+  color: var(--color-dim);
 }
 
 .stat-value {
-  color: var(--text-primary);
+  color: var(--color-accent);
   font-weight: bold;
 }
 
 .btn {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
+  background: var(--color-raised);
+  color: var(--color-accent);
+  border: 1px solid var(--color-line);
   border-radius: 4px;
   padding: 0.5rem 1rem;
   cursor: pointer;
@@ -134,13 +98,13 @@ html, body {
 }
 
 .btn:hover {
-  background: var(--bg-panel);
-  border-color: var(--accent);
+  background: var(--color-raised);
+  border-color: var(--color-accent);
 }
 
 .btn:active {
-  background: var(--accent);
-  border-color: var(--accent-glow);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
 /* ── Tooltip system via data-tooltip attribute ──
@@ -157,8 +121,8 @@ html, body {
   bottom: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
-  background: #1a1a2e;
-  color: #e0e0ff;
+  background: var(--color-raised);
+  color: var(--color-accent);
   padding: 0.4rem 0.7rem;
   border-radius: 4px;
   font-size: var(--type-meta);
@@ -167,8 +131,8 @@ html, body {
   opacity: 0;
   transition: opacity var(--anim-micro) ease;
   z-index: 50;
-  border: 1px solid var(--border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--color-line);
+  box-shadow: 0 2px 8px var(--color-scrim);
 }
 
 /* The gap between element and bubble: keeps the hover while the pointer crosses it. */
@@ -211,25 +175,25 @@ html, body {
   align-items: center;
   padding: 0.5rem 0;
   margin-bottom: 1rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-line);
 }
 
 .game-title {
-  color: var(--accent-glow);
+  color: var(--color-accent);
   font-size: var(--type-title);
   font-weight: bold;
 }
 
 .game-phase {
-  color: var(--text-muted);
+  color: var(--color-dim);
   font-size: var(--type-aside);
 }
 
 /* ── Pause Button ── */
 .pause-btn {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
+  background: var(--color-raised);
+  color: var(--color-accent);
+  border: 1px solid var(--color-line);
   border-radius: 4px;
   width: 32px;
   height: 32px;
@@ -245,8 +209,8 @@ html, body {
 }
 
 .pause-btn:hover {
-  background: var(--bg-panel);
-  border-color: var(--accent);
+  background: var(--color-raised);
+  border-color: var(--color-accent);
 }
 
 /* ── Paused State ── */
@@ -255,7 +219,7 @@ html, body {
 }
 
 .game-paused .top-bar {
-  border-color: #b8942e; /* amber accent */
+  border-color: var(--color-accent);
 }
 
 /* ── Mobile Responsive (mobile-first) ── */
@@ -302,14 +266,14 @@ html, body {
 
 .phase-indicator .phase-text {
   font-size: var(--type-body);
-  color: var(--text-muted);
+  color: var(--color-dim);
   font-style: italic;
   transition: font-size var(--anim-slow) ease, color var(--anim-slow) ease;
 }
 
 .phase-indicator.phase-colony .phase-text {
   font-size: var(--type-title);
-  color: var(--accent-glow);
+  color: var(--color-accent);
   font-style: normal;
   font-weight: bold;
 }
@@ -325,12 +289,12 @@ html, body {
 
 .worker-role-label {
   font-weight: bold;
-  color: var(--text-primary);
+  color: var(--color-accent);
   font-size: var(--type-body);
 }
 
 .worker-role-desc {
-  color: var(--text-muted);
+  color: var(--color-dim);
   font-size: var(--type-meta);
 }
 
@@ -361,8 +325,8 @@ html, body {
   margin-top: 0.4rem;
   padding: 0.3rem 0;
   font-size: var(--type-aside);
-  color: var(--text-secondary);
-  border-top: 1px solid var(--border);
+  color: var(--color-dim);
+  border-top: 1px solid var(--color-line);
 }
 
 .worker-summary-value {
@@ -377,8 +341,8 @@ html, body {
 
 /* ── Map Panel ── */
 .map-panel {
-  background: #1a1a2e;
-  border: 1px solid #2a2a4e;
+  background: var(--color-raised);
+  border: 1px solid var(--color-line);
   border-radius: 4px;
   padding: 0.75rem;
   margin-bottom: 1rem;
@@ -386,7 +350,7 @@ html, body {
 }
 
 .map-summary {
-  color: var(--accent-glow);
+  color: var(--color-accent);
   font-size: var(--type-aside);
   margin-bottom: 0.5rem;
   text-align: center;
@@ -396,7 +360,7 @@ html, body {
   display: block;
   width: 100%;
   height: auto;
-  border: 1px solid #3a3a5e;
+  border: 1px solid var(--color-edge);
   border-radius: 2px;
   cursor: crosshair;
   image-rendering: pixelated;
@@ -409,7 +373,7 @@ html, body {
 }
 
 .panel-header .panel-sub {
-  color: var(--text-muted);
+  color: var(--color-dim);
   font-size: var(--type-meta);
   display: block;
   margin-top: 0.15rem;
@@ -423,8 +387,8 @@ html, body {
 }
 
 .expedition-card {
-  background: rgba(26, 22, 20, 0.6);
-  border: 1px solid var(--border);
+  background: var(--color-raised);
+  border: 1px solid var(--color-line);
   border-radius: 4px;
   padding: 0.5rem;
   text-align: center;
@@ -441,17 +405,17 @@ html, body {
 .expedition-card-name {
   font-weight: bold;
   font-size: var(--type-body);
-  color: var(--text-primary);
+  color: var(--color-accent);
 }
 
 .expedition-card-type {
   font-size: var(--type-meta);
-  color: var(--text-muted);
+  color: var(--color-dim);
 }
 
 .expedition-card-loot {
   font-size: var(--type-meta);
-  color: var(--accent-glow);
+  color: var(--color-accent);
   margin-bottom: 0.2rem;
 }
 
@@ -460,18 +424,18 @@ html, body {
   cursor: pointer;
 }
 
-/* Undiscovered (red) planet cards — inaccessible */
+/* Undiscovered planet cards: inaccessible (warn outline) */
 .expedition-card.undiscovered {
-  border-color: #8b0000;
-  background: rgba(80, 20, 20, 0.4);
+  border-color: var(--color-warn);
+  background: var(--color-raised);
 }
 
 .expedition-card.undiscovered .expedition-card-loot {
-  color: #999;
+  color: var(--color-dim);
 }
 
 .expedition-row {
-  background: rgba(26, 22, 20, 0.5);
+  background: var(--color-raised);
   padding: 0.3rem 0.5rem;
   border-radius: 3px;
   margin-bottom: 0.2rem;
@@ -481,106 +445,34 @@ html, body {
 }
 
 .expedition-row-info strong {
-  color: var(--text-primary);
+  color: var(--color-accent);
   font-size: var(--type-body);
 }
 
 .text-muted {
-  color: var(--text-muted);
+  color: var(--color-dim);
   font-size: var(--type-meta);
 }
 
 .expedition-row-status {
-  color: var(--text-secondary);
+  color: var(--color-dim);
   font-size: var(--type-meta);
   display: flex;
   gap: 0.5rem;
 }
 
 .expedition-list-title {
-  color: var(--text-secondary);
+  color: var(--color-dim);
   font-size: var(--type-aside);
   margin: 0.5rem 0 0.25rem 0;
 }
 
 .exploration-hint {
-  color: var(--text-muted);
+  color: var(--color-dim);
   font-size: var(--type-aside);
   font-style: italic;
   text-align: center;
   padding: 1rem 0;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   PHASE THEME SHIFTING — Per-phase CSS variable overrides on body
-   Body class toggling (phase-egg/colony/combat/expansion/space/transcendence)
-   triggers smooth 3s transitions on registered @property values.
-   ═══════════════════════════════════════════════════════════════ */
-
-/* Phase: Egg Laying — warm amber/brown (default theme, matches :root) */
-body.phase-egg {
-  --bg-primary: #1a1614;
-  --bg-secondary: #241e1a;
-  --accent-glow: #b8942e;
-  --border: #3d3528;
-  --text-primary: #d4c4a8;
-}
-
-/* Phase: Colony — deeper browns, gold accents */
-body.phase-colony {
-  --bg-primary: #1e1812;
-  --bg-secondary: #2a2218;
-  --accent-glow: #d4a030;
-  --border: #4a3d28;
-  --text-primary: #ddc8a0;
-}
-
-/* Phase: Combat — reddish undertones */
-body.phase-combat {
-  --bg-primary: #1e1618;
-  --bg-secondary: #2a1e20;
-  --accent-glow: #c04040;
-  --border: #4a2828;
-  --text-primary: #d4b8b8;
-}
-
-/* Phase: Expansion — forest green undertones */
-body.phase-expansion {
-  --bg-primary: #161e16;
-  --bg-secondary: #1e2a1e;
-  --accent-glow: #40a040;
-  --border: #284a28;
-  --text-primary: #b8d4b8;
-}
-
-/* Phase: Transcendence — pure dark, white glow */
-body.phase-transcendence {
-  --bg-primary: #0a0a0f;
-  --bg-secondary: #0f0f1a;
-  --accent-glow: #ffffff;
-  --border: #2a2a4a;
-  --text-primary: #e0e0ff;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   SPACE PHASE — NEON THEME
-   ═══════════════════════════════════════════════════════════════ */
-
-/* Phase-space class on body triggers full theme switch */
-body.phase-space {
-  --bg-primary: #0a0a1a;
-  --bg-secondary: #0f0f2a;
-  --bg-panel: #14143a;
-  --text-primary: #c0e0ff;
-  --text-secondary: #7090cc;
-  --text-muted: #4a5a8a;
-  --accent: #00ccff;
-  --accent-glow: #40ddff;
-  --success: #00ff88;
-  --danger: #ff4466;
-  --border: #2a2a5a;
-  background: linear-gradient(180deg, #050515 0%, #0a0a2a 50%, #0d0d1a 100%);
-  background-attachment: fixed;
 }
 
 /* Starfield background effect via pseudo-element */
@@ -589,26 +481,26 @@ body.phase-space::before {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background-image:
-    radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.8), transparent),
-    radial-gradient(1px 1px at 30% 60%, rgba(255,255,255,0.6), transparent),
-    radial-gradient(1px 1px at 50% 10%, rgba(255,255,255,0.7), transparent),
-    radial-gradient(1px 1px at 70% 40%, rgba(200,220,255,0.9), transparent),
-    radial-gradient(1px 1px at 90% 80%, rgba(255,255,255,0.5), transparent),
-    radial-gradient(1.5px 1.5px at 15% 90%, rgba(180,220,255,0.7), transparent),
-    radial-gradient(1px 1px at 60% 70%, rgba(255,255,255,0.6), transparent),
-    radial-gradient(1px 1px at 40% 30%, rgba(200,240,255,0.8), transparent),
-    radial-gradient(1px 1px at 80% 15%, rgba(255,255,255,0.5), transparent),
-    radial-gradient(1px 1px at 25% 45%, rgba(220,230,255,0.7), transparent),
-    radial-gradient(1px 1px at 55% 85%, rgba(255,255,255,0.6), transparent),
-    radial-gradient(1px 1px at 75% 55%, rgba(200,210,255,0.5), transparent),
-    radial-gradient(1px 1px at 5% 70%, rgba(255,255,255,0.4), transparent),
-    radial-gradient(1px 1px at 85% 35%, rgba(210,230,255,0.7), transparent),
-    radial-gradient(1px 1px at 35% 75%, rgba(255,255,255,0.5), transparent),
-    radial-gradient(1px 1px at 95% 5%, rgba(180,200,255,0.8), transparent),
-    radial-gradient(1px 1px at 65% 95%, rgba(255,255,255,0.4), transparent),
-    radial-gradient(1px 1px at 45% 5%, rgba(200,220,255,0.6), transparent),
-    radial-gradient(1px 1px at 20% 15%, rgba(255,255,255,0.3), transparent),
-    radial-gradient(1px 1px at 80% 65%, rgba(210,240,255,0.7), transparent);
+    radial-gradient(1px 1px at 10% 20%, var(--color-dim), transparent),
+    radial-gradient(1px 1px at 30% 60%, var(--color-dim), transparent),
+    radial-gradient(1px 1px at 50% 10%, var(--color-dim), transparent),
+    radial-gradient(1px 1px at 70% 40%, var(--color-dim), transparent),
+    radial-gradient(1px 1px at 90% 80%, var(--color-dim), transparent),
+    radial-gradient(1.5px 1.5px at 15% 90%, var(--color-dim), transparent),
+    radial-gradient(1px 1px at 60% 70%, var(--color-dim), transparent),
+    radial-gradient(1px 1px at 40% 30%, var(--color-dim), transparent),
+    radial-gradient(1px 1px at 80% 15%, var(--color-dim), transparent),
+    radial-gradient(1px 1px at 25% 45%, var(--color-dim), transparent),
+    radial-gradient(1px 1px at 55% 85%, var(--color-dim), transparent),
+    radial-gradient(1px 1px at 75% 55%, var(--color-dim), transparent),
+    radial-gradient(1px 1px at 5% 70%, var(--color-dim), transparent),
+    radial-gradient(1px 1px at 85% 35%, var(--color-dim), transparent),
+    radial-gradient(1px 1px at 35% 75%, var(--color-dim), transparent),
+    radial-gradient(1px 1px at 95% 5%, var(--color-dim), transparent),
+    radial-gradient(1px 1px at 65% 95%, var(--color-dim), transparent),
+    radial-gradient(1px 1px at 45% 5%, var(--color-dim), transparent),
+    radial-gradient(1px 1px at 20% 15%, var(--color-dim), transparent),
+    radial-gradient(1px 1px at 80% 65%, var(--color-dim), transparent);
   background-size: 200% 200%;
   animation: star-drift var(--anim-star-drift) linear infinite;
   pointer-events: none;
@@ -628,76 +520,76 @@ body.phase-space > * {
 
 /* Neon glow on panels in space phase */
 body.phase-space .panel {
-  border-color: rgba(0, 204, 255, 0.3);
-  box-shadow: 0 0 15px rgba(0, 204, 255, 0.1), inset 0 0 15px rgba(0, 204, 255, 0.03);
+  border-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  box-shadow: 0 0 15px color-mix(in srgb, var(--color-accent) 10%, transparent), inset 0 0 15px color-mix(in srgb, var(--color-accent) 3%, transparent);
 }
 
 /* No glow: section titles are under 15 px (Story 8.1). */
 body.phase-space .panel-title {
-  color: var(--accent);
+  color: var(--color-accent);
 }
 
 body.phase-space .btn {
-  border-color: var(--accent);
-  box-shadow: 0 0 8px rgba(0, 204, 255, 0.2);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-accent) 20%, transparent);
 }
 
 body.phase-space .btn:hover {
-  box-shadow: 0 0 20px rgba(0, 204, 255, 0.4);
-  border-color: var(--accent-glow);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--color-accent) 40%, transparent);
+  border-color: var(--color-accent);
 }
 
 body.phase-space .btn:active {
-  box-shadow: 0 0 30px rgba(0, 204, 255, 0.6);
+  box-shadow: 0 0 30px color-mix(in srgb, var(--color-accent) 60%, transparent);
 }
 
 /* Neon phase indicator text */
 body.phase-space .phase-indicator .phase-text {
-  color: var(--accent-glow);
-  text-shadow: 0 0 12px rgba(64, 221, 255, 0.6);
+  color: var(--color-accent);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--color-accent) 60%, transparent);
   font-size: var(--type-title);
   font-style: normal;
   font-weight: bold;
 }
 
 body.phase-space .game-title {
-  color: var(--accent);
+  color: var(--color-accent);
   font-size: var(--type-title);
-  text-shadow: 0 0 15px rgba(0, 204, 255, 0.5);
+  text-shadow: 0 0 15px color-mix(in srgb, var(--color-accent) 50%, transparent);
 }
 
 body.phase-space .top-bar {
-  border-color: var(--border);
+  border-color: var(--color-line);
 }
 
 /* ── Spaceship Panel ── */
 .spaceship-panel .spaceship-info {
-  color: var(--text-secondary);
+  color: var(--color-dim);
   font-size: var(--type-body);
   margin-bottom: 0.75rem;
 }
 
 .spaceship-panel .spaceship-cost {
-  color: var(--text-muted);
+  color: var(--color-dim);
   font-size: var(--type-meta);
   margin-bottom: 0.5rem;
 }
 
 .spaceship-panel .spaceship-level {
-  color: var(--accent-glow);
+  color: var(--color-accent);
   font-size: var(--type-title);
   font-weight: bold;
   margin-bottom: 0.5rem;
 }
 
 .spaceship-panel .spaceship-fuel {
-  color: var(--text-primary);
+  color: var(--color-accent);
   font-size: var(--type-body);
   margin-bottom: 0.5rem;
 }
 
 .spaceship-panel .spaceship-maxed {
-  color: var(--success);
+  color: var(--color-accent);
   font-size: var(--type-body);
   font-weight: bold;
 }
@@ -729,11 +621,11 @@ body.phase-space .top-bar {
    ═══════════════════════════════════════════════════════════════ */
 
 .prestige-panel {
-  border-color: #ffd700;
+  border-color: var(--color-accent);
 }
 
 .prestige-panel .panel-title {
-  color: #ffd700;
+  color: var(--color-accent);
 }
 
 /* Prestige button — base */
@@ -742,10 +634,10 @@ body.phase-space .top-bar {
   width: 100%;
   padding: 0.75rem;
   margin-top: 0.75rem;
-  border: 2px solid #666;
+  border: 2px solid var(--color-edge);
   border-radius: 6px;
-  background: var(--bg-secondary);
-  color: var(--text-muted);
+  background: var(--color-raised);
+  color: var(--color-dim);
   font-size: var(--type-value);
   font-weight: bold;
   cursor: pointer;
@@ -755,9 +647,9 @@ body.phase-space .top-bar {
 /* Greyed-out disabled state */
 .btn-prestige:disabled,
 .btn-prestige[aria-disabled="true"] {
-  border-color: #444;
-  background: rgba(40, 40, 40, 0.4);
-  color: #555;
+  border-color: var(--color-line);
+  background: var(--color-raised);
+  color: var(--color-dim);
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -765,41 +657,41 @@ body.phase-space .top-bar {
 /* Glowing ready state — gentle pulse animation */
 @keyframes prestige-pulse {
   0%, 100% {
-    box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
-    border-color: #ffd700;
+    box-shadow: 0 0 8px color-mix(in srgb, var(--color-accent) 30%, transparent);
+    border-color: var(--color-accent);
   }
   50% {
-    box-shadow: 0 0 24px rgba(255, 215, 0, 0.6), 0 0 40px rgba(255, 140, 0, 0.2);
-    border-color: #ff8c00;
+    box-shadow: 0 0 24px color-mix(in srgb, var(--color-accent) 60%, transparent), 0 0 40px color-mix(in srgb, var(--color-accent) 20%, transparent);
+    border-color: var(--color-warn);
   }
 }
 
 .btn-prestige.prestige-ready {
-  border-color: #ffd700;
-  background: linear-gradient(135deg, rgba(40, 30, 0, 0.6), rgba(20, 10, 0, 0.4));
-  color: #ffd700;
+  border-color: var(--color-accent);
+  background: var(--color-raised);
+  color: var(--color-accent);
   animation: prestige-pulse var(--anim-pulse) ease-in-out infinite;
   cursor: pointer;
 }
 
 .btn-prestige.prestige-ready:hover {
-  background: linear-gradient(135deg, rgba(60, 40, 0, 0.7), rgba(30, 15, 0, 0.5));
-  box-shadow: 0 0 30px rgba(255, 215, 0, 0.7);
+  background: var(--color-raised);
+  box-shadow: 0 0 30px color-mix(in srgb, var(--color-accent) 70%, transparent);
 }
 
 /* Projected points row */
 .prestige-panel .stat-row.projected {
-  border-top: 1px dashed rgba(255, 215, 0, 0.3);
+  border-top: 1px dashed color-mix(in srgb, var(--color-accent) 30%, transparent);
   padding-top: 0.5rem;
   margin-top: 0.25rem;
 }
 
 .prestige-panel .stat-row.projected .stat-label {
-  color: rgba(255, 215, 0, 0.6);
+  color: color-mix(in srgb, var(--color-accent) 60%, transparent);
 }
 
 .prestige-panel .stat-row.projected .stat-value {
-  color: rgba(255, 215, 0, 0.7);
+  color: color-mix(in srgb, var(--color-accent) 70%, transparent);
 }
 
 /* ── Prestige Tree button (inside PrestigePanel) ─────────── */
@@ -808,10 +700,10 @@ body.phase-space .top-bar {
   width: 100%;
   padding: 0.5rem;
   margin-top: 0.5rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-line);
   border-radius: 4px;
-  background: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  color: var(--color-accent);
   font-size: var(--type-body);
   font-weight: bold;
   cursor: pointer;
@@ -819,7 +711,7 @@ body.phase-space .top-bar {
 }
 
 .btn-tree:hover {
-  background: rgba(34, 197, 94, 0.2);
+  background: color-mix(in srgb, var(--color-accent) 20%, transparent);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -836,7 +728,7 @@ body.phase-space .top-bar {
 }
 
 .mutation-panel .panel-subtitle {
-  color: #94a3b8;
+  color: var(--color-dim);
   font-size: var(--type-aside);
   margin-bottom: 0.75rem;
 }
@@ -848,8 +740,8 @@ body.phase-space .top-bar {
 }
 
 .mutation-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--color-raised);
+  border: 1px solid var(--color-line);
   border-radius: 6px;
   padding: 0.65rem;
   transition: background 0.2s, border-color 0.2s;
@@ -860,22 +752,22 @@ body.phase-space .top-bar {
    ═══════════════════════════════════════════════════════════════ */
 
 .prestige-tree-panel {
-  border-color: #22c55e;
+  border-color: var(--color-accent);
 }
 
 .prestige-tree-panel .panel-title {
-  color: #22c55e;
+  color: var(--color-accent);
 }
 
 .prestige-tree-points {
   margin-bottom: 0.5rem;
   padding: 0.3rem 0.5rem;
-  background: rgba(34, 197, 94, 0.08);
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
   border-radius: 4px;
 }
 
 .prestige-tree-points .stat-value {
-  color: #22c55e;
+  color: var(--color-accent);
   font-size: var(--type-title);
 }
 
@@ -888,8 +780,8 @@ body.phase-space .top-bar {
 }
 
 .prestige-tree-card {
-  background: rgba(26, 22, 20, 0.6);
-  border: 1px solid var(--border);
+  background: var(--color-raised);
+  border: 1px solid var(--color-line);
   border-radius: 4px;
   padding: 0.5rem;
   text-align: center;
@@ -900,42 +792,42 @@ body.phase-space .top-bar {
   transition: border-color var(--anim-fast), box-shadow var(--anim-fast);
 }
 
-/* Available — emphasizes the green border */
+/* Available: an accent border */
 .prestige-card-available {
-  border-color: #22c55e;
-  box-shadow: 0 0 6px rgba(34, 197, 94, 0.2);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--color-accent) 20%, transparent);
 }
 
 .prestige-card-available:hover {
-  box-shadow: 0 0 12px rgba(34, 197, 94, 0.35);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent) 35%, transparent);
 }
 
 /* Unaffordable — greyed out */
 .prestige-card-unaffordable {
-  border-color: #444;
+  border-color: var(--color-line);
   opacity: 0.55;
 }
 
-/* Purchased — green border with different bg tint */
+/* Purchased: an accent border on a raised fill */
 .prestige-card-purchased {
-  border-color: #22c55e;
-  background: rgba(34, 197, 94, 0.06);
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
 }
 
 .prestige-tree-card-name {
   font-weight: bold;
   font-size: var(--type-aside);
-  color: var(--text-primary);
+  color: var(--color-accent);
 }
 
 .prestige-tree-card-type {
   font-size: var(--type-meta);
-  color: var(--text-muted);
+  color: var(--color-dim);
 }
 
 .prestige-tree-card-desc {
   font-size: var(--type-meta);
-  color: var(--accent-glow);
+  color: var(--color-accent);
   margin-bottom: 0.2rem;
 }
 
@@ -949,23 +841,23 @@ body.phase-space .top-bar {
 
 .prestige-tree-card-cost {
   font-size: var(--type-aside);
-  color: #22c55e;
+  color: var(--color-accent);
   font-weight: bold;
 }
 
 .prestige-tree-purchased-badge {
   font-size: var(--type-aside);
-  color: #22c55e;
+  color: var(--color-accent);
   font-weight: bold;
 }
 
 .btn-tree-purchase {
   width: 100%;
   padding: 0.25rem 0.5rem;
-  border: 1px solid #22c55e;
+  border: 1px solid var(--color-accent);
   border-radius: 3px;
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  color: var(--color-accent);
   cursor: pointer;
   font-size: var(--type-meta);
   font-weight: bold;
@@ -973,24 +865,24 @@ body.phase-space .top-bar {
 }
 
 .btn-tree-purchase:hover:not(:disabled) {
-  background: rgba(34, 197, 94, 0.3);
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
 
 .btn-tree-purchase:disabled {
-  border-color: #555;
-  background: rgba(40, 40, 40, 0.3);
-  color: #555;
+  border-color: var(--color-dim);
+  background: var(--color-raised);
+  color: var(--color-dim);
   cursor: not-allowed;
 }
 
 /* Completion message when all upgrades bought */
 .prestige-tree-complete {
-  color: #22c55e;
+  color: var(--color-accent);
   font-size: var(--type-body);
   font-style: italic;
   text-align: center;
   padding: 0.75rem 0;
-  border-top: 1px solid rgba(34, 197, 94, 0.2);
+  border-top: 1px solid color-mix(in srgb, var(--color-accent) 20%, transparent);
   margin-top: 0.5rem;
 }
 
@@ -1003,7 +895,7 @@ body.phase-space .top-bar {
   position: fixed;
   inset: 0;
   z-index: 200;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--color-scrim);
   animation: onboarding-overlay-in var(--anim-popup) ease-out;
 }
 
@@ -1016,12 +908,12 @@ body.phase-space .top-bar {
 .onboarding-tooltip {
   position: fixed;
   z-index: 201;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  border: 1px solid var(--accent-glow);
+  background: var(--color-raised);
+  border: 1px solid var(--color-accent);
   border-radius: 12px;
   padding: 1rem 1.25rem;
   max-width: 280px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5), 0 0 12px rgba(164, 126, 255, 0.15);
+  box-shadow: 0 4px 24px var(--color-scrim), 0 0 12px color-mix(in srgb, var(--color-accent) 15%, transparent);
   animation: onboarding-tooltip-pop var(--anim-tooltip) ease-out;
   text-align: center;
 }
@@ -1039,7 +931,7 @@ body.phase-space .top-bar {
 /* Tooltip text */
 .onboarding-tooltip-text {
   margin: 0 0 0.75rem 0;
-  color: var(--text-primary);
+  color: var(--color-accent);
   font-size: var(--type-value);
   line-height: 1.5;
 }
@@ -1048,8 +940,8 @@ body.phase-space .top-bar {
 .onboarding-tooltip-dismiss {
   display: inline-block;
   padding: 0.4rem 1.2rem;
-  background: var(--accent-glow);
-  color: #0f0f1a;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
   border: none;
   border-radius: 6px;
   font-weight: bold;
@@ -1059,7 +951,7 @@ body.phase-space .top-bar {
 }
 
 .onboarding-tooltip-dismiss:hover {
-  background: #c4a6ff;
+  background: var(--color-warn);
 }
 
 /* Center fallback when target not found */
@@ -1072,7 +964,7 @@ body.phase-space .top-bar {
 /* Story 1.6: a refused action flashes its control; the reason is in its title / data-refusal. */
 .action-refused {
   animation: action-refused-shake 0.3s ease-in-out;
-  outline: 2px solid var(--color-danger, #c0392b);
+  outline: 2px solid var(--color-warn);
 }
 @keyframes action-refused-shake {
   0%, 100% { transform: translateX(0); }

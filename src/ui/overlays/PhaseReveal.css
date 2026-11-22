@@ -90,6 +90,16 @@
   color: var(--color-dim);
 }
 
+/* The first enemy creature (Combat only, Story 8.3): line-work in the accent, as the world is drawn. */
+.phase-reveal__creature {
+  display: block;
+  width: min(8rem, 40vw);
+  height: auto;
+  color: var(--color-accent);
+  overflow: visible;
+  animation: phase-reveal-name 600ms ease-out both;
+}
+
 @keyframes phase-reveal-name {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -99,6 +109,7 @@
 }
 
 :root[data-reduced-motion="true"] .phase-reveal__name,
+:root[data-reduced-motion="true"] .phase-reveal__creature,
 :root[data-reduced-motion="true"] .phase-reveal__line::after {
   animation: none;
 }

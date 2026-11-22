@@ -6,11 +6,10 @@
  * still fires for code that waits on it). Typing effects, floating `+N` and the
  * blinking cursor are switched off where they are drawn (PhaseReveal, nest.css,
  * Button.css). The palette cross-fade lives on :root, outside `body`, and takes
- * 300 ms (PhaseReveal.css); so does the legacy theme shift on html and body.
+ * 300 ms (PhaseReveal.css).
  * CRT effects are OFF through `data-crt` (settings, Story 8.4 draws them).
  */
 :root[data-reduced-motion="true"] {
-  --anim-theme-shift: 300ms;
   scroll-behavior: auto;
 }
 
