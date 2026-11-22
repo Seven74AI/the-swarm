@@ -19,6 +19,8 @@ export interface Capabilities {
   readonly textScale: number;
   /** A touch-first device (`(pointer: coarse)`): a phone or tablet (Story 2.12's home-screen hint). */
   readonly mobile: boolean;
+  /** Web Audio exists (`AudioContext`, or Safari's prefixed one): sound can play (Story 8.8). */
+  readonly audio: boolean;
 }
 
 /** The parts of `window` the probes read; a plain object in tests. */
@@ -27,6 +29,8 @@ export interface CapabilityEnv {
   readonly matchMedia?: (query: string) => { readonly matches: boolean };
   readonly document?: { readonly documentElement?: unknown };
   readonly getComputedStyle?: (el: never) => { readonly fontSize: string };
+  readonly AudioContext?: unknown;
+  readonly webkitAudioContext?: unknown;
 }
 
 /** The browser's default root font size, against which the text scale is measured. */
@@ -66,5 +70,6 @@ export function detectCapabilities(env: CapabilityEnv = typeof window === 'undef
     reducedTransparency: mediaMatches(env, '(prefers-reduced-transparency: reduce)'),
     textScale: readTextScale(env),
     mobile: mediaMatches(env, '(pointer: coarse)'),
+    audio: probe(() => typeof (env.AudioContext ?? env.webkitAudioContext) === 'function'),
   });
 }

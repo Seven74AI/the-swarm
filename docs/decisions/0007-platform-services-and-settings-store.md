@@ -50,3 +50,9 @@ to swap the web implementations for native ones.
 - **Diagnostics:** `src/debug/diagnostics.ts` `buildDiagnostics(...)` (log ring buffer, the serialized save,
   settings, capabilities, build id, user agent) is built in main and downloaded with `platform.browser.download`;
   nothing leaves the device. The build id is Vite's `__BUILD_ID__` define (the commit in CI, `dev` locally).
+
+## Addendum: the Audio service (Story 8.8)
+
+`bindSoundSetting` (sound setting → `audio.muted`) is gone. `platform.audio` reads the sound setting at every
+call, as haptics does, and `bindSoundFeedback` wires the events to it. See ADR 0044. `Capabilities` gained
+`audio` (Web Audio exists).

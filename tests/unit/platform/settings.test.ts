@@ -17,6 +17,7 @@ const caps = (over: Partial<Capabilities> = {}): Capabilities => ({
   reducedTransparency: false,
   textScale: 1,
   mobile: false,
+  audio: false,
   ...over,
 });
 

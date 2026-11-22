@@ -93,6 +93,9 @@ The game's own monospace font (a JetBrains Mono NL subset, `public/fonts/`) and 
 (`--type-display/title/value/body/aside/meta`, rem) in `src/ui/styles/typography.css`. Every size is a role;
 sentence case is never below `aside`; text glow only from `value` up. ADR 0041.
 
+### Sound
+Story 8.8 (ADR 0044): **sound is off by default** and plays only through `platform.audio` (`src/platform/audio/`). It is synthesized at play time with Web Audio, and the game has no audio files. It makes no audio context before the first user gesture with sound on, and it is silent where Web Audio is missing. The cues: `key` (a tap: lay egg or a buy, at most 8/s), `hatch` (at most 1/s), `victory`/`defeat`/`draw`, `phase`, `decision` (a two-tone chime), `prestige`, `discovery`. `SOUND_EVENTS` (`platform/feedback.ts`) pairs every sounding event with the UI hook that shows the same moment. Audio is never the only channel.
+
 ### Keyboard shortcuts
 
 Story 1.30 (ADR 0021): `ui/shell/shortcuts.ts` acts on the player's key bindings (settings, Story 1.27). The **primary** key (Space) presses the active tab's primary-zone button as a tap would, only with focus on the page or that button; tab keys (1–5) press the tab-bar buttons; **pause** (P) pauses (any key, P included, resumes through the PAUSED overlay); **close** (Esc) dismisses a non-decision sheet through `SheetController.dismiss()`. Off in settings means no shortcut fires, Esc included. Hover tips show on tap too and Esc dismisses them (`ui/shell/tips.ts`).
