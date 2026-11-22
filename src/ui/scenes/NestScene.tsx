@@ -6,6 +6,7 @@ import { formatFull } from '../../utils/format';
 import { Sep } from '../primitives/Deco';
 import { ANT_BODY, ANT_SCALE, EGG_SHAPE, LARVA_PATH, nestLayout, type Ant, type ChamberGeometry, type ChamberId, type Token, type Tunnel } from './nestLayout';
 import { antPose } from './antMotion';
+import { CAMERA_CLOSE, cameraRect, chamberAnchor, MIN_STAGE_PX } from './nestCamera';
 import { sceneClock, useSceneClock, type SceneClock } from './sceneClock';
 import './scenes.css';
 
@@ -44,7 +45,16 @@ import './scenes.css';
  * container passes `zoom` (1 = close) and the drawings ease to it over
  * `feelBalance.cameraPullBackMs` (`[data-camera]`).
  *
- * Hooks: `[data-scene="nest"]`, `svg [data-scene-part]`, `button[data-chamber]`,
+ * Story 8.7 (UX-DR34): `zoom` is the camera step `NestSceneArea` picks from
+ * the colony's size (`nestCamera.ts`). The drawings scale by
+ * `zoom × CAMERA_CLOSE` about `layout.cameraOrigin` inside the clipped stage
+ * (`--camera-close`, `--camera-origin`), and the chamber labels follow the
+ * camera, clamped to the stage, easing with it. A larva that arrives breaks
+ * out of an egg shell (`hatch-shell`, faded out by scenes.css). A starving
+ * colony (`view.starving`, `[data-starving]`) draws fewer ants; the labels
+ * keep the exact counts.
+ *
+ * Hooks: `[data-scene="nest"]` (`[data-starving]`), `svg [data-scene-part]`, `button[data-chamber]`,
  * `[data-arrive]`, `[data-camera=close|pulled-back]`.
  */
 
@@ -59,13 +69,19 @@ export interface NestSceneProps {
 
 type ArriveKind = 'egg' | 'larva' | 'worker';
 
-/** Marks a creature as arriving if it first draws after the scene's first draw; the mark is fixed at mount. */
-function Arrival({ kind, live, children }: { kind: ArriveKind; live: boolean; children: ComponentChildren }) {
+/**
+ * Marks a creature as arriving if it first draws after the scene's first draw; the mark is fixed at mount.
+ * `extra` is drawn beside an arriving creature only (Story 8.7: the shell a hatching larva leaves).
+ */
+function Arrival({ kind, live, children, extra }: { kind: ArriveKind; live: boolean; children: ComponentChildren; extra?: ComponentChildren }) {
   const [arriving] = useState(live);
   return arriving ? (
-    <g data-arrive={kind} class={`nest-svg__arrive nest-svg__arrive--${kind}`}>
-      {children}
-    </g>
+    <>
+      {extra}
+      <g data-arrive={kind} class={`nest-svg__arrive nest-svg__arrive--${kind}`}>
+        {children}
+      </g>
+    </>
   ) : (
     <>{children}</>
   );
@@ -107,10 +123,20 @@ function ChamberText({ id, view }: { id: ChamberId; view: NestView }) {
   );
 }
 
-function ChamberButton({ chamber, view, onChamber }: { chamber: ChamberGeometry; view: NestView; onChamber: (id: ChamberId) => void }) {
-  // Anchored at its chamber, and shifted by the same share of its own size, so it never leaves the scene.
-  const x = `${(chamber.label.x * 100).toFixed(1)}%`;
-  const y = `${(chamber.label.y * 100).toFixed(1)}%`;
+function ChamberButton({
+  chamber,
+  anchor,
+  view,
+  onChamber,
+}: {
+  chamber: ChamberGeometry;
+  anchor: { x: number; y: number };
+  view: NestView;
+  onChamber: (id: ChamberId) => void;
+}) {
+  // Anchored at its chamber through the camera, and shifted by the same share of its own size, so it never leaves the scene.
+  const x = `${(anchor.x * 100).toFixed(1)}%`;
+  const y = `${(anchor.y * 100).toFixed(1)}%`;
   return (
     <button
       type="button"
@@ -182,14 +208,24 @@ export function NestScene({ view, onChamber, clock = sceneClock(), zoom = 1 }: N
   }, []);
   const live = drawn.current;
   const soilH = layout.height - layout.surfaceY;
+  const frame = cameraRect(layout, zoom * CAMERA_CLOSE);
+  const origin = `${((layout.cameraOrigin.x / layout.width) * 100).toFixed(2)}% ${((layout.cameraOrigin.y / layout.height) * 100).toFixed(2)}%`;
   return (
-    <div class="nest-scene-view" data-scene="nest" role="group" aria-label={nestAriaLabel(view)}>
+    <div class="nest-scene-view" data-scene="nest" data-starving={view.starving ? '' : undefined} role="group" aria-label={nestAriaLabel(view)}>
       <div
         class="nest-stage"
         data-crt-surface=""
         data-camera={zoom < 1 ? 'pulled-back' : 'close'}
-        style={{ '--scene-zoom': String(zoom), '--camera-ms': `${feelBalance.cameraPullBackMs}ms`, '--arrive-ms': `${feelBalance.arriveMs}ms` }}
+        style={{
+          '--scene-zoom': String(zoom),
+          '--camera-close': String(CAMERA_CLOSE),
+          '--camera-origin': origin,
+          '--camera-ms': `${feelBalance.cameraPullBackMs}ms`,
+          '--arrive-ms': `${feelBalance.arriveMs}ms`,
+          minWidth: `${MIN_STAGE_PX}px`,
+        }}
       >
+        <div class="nest-camera">
         <svg class="nest-svg" data-line-work="" viewBox={`0 0 ${layout.width} ${layout.height}`} aria-hidden="true" focusable="false">
           <defs>
             <pattern id="nest-grain" width={14} height={12} patternUnits="userSpaceOnUse">
@@ -233,7 +269,12 @@ export function NestScene({ view, onChamber, clock = sceneClock(), zoom = 1 }: N
             </Arrival>
           ))}
           {layout.larvae.map((t, i) => (
-            <Arrival key={i} kind="larva" live={live}>
+            <Arrival
+              key={i}
+              kind="larva"
+              live={live}
+              extra={<ellipse data-scene-part="hatch-shell" class="nest-svg__hatch-shell" rx={EGG_SHAPE.rx} ry={EGG_SHAPE.ry} transform={at(t)} />}
+            >
               <path data-scene-part="larva" class="nest-svg__larva" stroke-linecap="round" d={LARVA_PATH} transform={at(t)} />
             </Arrival>
           ))}
@@ -243,8 +284,9 @@ export function NestScene({ view, onChamber, clock = sceneClock(), zoom = 1 }: N
         <svg class="nest-svg nest-svg--ants" data-line-work="" viewBox={`0 0 ${layout.width} ${layout.height}`} aria-hidden="true" focusable="false">
           <Ants ants={layout.workers} tunnels={layout.tunnels} clock={clock} live={live} />
         </svg>
+        </div>
         {layout.chambers.map((c) => (
-          <ChamberButton key={c.id} chamber={c} view={view} onChamber={onChamber} />
+          <ChamberButton key={c.id} chamber={c} anchor={chamberAnchor(c, layout, frame)} view={view} onChamber={onChamber} />
         ))}
       </div>
     </div>
