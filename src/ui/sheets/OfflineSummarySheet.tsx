@@ -1,12 +1,8 @@
-import { useContext } from 'preact/hooks';
 import type { OfflineLoadInfo } from '../../engine/resume';
 import type { GameState } from '../../state/GameState';
-import type { ReturnMove } from '../../state/selectors';
 import type { SheetController } from '../shell/SheetController';
-import { ModalSheet, SheetContext } from '../shell/Sheet';
-import { Button } from '../primitives/Button';
+import { ModalSheet } from '../shell/Sheet';
 import { Abbr } from '../primitives/Deco';
-import { nextAffordableLine } from '../shell/NextActionButton';
 import { RESOURCES, type ResourceDef } from '../shell/resourceCatalog';
 import { colonyLine } from '../../data/content/colonyLines';
 import { formatDeltaFull } from '../../utils/format';
@@ -20,14 +16,13 @@ import './OfflineSummarySheet.css';
  * `YOU WERE GONE <time>. THE NEST KEPT WORKING.` and takes focus; then the
  * efficiency, every gain and loss (from the before/after states, with the
  * resource glyphs; losses in `warn` with ▼), the warn lines (upkeep outran
- * food, the live cap), and one next move from the next-action rule
- * (`getReturnMove`): a button that closes the sheet and opens the target's tab,
- * or `NEXT AFFORDABLE: <item> IN ~<time>`. Never empty.
+ * food, the live cap). It reports only what happened while the player was
+ * away: no next move and no shopping suggestion (owner, playtest 2026-11-22).
+ * Never empty: the headline and the efficiency are always there.
  *
  * Hooks: `.offline-summary-popup` (panel), `.offline-overlay` (scrim),
  * `.offline-duration`, `.offline-efficiency`, `[data-offline-change=<id>][data-trend]`,
- * `[data-offline-warn=starved]`, `[data-offline-cap]`,
- * `button[data-action="offline-next"][data-next-key][data-next-panel]`, `[data-next-action="none"]`.
+ * `[data-offline-warn=starved]`, `[data-offline-cap]`.
  */
 
 /** Upkeep shorter than this is not worth a line. */
@@ -50,18 +45,14 @@ export interface SummaryStocks {
   readonly combatResources: GameState['combatResources'];
 }
 
-/** What the offline summary shows: the resume's numbers, the stocks before and after, and the next move. */
+/** What the offline summary shows: the resume's numbers and the stocks before and after. */
 export interface OfflineSummary {
   readonly info: OfflineLoadInfo;
   readonly before: SummaryStocks;
   readonly after: SummaryStocks;
-  /** `getReturnMove(after)`, from main. */
-  readonly move: ReturnMove;
 }
 
 export interface OfflineSummaryOptions {
-  /** The next move was pressed (the sheet is closed first): open its target's tab. */
-  onMove?: (move: ReturnMove) => void;
   onDismiss?: () => void;
 }
 
@@ -76,28 +67,8 @@ export function offlineChanges(before: SummaryStocks, after: SummaryStocks): { d
   return RESOURCES.map((def) => ({ def, delta: amount(after, def) - amount(before, def) })).filter((c) => c.delta !== 0);
 }
 
-function NextMove({ move, onMove }: { move: ReturnMove; onMove?: (move: ReturnMove) => void }) {
-  const { close } = useContext(SheetContext);
-  if (move.kind !== 'act') return null;
-  return (
-    <Button
-      variant="primary"
-      verb={move.verb}
-      target={move.target}
-      onPress={() => {
-        close();
-        onMove?.(move);
-      }}
-      data-action="offline-next"
-      data-next-key={move.key}
-      data-next-rule={move.rule}
-      data-next-panel={move.panel}
-    />
-  );
-}
-
-export function OfflineSummarySheet({ summary, onMove }: { summary: OfflineSummary; onMove?: (move: ReturnMove) => void }) {
-  const { info, move } = summary;
+export function OfflineSummarySheet({ summary }: { summary: OfflineSummary }) {
+  const { info } = summary;
   const changes = offlineChanges(summary.before, summary.after);
   const starved = info.starvedMs >= STARVED_LINE_MIN_MS;
   return (
@@ -110,7 +81,6 @@ export function OfflineSummarySheet({ summary, onMove }: { summary: OfflineSumma
       class="offline-summary-popup"
       scrimClass="offline-overlay"
       closeLabel="BACK TO THE NEST"
-      action={<NextMove move={move} onMove={onMove} />}
     >
       <p class="offline-efficiency">CATCH-UP EFFICIENCY: {Math.round(info.efficiency * 100)}%</p>
       {changes.length > 0 && (
@@ -136,11 +106,6 @@ export function OfflineSummarySheet({ summary, onMove }: { summary: OfflineSumma
           {colonyLine('offline_cap', { cap: formatAway(info.capMs) })}
         </p>
       )}
-      {move.kind === 'wait' && (
-        <p class="next-affordable" data-next-action="none" data-next-key={move.key}>
-          {nextAffordableLine({ kind: 'none', key: move.key, nextAffordable: move })}
-        </p>
-      )}
     </ModalSheet>
   );
 }
@@ -149,7 +114,7 @@ export function OfflineSummarySheet({ summary, onMove }: { summary: OfflineSumma
 export function openOfflineSummary(sheets: SheetController, summary: OfflineSummary, opts: OfflineSummaryOptions = {}): number {
   return sheets.open({
     priority: 'offline',
-    render: () => <OfflineSummarySheet summary={summary} onMove={opts.onMove} />,
+    render: () => <OfflineSummarySheet summary={summary} />,
     onClose: opts.onDismiss,
   });
 }

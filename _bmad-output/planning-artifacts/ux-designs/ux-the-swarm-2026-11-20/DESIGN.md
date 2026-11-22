@@ -370,7 +370,7 @@ Visual specs only. Behavior lives in EXPERIENCE.md → Component Patterns (its n
 ### Rows, cards and meters
 
 - **Role row** (WRKR): a 44 px row with the role name, a text bar (`█` per worker, `·` in `edge` for empty, up to 16 cells and then scaled), the count, and the stepper.
-- **Upkeep readout** (top of WRKR): `UPKEEP 18 / PRODUCTION 21` in `meta`, with the net figure in `value`. A negative net is shown in `warn` with ▼.
+- **Upkeep readout** (top of WRKR): `FOOD IN +21.0/S · EATEN −18.0/S · NET +3.0/S` in `meta`, with the net figure in `value`. Every number is a rate per second, all three share one precision (a decimal under 100/s), and the net is computed from the shown parts so the line always adds up. A negative net is shown in `warn` with ▼. (Playtest 2026-11-22: `UPKEEP 7 / PRODUCTION 10 NET +2/S` was unreadable.)
 - **Automation target row:** `KEEP [−] 20 [+] IN TRAINING` plus an `[AUTO]` toggle (inverse when on), 44 px tall. Appears under the verb it automates.
 - **Card** (building, research, mutation, enemy, Click Power): 1 px `line` border, no fill (`raised` when selected). Title line: glyph, NAME in `body` bold, level change. Then an effect line (`meta`, `dim`), a cost line (`aside`, inline glyphs, shortfall in `warn`: "needs 60 more △") and the action. A newly affordable card gets an `accent` border and glow for 2 s.
 - **Research card** additionally shows a progress meter and remaining time in `meta`. While running, its action becomes `CANCEL (50 % BACK)` as a secondary action that needs confirmation.

@@ -6,7 +6,6 @@ import { createSheetController, type SheetController } from '../../../../src/ui/
 import { SheetHost } from '../../../../src/ui/shell/SheetHost';
 import { openOfflineSummary, formatAway, type OfflineSummary } from '../../../../src/ui/sheets/OfflineSummarySheet';
 import type { OfflineLoadInfo } from '../../../../src/engine/resume';
-import { getReturnMove, type ReturnMove } from '../../../../src/systems/NextAction';
 import { COLONY_LINES } from '../../../../src/data/content/colonyLines';
 import { formatDeltaFull } from '../../../../src/utils/format';
 import { PHASE_ORDER } from '../../../../src/phases/phases';
@@ -18,8 +17,8 @@ import { visibleText } from '../../helpers/a11y';
  * The offline summary sheet (Story 1.14; Story 2.9: FR23, FR27, UX-DR24).
  * `YOU WERE GONE <time>. THE NEST KEPT WORKING.`, focused on open; the
  * efficiency; gains and losses with glyphs from the before/after states; warn
- * lines (upkeep outran food, the live cap); and one next move from the
- * next-action rule, never empty. Legacy hooks `.offline-summary-popup` /
+ * lines (upkeep outran food, the live cap). Only what happened while away:
+ * no suggestion of what to do next (playtest 2026-11-22). Legacy hooks `.offline-summary-popup` /
  * `.offline-overlay` stay (offline-progression.spec).
  */
 
@@ -30,18 +29,12 @@ function info(overrides: Partial<OfflineLoadInfo> = {}): OfflineLoadInfo {
   };
 }
 
-const BUY: ReturnMove = {
-  kind: 'act', rule: 'critical_path', key: 'building:warehouse', verb: 'BUY', target: 'WAREHOUSE LV.3',
-  intent: { action: 'buyBuilding', id: 'warehouse' }, panel: 'building_panel',
-};
-
 function summary(over: Partial<OfflineSummary> = {}): OfflineSummary {
   const s = createInitialState();
   return {
     info: info(),
     before: { resources: s.resources, combatResources: s.combatResources },
     after: { resources: s.resources, combatResources: s.combatResources },
-    move: BUY,
     ...over,
   };
 }
@@ -119,70 +112,30 @@ describe('offline summary sheet', () => {
     expect(popup()!.querySelector('[data-offline-cap]')).toBeNull();
   });
 
-  it('has one next-move button and the close button; the move closes the sheet and opens its target', () => {
-    const onMove = vi.fn();
-    const onDismiss = vi.fn();
-    act(() => void openOfflineSummary(sheets, summary(), { onMove, onDismiss }));
+  it('reports only what happened while away: no next move, no shopping suggestion', () => {
+    act(() => void openOfflineSummary(sheets, summary()));
     const buttons = popup()!.querySelectorAll('button');
-    expect(buttons).toHaveLength(2);
-    const move = popup()!.querySelector<HTMLButtonElement>('button[data-action="offline-next"]')!;
-    expect(move.dataset.nextKey).toBe(BUY.key);
-    expect(visibleText(move)).toContain('BUY');
-    expect(visibleText(move)).toContain('WAREHOUSE');
-    act(() => move.click());
-    expect(onMove).toHaveBeenCalledWith(BUY);
-    expect(popup()).toBeNull();
-    expect(document.querySelector('.offline-overlay')).toBeNull();
+    expect(buttons).toHaveLength(1);
+    expect(popup()!.querySelector('[data-sheet-close]')).not.toBeNull();
+    expect(popup()!.querySelector('[data-action="offline-next"]')).toBeNull();
+    expect(popup()!.querySelector('[data-next-action]')).toBeNull();
+    expect(visibleText(popup()!)).not.toMatch(/\bBUY\b|NEXT AFFORDABLE/);
   });
 
-  it('the close button goes back to the nest without a move', () => {
-    const onMove = vi.fn();
+  it('the close button goes back to the nest', () => {
     const onDismiss = vi.fn();
-    act(() => void openOfflineSummary(sheets, summary(), { onMove, onDismiss }));
+    act(() => void openOfflineSummary(sheets, summary(), { onDismiss }));
     const close = popup()!.querySelector<HTMLButtonElement>('[data-sheet-close]')!;
     expect(close.textContent).toMatch(/back to the nest/i);
     act(() => close.click());
     expect(onDismiss).toHaveBeenCalledTimes(1);
-    expect(onMove).not.toHaveBeenCalled();
     expect(popup()).toBeNull();
   });
 
-  it('with nothing to do yet, names the next affordable item and how long until it is', () => {
-    act(() => void openOfflineSummary(sheets, summary({ move: { kind: 'wait', key: 'building:warehouse', name: 'Warehouse', inSec: 7200 } })));
-    const line = popup()!.querySelector('[data-next-action="none"]');
-    expect(line?.textContent).toMatch(/^NEXT AFFORDABLE: WAREHOUSE IN ~\S/);
-    expect(popup()!.querySelector('button[data-action="offline-next"]')).toBeNull();
-  });
-
-  it('is never empty: for any resumed state the summary names a move (property, FR27)', () => {
-    const anyState = fc
-      .record({
-        phase: fc.constantFrom(...PHASE_ORDER),
-        food: fc.integer({ min: 0, max: 50_000 }),
-        workers: fc.integer({ min: 0, max: 80 }),
-        gather: fc.nat(80),
-        guard: fc.nat(3),
-      })
-      .map((r) =>
-        makeState({
-          phase: r.phase,
-          resources: { food: r.food, workers: r.workers, nestCapacity: 200 },
-          workersAssigned: { gather: Math.min(r.gather, r.workers), guard: Math.min(r.guard, r.workers - Math.min(r.gather, r.workers)) },
-        }),
-      );
-    fc.assert(
-      fc.property(anyState, (s) => {
-        let sid = 0;
-        act(() => {
-          sid = openOfflineSummary(sheets, summary({ move: getReturnMove(s) }));
-        });
-        const move = popup()!.querySelector('button[data-action="offline-next"]');
-        const wait = popup()!.querySelector('[data-next-action="none"]');
-        expect(visibleText((move ?? wait)!)).toMatch(/\S/);
-        act(() => sheets.close(sid));
-      }),
-      { numRuns: 60 },
-    );
+  it('is never empty: it always says how long the player was away and the catch-up efficiency (FR27)', () => {
+    act(() => void openOfflineSummary(sheets, summary()));
+    expect(visibleText(popup()!.querySelector('[data-sheet-headline]')!)).toMatch(/YOU WERE GONE \S/);
+    expect(popup()!.querySelector('.offline-efficiency')!.textContent).toMatch(/\d+%/);
   });
 
   it('opens ahead of a decision sheet requested at the same time', () => {

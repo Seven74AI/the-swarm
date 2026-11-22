@@ -43,7 +43,7 @@ test.describe('WRKR tab', () => {
     await seed(page, colony(8, 500, { gather: 3 }));
     await openTab(page, 'wrkr');
     const wrkr = page.locator('[data-tab-panel="wrkr"]');
-    await expect(wrkr.locator('[data-upkeep]')).toHaveText(/UPKEEP \S+ \/ PRODUCTION \S+/);
+    await expect(wrkr.locator('[data-upkeep]')).toHaveText(/FOOD IN \+\S+\/S ·,? EATEN −\S+\/S ·,? NET/);
     await expect(wrkr.locator('.stepper__multipliers')).toHaveCount(1);
     for (const role of ['gather', 'forage', 'tend', 'dig', 'guard']) {
       const row = wrkr.locator(`[data-role="${role}"]`);

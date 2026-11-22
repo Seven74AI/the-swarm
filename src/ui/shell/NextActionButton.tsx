@@ -34,7 +34,7 @@ export function nextAffordableLine(none: NoAction): string {
  *
  * Hooks: `[data-next-action=<rule>|none]`, `[data-next-key]`, the button's
  * `data-action="next-action"`. NEST mounts it in its primary zone after
- * Phase 1 (Story 1.22); the offline summary shows `getReturnMove` (Story 2.9).
+ * Phase 1 (Story 1.22).
  */
 export function NextActionButton({ next, perform, now = () => Date.now(), hook = 'next-action', describeNone = nextAffordableLine }: NextActionButtonProps) {
   const latest = next.value;

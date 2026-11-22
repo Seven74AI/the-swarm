@@ -4,7 +4,7 @@ import '@preact/signals';
 import { gameState } from '../../../../src/state/gameSignal';
 import { Phase } from '../../../../src/phases/phases';
 import { rolesForPhase } from '../../../../src/data/content/roles';
-import { WorkersPrimary, WorkersTab } from '../../../../src/ui/wrkr/WorkersTab';
+import { WorkersPrimary, WorkersTab, foodLineDecimals } from '../../../../src/ui/wrkr/WorkersTab';
 import {
   assignedTotal,
   freeWorkers,
@@ -14,7 +14,8 @@ import {
 } from '../../../../src/systems/Workforce';
 import { computeResourceRates } from '../../../../src/systems/ResourceSystem';
 import { TerritorySystem } from '../../../../src/systems/TerritorySystem';
-import { formatFull } from '../../../../src/utils/format';
+
+import { roleBalance } from '../../../../src/data/balance/roles';
 import { BAR_CELLS } from '../../../../src/ui/wrkr/roleBar';
 import { testActions } from '../../helpers/actions';
 import { makeState, type StateOverrides } from '../../helpers/makeState';
@@ -98,10 +99,11 @@ describe('WRKR tab (Story 1.23)', () => {
     await act(() => tap(plus(c, 'gather')));
     expect(count(c, 'gather')).toBe(1);
     expect(gameState.value.workersAssigned.gather).toBe(1);
-    expect(c.querySelector('[data-production-value]')!.textContent).toBe(formatFull(rates().foodProducedPerSec));
+    const dec = foodLineDecimals(rates().foodProducedPerSec, rates().foodConsumedPerSec);
+    expect(Number(c.querySelector('[data-production-value]')!.textContent!.replace(/\s/g, ''))).toBeCloseTo(rates().foodProducedPerSec, dec - 1);
     expect(c.querySelector('[data-production-value]')!.textContent).not.toBe(before);
-    expect(c.querySelector('[data-upkeep-value]')!.textContent).toBe(formatFull(rates().foodConsumedPerSec));
-    expect(c.querySelector('[data-upkeep]')!.textContent).toMatch(/UPKEEP \S+ \/ PRODUCTION \S+/);
+    expect(Number(c.querySelector('[data-upkeep-value]')!.textContent!.replace(/\s/g, ''))).toBeCloseTo(rates().foodConsumedPerSec, dec - 1);
+    expect(c.querySelector('[data-upkeep]')!.textContent).toMatch(/FOOD IN \+\S+\/S ·,? EATEN −\S+\/S ·,? NET/);
   });
 
   it('disables [+] with "no free workers" when none are free, while reassigning still works', async () => {
@@ -142,6 +144,39 @@ describe('WRKR tab (Story 1.23)', () => {
     const line = c.querySelector('[data-assigned]')!.textContent!;
     expect(line).toContain(`${assignedTotal(gameState.value)} / ${workforceTotal(gameState.value)}`);
     expect(c.querySelector('[data-free]')!.textContent).toContain(String(freeWorkers(gameState.value)));
+  });
+
+  it('the net is exactly the food in minus the food eaten, as shown', () => {
+    // Rates whose rounded parts once disagreed with the unrounded net (10 − 7 shown as +2).
+    for (const assigned of [{ gather: 3, tend: 4 }, { gather: 5, dig: 2 }, { tend: 6 }, { gather: 1 }]) {
+      cleanup();
+      seed({ resources: { workers: 9 }, workersAssigned: assigned });
+      const c = mount();
+      const num = (sel: string) => Number(c.querySelector(sel)!.textContent!.replace(/[^\d.]/g, ''));
+      const net = c.querySelector('[data-net]')!.textContent!;
+      const sign = net.includes('−') || net.includes('-') ? -1 : 1;
+      const netValue = sign * Number(net.replace(/[^\d.]/g, ''));
+      expect(netValue).toBeCloseTo(num('[data-production-value]') - num('[data-upkeep-value]'), 5);
+    }
+  });
+
+  it('every number in the food readout is a rate per second', () => {
+    seed({ resources: { workers: 9 }, workersAssigned: { gather: 3 } });
+    const c = mount();
+    const text = c.querySelector('[data-upkeep]')!.textContent!;
+    const numbers = text.match(/\d+(\.\d+)?/g)!;
+    const rates = text.match(/\d+(\.\d+)?\/S/g)!;
+    expect(rates.length).toBe(numbers.length);
+  });
+
+  it('the DIG row never promises more digging than the balance gives', () => {
+    seed({ resources: { workers: 9 } });
+    const c = mount();
+    const tip = row(c, 'dig').getAttribute('data-tooltip') ?? '';
+    expect(tip).not.toMatch(/per second/i);
+    // The tooltip names the real time one digger takes per room.
+    const hours = Math.round(roleBalance.digMsPerRoom / 3_600_000);
+    expect(tip).toContain(String(hours));
   });
 
   it('shows a negative net in warn with ▼', () => {

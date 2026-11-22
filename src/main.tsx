@@ -30,7 +30,7 @@ import { createTabShell } from './ui/shell/tabShell';
 import { selectAffordableKeys, selectCanChoose, selectCapacityReached, selectGoalMet, selectStarving, selectLifetime, selectOpenDecision, selectPhase, selectNearGoalPhase } from './state/selectors';
 import { SaveManager } from './persistence/SaveManager';
 import { openOfflineSummary, type OfflineSummary } from './ui/sheets/OfflineSummarySheet';
-import { decisionsAvailable, getReturnMove, itemPanel } from './systems/NextAction';
+import { decisionsAvailable, itemPanel } from './systems/NextAction';
 import { battleAdvice } from './systems/Counters';
 import { createTelemetry, TELEMETRY_FILENAME, type Telemetry } from './state/telemetry';
 import { bindDecisionSheets, type DecisionSheets } from './ui/sheets/DecisionSheet';
@@ -214,13 +214,12 @@ export function bootstrap(): {
         resourcesBefore: before.resources,
         resourcesAfter: result.state.resources,
       });
-      // The summary (Story 2.9): built from the before/after states, with the next move
-      // from the next-action rule. It opens once the UI is mounted (below), ahead of any decision sheet.
+      // The summary (Story 2.9): built from the before/after states; it reports only the absence.
+      // It opens once the UI is mounted (below), ahead of any decision sheet.
       const summary: OfflineSummary = {
         info,
         before: { resources: before.resources, combatResources: before.combatResources },
         after: { resources: result.state.resources, combatResources: result.state.combatResources },
-        move: getReturnMove(result.state),
       };
       if (uiReady) showOfflineSummary(summary);
       else offlineSummary = summary;
@@ -498,10 +497,9 @@ export function bootstrap(): {
     element: (panelId) => document.querySelector<HTMLElement>(`[data-panel="${panelId}"]`),
   });
 
-  // The offline summary's next move opens its target's tab and marks the panel (Story 2.9,
-  // UX-DR24), the way a chronicle line jumps. On NEST in Phase 1, closing the sheet is enough.
+  // The offline summary reports what happened while away; closing it goes back to the nest.
   function showOfflineSummary(summary: OfflineSummary): void {
-    openOfflineSummary(sheets, summary, { onMove: (move) => move.kind === 'act' && jump.jump(move.panel) });
+    openOfflineSummary(sheets, summary);
   }
 
   // The colony's event lines, written into the chronicle from game events (Story 1.26). It draws
