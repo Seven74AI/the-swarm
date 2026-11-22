@@ -6,6 +6,7 @@ import { REVEAL_LINES } from '../../data/content/phaseReveal';
 import { PHASE_TITLES } from '../shell/GoalMeter';
 import { PHASE_TOKEN } from '../theme/phaseTheme';
 import type { OverlayController } from '../shell/OverlayController';
+import { EnemyCreature } from '../scene/EnemyCreature';
 import './PhaseReveal.css';
 
 /**
@@ -18,8 +19,10 @@ import './PhaseReveal.css';
  * It can be skipped (a tap, Enter or Esc) only once the player has seen that
  * phase's reveal (`lifetime.revealsSeen`); the first time, every tap and key
  * is swallowed so nothing reaches the game behind it.
+ * The Combat reveal also draws the first enemy creature (Story 8.3): no
+ * screen before it draws one.
  * Hooks: `[data-overlay="phase-reveal"][data-phase-reveal=<token>][data-skippable]`,
- * `[data-reveal-name]`, `[data-reveal-line]`, `[data-reveal-skip]`.
+ * `[data-reveal-name]`, `[data-reveal-line]`, `[data-reveal-skip]`, `[data-creature="enemy"]` (Combat).
  */
 
 /** How long the reveal blocks input, at most (UX-DR27: ≤ 3.5 s). */
@@ -114,6 +117,7 @@ export function PhaseReveal({ phase, skippable, reducedMotion, done }: PhaseReve
       }}
       onClick={(e) => e.stopPropagation()}
     >
+      {phase === Phase.COMBAT && <EnemyCreature class="phase-reveal__creature" />}
       <h1 id={nameId} class="phase-reveal__name" data-reveal-name="" data-display="">
         {(PHASE_TITLES[phase] ?? '').toUpperCase()}
       </h1>
