@@ -78,24 +78,14 @@
   transform: translateY(-50%);
 }
 
-/* The scene area: a placeholder until Story 8.5 draws the nest. Flexible: smaller on short screens. */
+/* The scene area (Story 8.5 draws the nest, ui/scenes/scenes.css), then LAY EGG and the brood's automation row. */
 .nest-scene {
-  position: relative; /* holds its CRT scanlines (Story 8.4) */
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 0.5rem;
-  min-height: clamp(72px, 22dvh, 180px);
   margin: 0.5rem 0;
-  border: 1px dashed var(--color-line);
-}
-
-.nest-scene__caption {
-  margin: 0;
-  color: var(--color-dim);
-  font-size: var(--type-meta);
-  letter-spacing: 0.08em;
 }
 
 .nest-scene__queen {

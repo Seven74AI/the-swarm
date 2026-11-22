@@ -4,7 +4,6 @@ import { signal } from '@preact/signals';
 import { gameState } from '../../../../src/state/gameSignal';
 import { Phase } from '../../../../src/phases/phases';
 import { NestPrimary } from '../../../../src/ui/nest/NestPrimary';
-import { NestScene } from '../../../../src/ui/nest/NestScene';
 import { getNextAction } from '../../../../src/systems/NextAction';
 import { testActions } from '../../helpers/actions';
 import { makeState } from '../../helpers/makeState';
@@ -13,8 +12,8 @@ import type { LayMode } from '../../../../src/platform/settings';
 /**
  * Story 1.22: NEST's primary action is `> LAY EGG` in Phase 1 and follows
  * `getNextAction` after it, with `NEXT AFFORDABLE: …` when nothing is
- * suggested. After Phase 1 the scene area keeps a LAY EGG control (the queen,
- * until Story 8.5 draws her), so eggs never stop being producible.
+ * suggested. After Phase 1 the scene area keeps a LAY EGG control
+ * (NestSceneArea.test.tsx), so eggs never stop being producible.
  */
 
 const initial = gameState.value;
@@ -73,31 +72,5 @@ describe('NestPrimary (Story 1.22)', () => {
     });
     expect(container.querySelector('#click-egg')).toBeNull();
     expect(container.querySelector('[data-next-action]')).not.toBeNull();
-  });
-});
-
-describe('NestScene placeholder (Story 1.22)', () => {
-  afterEach(() => {
-    cleanup();
-    gameState.value = initial;
-  });
-
-  it('is a placeholder scene area, with no lay control in Phase 1', () => {
-    gameState.value = makeState({ phase: Phase.EGG_LAYING });
-    const { container } = render(<NestScene lay={() => ({ ok: true })} />);
-    expect(container.querySelector('[data-nest-scene]')).not.toBeNull();
-    expect(container.querySelector('#click-egg')).toBeNull();
-  });
-
-  it('holds a secondary LAY EGG after Phase 1, so eggs stay producible', () => {
-    gameState.value = makeState({ phase: Phase.COLONY });
-    const actions = testActions();
-    const { container } = render(<NestScene lay={() => actions.layEgg()} />);
-    const btn = container.querySelector<HTMLButtonElement>('[data-nest-scene] #click-egg');
-    expect(btn).not.toBeNull();
-    expect(btn!.dataset.kind).toBe('secondary');
-    const before = gameState.value.stats.totalEggsLaid;
-    act(() => btn!.click());
-    expect(gameState.value.stats.totalEggsLaid).toBeGreaterThan(before);
   });
 });

@@ -186,6 +186,20 @@ test.describe('sheets', () => {
     await expect(page.locator('html')).toHaveAttribute('data-crt', 'scene');
   });
 
+  test('the nest scene is a labelled group, its chambers named buttons, and their peek sheets pass axe (Story 8.5)', async ({ page }) => {
+    await seed(page, COMBAT);
+    const scene = page.getByRole('group', { name: /^Nest: \d+ workers?, \d+ eggs?, \d+ larvae?$/ });
+    await expect(scene).toBeVisible();
+    for (const [name, chamber] of [[/^Brood: \d+ eggs?, \d+ larvae?$/, 'brood'], [/^Workers: \d+$/, 'workers']] as const) {
+      await scene.getByRole('button', { name }).click();
+      const peek = page.locator(`[data-sheet="peek"][data-chamber-peek="${chamber}"]`);
+      await expect(peek).toBeVisible();
+      await expect(page.getByRole('dialog', { name: /CHAMBER$/ })).toBeVisible();
+      expect(await axe(page), chamber).toEqual([]);
+      expect((await spokenTree(page)).split('\n').filter((l) => DECORATION.test(l)), chamber).toEqual([]);
+    }
+  });
+
   test('LOG → LEGACY with what the next prestige needs passes axe and reads no decoration (Story 5.1)', async ({ page }) => {
     // A run after a prestige: LEGACY stays, and every requirement is short.
     await seed(page, {
