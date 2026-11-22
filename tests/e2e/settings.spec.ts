@@ -86,6 +86,29 @@ test('the settings screen opens from the resource sheet in Phase 1 and writes ea
   await expect(page.locator('[data-setting="crt"] [data-option="full"]')).toHaveAttribute('aria-pressed', 'true');
 });
 
+test('CRT effects OFF at boot on a more-contrast device leave the stored choice alone (Story 8.4)', async ({ page }) => {
+  await page.emulateMedia({ contrast: 'more' });
+  await page.addInitScript(() => {
+    localStorage.setItem('the_swarm_onboarding', 'done');
+    if (sessionStorage.getItem('seeded')) return;
+    sessionStorage.setItem('seeded', '1');
+    localStorage.setItem('the_swarm_settings', JSON.stringify({ version: 3, settings: { crt: 'full' } }));
+  });
+  await page.goto('/');
+  await page.waitForFunction(() => (window as any).__swarm?.platform);
+  await expect(page.locator('html')).toHaveAttribute('data-crt', 'off');
+  expect(await settingsOf(page)).toMatchObject({ crt: 'full' });
+  // Another setting changed in this session doesn't turn them on, nor overwrite the choice.
+  await openSettingsScreen(page);
+  await page.locator('[data-setting="sound"] [data-option="true"]').click();
+  expect(await storedSettings(page)).toMatchObject({ crt: 'full', sound: true });
+  await expect(page.locator('html')).toHaveAttribute('data-crt', 'off');
+  // The next boot asks the device again.
+  await page.reload();
+  await page.waitForFunction(() => (window as any).__swarm?.platform);
+  await expect(page.locator('html')).toHaveAttribute('data-crt', 'off');
+});
+
 test('a shortcut is remapped by tapping it and pressing the new key, Esc included, without closing the sheet', async ({ page }) => {
   await skipOnboarding(page);
   await page.goto('/');

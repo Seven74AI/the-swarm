@@ -95,7 +95,7 @@ describe('type roles', () => {
     const offenders: string[] = [];
     for (const r of rules()) {
       const shadow = r.body.match(/(?:^|;)\s*text-shadow\s*:\s*([^;]+)/)?.[1].trim();
-      if (!shadow || shadow === 'none') continue;
+      if (!shadow || /^none(\s*!important)?$/.test(shadow)) continue;
       const size = r.body.match(/(?:^|;)\s*font-size\s*:\s*([^;]+)/)?.[1].trim() ?? '';
       const role = size.match(ROLE_VALUE);
       const rem = role ? roleRem((role[1] ?? role[2]) as Role) : undefined;

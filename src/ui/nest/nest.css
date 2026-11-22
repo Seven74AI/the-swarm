@@ -80,6 +80,7 @@
 
 /* The scene area: a placeholder until Story 8.5 draws the nest. Flexible: smaller on short screens. */
 .nest-scene {
+  position: relative; /* holds its CRT scanlines (Story 8.4) */
   display: flex;
   flex-direction: column;
   align-items: center;

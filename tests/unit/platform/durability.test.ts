@@ -18,7 +18,7 @@ function memory(): RemovableStore & { data: Record<string, string> } {
   };
 }
 
-const PHONE: Capabilities = { vibrate: true, standalone: false, reducedMotion: false, moreContrast: false, mobile: true };
+const PHONE: Capabilities = { vibrate: true, standalone: false, reducedMotion: false, moreContrast: false, reducedTransparency: false, textScale: 1, mobile: true };
 
 function manager(grant: boolean, persisted = false): StorageManagerLike & { persist: ReturnType<typeof vi.fn> } {
   return { persist: vi.fn(async () => grant), persisted: vi.fn(async () => persisted) };

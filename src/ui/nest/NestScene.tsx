@@ -16,12 +16,15 @@ import { AutomationRow, type AutomationRowActions } from '../shell/AutomationRow
  * Under the queen, once laying can be automated (Story 4.10), the brood's
  * automation target row: `KEEP [−] N [+] IN THE BROOD [AUTO]`.
  *
- * Hooks: `[data-nest-scene="placeholder"]`.
+ * It is a CRT scene surface (Story 8.4): in SCENE mode its scanlines sit
+ * under the caption and the controls, never over them.
+ *
+ * Hooks: `[data-nest-scene="placeholder"]`, `[data-crt-surface]`.
  */
 export function NestScene({ lay, automation }: { lay: () => { readonly ok: boolean }; automation?: AutomationRowActions }) {
   const phase1 = selectPhase.value === Phase.EGG_LAYING;
   return (
-    <div class="nest-scene" data-nest-scene="placeholder" role="group" aria-label="Nest">
+    <div class="nest-scene" data-nest-scene="placeholder" data-crt-surface="" role="group" aria-label="Nest">
       <p class="nest-scene__caption">THE BROOD CHAMBER</p>
       {!phase1 && (
         <div class="nest-scene__queen">

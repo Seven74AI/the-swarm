@@ -29,6 +29,7 @@
   font-size: min(var(--type-display), 7vw);
   font-weight: 700;
   letter-spacing: 0.1em;
+  text-shadow: var(--crt-text-glow); /* accent text of 15 px and up (Story 8.4) */
 }
 
 .paused-overlay__hint {

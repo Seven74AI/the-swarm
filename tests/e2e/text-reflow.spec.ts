@@ -329,6 +329,8 @@ for (const setup of SETUPS) {
     });
 
     test('the settings sheet and the import sheets fit the screen too (Story 2.11)', async ({ page }) => {
+      // More contrast turns CRT effects OFF at boot (Story 8.4), so the CRT row's longest note is checked too.
+      await page.emulateMedia({ contrast: 'more' });
       await seed(page, setup);
       const openSettings = async () => {
         await page.locator('[data-resource-strip]').click();
@@ -344,6 +346,7 @@ for (const setup of SETUPS) {
       await openSettings();
       // EXPORT TELEMETRY (Story 3.10) is one of the controls checked.
       await expect(page.locator('[data-settings-sheet] [data-action="export-telemetry"]')).toBeVisible();
+      await expect(page.locator('[data-setting="crt"] [data-setting-note]').filter({ hasText: 'DEVICE' })).toBeVisible();
       const found = (await layoutProblems(page)).map((p) => `settings sheet: ${p}`);
       await page.locator('[data-settings-sheet] [data-sheet-close]').click();
       await pick(JSON.stringify({ version: 999, timestamp: Date.now(), playTimeMs: 0, gameState: { phase: 'egg_laying', resources: {} } }));

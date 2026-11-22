@@ -7,7 +7,7 @@
  * blinking cursor are switched off where they are drawn (PhaseReveal, nest.css,
  * Button.css). The palette cross-fade lives on :root, outside `body`, and takes
  * 300 ms (PhaseReveal.css).
- * CRT effects are OFF through `data-crt` (settings, Story 8.4 draws them).
+ * CRT effects are OFF through `data-crt` (settings; crt.css draws them, Story 8.4).
  */
 :root[data-reduced-motion="true"] {
   scroll-behavior: auto;

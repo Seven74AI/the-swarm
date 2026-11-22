@@ -21,6 +21,8 @@ import './PhaseReveal.css';
  * is swallowed so nothing reaches the game behind it.
  * The Combat reveal also draws the first enemy creature (Story 8.3): no
  * screen before it draws one.
+ * The reveal is a CRT scene surface (Story 8.4, `[data-crt-surface]`): in
+ * SCENE mode its scanlines sit under the name and the line.
  * Hooks: `[data-overlay="phase-reveal"][data-phase-reveal=<token>][data-skippable]`,
  * `[data-reveal-name]`, `[data-reveal-line]`, `[data-reveal-skip]`, `[data-creature="enemy"]` (Combat).
  */
@@ -109,6 +111,7 @@ export function PhaseReveal({ phase, skippable, reducedMotion, done }: PhaseReve
       aria-describedby={`${nameId}-line`}
       tabIndex={-1}
       data-overlay="phase-reveal"
+      data-crt-surface=""
       data-phase-reveal={token}
       data-skippable={skippable ? 'true' : 'false'}
       onPointerDown={(e) => {

@@ -182,6 +182,7 @@ html, body {
   color: var(--color-accent);
   font-size: var(--type-title);
   font-weight: bold;
+  text-shadow: var(--crt-text-glow); /* accent text of 15 px and up (Story 8.4) */
 }
 
 .game-phase {
@@ -206,6 +207,7 @@ html, body {
   padding: 0;
   margin: 0 0.5rem;
   transition: background var(--anim-micro), border-color var(--anim-micro);
+  text-shadow: var(--crt-text-glow); /* accent text of 15 px and up (Story 8.4) */
 }
 
 .pause-btn:hover {
@@ -276,6 +278,7 @@ html, body {
   color: var(--color-accent);
   font-style: normal;
   font-weight: bold;
+  text-shadow: var(--crt-text-glow); /* accent text of 15 px and up (Story 8.4) */
 }
 
 /* ── Worker Assignment Panel ── */
@@ -546,7 +549,7 @@ body.phase-space .btn:active {
 /* Neon phase indicator text */
 body.phase-space .phase-indicator .phase-text {
   color: var(--color-accent);
-  text-shadow: 0 0 12px color-mix(in srgb, var(--color-accent) 60%, transparent);
+  text-shadow: var(--crt-text-glow);
   font-size: var(--type-title);
   font-style: normal;
   font-weight: bold;
@@ -555,7 +558,7 @@ body.phase-space .phase-indicator .phase-text {
 body.phase-space .game-title {
   color: var(--color-accent);
   font-size: var(--type-title);
-  text-shadow: 0 0 15px color-mix(in srgb, var(--color-accent) 50%, transparent);
+  text-shadow: var(--crt-text-glow);
 }
 
 body.phase-space .top-bar {
@@ -580,6 +583,7 @@ body.phase-space .top-bar {
   font-size: var(--type-title);
   font-weight: bold;
   margin-bottom: 0.5rem;
+  text-shadow: var(--crt-text-glow); /* accent text of 15 px and up (Story 8.4) */
 }
 
 .spaceship-panel .spaceship-fuel {
@@ -769,6 +773,7 @@ body.phase-space .top-bar {
 .prestige-tree-points .stat-value {
   color: var(--color-accent);
   font-size: var(--type-title);
+  text-shadow: var(--crt-text-glow); /* accent text of 15 px and up (Story 8.4) */
 }
 
 /* Card grid — reuses the expedition grid pattern */
@@ -934,6 +939,7 @@ body.phase-space .top-bar {
   color: var(--color-accent);
   font-size: var(--type-value);
   line-height: 1.5;
+  text-shadow: var(--crt-text-glow); /* accent text of 15 px and up (Story 8.4) */
 }
 
 /* Dismiss button */
