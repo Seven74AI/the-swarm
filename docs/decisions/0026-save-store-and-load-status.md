@@ -49,6 +49,6 @@ once, with no lasting sign and no way to keep a copy.
 
 - No save field changed: `SAVE_VERSION` stays 19 and no fixture is needed.
 - Tests build `new SaveManager(createLocalSaveStore(localStorage))` (or an in-memory store).
-- A partial seed without `timestamp` or `gameState` is now unreadable, not a fresh start: E2E seeds must be
+- A partial seed without `timestamp` or `gameState` is unreadable, not a fresh start: E2E seeds must be
   well-formed saves.
 - Story 2.11 (import) should write through `SaveManager` (so through the store), never `localStorage`.

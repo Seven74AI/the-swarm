@@ -20,7 +20,7 @@ come faster than 8 a second (a held button speeds up to about 16 repeats a secon
   may not import values from data/. `tests/unit/platform/gameFeel.test.ts` checks that every row has all three
   channels, that every visual hook exists in src/ui (so a haptic or a sound is never the only feedback), that every
   sound agrees with Story 8.8's `SOUND_EVENTS`, and that the haptic binding plays exactly the table.
-- **`bindHapticFeedback`** now reads `GAME_FEEL`. **`bindPressHaptics(document, haptics)`** plays the buy row's
+- **`bindHapticFeedback`** reads `GAME_FEEL`. **`bindPressHaptics(document, haptics)`** plays the buy row's
   light pattern at pointer-down on a `[data-feel="press"]` button, once per press, not once per repeat. `Button`
   marks every `repeat` button that way. LAY EGG is `data-feel="lay"` instead: each lay's `egg_clicked` already
   plays the light tick. The haptics service still checks the haptics setting at every play.

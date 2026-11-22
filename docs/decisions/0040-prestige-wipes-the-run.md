@@ -30,5 +30,5 @@ record kept.
 
 - Space resources no longer carry over. Saves from before this rule that carried them into an earlier phase are
   migrated by Story 5.4.
-- Mutations, the entropy dampener, conversions and Particle Lab levels are run purchases and now reset.
+- Mutations, the entropy dampener, conversions and Particle Lab levels are run purchases and reset.
 - The new run opens the chronicle with `A QUEEN, AGAIN.` and plays no phase reveal; settings are outside the save.

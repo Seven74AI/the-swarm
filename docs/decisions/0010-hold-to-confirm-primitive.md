@@ -31,7 +31,7 @@ must never trigger them. The player picks how deliberate the confirm is (Story 1
   conventions, not its timers.
 - Hooks for legacy selectors: `class` (e.g. `btn-prestige`), `title` and `data-*` go onto the `<button>`.
 - **Legacy panels** render it into a persistent host element with Preact's `render()`, outside the markup they
-  rebuild, so a re-render never drops a running hold. `ResearchPanel` now patches progress bars in place and rebuilds
+  rebuild, so a re-render never drops a running hold. `ResearchPanel` patches progress bars in place and rebuilds
   only when what it offers changes.
 
 ## Consequences

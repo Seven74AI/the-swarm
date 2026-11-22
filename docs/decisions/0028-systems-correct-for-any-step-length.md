@@ -37,4 +37,4 @@ food, wood, stone and nectar were stored as fractions. main's live tick was also
   A new per-step system must join it.
 - Balance stays in ticks until Story 3.2; `TICK_MS` converts. Story 3.3 still owns integer costs and the
   catch-up integer property; the rate-credited resources are already whole here.
-- Conversions now run at their stated rate at 20 Hz (they were stuck at 0 below 20 runs a second).
+- Conversions run at their stated rate at 20 Hz (they were stuck at 0 below 20 runs a second).
