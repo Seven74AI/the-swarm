@@ -49,6 +49,14 @@ describe('NestUpgradeCard (Story 4.6)', () => {
       expect(text).not.toContain('!');
     });
 
+    it(`${id}: the cost line draws the food glyph, never the glyph's source code`, () => {
+      gameState.value = makeState({ phase: Phase.EGG_LAYING, resources: { food: cost() } });
+      const { container } = render(<NestUpgradeCard id={id} buy={() => ({ ok: true })} />);
+      const costLine = card(container, id)!.querySelector('.card__cost')!;
+      expect(costLine.textContent).not.toMatch(/function|return|=>/);
+      expect(costLine.querySelector('svg')).not.toBeNull();
+    });
+
     it(`${id}: BUY buys a level through the action`, () => {
       gameState.value = makeState({ phase: Phase.EGG_LAYING, resources: { food: cost() } });
       const actions = testActions();

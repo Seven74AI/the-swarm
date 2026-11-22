@@ -7,7 +7,8 @@ import { UPGRADE_COPY } from '../../data/content/upgrades';
 import { formatFull } from '../../utils/format';
 import { Button } from '../primitives/Button';
 import { Card } from '../primitives/Card';
-import { RESOURCE_BY_ID } from '../shell/resourceCatalog';
+import { ResourceGlyph } from '../build/cost';
+import { Sep } from '../primitives/Deco';
 
 type NestUpgradeId = (typeof NEST_UPGRADE_IDS)[number];
 type Buy = (id: UpgradeId) => { readonly ok: boolean };
@@ -35,14 +36,24 @@ export function NestUpgradeCard({ id, buy }: { id: NestUpgradeId; buy: () => { r
   if (!phase1 || !seen.current) return null;
 
   const copy = UPGRADE_COPY[id];
-  const glyph = RESOURCE_BY_ID.food.glyph;
+  const glyph = <ResourceGlyph id="food" />;
   return (
     <Card
       id={id}
       title={copy.title}
       level={maxed ? `LV.${level}` : `LV.${level} → ${level + 1}`}
       effect={copy.effect(def.perLevel)}
-      cost={maxed ? 'ALL LEVELS BUILT' : `${formatFull(cost)} ${glyph} · you have ${formatFull(Math.floor(food))}`}
+      cost={
+        maxed ? (
+          'ALL LEVELS BUILT'
+        ) : (
+          <>
+            {formatFull(cost)} {glyph}
+            <Sep />
+            you have {formatFull(Math.floor(food))}
+          </>
+        )
+      }
       affordable={affordable}
       shortfall={maxed ? undefined : { amount: cost - food, glyph }}
       action={
