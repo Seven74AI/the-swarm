@@ -1,0 +1,122 @@
+/*
+ * The title cinematic (Story 8.10, UX-DR28). Full screen, above sheets and
+ * every legacy layer; it takes every tap. Phase 1 amber only: the overlay
+ * carries `data-palette="egg"`, which tokens.css binds to the Phase 1 aliases.
+ * Colors only from the aliases; sizes only from the type roles.
+ */
+.title-cinematic {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem 0.875rem calc(2rem + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  overflow: hidden auto;
+  background: var(--color-bg);
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  text-align: center;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+}
+
+/* The vector scene fills the screen behind the words. */
+.title-cinematic__scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--color-accent);
+  pointer-events: none;
+}
+
+.title-cinematic__skip {
+  position: absolute;
+  top: calc(0.5rem + env(safe-area-inset-top, 0px));
+  right: 0.5rem;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding: 0 0.75rem;
+  font: inherit;
+  font-size: var(--type-meta);
+  letter-spacing: 0.08em;
+  color: var(--color-dim);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.title-cinematic__line {
+  position: absolute;
+  left: 0.875rem;
+  right: 0.875rem;
+  bottom: calc(12% + env(safe-area-inset-bottom, 0px));
+  margin: 0;
+  min-height: 1.4em;
+  font-size: var(--type-title);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  overflow-wrap: anywhere;
+  text-shadow: var(--crt-text-glow); /* accent text of 15 px and up (Story 8.4) */
+}
+
+.title-cinematic__logo {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  font-weight: 700;
+}
+.title-cinematic__the {
+  font-size: var(--type-meta);
+  letter-spacing: 0.3em;
+}
+.title-cinematic__swarm {
+  width: min(16rem, 100%);
+  height: auto;
+}
+
+.title-cinematic__tagline {
+  margin: 0;
+  max-width: 100%;
+  font-size: var(--type-body);
+  letter-spacing: 0.06em;
+  overflow-wrap: anywhere;
+}
+
+/* A real button (UX-DR28): steady, no blink. */
+.title-cinematic__wake {
+  margin-top: 2rem;
+  width: min(22rem, 100%);
+  min-height: 2.75rem;
+  padding: 0.75rem 0.5rem;
+  font: inherit;
+  font-size: var(--type-value);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-accent);
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-accent);
+  border-radius: 0;
+  overflow-wrap: anywhere;
+  text-shadow: var(--crt-text-glow);
+}
+
+.title-cinematic__alone {
+  margin: 0;
+  max-width: 100%;
+  font-size: var(--type-title);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  overflow-wrap: anywhere;
+  text-shadow: var(--crt-text-glow);
+}
+/* Focus outline: ui/styles/base.css (Story 1.11). */

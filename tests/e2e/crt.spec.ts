@@ -155,6 +155,27 @@ test.describe('SCENE (default)', () => {
     expect(lifted).toBe(true);
   });
 
+  test('the title cinematic is a scene surface: scanlines under its words, its drawings glow (Story 8.10)', async ({ page }) => {
+    await seed(page);
+    await page.locator('[data-resource-strip]').click();
+    await page.locator('[data-resource-sheet] [data-action="settings"]').click();
+    await page.locator('[data-settings-sheet] [data-action="replay-intro"]').click();
+    const overlay = page.locator('[data-overlay="title-cinematic"]');
+    await expect(overlay).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(overlay).toHaveAttribute('data-stage', 'title');
+    expect(await scanlinesOn(page, '[data-overlay="title-cinematic"]')).toBe(true);
+    const stack = await overlay.evaluate((el) => {
+      const lines = Number(getComputedStyle(el, '::after').zIndex);
+      const words = [...el.children].filter((c) => !(c instanceof SVGElement));
+      return { lines, words: words.map((c) => Number(getComputedStyle(c).zIndex)) };
+    });
+    expect(stack.words.length).toBeGreaterThan(0);
+    for (const z of stack.words) expect(z).toBeGreaterThan(stack.lines);
+    const glow = await overlay.locator('svg[data-line-work]').first().evaluate((el) => getComputedStyle(el).filter);
+    expect(glow).toMatch(/drop-shadow/);
+  });
+
   test('accent text of 15 px and up glows at most 2 px at no more than 35%; line-work glows 3 px', async ({ page }) => {
     await seed(page);
     const label = page.locator(PRIMARY).first();

@@ -360,6 +360,23 @@ for (const setup of SETUPS) {
       expect(found).toEqual([]);
     });
 
+    test('the title cinematic fits the screen too, every stage (Story 8.10)', async ({ page }) => {
+      await seed(page, setup);
+      await page.locator('[data-resource-strip]').click();
+      await page.locator('[data-resource-sheet] [data-action="settings"]').click();
+      await page.locator('[data-settings-sheet] [data-action="replay-intro"]').click();
+      const cinematic = page.locator('[data-overlay="title-cinematic"]');
+      await expect(cinematic).toHaveAttribute('data-stage', 'playing');
+      const found = (await layoutProblems(page)).map((p) => `playing: ${p}`);
+      await page.keyboard.press('Escape');
+      await expect(cinematic).toHaveAttribute('data-stage', 'title');
+      found.push(...(await layoutProblems(page)).map((p) => `title frame: ${p}`));
+      await page.locator('[data-action="wake-queen"]').click();
+      await expect(page.locator('[data-title-alone]')).toBeVisible();
+      found.push(...(await layoutProblems(page)).map((p) => `alone: ${p}`));
+      expect(found).toEqual([]);
+    });
+
     test('the debug overlay fits the screen too', async ({ page }) => {
       // Story 1.34: dev builds (this server) and ?debug=1; one inspector key open.
       await seed(page, setup);

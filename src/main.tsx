@@ -61,7 +61,9 @@ import { Phase, PHASE_ORDER } from './phases/phases';
 import { PhaseContent } from './ui/PhaseContent';
 import { TRANSITIONS } from './phases/transitions';
 import type { GameState } from './state/GameState';
-import { OnboardingManager } from './ui/OnboardingManager';
+import { bindTitleCinematic, type TitleCinematicBinding } from './ui/overlays/TitleCinematic';
+import { createCoach } from './ui/shell/CoachHost';
+import { LAY_EGG_CONCEPT, TITLE_COPY } from './data/content/titleCinematic';
 import { bindPhaseTheme } from './ui/theme/phaseTheme';
 import { bindCrt, bindReducedMotion } from './ui/theme/reducedMotion';
 import { bindScanlinePixels } from './ui/theme/crt';
@@ -443,6 +445,9 @@ export function bootstrap(): {
   const exportTelemetry = (): void => {
     if (!platform.browser.download(TELEMETRY_FILENAME, telemetry.exportText({ build: BUILD_ID }))) log.warn('telemetry', 'export download failed');
   };
+  // The coach mark host (Story 8.10) and the title cinematic's replay, bound once the UI is mounted.
+  const coach = createCoach();
+  let titleCinematic: TitleCinematicBinding | null = null;
   const openSettingsScreen = (): void => {
     settingsSheetId = openSettings(sheets, {
       store: platform.settings,
@@ -452,6 +457,7 @@ export function bootstrap(): {
       onExportSave: exportSave,
       onImportSave: importSave,
       onExportTelemetry: exportTelemetry,
+      onReplayIntro: () => titleCinematic?.replay(),
     });
   };
 
@@ -555,10 +561,21 @@ export function bootstrap(): {
         announcer={announcer}
         onContinue={actions.continuePhase}
         tabKeys={tabKeys}
+        coach={{ coach, memory: platform.settings }}
       />,
       app,
     );
   }
+  // The title cinematic (Story 8.10, UX-DR28): on first launch (no save and no intro flag) it plays
+  // over the brood chamber, setting the flag as it starts; settings → REPLAY INTRO plays it again.
+  // When the queen wakes, a coach mark points at LAY EGG (once ever, remembered in settings).
+  titleCinematic = bindTitleCinematic({
+    overlays,
+    flag: platform.introFlag,
+    hasSave: opened.status !== 'empty',
+    reducedMotion: platform.settings.reducedMotion,
+    onWoken: () => coach.show({ concept: LAY_EGG_CONCEPT, text: TITLE_COPY.layEggCoach, target: '#click-egg' }),
+  });
 
   // ── The debug overlay (Story 1.34, AR24): dev builds and `?debug=1`, in its own chunk ──
   // Backtick or a 3-finger long-press toggles it. Read-only; EXPORT DIAGNOSTICS is the settings export.
@@ -601,11 +618,6 @@ export function bootstrap(): {
   // What hover shows, a tap shows; tips stay hoverable and Esc dismisses them (WCAG 1.4.13).
   bindTips();
 
-  // Start onboarding tutorial for new players (the intro flag lives in platform/, outside the save)
-  setTimeout(() => {
-    const onboarding = new OnboardingManager({ flag: platform.introFlag, hasSave: opened.status !== 'empty' });
-    onboarding.start();
-  }, 500);
 
   // Ensure body class persists (some environments may clear it during boot)
   requestAnimationFrame(() => {

@@ -41,10 +41,11 @@ function allowedRgb(token: string): string[] {
 
 /**
  * Every computed color on the page that is not one of `allowed` (RGB triples)
- * and not fully transparent, as `selector · property · value`.
+ * and not fully transparent, as `selector · property · value`. With `scope`,
+ * only that element and what is inside it.
  */
-async function strayColors(page: Page, allowed: string[]): Promise<string[]> {
-  return page.evaluate((ok) => {
+async function strayColors(page: Page, allowed: string[], scope?: string): Promise<string[]> {
+  return page.evaluate(([ok, root]) => {
     const allow = new Set(ok);
     const PROPS = [
       'color', 'background-color', 'border-top-color', 'border-right-color', 'border-bottom-color',
@@ -80,7 +81,7 @@ async function strayColors(page: Page, allowed: string[]): Promise<string[]> {
       return `${el.tagName.toLowerCase()}${id}${cls}${data}`;
     };
     const out = new Set<string>();
-    for (const el of document.querySelectorAll('*')) {
+    for (const el of document.querySelectorAll(root ? `${root}, ${root} *` : '*')) {
       // The tooling layers are not part of the game's look.
       if (el.closest('[data-debug-overlay], #debug-overlay, .debug-overlay')) continue;
       for (const pseudo of [null, '::before', '::after', '::marker']) {
@@ -102,7 +103,7 @@ async function strayColors(page: Page, allowed: string[]): Promise<string[]> {
       }
     }
     return [...out];
-  }, allowed);
+  }, [allowed, scope ?? null] as [string[], string | null]);
 }
 
 const BASE = {
@@ -217,6 +218,23 @@ for (const token of Object.keys(PHASES) as PhaseKey[]) {
       await expect(decision).toBeVisible();
       expect(await strayColors(page, allowed), `${token} decision sheet`).toEqual([]);
     });
+  });
+}
+
+for (const token of ['egg', 'combat'] as const) {
+  test(`${token}: the title cinematic, replayed, draws only the Phase 1 palette (Story 8.10)`, async ({ page }) => {
+    await seed(page, PHASES[token]);
+    await expect(page.locator('html')).toHaveAttribute('data-phase', token);
+    await page.locator('[data-resource-strip]').click();
+    await page.locator('[data-resource-sheet] [data-action="settings"]').click();
+    await page.locator('[data-settings-sheet] [data-action="replay-intro"]').click();
+    const cinematic = '[data-overlay="title-cinematic"]';
+    await expect(page.locator(cinematic)).toHaveAttribute('data-stage', 'playing');
+    expect(await strayColors(page, allowedRgb('egg'), cinematic), 'playing').toEqual([]);
+    await page.keyboard.press('Escape');
+    await expect(page.locator(cinematic)).toHaveAttribute('data-stage', 'title');
+    expect(await strayColors(page, allowedRgb('egg'), cinematic), 'title frame').toEqual([]);
+    if (token === 'egg') expect(await strayColors(page, allowedRgb('egg')), 'the whole page in Phase 1').toEqual([]);
   });
 }
 

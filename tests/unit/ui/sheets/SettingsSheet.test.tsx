@@ -44,7 +44,7 @@ let store: SettingsStore;
 function open(over: Partial<SettingsScreenDeps> = {}, capabilities = caps()) {
   storage = memoryStore();
   store = createSettingsStore({ storage, capabilities });
-  act(() => void openSettings(sheets, { store, capabilities, onExportDiagnostics: () => {}, onPause: () => {}, onExportSave: () => {}, onImportSave: () => {}, onExportTelemetry: () => {}, ...over }));
+  act(() => void openSettings(sheets, { store, capabilities, onExportDiagnostics: () => {}, onPause: () => {}, onExportSave: () => {}, onImportSave: () => {}, onExportTelemetry: () => {}, onReplayIntro: () => {}, ...over }));
 }
 
 const sheet = () => document.querySelector<HTMLElement>('[data-settings-sheet]')!;
@@ -237,16 +237,14 @@ describe('settings screen', () => {
     expect(onExportSave).toHaveBeenCalledTimes(1);
   });
 
-  it('replays the intro through its handler, and shows it disabled with a reason while there is none', () => {
-    open();
-    const replay = () => sheet().querySelector<HTMLButtonElement>('[data-action="replay-intro"]')!;
-    expect(replay().getAttribute('aria-disabled')).toBe('true');
-    act(() => sheets.close(sheets.state.value.open!.id));
+  it('REPLAY INTRO (Story 8.10) closes the settings and replays the title cinematic through the handler main passes in', () => {
     const onReplayIntro = vi.fn();
     open({ onReplayIntro });
-    expect(replay().getAttribute('aria-disabled')).not.toBe('true');
-    act(() => replay().click());
+    const replay = sheet().querySelector<HTMLButtonElement>('[data-action="replay-intro"]')!;
+    expect(replay.getAttribute('aria-disabled')).not.toBe('true');
+    act(() => replay.click());
     expect(onReplayIntro).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('[data-settings-sheet]')).toBeNull();
   });
 
   it('PAUSE (Story 2.10) closes the settings and pauses through the handler main passes in', () => {

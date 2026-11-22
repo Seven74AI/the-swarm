@@ -4,7 +4,7 @@ import type { ComponentChildren } from 'preact';
 /**
  * `ui/shell/OverlayController` (Story 1.20; AR10, D7).
  *
- * The overlay layer: the phase reveal and the PAUSED line (Story 2.10) now, the title cinematic and the
+ * The overlay layer: the phase reveal, the PAUSED line (Story 2.10) and the title cinematic (Story 8.10) now, and the
  * Transcendence ending later. An overlay is full screen and blocks input.
  * - One overlay plays at a time; others wait in request order.
  * - `held` is true while one is up: the SheetHost draws no sheet meanwhile, so
@@ -18,7 +18,7 @@ import type { ComponentChildren } from 'preact';
  * events into requests (`bindPhaseReveal`).
  */
 
-export type OverlayKind = 'phase-reveal' | 'paused';
+export type OverlayKind = 'phase-reveal' | 'paused' | 'title-cinematic';
 
 export interface OverlayRequest {
   readonly kind: OverlayKind;

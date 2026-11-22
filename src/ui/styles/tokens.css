@@ -10,6 +10,8 @@
  *
  * Each phase's colors appear only inside its own block, so no later palette
  * is reachable before its phase is entered. `on-accent` is the phase `bg`.
+ * `[data-palette="egg"]` pins Phase 1 on one surface whatever the phase: the
+ * title cinematic is Phase 1 amber only (Story 8.10), a replay included.
  */
 
 :root {
@@ -17,6 +19,7 @@
 }
 
 :root,
+[data-palette="egg"],
 :root[data-phase="egg"] {
   --color-bg: #0d0a04;
   --color-raised: #201704;
