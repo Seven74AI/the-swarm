@@ -12,6 +12,8 @@ import { Phase } from '../../../src/phases/phases';
 export const EVENT_SAMPLES: { [K in keyof SwarmEvents]: SwarmEvents[K] } = {
   state_changed: createInitialState(),
   egg_clicked: {},
+  dig_pressed: {},
+  room_opened: { roomsDug: 1 },
   eggs_changed: { eggs: 1 },
   larvae_changed: { larvae: 1 },
   food_changed: { food: 1 },

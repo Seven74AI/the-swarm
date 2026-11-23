@@ -368,6 +368,7 @@ export class ResourceSystem {
       resourceRemainder: remainder,
     };
 
+    if (result.dig.roomsDug > state.dig.roomsDug) events.emit('room_opened', { roomsDug: result.dig.roomsDug });
     if (eggsChanged) events.emit('eggs_changed', { eggs: result.resources.eggs });
     if (larvaeChanged) events.emit('larvae_changed', { larvae: result.resources.larvae });
     if (foodChanged) events.emit('food_changed', { food: result.resources.food });

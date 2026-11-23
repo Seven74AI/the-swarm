@@ -41,7 +41,8 @@ describe('haptic feedback wiring (Story 1.10, FR41)', () => {
     const bus = new EventBus();
     const h = recorder();
     bindHapticFeedback(bus, h);
-    const felt = ['egg_clicked', 'decision_spawned', 'battle_completed', 'phase_committed'];
+    // A room breaking through vibrates too (Story 9.8).
+    const felt = ['egg_clicked', 'decision_spawned', 'battle_completed', 'phase_committed', 'room_opened'];
     for (const name of EVENT_NAMES.filter((n) => !felt.includes(n))) bus.emit(name, EVENT_SAMPLES[name] as never);
     expect(h.played).toEqual([]);
   });

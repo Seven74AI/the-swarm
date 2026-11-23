@@ -277,3 +277,22 @@
   position: absolute;
   z-index: 1;
 }
+
+/*
+ * A DIG press (Story 9.8): a dirt puff at the dig face (re-keyed per press, so
+ * it restarts), and a small shake of the frame, which NestScene plays with the
+ * Web Animations API. Brief, no luminance change beyond the crumbs (flash rule).
+ */
+.nest-svg__puff circle {
+  fill: var(--color-accent);
+  opacity: 0;
+  transform-box: fill-box;
+  animation: nest-dig-puff 260ms ease-out;
+}
+@keyframes nest-dig-puff {
+  from { opacity: 0.7; transform: translate(0, 0) scale(1); }
+  to { opacity: 0; transform: translate(0, -5px) scale(0.6); }
+}
+:root[data-reduced-motion="true"] .nest-svg__puff {
+  display: none;
+}

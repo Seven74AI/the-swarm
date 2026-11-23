@@ -74,6 +74,9 @@ const BATTLE_SAMPLE = { victory: true, outcome: 'victory' } as const;
 export const SOUND_EVENTS: readonly SoundEvent[] = Object.freeze([
   // A tap: the lay-egg `+N EGG` particle; a buy: the pressed button and its card's new level.
   { event: 'egg_clicked', cues: ['key'], visual: 'click-particle' },
+  // A DIG press: the dirt puff at the dig face; a room breaking through: it arrives in the scene (Story 9.8).
+  { event: 'dig_pressed', cues: ['crunch'], visual: 'data-dig-puff' },
+  { event: 'room_opened', cues: ['breakthrough'], visual: 'data-arrive' },
   { event: 'upgrade_purchased', cues: ['key'], visual: 'data-pressed' },
   { event: 'building_complete', cues: ['key'], visual: 'data-pressed' },
   { event: 'mutation_purchased', cues: ['key'], visual: 'data-pressed' },
@@ -138,6 +141,8 @@ export function bindSoundFeedback(bus: EventBus, audio: Audio, start: HatchCount
   });
   on('battle_completed', (r) => audio.play(BATTLE_CUES[r.outcome] ?? (r.victory ? 'victory' : 'defeat')));
   on('phase_committed', cue('phase'));
+  on('dig_pressed', cue('crunch'));
+  on('room_opened', cue('breakthrough'));
   on('decision_spawned', cue('decision'));
   on('prestige_triggered', cue('prestige'));
   on('expedition_return', cue('discovery'));

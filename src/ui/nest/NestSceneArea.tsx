@@ -10,6 +10,7 @@ import { AutomationRow, type AutomationRowActions } from '../shell/AutomationRow
 import { crackStage } from '../scenes/nestLayout';
 import { NextRoomStrip } from './NextRoomStrip';
 import { BroodLine } from './BroodLine';
+import { digPulse } from './digPulse';
 
 /**
  * NEST's scene area (Story 1.22): the nest scene (Story 8.5), in NEST's
@@ -56,6 +57,7 @@ export function NestSceneArea({
         onChamber={(id) => (id === 'brood' && feed && feedState ? feed() : openChamberPeek(sheets, id))}
         crack={room ? crackStage(room.percent) : 0}
         feed={feedState}
+        pulse={phase1 ? 0 : digPulse.value}
         queen={phase1 ? undefined : <LayEggButton variant="secondary" lay={lay} />}
       />
       <NextRoomStrip />

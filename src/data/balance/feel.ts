@@ -20,4 +20,6 @@ export const feelBalance = {
   arriveMs: 700,
   /** A room that opens in the nest scene (dirt falls, its wall appears) takes this long (Story 9.6; at most about 1 s). */
   roomOpenMs: 900,
+  /** A DIG press shakes the scene this long (Story 9.8). */
+  digShakeMs: 140,
 } as const;
