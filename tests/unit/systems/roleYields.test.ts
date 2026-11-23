@@ -12,6 +12,8 @@ import { ROLES, rolesForPhase } from '../../../src/data/content/roles';
 import { roleBalance } from '../../../src/data/balance/roles';
 import { stepRole } from '../../../src/systems/Workforce';
 import { MS_PER_SEC } from '../../../src/data/constants';
+import { digBalance } from '../../../src/data/balance/dig';
+import { roomCost } from '../../../src/systems/Dig';
 
 /**
  * Story 3.4 (FR3, FR36): worker roles bring in wood, stone and nectar in
@@ -51,7 +53,7 @@ const noTerritory = (s: GameState) => s.mapTiles.every((t) => !t.claimed);
 /** Seconds `workers` on a role need to bring in a few whole units at `perSec` each (read from the balance). */
 const secondsFor = (perSec: number, workers: number) => Math.ceil(3 / (perSec * workers));
 /** Seconds `workers` diggers need to dig one room. */
-const roomSeconds = (workers: number) => Math.ceil(roleBalance.digMsPerRoom / MS_PER_SEC / workers);
+const roomSeconds = (workers: number) => Math.ceil(roomCost(0) / digBalance.diggerPointsPerSec / workers);
 
 describe('worker roles produce the basic resources in Colony (Story 3.4)', () => {
   it('Gather brings in food and wood, with no territory', () => {

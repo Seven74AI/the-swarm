@@ -15,7 +15,8 @@ import { createInitialState, type GameState } from '../../src/state/GameState';
 import { Phase } from '../../src/phases/phases';
 import { goalFor } from '../../src/phases/transitions';
 import { simBalance } from '../../src/data/balance/sim';
-import { RESUME_FULL_EFFICIENCY_MS } from '../../src/data/constants';
+import { MS_PER_SEC, OFFLINE_CAP_BASE_MS, RESUME_FULL_EFFICIENCY_MS } from '../../src/data/constants';
+import { diggerPointsPerSec, roomCost } from '../../src/systems/Dig';
 import { isItemAffordable, listItems } from '../../src/systems/NextAction';
 
 beforeEach(() => {
@@ -110,5 +111,41 @@ describe('payoff probes', () => {
       expect(r.probes.payoffs[i].atMs).toBeGreaterThanOrEqual(r.probes.payoffs[i - 1].atMs);
     }
     expect(r.probes.payoffs.length).toBeGreaterThan(0);
+  });
+});
+
+/** Story 9.2: the simulated player digs through the same action a player uses; diggers dig alone. */
+describe('digging in the sim (Story 9.2)', () => {
+  function fullColony(diggers: number): GameState {
+    const s = colonyWithoutGuard();
+    return {
+      ...s,
+      resources: { ...s.resources, nestCapacity: s.resources.workers, larvae: 20 },
+      workersAssigned: { ...s.workersAssigned, guard: 1, dig: diggers },
+    };
+  }
+
+  it('a check-in in a full nest presses DIG and opens rooms', () => {
+    const s = fullColony(0);
+    const r = runSim({ state: s, seed: 1, schedule: repeatCheckIns(1, { awayMs: 0, activeMs: simBalance.checkInActiveMs }) });
+    expect(r.probes.checkIns[0].digs).toBeGreaterThan(0);
+    expect(r.state.dig.roomsDug).toBeGreaterThan(s.dig.roomsDug);
+    expect(r.state.resources.nestCapacity).toBeGreaterThan(s.resources.nestCapacity);
+  });
+
+  it('with no presses, diggers still open a room within a generous ceiling', () => {
+    const s = fullColony(10);
+    // Four times a digger-only room, in gaps well under the offline cap (offline digs at its efficiency).
+    const ceilingMs = Math.ceil(roomCost(s.dig.roomsDug) / diggerPointsPerSec(s)) * MS_PER_SEC * 4;
+    const gapMs = Math.floor(OFFLINE_CAP_BASE_MS / 2);
+    const r = runSim({
+      state: s,
+      seed: 1,
+      policy: idlePolicy,
+      schedule: repeatCheckIns(Math.ceil(ceilingMs / gapMs), { awayMs: gapMs, activeMs: step }),
+      stopWhen: (x) => x.dig.roomsDug > s.dig.roomsDug,
+    });
+    expect(r.stopped).toBe(true);
+    expect(r.probes.checkIns.every((c) => c.digs === 0)).toBe(true);
   });
 });

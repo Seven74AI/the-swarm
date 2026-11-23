@@ -25,7 +25,7 @@ export const ROLES: readonly RoleDef[] = [
   { id: 'gather', label: 'GATHER', worker: 'gatherer', effect: 'BRINGS IN FOOD AND WOOD', unlockPhase: Phase.COLONY },
   { id: 'forage', label: 'FORAGE', worker: 'forager', effect: 'BRINGS IN NECTAR', unlockPhase: Phase.COLONY },
   { id: 'tend', label: 'TEND', worker: 'nurse', effect: 'EGGS HATCH FASTER', unlockPhase: Phase.COLONY },
-  { id: 'dig', label: 'DIG', worker: 'digger', effect: 'THE NEST GROWS. BRINGS IN STONE', unlockPhase: Phase.COLONY },
+  { id: 'dig', label: 'DIG', worker: 'digger', effect: 'ADDS TO EVERY DIG. DIGS SLOWLY ALONE', unlockPhase: Phase.COLONY },
   { id: 'guard', label: 'GUARD', worker: 'guard', effect: 'DEFENDS THE NEST', unlockPhase: Phase.COLONY },
   // Researchers run the research projects, so the row opens with the research panel.
   {

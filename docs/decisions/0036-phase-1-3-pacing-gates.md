@@ -16,7 +16,7 @@ Combat over days 2–3, for a player checking in about 6 times a day.
   15 min (`resourceBalance.hatchMs`, `matureMs`): minutes of tapping reach the first 10 workers, and eggs laid
   in a check-in become workers while the player is away.
 - **Phases 2 and 3 are gated by the nest's room.** Eggs are plentiful, so workers fill whatever room there is.
-  Digging is a slow trickle (`roleBalance.digMsPerRoom`), and the Warehouse is the big step
+  Digging is a slow trickle (`roleBalance.digMsPerRoom`; Story 9.2 replaced it with DIG rooms, `data/balance/dig.ts`), and the Warehouse is the big step
   (`buildingBalance.warehouseNestCapacityPerLevel`): Colony's 50 workers need the first Warehouse plus some
   digging, Combat's 60 need more digging or a second level. Food upkeep against diggers gives the
   food-critical moments; a full nest gives the capacity-critical ones.

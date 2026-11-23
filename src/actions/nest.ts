@@ -4,6 +4,8 @@ import { getAssignedWorkers, getUpgradeCost, upgradeRefusal, type WorkerRole } f
 import { freeWorkers, moveWorkers as move, roleCount, stepRole as step, type MoveSource } from '../systems/Workforce';
 import type { RoleId } from '../data/content/roles';
 import { recordManual } from '../systems/AutomationTargets';
+import { digPress } from '../systems/Dig';
+import { Phase } from '../phases/phases';
 
 /** Lay eggs by hand. Always allowed. */
 export function layEgg(deps: ActionDeps): ActionResult {
@@ -12,6 +14,17 @@ export function layEgg(deps: ActionDeps): ActionResult {
   const r = commit(deps, s, recordManual(deps.resourceSystem.clickEgg(s), 'lay'));
   if (r.ok) deps.bus.emit('egg_clicked', {});
   return r;
+}
+
+/**
+ * DIG (Story 9.2, FR55): one press adds a chunk to the current room (more with
+ * every digger) and the stone for the dirt dug; a room whose cost is reached
+ * opens. From Colony on.
+ */
+export function dig(deps: ActionDeps): ActionResult {
+  const s = current(deps);
+  if (s.phase === Phase.EGG_LAYING) return refuse('locked');
+  return commit(deps, s, digPress(s));
 }
 
 /** Put one free worker on a job. */

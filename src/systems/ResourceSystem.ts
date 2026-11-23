@@ -11,6 +11,7 @@ import { Phase } from '../phases/phases';
 import { combatBalance } from '../data/balance/combat';
 import { roleBalance } from '../data/balance/roles';
 import { getEffects } from './BuildingSystem';
+import { addDigPoints, diggerPointsPerSec } from './Dig';
 import { productionMultiplierFor, workerEfficiency } from '../engine/ProgressionCurve';
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
 import { getMutationEffects } from './MutationSystem';
@@ -262,21 +263,16 @@ export class ResourceSystem {
     let stoneChanged = false;
     let nectarChanged = false;
 
-    // Integer-only nest capacity: the accumulator counts dig-worker time in
-    // units of TICK_MS (the saved unit, kept so saves need no migration); every
-    // `digMsPerRoom` of one dig worker adds +1 nestCapacity, at any step length.
-    const digCount = state.workersAssigned.dig;
-    const stepsPerRoom = roleBalance.digMsPerRoom / TICK_MS;
-    let capacityAccumulator = state.capacityAccumulator;
-    let nestCapacity = state.resources.nestCapacity;
-    if (digCount > 0) {
-      // Tunnels make every digger dig faster (Story 4.7); the room still costs `digMsPerRoom` of digging.
-      const digSpeed = 1 + (getEffects('tunnels', state.buildings.tunnels?.level ?? 0).digSpeedBonus ?? 0);
-      capacityAccumulator += digCount * digSpeed * (Math.round(dtSec * MS_PER_SEC) / TICK_MS);
-      const rooms = Math.floor(capacityAccumulator / stepsPerRoom);
-      capacityAccumulator -= rooms * stepsPerRoom;
-      nestCapacity += rooms;
+    // DIG (Story 9.2): diggers dig on their own at a slow rate, whole points
+    // only (the fraction carries), so any step length digs the same rooms.
+    const digRate = diggerPointsPerSec(state);
+    let dug: GameState = state;
+    if (digRate > 0) {
+      const exact = state.dig.carry + digRate * (Math.round(dtSec * MS_PER_SEC) / MS_PER_SEC);
+      const whole = Math.floor(exact);
+      dug = addDigPoints({ ...state, dig: { ...state.dig, carry: exact - whole } }, whole);
     }
+    const nestCapacity = dug.resources.nestCapacity;
     const effectiveNestCapacity = nestCapacity + (getEffects('warehouse', state.buildings.warehouse.level).nestCapacity ?? 0);
 
     // Egg pipeline progress
@@ -368,7 +364,7 @@ export class ResourceSystem {
       },
       eggPipeline: { count: newEggCount, progress: newEggProgress },
       larvaPipeline: { count: newLarvaCount, progress: newLarvaProgress },
-      capacityAccumulator,
+      dig: dug.dig,
       resourceRemainder: remainder,
     };
 

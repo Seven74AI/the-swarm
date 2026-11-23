@@ -6,12 +6,12 @@ import { sceneBalance } from '../../src/data/balance/scene';
 /**
  * Story 1.22 (FR1, FR41, UX-DR18, UX-DR30): the NEST tab. Phase 1 reads top to
  * bottom strip, phase line and goal meter, scene, event lines, then `> LAY
- * EGG`; after Phase 1 the primary action follows the next-action rule.
+ * EGG`; from Colony on it is `> DIG` (Story 9.2).
  * Numbers come from the save, never from balance values.
  */
 
 interface Swarm {
-  manager: { getState(): { phase: string; stats: { totalEggsLaid: number; totalClicks: number; playTimeMs: number }; upgrades: Record<string, number> } };
+  manager: { getState(): { phase: string; stats: { totalEggsLaid: number; totalClicks: number; playTimeMs: number }; upgrades: Record<string, number>; dig: { roomsDug: number; progress: number } } };
   bus: { emit(event: string, payload: unknown): void };
 }
 
@@ -205,33 +205,26 @@ test.describe('NEST tab', () => {
     await expect(lines.nth(2)).toBeHidden();
   });
 
-  test('after Phase 1 the primary action follows the next-action rule, and the scene still lays eggs', async ({ page }) => {
-    // Freeze the game clock: with gatherers working, an item becomes affordable within
-    // about a second, so the 'none' line is only stable while no ticks run.
-    await page.clock.install();
-    await page.clock.pauseAt(Date.now() + 1000);
-    await seed(page, COLONY);
+  test('after Phase 1 the primary action is > DIG, a press digs, and the scene still lays eggs (Story 9.2)', async ({ page }) => {
+    await seed(page, { ...COLONY, resources: { ...COLONY.resources, food: 1_000_000 } });
     await expect(page.locator('[data-tab-bar]')).toBeVisible();
-    const zone = page.locator('[data-primary-for="nest"] [data-next-action]');
-    await expect(zone).toBeVisible();
-    await expect(zone).toHaveAttribute('data-next-action', 'none');
-    await expect(zone).toHaveText(/^NEXT AFFORDABLE: .+ IN ~/);
+    const dig = page.locator('[data-primary-for="nest"] [data-nest-primary="dig"] button[data-action="dig"]');
+    await expect(dig).toBeVisible();
+    await expect(dig).toContainText('DIG');
+    // DIG replaced NEST's next-action button, even with something affordable (BUILD and WRKR keep theirs).
+    await expect(page.locator('[data-primary-for="nest"] [data-next-action]')).toHaveCount(0);
     await expect(page.locator('[data-primary-zone] #click-egg')).toHaveCount(0);
     // Click Power left NEST for BUILD after Phase 1 (Story 1.24).
     await expect(page.locator('[data-tab-panel="nest"] [data-card="click_power"]')).toHaveCount(0);
 
+    const dug = (s: { dig: { roomsDug: number; progress: number } }) => s.dig.roomsDug * 1_000_000_000 + s.dig.progress;
+    const beforeDig = dug(await state(page));
+    await dig.click();
+    await expect.poll(async () => dug(await state(page))).toBeGreaterThan(beforeDig);
+
     const before = (await state(page)).stats.totalClicks;
     await page.locator('[data-nest-scene] #click-egg').click();
-    await page.clock.runFor(200); // let a few ticks apply the tap
     await expect.poll(async () => (await state(page)).stats.totalClicks).toBeGreaterThan(before);
-  });
-
-  test('after Phase 1 an affordable item becomes the primary action and the tap performs it', async ({ page }) => {
-    await seed(page, { ...COLONY, resources: { ...COLONY.resources, food: 1_000_000 } });
-    const btn = page.locator('[data-primary-for="nest"] [data-action="next-action"]');
-    await expect(btn).toBeVisible();
-    await btn.click();
-    await expect.poll(async () => Object.values((await state(page)).upgrades).reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
   });
 
   test('the nest scene draws the colony, labels its exact counts, and each chamber opens its peek sheet (Story 8.5)', async ({ page }) => {

@@ -872,6 +872,22 @@ function migrateV33toV34(data: SaveData): SaveData {
 }
 
 /** Registry of migration functions keyed by source version */
+/**
+ * v34 → v35 (Story 9.2): DIG digs rooms. Adds `dig` (`roomsDug`, `progress`,
+ * `carry`) and drops `capacityAccumulator` (the diggers' old per-capacity
+ * timer, whose partial room is not carried). The nest capacity is kept as it
+ * was, and digging starts at the first room's price (the old capacity came
+ * from digging, the Warehouse and upgrades alike, so no room count can be read
+ * from it). A save that already has the dig state keeps it.
+ */
+function migrateV34toV35(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  if (gs.resources === null || typeof gs.resources !== 'object') return { ...data, version: 35 };
+  const { capacityAccumulator: _old, ...rest } = gs;
+  if (rest.dig !== null && typeof rest.dig === 'object') return { ...data, version: 35, gameState: rest as unknown as GameState };
+  return { ...data, version: 35, gameState: { ...rest, dig: { roomsDug: 0, progress: 0, carry: 0 } } as unknown as GameState };
+}
+
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
   2: migrateV2toV3,
@@ -906,6 +922,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   31: migrateV31toV32,
   32: migrateV32toV33,
   33: migrateV33toV34,
+  34: migrateV34toV35,
 };
 
 /**
