@@ -34,6 +34,11 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: 🔎 Type check
         run: pnpm run typecheck
+      # #191: lint fails on errors only (owner, 2026-11-23); warnings are
+      # reported in the log but don't block. Errors are what .oxlintrc.json
+      # sets to "error" (today: no-console in src/, outside utils/log.ts).
+      - name: 🧹 Lint
+        run: pnpm run lint
 
   vitest:
     runs-on: ubuntu-24.04
