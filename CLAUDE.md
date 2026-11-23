@@ -67,6 +67,9 @@ Not sure which skill to use? Run `bmad-help`. **Plan in BMAD, build through GitH
    and are committed through a normal PR, so the plan is versioned with the code.
 2. **Hand off:** each story becomes one GitHub issue. Title = story title; body = the acceptance criteria, testable as
    invariants, plus a link to the story file. Label it `needs-triage`. The owner promotes it to `ready-for-agent`.
+   A story that changes balance names the `pnpm sim` gates it must keep (e.g. no idle gap > 2 min before 30 min of
+   play) and asks for their verdicts before and after in the PR. A "critical moment" target (food- or capacity-critical)
+   also gets an upper bound on how long it may last, so a wall can't pass as one (retro 2026-11-23).
 3. **Build:** story issues (titles starting with `Story `) are built in order by the owner's run-all-stories session
    (`/goal`, `docs/agents/run-all-stories.md`), which treats the linked story file as the spec. The nightly sweep skips
    them and only takes other `ready-for-agent` issues.
@@ -115,6 +118,9 @@ module must be pinned (`--pin gds=<tag>`) where the GitHub API is unreachable. T
 - Build seeds from `createInitialState()` overrides; `SaveManager.load()` migrates + deep-merges partial saves.
   A seed must still be a well-formed save (`version`, `timestamp`, `gameState`): anything else is unreadable and
   opens `THIS SAVE COULDN'T BE READ.` (Story 2.2). `SaveManager` needs a store: `new SaveManager(createLocalSaveStore(localStorage))`.
+- **`pnpm sim`'s `dailySchedule` check-ins model a returning player** (short check-ins, hours apart). A wall inside a check-in gap is
+  invisible to them, and "pacing defects: 0" says nothing about session 1. Judge session-1 pacing with the
+  `firstWeekSchedule` (Story 9.1, `src/sim/schedule.ts`) and gate 1 (retro 2026-11-23).
 - Randomness is seeded from the save (Story 3.1, `src/utils/rng.ts`): a fixed save replays the same battles, but tests
   still assert outcome sets (`victory|defeat|draw`), never one specific outcome. Pin a roll with `fixedRng` (`tests/unit/helpers/rng.ts`), never by mocking `Math.random`.
 - rAF fake timers don't reliably drive `Ticker`; test the public API, not tick counts.
