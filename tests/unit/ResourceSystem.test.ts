@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { EventBus } from '../../src/engine/EventBus';
 import { ResourceSystem } from '../../src/systems/ResourceSystem';
 import { resourceBalance } from '../../src/data/balance/resources';
-import { roleBalance } from '../../src/data/balance/roles';
 import { MS_PER_SEC, TICK_MS } from '../../src/data/constants';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 import { digBalance } from '../../src/data/balance/dig';

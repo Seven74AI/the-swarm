@@ -65,29 +65,72 @@ export function isStarving(state: GameState, territoryBonuses?: TerritoryBonuses
  * These rates are used both for per-tick simulation and for closed-form
  * offline resource computation (rate × time).
  */
+/**
+ * Where the food comes from and where it goes (Story 9.12, the resource
+ * sheet's food block): the parts `computeResourceRates` adds up, so IN −
+ * EATEN is always the net rate WRKR shows. Counts are the colony's, and
+ * `oneGathererFeeds` is how many eaters one gatherer's food keeps fed, at the
+ * current multipliers (at least 1 while a gatherer brings in anything).
+ */
+export interface FoodParts {
+  readonly in: { readonly gatherers: number; readonly idle: number; readonly territory: number; readonly total: number };
+  readonly eaten: { readonly workers: number; readonly soldiers: number; readonly total: number };
+  readonly counts: { readonly gatherers: number; readonly idle: number; readonly workers: number; readonly soldiers: number };
+  /** What one more worker eats a second, and one more soldier (Story 9.12: the cost of an eater). */
+  readonly perWorkerEats: number;
+  readonly perSoldierEats: number;
+  readonly oneGathererFeeds: number;
+}
+
+function foodFlow(state: GameState, territoryBonuses?: TerritoryBonuses): FoodParts {
+  const prestigeBonuses = getPrestigeBonuses(state);
+  const mutationEffects = getMutationEffects(state);
+  const workers = state.resources.workers;
+  const gatherCount = state.workersAssigned.gather;
+  const idleCount = Math.max(0, workers - getAssignedWorkers(state));
+  const prodMult = productionMultiplierFor(state);
+  const workerEff = workerEfficiency(workers);
+  // The Fungus Garden feeds gatherers only (Story 4.7).
+  const gardenBonus = getEffects('fungus_garden', state.buildings.fungus_garden?.level ?? 0).gatherFoodBonus ?? 0;
+  const mult = prodMult * workerEff * prestigeBonuses.food * prestigeBonuses.workerEfficiency * (1 + mutationEffects.gatherRate);
+  const perGatherer = roleBalance.gatherFoodPerSec * (1 + gardenBonus) * mult;
+  const gatherers = gatherCount * perGatherer;
+  const idle = idleCount * roleBalance.idleFoodPerSec * mult;
+  const territory = workers > 0 && territoryBonuses && territoryBonuses.food > 0 ? workers * territoryBonuses.food * prodMult * workerEff : 0;
+  const upkeepShare = 1 - upgradeTotal(state, 'lean_rations', 'upkeepCutPercent') / PERCENT;
+  const perWorkerEats = resourceBalance.upkeepFoodPerSec * upkeepShare;
+  const workersEat = workers * perWorkerEats;
+  const soldiersEat = armyUpkeepPerSec(state);
+  return {
+    in: { gatherers, idle, territory, total: gatherers + idle + territory },
+    eaten: { workers: workersEat, soldiers: soldiersEat, total: workersEat + soldiersEat },
+    counts: { gatherers: gatherCount, idle: idleCount, workers, soldiers: armySize(state) },
+    perWorkerEats,
+    perSoldierEats: combatBalance.army.upkeepFoodPerSec,
+    oneGathererFeeds: perWorkerEats > 0 && perGatherer > 0 ? Math.max(1, Math.floor(perGatherer / perWorkerEats)) : 0,
+  };
+}
+
+/** The food block's parts (Story 9.12). Pass the territory bonuses as `netFoodPerSec` does. */
+export function foodParts(state: GameState, territoryBonuses?: TerritoryBonuses): FoodParts {
+  return foodFlow(state, territoryBonuses);
+}
+
 export function computeResourceRates(
   state: GameState,
   territoryBonuses?: TerritoryBonuses,
 ): ResourceRates {
   const prestigeBonuses = getPrestigeBonuses(state);
-  const mutationEffects = getMutationEffects(state);
   const workers = state.resources.workers;
   const assigned = state.workersAssigned;
   const gatherCount = assigned.gather;
-  const unassignedCount = workers - getAssignedWorkers(state);
 
   const prodMult = productionMultiplierFor(state);
   const workerEff = workerEfficiency(workers);
 
-  // The Fungus Garden feeds gatherers only (Story 4.7).
-  const gardenBonus = getEffects('fungus_garden', state.buildings.fungus_garden?.level ?? 0).gatherFoodBonus ?? 0;
-  const foodProducedPerSec = (
-    (gatherCount * roleBalance.gatherFoodPerSec * (1 + gardenBonus) + Math.max(0, unassignedCount) * roleBalance.idleFoodPerSec)
-    * prodMult * workerEff * prestigeBonuses.food * prestigeBonuses.workerEfficiency
-    * (1 + mutationEffects.gatherRate)
-  );
-  const upkeepShare = 1 - upgradeTotal(state, 'lean_rations', 'upkeepCutPercent') / PERCENT;
-  const foodConsumedPerSec = workers * resourceBalance.upkeepFoodPerSec * upkeepShare + armyUpkeepPerSec(state);
+  const food = foodFlow(state, territoryBonuses);
+  const foodProducedPerSec = food.in.gatherers + food.in.idle;
+  const foodConsumedPerSec = food.eaten.total;
 
   // Basic resources from the roles (Story 3.4, FR36): no territory needed.
   const roleMult = prodMult * workerEff * prestigeBonuses.workerEfficiency;
@@ -100,7 +143,7 @@ export function computeResourceRates(
   let territoryWoodRate = 0;
   let territoryNectarRate = 0;
   if (workers > 0 && territoryBonuses) {
-    if (territoryBonuses.food > 0) territoryFoodRate = workers * territoryBonuses.food * prodMult * workerEff;
+    territoryFoodRate = food.in.territory;
     if (territoryBonuses.stone > 0) territoryStoneRate = workers * territoryBonuses.stone * prodMult;
     if (territoryBonuses.wood > 0) territoryWoodRate = workers * territoryBonuses.wood * prodMult;
     if (territoryBonuses.nectar > 0) territoryNectarRate = workers * territoryBonuses.nectar * prodMult;

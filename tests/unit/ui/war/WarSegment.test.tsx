@@ -1,3 +1,4 @@
+import { combatBalance } from '../../../../src/data/balance/combat';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, cleanup, fireEvent, act } from '@testing-library/preact';
 import { signal } from '@preact/signals';
@@ -112,11 +113,12 @@ describe('WAR segment (Story 1.25)', () => {
     expect(upkeep(c)).toBeGreaterThan(small);
   });
 
-  it('TRAIN names its ongoing cost: a worker and food upkeep (Story 4.4)', () => {
+  it('TRAIN names its ongoing cost: a worker, and what the new eater will eat (Stories 4.4, 9.12)', () => {
     const c = mount();
     const cost = c.querySelector('[data-action="train-soldier"]')!.closest('[data-button]') ?? c.querySelector('#soldier-panel')!;
     expect(cost.textContent).toMatch(/1 WORKER/);
-    expect(cost.textContent).toMatch(/UPKEEP/);
+    expect(cost.textContent).toMatch(/\+[\d.]+\/S\W*food a second\W*EATEN|\+[\d.]+\/S.*EATEN/);
+    expect(c.querySelector('[data-new-eater]')!.textContent).toContain(String(Math.floor(combatBalance.army.upkeepFoodPerSec * 100) / 100));
   });
 
   it('TRAIN is disabled while the colony starves, and says so (Story 4.4)', () => {

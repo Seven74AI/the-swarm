@@ -3,7 +3,7 @@ import { gameState } from './gameSignal';
 import type { GameState, PhaseGoal } from './GameState';
 import type { Phase } from '../phases/phases';
 import { getEffects } from '../systems/BuildingSystem';
-import { armyUpkeepPerSec, computeResourceRates, isStarving } from '../systems/ResourceSystem';
+import { armyUpkeepPerSec, computeResourceRates, foodParts, isStarving, type FoodParts } from '../systems/ResourceSystem';
 import { affordableKeys } from './affordances';
 import { getBuildAction, getNextAction, type NextAction } from '../systems/NextAction';
 import { assignedTotal, freeWorkers, getReallocation, workforceTotal, type Reallocation } from '../systems/Workforce';
@@ -240,6 +240,25 @@ export const selectVerdict = computed<{ readonly verdict: Verdict; readonly text
   if (lastVerdict && lastVerdict.text === text && lastVerdict.verdict.kind === verdict.kind) return lastVerdict;
   lastVerdict = { verdict, text };
   return lastVerdict;
+});
+
+let lastFoodParts: FoodParts | null = null;
+const sameFoodParts = (a: FoodParts, b: FoodParts): boolean =>
+  a.in.total === b.in.total && a.eaten.total === b.eaten.total && a.in.gatherers === b.in.gatherers && a.in.idle === b.in.idle &&
+  a.eaten.workers === b.eaten.workers && a.eaten.soldiers === b.eaten.soldiers && a.oneGathererFeeds === b.oneGathererFeeds &&
+  a.counts.gatherers === b.counts.gatherers && a.counts.idle === b.counts.idle && a.counts.workers === b.counts.workers && a.counts.soldiers === b.counts.soldiers;
+
+/**
+ * The resource sheet's food block (Story 9.12, UX-DR51): where the food comes
+ * from and where it goes, with the territory WRKR's net counts, so IN − EATEN
+ * is that net. Keeps its value while nothing in it changed (#186).
+ */
+export const selectFoodParts = computed<FoodParts>(() => {
+  const s = gameState.value;
+  const next = foodParts(s, new TerritorySystem().getBonuses(s));
+  if (lastFoodParts && sameFoodParts(lastFoodParts, next)) return lastFoodParts;
+  lastFoodParts = next;
+  return next;
 });
 
 /** Resources whose sheet row no longer reads NEW this run (Story 9.10); null: all seen (an older save). */

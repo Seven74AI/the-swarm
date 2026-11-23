@@ -99,6 +99,14 @@ export function gameViews(d: GameViewDeps): ShellViews {
             onSeen={(ids) => d.actions.markResourcesSeen(ids)}
             // The verdict opens the screen that fixes it (Story 9.11): WRKR's Gather row for food, NEST for a full nest.
             onVerdict={(kind) => (kind === 'food' ? d.jump.jump('worker_assignment', '[data-role="gather"]') : d.jump.jump('phase_indicator'))}
+            // A name in the food block opens its row (Story 9.12): WRKR's Gather row, WRKR, or WAR for soldiers.
+            onFoodJump={(target) =>
+              target === 'soldiers'
+                ? d.jump.jump('soldier_panel')
+                : target === 'gather'
+                  ? d.jump.jump('worker_assignment', '[data-role="gather"]')
+                  : d.jump.jump('worker_assignment')
+            }
           />
         </Panel>
         {/* Outside the panel: shown whenever writes fail, in any phase (Story 2.2). */}
