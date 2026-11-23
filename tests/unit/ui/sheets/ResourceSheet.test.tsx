@@ -153,3 +153,53 @@ describe('resource sheet', () => {
     expect(rows()).toHaveLength(RESOURCES.length);
   });
 });
+
+/** Story 9.11 (FR66, UX-DR50, FR27): the verdict line and what changed since last time. */
+describe('resource sheet: am I okay? (Story 9.11)', () => {
+  const hungry = (): GameState => {
+    const s = createInitialState();
+    return { ...s, phase: Phase.COLONY, resources: { ...s.resources, workers: 20, food: 500, nestCapacity: 100 }, workersAssigned: { ...s.workersAssigned, tend: 20 } };
+  };
+
+  it('opens with the verdict as its first line; falling reads in warn', async () => {
+    const { resetSheetSince } = await import('../../../../src/ui/sheets/sheetSince');
+    resetSheetSince();
+    gameState.value = hungry();
+    feed = createResourceFeed();
+    act(() => void openResourceSheet(sheets, feed));
+    const verdict = sheet().querySelector<HTMLElement>('[data-verdict]')!;
+    expect(verdict.dataset.verdict).toBe('food');
+    expect(verdict.textContent).toMatch(/^FOOD LASTS /);
+    expect(verdict.hasAttribute('data-warn')).toBe(true);
+    // First in the sheet's body: before the list.
+    expect(verdict.compareDocumentPosition(sheet().querySelector('[data-resource-list]')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('a tap on the verdict opens the screen that fixes it, only on that tap', async () => {
+    const { resetSheetSince } = await import('../../../../src/ui/sheets/sheetSince');
+    resetSheetSince();
+    const onVerdict = vi.fn();
+    gameState.value = hungry();
+    feed = createResourceFeed();
+    act(() => void openResourceSheet(sheets, feed, { onVerdict }));
+    expect(onVerdict).not.toHaveBeenCalled();
+    act(() => sheet().querySelector<HTMLButtonElement>('[data-verdict]')!.click());
+    expect(onVerdict).toHaveBeenCalledWith('food');
+    expect(document.querySelector('[data-resource-sheet]')).toBeNull();
+  });
+
+  it('the first opening shows no SINCE line; the next one shows the food change and the net rate then and now', async () => {
+    const { resetSheetSince } = await import('../../../../src/ui/sheets/sheetSince');
+    resetSheetSince();
+    gameState.value = hungry();
+    feed = createResourceFeed();
+    act(() => void openResourceSheet(sheets, feed));
+    expect(sheet().querySelector('[data-since]')).toBeNull();
+    act(() => sheets.close(sheets.state.value.open!.id));
+    const s = gameState.value;
+    gameState.value = { ...s, resources: { ...s.resources, food: s.resources.food + 1_204 }, workersAssigned: { ...s.workersAssigned, tend: 0, gather: 20 } };
+    act(() => void openResourceSheet(sheets, feed));
+    const since = sheet().querySelector('[data-since]')!;
+    expect(since.textContent).toMatch(/^FOOD \+1\s?204 SINCE \d{2}:\d{2}\W+NET WAS −[\d\s]+\/[SM], NOW \+[\d\s]+\/[SM]$/);
+  });
+});
