@@ -165,7 +165,7 @@ Top to bottom: goal block condensed to at most 4 lines → nest scene (only the 
 
 - **DIG:** one press digs one chunk; hold repeats like every primary action. Each room takes more presses than the last. A crack at the dig face grows with progress.
 - **FEED:** tapping the brood in the scene (a labelled button, "Feed the brood") hurries larvae into a free room. Free. With no free room it reads `FEED · NEST FULL` and is disabled.
-- **Room opens:** a quick opening animation, an event line (`ROOM 7 OPENED.`), the picture grows by one room. Batch 2: a one-tap job choice (Pantry, Larder, Gallery) with plain always allowed.
+- **Room opens:** a quick opening animation, an event line (`ROOM 7 OPENED.`), the picture grows by one room. Batch 2 (Stories 9.14–9.16): a one-tap job choice (Gallery, Larder, Pantry) as a peek with the room line, plain always allowed and the default; it never blocks DIG. Rooms opened by diggers, auto-dig or while away open plain; NEST shows `<n> PLAIN ROOMS` to assign later, and a job can be changed later for stone.
 - **Never required:** diggers dig on their own, slowly; no nudges, no pressure, no penalty for not tapping.
 
 ### Next-action rule
@@ -221,7 +221,9 @@ Text size follows the browser.
 | App | Paused (LOG → settings, or P on desktop) | `PAUSED` overlay line; the simulation stops; the next tap resumes. **In-session only:** hiding or closing the app ends the pause, and the time away counts as normal offline time (the resume rows above apply). The game always reopens unpaused. |
 | NEST | Phase 1, nothing hatched | Empty chamber with the queen; `EGGS HATCH INTO LARVAE.` |
 | NEST | Phase 1, Click Power affordable | The Click Power card appears under the event lines. |
-| NEST | Starving | FOOD turns `warn` ▼; an event line; next-action rule (2); the drawn colony visibly thins. |
+| NEST | Starving | FOOD turns `warn` ▼; an event line; next-action rule (2); the drawn colony visibly thins. Batch 2 (Story 9.16): the verdict escalates `FOOD RUNS OUT IN <t>` → `STARVING · AN ANT DIES EVERY <t>`, then `IF NOTHING CHANGES: SETTLES AT <n> WORKERS.` (Story 9.17). |
+| NEST | Crowded | Batch 2 (Story 9.13): the NEXT ROOM strip adds `CROWDED · −<n>% WORK` in `warn`; the overfill spills into the tunnels in the scene. |
+| Strip | Food at its limit | Batch 2 (Story 9.15): FOOD shows its capped state; the sheet's runway reads `FULL IN <t>` while rising; the return summary says `FOOD STOPPED AT THE LIMIT <t> AFTER YOU LEFT.` |
 | NEST | At capacity | Capacity turns `warn` ▲; FEED reads `FEED · NEST FULL`; DIG stays the move. |
 | NEST | Goal met (latched) | `GOAL MET`; **> CONTINUE**; dipped conditions explained. |
 | NEST | No next action (Phase 1 only) | No case: Phase 1 always has LAY EGG, Colony on always has DIG. `NEXT AFFORDABLE: <item> IN ~<time>` lives in the BUILD header. |
