@@ -10,6 +10,7 @@ inputs:
   - _bmad-output/playtest-2026-11-22.md
   - _bmad-output/brainstorming-session-2026-11-22.md
   - _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-23.md
+  - _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-23-batch-2.md
 baseline_code: "Seven74AI/the-swarm main @ 0b0b364"
 ---
 
@@ -19,7 +20,7 @@ baseline_code: "Seven74AI/the-swarm main @ 0b0b364"
 **Game Type:** Idle/Incremental
 **Target Platform(s):** Mobile first (portrait, touch); desktop browser second
 
-> **Reading this document.** Numbers marked *baseline* are the values in the current build (main @ 0b0b364), recorded so architecture and epics start from reality. They are not commitments: the pacing pass (Epic 3) re-tunes them against the targets in *Progression and Balance*. Targets are design intent. The first-week pacing correction (2026-11-23, issue #438, `sprint-change-proposal-2026-11-23.md`) changed the session shape, the scale, capacity, crowding, starvation and the phase targets; sections it touched say so. Source code stays authoritative for current behavior; phase guards live only in `src/phases/transitions.ts`.
+> **Reading this document.** Numbers marked *baseline* are the values in the current build (main @ 0b0b364), recorded so architecture and epics start from reality. They are not commitments: the pacing pass (Epic 3) re-tunes them against the targets in *Progression and Balance*. Targets are design intent. The first-week pacing correction (2026-11-23, issue #438, `sprint-change-proposal-2026-11-23.md`) changed the session shape, the scale, capacity, crowding, starvation and the phase targets; sections it touched say so. Batch 2's correct course (same day, `sprint-change-proposal-2026-11-23-batch-2.md`) set the open values in *Space and Food*. Source code stays authoritative for current behavior; phase guards live only in `src/phases/transitions.ts`.
 
 ---
 
@@ -252,7 +253,7 @@ Progression is gated by phase. Guards at baseline:
 |---|---|---|
 | Egg Laying → Colony | 10 workers | about 10–20 |
 | Colony → Combat | 50 workers + 1 guard | about 150–300 (+ 1 guard) |
-| Combat → Expansion | 60 workers + 5 wins | about 1,000–2,000 (+ wins) |
+| Combat → Expansion | 60 workers + 5 wins | about 1,000–2,000 (+ battles won, the count also set by tuning; owner, 2026-11-23) |
 | Expansion → Space | 80 workers + 5,000 food | about 5,000 or more |
 
 Phase 1–2 guards are rescaled with the DIG core (batch 1). Phase 3 and later need crowding first (batch 2), because the baseline scale penalty starts at 500 workers.
@@ -288,10 +289,10 @@ The curve is a staircase: each phase opens with a burst of new options, then slo
 *Batch 2 of the first-week pacing work (issue #438). Space and food are one system: how many ants the nest and the stores can hold.*
 
 - **Capacity stays a hard cap on workers.** Rooms (dug), the Warehouse and Gallery rooms set it; larvae wait in the brood when it is full, and FEED only works while a room is free (owner, 2026-11-23).
-- **Crowding replaces `workerEfficiency`.** Work slows with the number of creatures per unit of room space. Everyone takes up room: workers, soldiers, eggs and larvae (the queen aside), so a full brood crowds the nest too. Digging relieves it. Shown in the scene (an over-full room spills into the tunnels) and in the NEXT ROOM strip (`CROWDED · −20% WORK`). Upkeep is not reduced, so crowding bites.
-- **Starvation.** A warning comes first (`FOOD RUNS OUT IN 2M`). Then only eaters die (workers and soldiers, at random); eggs, larvae and the queen never starve. The colony **shrinks to fit**: just enough eaters die to bring food use back to production, spread over time (one death every few seconds), so the player can react. While away, at most **20%** of the eaters can be lost (the offline floor rises from 50% to 80% kept). The warning and the offline cap ship together with deaths, or not at all.
-- **Food storage limit.** The nest stores only so much food; food past the limit is lost. Larder rooms raise it. The offline summary says when food stopped at the limit; the resource strip shows the capped state.
-- **Room jobs.** When a room opens, the player picks one of three jobs with one tap, or leaves it plain (a plain room is always fine): **Pantry** (starvation warns sooner and bites slower), **Larder** (raises the food limit), **Gallery** (holds twice as many ants). Effects are colony-wide, counted by rooms; no ant has a location.
+- **Crowding replaces `workerEfficiency`.** Work slows with the number of creatures per unit of room space: no slowdown while everyone fits the room space, then work falls as the nest overfills, never below 50% of normal (owner, 2026-11-23). A DIG press's own chunk is not slowed. Everyone takes up room: workers, soldiers, eggs and larvae (the queen aside), so a full brood crowds the nest too. Digging relieves it. Shown in the scene (an over-full room spills into the tunnels) and in the NEXT ROOM strip (`CROWDED · −20% WORK`). Upkeep is not reduced, so crowding bites.
+- **Starvation.** A warning comes first (`FOOD RUNS OUT IN 2M`). Then only eaters die (workers and soldiers, at random); eggs, larvae and the queen never starve. The colony **shrinks to fit**: just enough eaters die to bring food use back to production, spread over time (one death every 2–10 s, the exact pace set by tuning; a big deficit never kills faster; owner, 2026-11-23), so the player can react. While away, at most **20%** of the eaters can be lost (the offline floor rises from 50% to 80% kept). The warning and the offline cap ship together with deaths, or not at all.
+- **Food storage limit.** The nest stores only so much food; food past the limit is lost. Every dug room stores a little and Larder rooms much more, so the limit grows with the nest (owner, 2026-11-23). A save that already holds more keeps it; only new income past the limit is lost. The offline summary says when food stopped at the limit; the resource strip shows the capped state.
+- **Room jobs.** From Colony on, when a room opens, the player picks one of three jobs with one tap, or leaves it plain (a plain room is always fine; rooms opened by diggers, auto-dig or while away open plain and can be assigned later). A job can be changed later for a small stone cost (owner, 2026-11-23): **Pantry** (starvation warns sooner and bites slower), **Larder** (raises the food limit), **Gallery** (holds twice as many ants). Effects are colony-wide, counted by rooms; no ant has a location.
 - **Offline-safe rule:** crowding and starvation are formulas of the current state, so the offline catch-up steps give the same result as live play.
 - **Later (batch 3 or a later phase):** a building that lets the player choose who goes hungry first (workers or soldiers).
 

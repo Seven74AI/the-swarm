@@ -93,10 +93,10 @@ FR56: Digging progress is visible: a crack grows at the dig face in the scene, a
 FR57: FEED is a free tap on the brood in the scene that speeds larvae toward becoming workers, only while a room is free.
 FR58: Auto-dig is bought with stone once the player has dug a few rooms by hand; from then on the diggers press DIG on their own and DIG becomes an optional boost.
 FR59: The nest scene draws only the rooms dug so far, so a young nest fits a phone without zooming; each new room grows the picture with a quick opening animation (replaces the 2× camera crop).
-FR60 (batch 2): Crowding replaces worker efficiency: work slows with creatures per unit of room space; workers, soldiers, eggs and larvae count (not the queen); shown in the scene and the NEXT ROOM strip; a formula of the current state.
-FR61 (batch 2): Starvation warns first, then kills only eaters (workers and soldiers, at random), just enough to bring food use back to production, spread over time; queen, eggs and larvae never starve; at most 20% lost while away. The warning and the offline cap ship with the deaths. A formula of the current state.
-FR62 (batch 2): Food has a storage limit; food past it is lost; Larder rooms raise it; the offline summary says when food stopped at the limit.
-FR63 (batch 2): When a room opens the player may give it one of three jobs (Pantry, Larder, Gallery) or leave it plain; effects are colony-wide, counted by rooms.
+FR60 (batch 2): Crowding replaces worker efficiency: work slows with creatures per unit of room space; workers, soldiers, eggs and larvae count (not the queen); no slowdown while the creatures fit the room space, then work falls with the overfill, never below 50% (owner, 2026-11-23); shown in the scene and the NEXT ROOM strip; a formula of the current state.
+FR61 (batch 2): Starvation warns first, then kills only eaters (workers and soldiers, at random), just enough to bring food use back to production, spread over time (one death every 2–10 s, set by tuning; owner, 2026-11-23); queen, eggs and larvae never starve; at most 20% lost while away. The warning and the offline cap ship with the deaths. A formula of the current state.
+FR62 (batch 2): Food has a storage limit; every dug room stores some and Larder rooms much more (owner, 2026-11-23); food past it is lost; the offline summary says when food stopped at the limit.
+FR63 (batch 2): When a room opens (Colony on) the player may give it one of three jobs (Pantry, Larder, Gallery) or leave it plain; a job can be changed later for stone (owner, 2026-11-23); effects are colony-wide, counted by rooms.
 FR64: The swarm reaches thousands: phase goals are rescaled to the GDD's target ranges (Phase 1–2 with batch 1, Phase 3+ with batch 2); exact guards live in `transitions.ts`.
 FR65: `pnpm sim` reports three first-week gates as pass/fail (never asserted in CI): no idle gap over 2 min before 30 min of continuous play; Phase 3 lasts to about day 7; after day 7 the median check-in is 90–120 s and every check-in offers at least one decision.
 FR66: The player can read at a glance whether the colony is okay and where its food comes from and goes: a verdict line with a runway, who brings food in, who eats it and what one-off spends took it (from the #437 brainstorm).
@@ -270,10 +270,13 @@ FR56: Epic 9 - NEXT ROOM progress (Story 9.3)
 FR57: Epic 9 - FEED (Story 9.4)
 FR58: Epic 9 - Auto-dig (Story 9.5)
 FR59: Epic 9 - Nest shows only dug rooms (Story 9.6)
-FR60–FR63: Epic 9 - Batch 2 (stories to be written after batch 1)
-FR64: Epic 9 - Rescaled goals (Phase 1–2 in Story 9.9, Phase 3+ in batch 2)
-FR65: Epic 9 - Sim gates (report in Story 9.1; gate 1 passes in Story 9.9, gates 2–3 in batch 2)
-FR66: Epic 9 - Resource sheet verdict and food flow (Stories 9.10–9.12; hunger parts in batch 2)
+FR60: Epic 9 - Crowding (Story 9.13)
+FR61: Epic 9 - Starvation (Story 9.16; hunger on the sheet, Story 9.17)
+FR62: Epic 9 - Food limit (Story 9.15; on the sheet, Story 9.17)
+FR63: Epic 9 - Room jobs (Story 9.14 Gallery, 9.15 Larder, 9.16 Pantry)
+FR64: Epic 9 - Rescaled goals (Phase 1–2 in Story 9.9, Phase 3+ in Story 9.18)
+FR65: Epic 9 - Sim gates (report in Story 9.1; gate 1 passes in Story 9.9, gates 2–3 in Story 9.18)
+FR66: Epic 9 - Resource sheet verdict and food flow (Stories 9.10–9.12; hunger parts in Story 9.17)
 
 NFR1–NFR3, NFR7, NFR9, NFR14, NFR15: Epic 1 · NFR4–NFR6, NFR8, NFR10, NFR13: Epic 2 · NFR12: Epic 3 · NFR11: Epic 8 · UX-DR47–UX-DR51: Epic 9
 
@@ -316,7 +319,7 @@ Phases 1–3 each have their own palette, glyphs, sounds and a living countable-
 **FRs covered:** FR42, FR43, FR44
 
 ### Epic 9: The first week digs in
-From the 2026-11-22 playtest (Correct Course, `sprint-change-proposal-2026-11-23.md`). Session 1 runs 45–60 min with no wait wall before about 30 min, Phases 1–3 fill the first week, check-ins settle at 90–120 s after it, and the swarm grows to thousands. Batch 1 (the DIG core) is written as stories; batch 2 (space and food) and batch 3 (flavour) are listed.
+From the 2026-11-22 playtest (Correct Course, `sprint-change-proposal-2026-11-23.md`). Session 1 runs 45–60 min with no wait wall before about 30 min, Phases 1–3 fill the first week, check-ins settle at 90–120 s after it, and the swarm grows to thousands. Batch 1 (the DIG core) and batch 2 (space and food) are written as stories; batch 3 (flavour) is listed.
 **FRs covered:** FR54, FR55, FR56, FR57, FR58, FR59, FR64, FR65, FR66 (batch 1) · FR60, FR61, FR62, FR63 (batch 2)
 
 ## Epic 1: Play the game one-handed on a phone
@@ -2068,7 +2071,7 @@ So that the queen's story starts before the first tap.
 
 From the owner's mobile playtest (2026-11-22, `_bmad-output/playtest-2026-11-22.md`): the owner quit in Colony after a capacity wall of about 5 h, two minutes into play. Issues #436 and #438; brainstorm `_bmad-output/brainstorming-session-2026-11-22.md`; Correct Course `sprint-change-proposal-2026-11-23.md`. Mockups: https://claude.ai/artifact/Rs3RWvuwqrsbx7p5CWEsNp (their two-button row is superseded: DIG is the only main button, FEED is a tap on the brood in the scene).
 
-Batch 1 (the DIG core, Stories 9.1–9.9, and the resource sheet, Stories 9.10–9.12 from #437) is written below and builds in order. Batch 2 and batch 3 stories are written after batch 1 ships.
+Batch 1 (the DIG core, Stories 9.1–9.9, and the resource sheet, Stories 9.10–9.12 from #437) shipped on 2026-11-23. Batch 2 (space and food, Stories 9.13–9.18) is written below and builds in order. Batch 3 stories are written after batch 2 ships.
 
 ### Story 9.1: The simulated player plays the first week
 
@@ -2355,16 +2358,196 @@ So that I can fix a food problem without doing arithmetic.
 
 **Covers:** FR66, UX-DR51 · FR12 (army cost visible)
 
-### Batch 2: space and food (stories after batch 1)
+### Batch 2: space and food
 
-One system: how many ants the nest and the stores can hold. GDD *Space and Food*.
+One system: how many ants the nest and the stores can hold (GDD *Space and Food*). Written 2026-11-23 after batch 1
+shipped (`sprint-change-proposal-2026-11-23-batch-2.md`, decisions #54–#63). Build order is space first, then food:
+each room job arrives with the system it changes, so no story points at a later one.
 
-- **Crowding replaces `workerEfficiency`** (FR60): work slows with creatures per unit of room space; workers, soldiers, eggs and larvae count, not the queen; capacity stays a hard cap on workers; shown in the scene (spill into the tunnels) and the NEXT ROOM strip; a formula of the current state.
-- **Starvation** (FR61, FR24): warning first, shrink to fit, only eaters die, at most 20% lost while away (offline floor 0.5 → 0.8). The warning and the offline cap ship in the same story as the deaths.
-- **Food storage limit** (FR62), raised by Larders; the offline summary line.
-- **Room jobs** (FR63): Pantry, Larder, Gallery, one tap when a room opens, plain is fine.
-- **Hunger on the resource sheet** (#437, with FR61 and FR62): the verdict escalates (`FOOD RUNS OUT IN 2M` → `STARVING · A WORKER DIES EVERY <t>`); `IF NOTHING CHANGES: SETTLES AT <n> WORKERS.`; a hunger ledger (`LOST TO HUNGER: <n> WORKERS · <n> SOLDIERS`); `LOST AT THE LIMIT <n>`; the runway also reads `FULL IN <t>`; the return summary reports `FOOD RAN OUT <t> AFTER YOU LEFT. <n> WORKERS LOST (NO MORE THAN 20%).`
-- **Rescale Phase 3+ and tune gates 2 and 3** (FR64, FR65): Combat lasts to about day 7; post-week check-ins 90–120 s with a decision each.
+Every story here changes balance, so each one names the `pnpm sim` gates it must keep and shows their verdicts
+before and after in its PR (CLAUDE.md, retro 2026-11-23). Batch 1 left gate 1 passing; gates 2 and 3 pass in Story 9.18.
+
+### Story 9.13: Crowding slows a nest packed past its rooms
+
+As a player with a full brood and a growing army,
+I want work to slow when I pack more ants in than the rooms hold,
+So that digging more room matters at a thousand ants, not just at fifty.
+
+**Acceptance Criteria:**
+
+**Given** a pure `getCrowding(state)` in `systems/` (no DOM)
+**When** it is computed
+**Then** it counts every creature that takes up room: workers (researchers included), combat soldiers, scouts, warriors, eggs and larvae, never the queen; the room space is the effective nest capacity (rooms dug × room size + the starting chambers + the Warehouse)
+**And** it returns a work multiplier: exactly 1 while the creatures fit the room space, then falling as the overfill share grows, never below `crowdingBalance.floor` (50% of normal work; values in `data/balance/`)
+**And** property tests: the multiplier is in [floor, 1], is 1 at or under full, never rises when a creature is added, and never falls when room space is added
+
+**Given** the multiplier
+**When** the colony works, live or in catch-up
+**Then** it replaces `workerEfficiency` where it is applied today (food and the Gather, Forage and Dig role yields in `ResourceSystem`, and `GameLoop.getWorkerEfficiency`) and also slows the diggers' own dig points (`systems/Dig.ts`, not slowed today); `workerEfficiency` and `progressionBalance.scalePenalty` are removed, and their tests are rewritten as crowding invariants
+**And** a DIG press's own chunk is not slowed (tapping stays a boost, Pillar 3); the diggers' share of a press is
+**And** upkeep is not reduced (crowding bites), and the Legacy worker-efficiency node still multiplies work as before
+**And** the result is the same for any step length (Story 2.5 property), so macro-step catch-up matches live play
+
+**Given** crowding bites (multiplier below 1)
+**When** NEST renders
+**Then** the NEXT ROOM strip adds `CROWDED · −<n>% WORK` in `warn` (n a whole percent from the same multiplier, UX-DR47), the scene draws the overfill as ants spilling into the tunnels (`nestLayout`), and WRKR's rates and the resource sheet show the slowed yields
+**And** `OVERCROWDING.` (Story 4.5) spawns when crowding bites instead of from its own worker-share rule, so the two never disagree
+
+**Given** the simulated player
+**When** the pacing report runs
+**Then** it prints the share of check-ins that start crowded, per phase
+**And** gate 1 still passes (before and after verdicts in the PR)
+
+**Covers:** FR60, FR6 (replaced) · UX-DR47
+
+### Story 9.14: A new room can take a job
+
+As a player who just opened a room,
+I want to give it a job with one tap, or leave it plain,
+So that every room I dig is a small choice about what my colony needs.
+
+**Acceptance Criteria:**
+
+**Given** the phase is Colony or later
+**When** a room opens from a DIG press
+**Then** a one-tap choice appears with the room-opened line: `GALLERY` (holds twice as many ants) or `PLAIN`; dismissing it or doing nothing leaves the room plain, and it never blocks DIG, FEED or CONTINUE (it is a peek in the SheetController's queue, never a modal)
+**And** rooms opened by the diggers alone, by auto-dig or while away open plain, and NEST shows `<n> PLAIN ROOMS` with a way to assign them later
+
+**Given** the room jobs
+**When** the state stores them
+**Then** they are counts by job (`roomJobs`, never more in total than the rooms dug); no ant has a location; a numbered save migration adds them at zero, and prestige resets them with the run
+**And** each Gallery room adds the room size again to the nest capacity (and so to the room space crowding reads); property test: capacity never falls when a room gets a job, and a Gallery room adds exactly one more room's worth
+
+**Given** a room with a job (or plain)
+**When** the player changes it from NEST
+**Then** a `setRoomJob` intent in `actions/` (returning `Result`) changes it for a stone cost from `data/balance/` (none for plain → job on a room never assigned); refusals explain themselves (not enough stone, the change would put workers over capacity)
+**And** the job list is data (`data/content/` copy, `data/balance/` effects), so later stories add jobs without changing the choice UI
+
+**Given** the simulated player
+**When** a room opens
+**Then** it picks a job through the same intent (Gallery when crowded, otherwise plain), and gate 1 still passes (before and after verdicts in the PR)
+
+**Covers:** FR63 (Gallery), FR59
+
+### Story 9.15: The food store has a limit
+
+As a player who leaves gatherers working overnight,
+I want the stores to fill up and stop,
+So that food is something I manage, not a number that only goes up.
+
+**Acceptance Criteria:**
+
+**Given** a pure `getFoodLimit(state)` in `systems/`
+**When** it is computed
+**Then** it is a base for the starting chambers, plus a share for every room dug, plus much more for every Larder room (values in `data/balance/`); it never falls as rooms are dug
+**And** the room-job choice (Story 9.14) gains `LARDER` (raises the food limit), as data
+
+**Given** food income would take food past the limit
+**When** a step applies, live or in catch-up
+**Then** food stops at the limit and the rest is lost; the amount lost is counted for the run (`foodLostAtLimit`, a numbered save migration adds it); resources stay integers and the result is the same for any step length
+**And** a save loaded with more food than the new limit keeps it: only new income past the limit is lost (no food disappears on load)
+**And** no catch-22: every food cost the player can meet in a phase fits under the limit the colony can reach by that phase's guard (property test over the items in `data/balance/` and the limit at each guard)
+
+**Given** the food store is at its limit
+**When** the strip, the resource sheet or the return summary renders
+**Then** the strip shows FOOD in its capped state, the sheet's runway reads `FULL IN <t>` while food is rising (computed from the current rates, same check as Story 9.11's runway), and the return summary says `FOOD STOPPED AT THE LIMIT <t> AFTER YOU LEFT.`
+
+**Given** the simulated player
+**When** the pacing report runs
+**Then** it prints the food lost at the limit per day, and gate 1 still passes (before and after verdicts in the PR)
+
+**Covers:** FR62, FR63 (Larder) · FR27
+
+### Story 9.16: Starvation warns, then shrinks the colony to fit
+
+As a player whose colony eats more than it makes,
+I want a warning first, then losses I can see and stop,
+So that hunger has stakes without ever wiping my run.
+
+**Acceptance Criteria:**
+
+**Given** food falling toward zero
+**When** the sheet's verdict and NEST render
+**Then** the warning comes first (`FOOD RUNS OUT IN <t>`, Story 9.11), and once food is at zero and use outruns production it escalates to `STARVING · AN ANT DIES EVERY <t>` in `warn`, with a polite live-region announcement; the first death comes no sooner than `starvationBalance.graceMs` after food reaches zero
+
+**Given** starvation
+**When** time passes, live or in catch-up
+**Then** one eater dies every `starvationBalance.deathIntervalMs` (tuned between 2 and 10 s; a big deficit never kills faster), chosen at random between workers and soldiers by their counts from a seeded `rng` stream; eggs, larvae and the queen never starve
+**And** a dead worker comes off the free pool first, then from the roles in proportion (invariant: workers on roles never exceed workers)
+**And** deaths stop as soon as production covers use (shrink to fit): property test over random states, no death happens while the net food rate is zero or better, and the colony never ends a step smaller than the settling size (a pure `getSettlesAt(state)`: the largest colony reached by removing eaters in the death order, free workers first, whose net food rate is zero or better)
+**And** the number of deaths is the same for any step length, within one (Story 2.5 property); which eater dies may differ; a numbered save migration adds the starvation clock
+
+**Given** an absence
+**When** catch-up runs
+**Then** at most 20% of the eaters (workers and soldiers) before the absence can be lost: `OFFLINE_WORKER_FLOOR_SHARE` goes from 0.5 to 0.8 and the floor covers soldiers too (property test)
+**And** the return summary says `FOOD RAN OUT <t> AFTER YOU LEFT. <n> WORKERS LOST (NO MORE THAN 20%).`
+**And** the warning, the offline cap and the deaths ship in this one story; none of them ships alone
+
+**Given** the room-job choice
+**When** a room opens
+**Then** it gains `PANTRY` (starvation warns sooner and bites slower: each Pantry room lengthens the grace and the death interval, up to a cap in `data/balance/`; it never stops starvation), as data
+
+**Given** the run
+**When** eaters starve
+**Then** the run counts them (`starvedWorkers`, `starvedSoldiers`), and the scene thins as today
+
+**Given** the simulated player
+**When** the pacing report runs
+**Then** it prints deaths per check-in and every starving stretch with its length
+**And** the bounds are data in `pacingTargets`, report verdicts: no starvation death in session 1, and no starving stretch in days 2–7 longer than one check-in; gate 1 still passes (before and after verdicts in the PR)
+
+**Covers:** FR61, FR24, FR4, FR63 (Pantry) · NFR5
+
+### Story 9.17: The resource sheet shows where hunger leads
+
+As a player who is losing ants,
+I want the sheet to tell me where the colony will settle and what hunger has cost me,
+So that I can decide whether to fix it now or let it shrink.
+
+**Acceptance Criteria:**
+
+**Given** Story 9.16's `getSettlesAt(state)`
+**When** the colony is starving or food is falling
+**Then** the verdict adds `IF NOTHING CHANGES: SETTLES AT <n> WORKERS.` from it (property test: at n the net food rate is zero or better; with the next eater in the death order added back it is below zero)
+
+**Given** the run has lost ants or food
+**When** the sheet's food block renders
+**Then** it shows `LOST TO HUNGER: <n> WORKERS · <n> SOLDIERS` (from Story 9.16's counts) and `LOST AT THE LIMIT <n>` (from Story 9.15's), each only once it is above zero
+**And** tapping the hunger verdict opens the screen that fixes it (WRKR with Gather highlighted; NEST's room jobs when a Pantry or Larder would help), only on that tap (FR27)
+
+**Given** the sheet's verdict order (Story 9.11, kept in `data/content/`)
+**When** starvation and a full store are added
+**Then** the order is starving → food falling → food at the limit → nest full with larvae waiting → everything is growing, and a test walks each verdict from a seeded state
+
+**Covers:** FR66 (hunger parts), FR61, FR62 · UX-DR50, UX-DR51
+
+### Story 9.18: Combat fills the first week
+
+As a player on day 4,
+I want Combat still to have somewhere to go and something to decide each time I look,
+So that the first week ends with the colony I built, not a phase I finished on day 1.
+
+**Acceptance Criteria:**
+
+**Given** the Story 9.16 report
+**When** the crowding, room-job, food-limit and starvation values in `data/balance/` and the Combat → Expansion and Expansion → Space guards in `transitions.ts` are tuned
+**Then** gate 2 passes (Combat ends on day 6–8) and gate 3 passes (after day 7, the median check-in is 90–120 s and every check-in offers a decision), and gate 1 still passes
+**And** the Combat → Expansion guard asks for about 1,000–2,000 workers and a number of battles won that tuning sets, so neither battles alone nor waiting alone clears Combat; Expansion → Space asks for about 5,000 workers or more; worker targets still strictly increase along the phase order (Story 9.9's property test)
+
+**Given** the critical moments (Story 3.11's food- and capacity-critical probes, crowding and starvation)
+**When** the report judges them
+**Then** each has a lower and an upper bound in `pacingTargets`: Combat has at least one food-critical and one crowded check-in, no crowded stretch holds work at the floor for more than one check-in, and Story 9.16's starvation bounds hold
+
+**Given** gate 3 can't be met by values alone
+**When** the agent tunes
+**Then** it may add Combat purchasables or decision events that recur in late Combat (owner decision #31), each listed in the PR with the pillar it serves and why no choice is strictly dominated; no new mechanic
+**And** if a target still can't be met, it gets as close as it can and explains the gap in the PR (and files it, per `run-all-stories.md`)
+
+**Given** the changes
+**When** CI runs
+**Then** the reachability test (Story 3.8) passes for every MVP phase, no test hard-codes a tuned number, the E2E seeds still satisfy the real guards, and the story file records the before and after report
+
+**Covers:** FR64 (Phase 3+), FR65 (gates 2–3), FR54
 
 ### Batch 3: flavour (later)
 
