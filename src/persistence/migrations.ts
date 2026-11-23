@@ -888,6 +888,22 @@ function migrateV34toV35(data: SaveData): SaveData {
   return { ...data, version: 35, gameState: { ...rest, dig: { roomsDug: 0, progress: 0, carry: 0 } } as unknown as GameState };
 }
 
+/**
+ * v35 → v36 (Story 9.5): auto-dig. Adds `dig.roomsByHand` (taken as the rooms
+ * dug so far: before auto-dig every room a save dug since v35 was dug by hand
+ * or by diggers, and counting them all only opens the card sooner) and
+ * `dig.auto` (false). A save that has them keeps them.
+ */
+function migrateV35toV36(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  const dig = gs.dig;
+  if (dig === null || typeof dig !== 'object') return { ...data, version: 36 };
+  const d = dig as Record<string, unknown>;
+  const roomsByHand = typeof d.roomsByHand === 'number' ? d.roomsByHand : wholeCount(d.roomsDug);
+  const auto = d.auto === true;
+  return { ...data, version: 36, gameState: { ...gs, dig: { ...d, roomsByHand, auto } } as unknown as GameState };
+}
+
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
   2: migrateV2toV3,
@@ -923,6 +939,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   32: migrateV32toV33,
   33: migrateV33toV34,
   34: migrateV34toV35,
+  35: migrateV35toV36,
 };
 
 /**

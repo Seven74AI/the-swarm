@@ -31,6 +31,8 @@ export const BUILDING_CARDS: readonly BuildingCardDef[] = [
 ];
 
 export const RESEARCH_GLYPH = '⌕';
+/** The auto-dig card (Story 9.5): the Tunnels' line glyph, the diggers' own. */
+export const AUTO_DIG_GLYPH: Glyph = BUILDING_GLYPHS.tunnels;
 /** The Particle Lab's card (Story 3.6). */
 export const PARTICLE_LAB_GLYPH = '⊚';
 

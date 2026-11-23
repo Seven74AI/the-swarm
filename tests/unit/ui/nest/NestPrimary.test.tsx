@@ -94,6 +94,20 @@ describe('NestPrimary (Story 1.22)', () => {
     }
   });
 
+  it('with auto-dig on reads `> AUTO-DIG ON` with its hint, and a press still digs (Story 9.5)', () => {
+    gameState.value = makeState({ phase: Phase.COLONY, resources: { workers: 2 }, workersAssigned: { dig: 2 }, dig: { roomsDug: 0, progress: 0, carry: 0, roomsByHand: 3, auto: true } });
+    const { container } = primary();
+    const button = container.querySelector<HTMLButtonElement>('button[data-action="dig"]')!;
+    expect(button.textContent).toContain('AUTO-DIG ON');
+    expect(container.querySelector('[data-nest-primary="dig"]')!.textContent).toContain('tap to boost the dig');
+    const before = gameState.value.dig.progress;
+    act(() => {
+      fireEvent.pointerDown(button, { pointerId: 1, button: 0 });
+      fireEvent.pointerUp(button, { pointerId: 1, button: 0 });
+    });
+    expect(gameState.value.dig.progress).toBeGreaterThan(before);
+  });
+
   it('switches from LAY EGG to DIG when the phase commits', () => {
     gameState.value = makeState({ phase: Phase.EGG_LAYING });
     const { container } = primary();

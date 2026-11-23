@@ -42,6 +42,14 @@ describe('NextRoomStrip', () => {
     expect(meter.getAttribute('aria-valuenow')).toBe(String(r.percent));
   });
 
+  it('reads NEXT ROOM · AUTO-DIG ON once auto-dig is bought (Story 9.5)', () => {
+    gameState.value = { ...colony(4, 100), dig: { roomsDug: 1, progress: 100, carry: 0, roomsByHand: 3, auto: true } };
+    const { container } = render(<NextRoomStrip />);
+    expect(container.querySelector('[data-next-room]')!.getAttribute('data-auto-dig')).toBe('on');
+    expect(container.querySelector('.next-room__label')!.textContent).toMatch(/^NEXT ROOM\s*·.*AUTO-DIG ON$/);
+    expect(container.querySelector('[data-next-room-time]')!.textContent).toMatch(/^IN /);
+  });
+
   it('reads NO DIGGERS in place of the time when nobody digs', () => {
     gameState.value = colony(0);
     const { container } = render(<NextRoomStrip />);

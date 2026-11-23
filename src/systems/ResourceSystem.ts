@@ -11,7 +11,7 @@ import { Phase } from '../phases/phases';
 import { combatBalance } from '../data/balance/combat';
 import { roleBalance } from '../data/balance/roles';
 import { getEffects } from './BuildingSystem';
-import { addDigPoints, diggerPointsPerSec } from './Dig';
+import { addDigPoints, digRate } from './Dig';
 import { productionMultiplierFor, workerEfficiency } from '../engine/ProgressionCurve';
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
 import { getMutationEffects } from './MutationSystem';
@@ -265,10 +265,10 @@ export class ResourceSystem {
 
     // DIG (Story 9.2): diggers dig on their own at a slow rate, whole points
     // only (the fraction carries), so any step length digs the same rooms.
-    const digRate = diggerPointsPerSec(state);
+    const digRateNow = digRate(state);
     let dug: GameState = state;
-    if (digRate > 0) {
-      const exact = state.dig.carry + digRate * (Math.round(dtSec * MS_PER_SEC) / MS_PER_SEC);
+    if (digRateNow > 0) {
+      const exact = state.dig.carry + digRateNow * (Math.round(dtSec * MS_PER_SEC) / MS_PER_SEC);
       const whole = Math.floor(exact);
       dug = addDigPoints({ ...state, dig: { ...state.dig, carry: exact - whole } }, whole);
     }

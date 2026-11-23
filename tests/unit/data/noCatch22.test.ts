@@ -91,6 +91,9 @@ function probes(ref: ItemRef, phase: Phase): GameState[] {
       }));
     case 'particle_lab':
       return levels.map((l) => ({ ...s, conversions: { ...s.conversions, particleLab: l } }));
+    case 'autodig':
+      // On sale once enough rooms were opened by hand (Story 9.5).
+      return [{ ...s, dig: { ...s.dig, roomsByHand: 1_000, auto: false } }];
     case 'mutation':
       return [{ ...s, mutations: MUTATIONS.map((m) => ({ id: m.id, purchased: m.id !== ref.id })) }];
     case 'research': {
