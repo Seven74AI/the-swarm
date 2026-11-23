@@ -131,6 +131,8 @@ Every epic has the same shape: **Goal**, **Delivers** (the `gdd.md` sections it 
 - Dig feel: crunch, small shake, dirt puff, breakthrough vibration where supported (sound fallback on iPhone). (P3)
 - Tune batch 1: capacity rebalance and rescaled Phase 1–2 goals until gate 1 passes. (P2)
 
+*Resource sheet (from #437, stories written):* the sheet answers "am I okay?" first (verdict line, runway, since-last-look), shows where food comes from and goes (food block, one-off spends, `ONE GATHERER FEEDS 4.`, food cost on controls that add eaters), and reads on a phone (two lines per resource, caps only where they exist, slow rates per minute). (P1, P4)
+
 *Batch 2, space and food (stories after batch 1):* crowding replaces `workerEfficiency`; starvation that shrinks to fit, with its warning and the 20% offline cap in the same release; a food storage limit; room jobs (Pantry, Larder, Gallery); rescaled Phase 3+ goals and the tuning for gates 2 and 3. (P1, P4)
 
 *Batch 3, flavour (later):* a nest close-up (full-screen nest view), intruders (seeded randomness), finds, rhythm bonus, milestone pull-out, first-time event lines as the tutorial, sharper mandibles, reinforced rooms, a starvation-order building. (P2, P3, P4)

@@ -99,6 +99,7 @@ FR62 (batch 2): Food has a storage limit; food past it is lost; Larder rooms rai
 FR63 (batch 2): When a room opens the player may give it one of three jobs (Pantry, Larder, Gallery) or leave it plain; effects are colony-wide, counted by rooms.
 FR64: The swarm reaches thousands: phase goals are rescaled to the GDD's target ranges (Phase 1–2 with batch 1, Phase 3+ with batch 2); exact guards live in `transitions.ts`.
 FR65: `pnpm sim` reports three first-week gates as pass/fail (never asserted in CI): no idle gap over 2 min before 30 min of continuous play; Phase 3 lasts to about day 7; after day 7 the median check-in is 90–120 s and every check-in offers at least one decision.
+FR66: The player can read at a glance whether the colony is okay and where its food comes from and goes: a verdict line with a runway, who brings food in, who eats it and what one-off spends took it (from the #437 brainstorm).
 
 ### NonFunctional Requirements
 
@@ -161,7 +162,7 @@ UX-DR4: Character grid: `cols = floor(contentWidth / advanceWidth(body))`, targe
 UX-DR5: Portrait skeleton: resource strip (min 56 px), phase line, goal meter, nest scene `clamp(120px, remaining, 220px)`, event lines (3, or 1 below 560 px height), pinned primary zone (64 px), tab bar (52 px); safe-area insets; primary action, tab bar and sheet actions in the bottom 40% of `100dvh`; scroll areas padded by primary zone + tab bar; `scroll-padding-bottom` so focused items are never hidden; margins 14 px, 8 px below 360 px.
 UX-DR6: Responsive: 600–1023 px single column centred at 600 px; landscape never blocked, primary zone un-pins below 480 px height; desktop ≥ 1024 px: 160 px left text rail replaces the tab bar, NEST in column 1, the active tab in columns 2–3 (BUILD on first visit), each column with its own primary zone, sheets become centred dialogs (max 480 px), content max 1280 px.
 UX-DR7: Resource strip: five equal cells with glyph, ≤ 4-letter label, value (≤ 5 chars) and delta (no `/s`, negatives `warn` with `−`); per-phase sets (P1 EGG LRVA WRKR FOOD; P2 FOOD WRKR WOOD STON NECT; P3+ capped or falling first); capped value `warn` with ▲; refresh ≤ 4×/s; above ~125% text scale 3 cells plus `+2 ▸`; tap opens the resource sheet; hosts the persistent `• SAVE FAILED` marker.
-UX-DR8: Resource sheet: every unlocked resource with a 30 px glyph, full name, exact integer, rate (unit stated once), cap and source; `[ SETTINGS ⚙ ]` at the bottom (so settings are reachable in Phase 1).
+UX-DR8: Resource sheet: every unlocked resource with a 30 px glyph, full name, exact integer, rate (unit stated once), cap and source; `[ SETTINGS ⚙ ]` at the bottom (so settings are reachable in Phase 1). **Changed 2026-11-23 (#437):** two lines per resource (glyph, name, amount; then rate, source and a text sparkline in `dim`); a cap only where one exists, as a fill meter (no `—`); falling or capped resources first; rates under 1/s read per minute; groups by tier past about 8 rows; a new resource marked `NEW` once; a tap on a row opens its sources and spends (Stories 9.10–9.12).
 UX-DR9: Tab bar: tabs revealed by phase (Phase 1 none; Colony reveals NEST · WRKR · BUILD · LOG at once; Combat adds FRONT); active tab inverse video; `•` when something on that tab became affordable since the last visit, cleared on visit; tapping the active tab scrolls to top; 4-letter names above 130% text; no numeric badges; each tab keeps scroll position and segment for the session; nothing deeper than tab → segment → sheet.
 UX-DR10: FRONT segment row `WAR · MAP · STARS` that grows by phase, opens on the newest segment, remembers the last used, 44 px targets.
 UX-DR11: Primary action: 1.5 px accent border, `> ` prefix, block cursor blinking 1 Hz for ≤ 5 s after input (steady under reduced motion or CRT OFF); pressed = inverse video held until release (not re-inverted per repeat); truncates the target name, never the verb; cost line moves inside as a second line when the label would wrap or height < 560 px; fires on pointer-up (drag-off cancels); hold repeats ~8/s, accelerating after 1 s.
@@ -203,6 +204,8 @@ UX-DR46 (post-MVP): Phase 6 NEST final goal meter with `> TRANSCEND`; Transcende
 UX-DR47: NEXT ROOM strip under the nest scene: `NEXT ROOM` (or `NEXT ROOM · AUTO-DIG ON`), the next room's size `+N`, a text meter, `IN <time>` and `· <n> DIGS`; a matching crack at the scene's dig face; batch 2 adds `CROWDED · −<n>% WORK`.
 UX-DR48: NEST from Colony: the goal block condensed to at most 4 lines; scene; NEXT ROOM strip; brood control on one line (`BROOD <n> EGGS · <n> LARVAE  KEEP [−] N [+] AUTO`); event lines; `> DIG` in the pinned primary zone with a hint line (`chunk +n · n stone · tap the brood to feed when a room is free`); FEED is a tap on the brood in the scene (a labelled button), greyed `FEED · NEST FULL` with no free room. Mockups: https://claude.ai/artifact/Rs3RWvuwqrsbx7p5CWEsNp (their two-button row is superseded: DIG alone, FEED in the scene).
 UX-DR49: Dig feel: each press a crunch, a small shake (none under reduced motion) and a dirt puff; breakthrough a short opening animation, a sound and a vibration where `navigator.vibrate` works (iPhone Safari: sound and shake only); within the flash rule (UX-DR38) and the sound rate limits.
+UX-DR50: Resource sheet verdict line: the first line names the worst state (`FOOD LASTS 14M`, `NEST FULL · 3 LARVAE WAIT`, `EVERYTHING IS GROWING`) with a runway (`LASTS <t>` when falling, `FULL IN <t>` when a limit exists); tapping it opens the screen that fixes it (never on its own); a `SINCE <time>` line shows what changed since the sheet was last opened.
+UX-DR51: Resource sheet food block (from Colony): `FOOD IN +n/S ← gatherers n · idle n`, `EATEN −n/S → workers n · soldiers n`, `SPENT THIS HOUR: <item> n · …`, `ONE GATHERER FEEDS <n>.`; each name opens its role row or WAR; controls that add an eater show its food cost (`+0.75/S EATEN`).
 
 ### FR Coverage Map
 
@@ -270,8 +273,9 @@ FR59: Epic 9 - Nest shows only dug rooms (Story 9.6)
 FR60–FR63: Epic 9 - Batch 2 (stories to be written after batch 1)
 FR64: Epic 9 - Rescaled goals (Phase 1–2 in Story 9.9, Phase 3+ in batch 2)
 FR65: Epic 9 - Sim gates (report in Story 9.1; gate 1 passes in Story 9.9, gates 2–3 in batch 2)
+FR66: Epic 9 - Resource sheet verdict and food flow (Stories 9.10–9.12; hunger parts in batch 2)
 
-NFR1–NFR3, NFR7, NFR9, NFR14, NFR15: Epic 1 · NFR4–NFR6, NFR8, NFR10, NFR13: Epic 2 · NFR12: Epic 3 · NFR11: Epic 8 · UX-DR47–UX-DR49: Epic 9
+NFR1–NFR3, NFR7, NFR9, NFR14, NFR15: Epic 1 · NFR4–NFR6, NFR8, NFR10, NFR13: Epic 2 · NFR12: Epic 3 · NFR11: Epic 8 · UX-DR47–UX-DR51: Epic 9
 
 ## Epic List
 
@@ -313,7 +317,7 @@ Phases 1–3 each have their own palette, glyphs, sounds and a living countable-
 
 ### Epic 9: The first week digs in
 From the 2026-11-22 playtest (Correct Course, `sprint-change-proposal-2026-11-23.md`). Session 1 runs 45–60 min with no wait wall before about 30 min, Phases 1–3 fill the first week, check-ins settle at 90–120 s after it, and the swarm grows to thousands. Batch 1 (the DIG core) is written as stories; batch 2 (space and food) and batch 3 (flavour) are listed.
-**FRs covered:** FR54, FR55, FR56, FR57, FR58, FR59, FR64, FR65 (batch 1) · FR60, FR61, FR62, FR63 (batch 2)
+**FRs covered:** FR54, FR55, FR56, FR57, FR58, FR59, FR64, FR65, FR66 (batch 1) · FR60, FR61, FR62, FR63 (batch 2)
 
 ## Epic 1: Play the game one-handed on a phone
 
@@ -2064,7 +2068,7 @@ So that the queen's story starts before the first tap.
 
 From the owner's mobile playtest (2026-11-22, `_bmad-output/playtest-2026-11-22.md`): the owner quit in Colony after a capacity wall of about 5 h, two minutes into play. Issues #436 and #438; brainstorm `_bmad-output/brainstorming-session-2026-11-22.md`; Correct Course `sprint-change-proposal-2026-11-23.md`. Mockups: https://claude.ai/artifact/Rs3RWvuwqrsbx7p5CWEsNp (their two-button row is superseded: DIG is the only main button, FEED is a tap on the brood in the scene).
 
-Batch 1 (the DIG core, Stories 9.1–9.9) is written below and builds in order. Batch 2 and batch 3 stories are written after batch 1 ships.
+Batch 1 (the DIG core, Stories 9.1–9.9, and the resource sheet, Stories 9.10–9.12 from #437) is written below and builds in order. Batch 2 and batch 3 stories are written after batch 1 ships.
 
 ### Story 9.1: The simulated player plays the first week
 
@@ -2276,6 +2280,81 @@ So that I'm still playing at minute 30 instead of quitting at minute 2.
 
 **Covers:** FR64 (Phase 1–2), FR65 (gate 1), FR54 (session 1) · FR5
 
+### Story 9.10: The resource sheet reads on a phone
+
+As a player holding my phone in one hand,
+I want each resource on two short lines with only the numbers that mean something,
+So that the sheet is readable at 390 px without squinting at five columns.
+
+**Acceptance Criteria:**
+
+**Given** the resource sheet (Story 1.16) on a 390×844 viewport and at the 360×512 minimum
+**When** it opens
+**Then** each resource takes two lines: glyph, full name and exact amount; then, in `dim`, its rate, its source and a text sparkline of the last 10 minutes (`▁▂▃▅`, from a fixed-size history outside the save)
+**And** a cap shows only where one exists, as a fill meter (`████··· 74%`); no row shows `—`
+**And** falling or capped resources come first, the rest in the phase's order; past about 8 rows (threshold in `data/balance/`) the rows group by tier (`COLONY`, `BATTLE DROPS`, `SPACE`), collapsed except a group holding a falling or capped resource
+**And** nothing overlaps or scrolls sideways, and every row is reachable in the bottom 40% by scrolling (Playwright)
+
+**Given** a rate whose magnitude is under 1 per second
+**When** it is shown
+**Then** it reads per minute as a whole number (`+36/M`), never `0` while it is not zero (unit test on the formatter: a non-zero rate never formats as zero); rates of 1/s or more read per second as today
+
+**Given** a resource unlocked for the first time
+**When** the sheet next opens
+**Then** its row is marked `NEW` until the sheet closes, once per resource per run
+
+**Given** a tap on a row
+**When** it opens
+**Then** a peek shows where the resource comes from and what spends it, read from the same data the systems use
+
+**Covers:** FR66, UX-DR8 (changed), UX-DR4 · NFR7, NFR9
+
+### Story 9.11: The resource sheet tells me if I'm okay
+
+As a player with ten seconds,
+I want the sheet to open with one line that says what's worst and how long I have,
+So that I know whether to act before I read a single row.
+
+**Acceptance Criteria:**
+
+**Given** a pure `getVerdict(state)` (in `systems/`, no DOM)
+**When** the sheet opens
+**Then** its first line is the worst current state, first match wins, in an order kept in `data/content/`: food falling (`FOOD LASTS <t>`), nest full with larvae waiting (`NEST FULL · <n> LARVAE WAIT`), otherwise `EVERYTHING IS GROWING`; a falling verdict is `warn`
+**And** the runway is computed from the current rates (unit test: the runway equals the time the simulation takes to empty the stock, within one step)
+
+**Given** a tap on the verdict line
+**When** it applies
+**Then** it opens the screen that fixes it (WRKR with the Gather row highlighted for food; NEST for a full nest), only on that tap; nothing opens or highlights on its own
+
+**Given** the sheet was opened before in this session
+**When** it opens again
+**Then** a `SINCE <time>` line shows the change in food and in the food net rate since then (`FOOD +1 204 SINCE 14:02 · NET WAS −3/S, NOW +2/S`); the first opening shows none
+
+**Covers:** FR66, UX-DR50 · FR27 (decisions are offered, never pushed)
+
+### Story 9.12: I can see where the food goes
+
+As a player in Colony,
+I want to see who brings food in, who eats it and what I spent it on,
+So that I can fix a food problem without doing arithmetic.
+
+**Acceptance Criteria:**
+
+**Given** the phase is Colony or later
+**When** the sheet opens
+**Then** a food block sits under the verdict: `FOOD IN +n/S ← gatherers n · idle n`, `EATEN −n/S → workers n · soldiers n`, `SPENT THIS HOUR: <item> n · …` for one-off spends (Click Power, soldiers, buildings, research), and `ONE GATHERER FEEDS <n>.` derived from the balance, never restated
+**And** the parts add up: `IN − EATEN` equals the net shown in WRKR (property test over random states), and Phase 1 shows no food block
+
+**Given** a name in the food block
+**When** the player taps it
+**Then** it opens that role's row in WRKR, or WAR for soldiers
+
+**Given** a control that adds an eater (a role `[+]` that adds a worker, the soldier train card)
+**When** it renders
+**Then** it shows what the new eater will eat (`+0.75/S EATEN`), from the balance
+
+**Covers:** FR66, UX-DR51 · FR12 (army cost visible)
+
 ### Batch 2: space and food (stories after batch 1)
 
 One system: how many ants the nest and the stores can hold. GDD *Space and Food*.
@@ -2284,6 +2363,7 @@ One system: how many ants the nest and the stores can hold. GDD *Space and Food*
 - **Starvation** (FR61, FR24): warning first, shrink to fit, only eaters die, at most 20% lost while away (offline floor 0.5 → 0.8). The warning and the offline cap ship in the same story as the deaths.
 - **Food storage limit** (FR62), raised by Larders; the offline summary line.
 - **Room jobs** (FR63): Pantry, Larder, Gallery, one tap when a room opens, plain is fine.
+- **Hunger on the resource sheet** (#437, with FR61 and FR62): the verdict escalates (`FOOD RUNS OUT IN 2M` → `STARVING · A WORKER DIES EVERY <t>`); `IF NOTHING CHANGES: SETTLES AT <n> WORKERS.`; a hunger ledger (`LOST TO HUNGER: <n> WORKERS · <n> SOLDIERS`); `LOST AT THE LIMIT <n>`; the runway also reads `FULL IN <t>`; the return summary reports `FOOD RAN OUT <t> AFTER YOU LEFT. <n> WORKERS LOST (NO MORE THAN 20%).`
 - **Rescale Phase 3+ and tune gates 2 and 3** (FR64, FR65): Combat lasts to about day 7; post-week check-ins 90–120 s with a decision each.
 
 ### Batch 3: flavour (later)
