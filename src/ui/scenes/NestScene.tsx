@@ -67,6 +67,12 @@ export interface NestSceneProps {
   readonly zoom?: number;
   /** The dig-face crack's stage (Story 9.3, `crackStage`): 0 or absent draws none. It never animates. */
   readonly crack?: number;
+  /**
+   * FEED (Story 9.4): from Colony on the brood button feeds instead of peeking.
+   * It is named "Feed the brood", and while `blocked` it is disabled with its reason
+   * (`FEED · NEST FULL`). Absent: the brood button peeks (Phase 1).
+   */
+  readonly feed?: { readonly blocked: string | null } | null;
 }
 
 type ArriveKind = 'egg' | 'larva' | 'worker';
@@ -100,17 +106,18 @@ export function nestAriaLabel(v: NestView): string {
  * A chamber button's name: its visible label in words ("Brood: 3 eggs, 2
  * larvae"), so the name holds what is shown (WCAG 2.5.3) without reading `·`.
  */
-export function chamberAriaLabel(id: ChamberId, v: NestView): string {
-  return id === 'brood' ? `Brood: ${count(v.eggs, 'egg', 'eggs')}, ${count(v.larvae, 'larva', 'larvae')}` : `Workers: ${v.workers}`;
+export function chamberAriaLabel(id: ChamberId, v: NestView, feeds = false): string {
+  if (id !== 'brood') return `Workers: ${v.workers}`;
+  return `${feeds ? 'Feed the brood' : 'Brood'}: ${count(v.eggs, 'egg', 'eggs')}, ${count(v.larvae, 'larva', 'larvae')}`;
 }
 
 /** "3 EGGS", "1 LARVA": the exact count, then the word. */
 const shown = (n: number, one: string, many: string): string => `${formatFull(n)} ${n === 1 ? one : many}`;
 
-function ChamberText({ id, view }: { id: ChamberId; view: NestView }) {
+function ChamberText({ id, view, feeds = false }: { id: ChamberId; view: NestView; feeds?: boolean }) {
   return id === 'brood' ? (
     <>
-      BROOD
+      {feeds ? 'FEED THE BROOD' : 'BROOD'}
       <Sep />
       {shown(view.eggs, 'EGG', 'EGGS')}
       <Sep />
@@ -130,12 +137,16 @@ function ChamberButton({
   anchor,
   view,
   onChamber,
+  feed,
 }: {
   chamber: ChamberGeometry;
   anchor: { x: number; y: number };
   view: NestView;
   onChamber: (id: ChamberId) => void;
+  feed?: { readonly blocked: string | null } | null;
 }) {
+  const feeds = chamber.id === 'brood' && !!feed;
+  const blocked = feeds ? feed!.blocked : null;
   // Anchored at its chamber through the camera, and shifted by the same share of its own size, so it never leaves the scene.
   const x = `${(anchor.x * 100).toFixed(1)}%`;
   const y = `${(anchor.y * 100).toFixed(1)}%`;
@@ -144,12 +155,24 @@ function ChamberButton({
       type="button"
       class="nest-chamber"
       data-chamber={chamber.id}
-      aria-label={chamberAriaLabel(chamber.id, view)}
+      data-feeds={feeds ? '' : undefined}
+      aria-label={blocked ? `${chamberAriaLabel(chamber.id, view, feeds)}. Feed: ${blocked.toLowerCase()}` : chamberAriaLabel(chamber.id, view, feeds)}
+      aria-disabled={blocked ? 'true' : undefined}
       style={{ left: x, top: y, transform: `translate(-${x}, -${y})` }}
-      onClick={() => onChamber(chamber.id)}
+      onClick={() => {
+        if (!blocked) onChamber(chamber.id);
+      }}
     >
       <span class="nest-chamber__plate">
-        <ChamberText id={chamber.id} view={view} />
+        <ChamberText id={chamber.id} view={view} feeds={feeds} />
+        {blocked && ' '}
+        {blocked && (
+          <span class="nest-chamber__reason" data-feed-reason="">
+            FEED
+            <Sep />
+            {blocked}
+          </span>
+        )}
       </span>
     </button>
   );
@@ -201,7 +224,7 @@ function Queen({ t }: { t: Token }) {
   );
 }
 
-export function NestScene({ view, onChamber, clock = sceneClock(), zoom = 1, crack = 0 }: NestSceneProps) {
+export function NestScene({ view, onChamber, clock = sceneClock(), zoom = 1, crack = 0, feed = null }: NestSceneProps) {
   const layout = useMemo(() => nestLayout(view), [view]);
   // False during the first draw: what is there when the scene opens doesn't arrive.
   const drawn = useRef(false);
@@ -289,7 +312,7 @@ export function NestScene({ view, onChamber, clock = sceneClock(), zoom = 1, cra
         </svg>
         </div>
         {layout.chambers.map((c) => (
-          <ChamberButton key={c.id} chamber={c} anchor={chamberAnchor(c, layout, frame)} view={view} onChamber={onChamber} />
+          <ChamberButton key={c.id} chamber={c} anchor={chamberAnchor(c, layout, frame)} view={view} onChamber={onChamber} feed={feed} />
         ))}
       </div>
     </div>

@@ -39,6 +39,7 @@ export function createActions(deps: ActionDeps) {
     // Nest
     layEgg: () => nest.layEgg(deps),
     dig: () => nest.dig(deps),
+    feed: () => nest.feed(deps),
     assignWorker: (role: WorkerRole) => nest.assignWorker(deps, role),
     unassignWorker: (role: WorkerRole) => nest.unassignWorker(deps, role),
     stepRole: (role: RoleId, delta: number) => nest.stepRole(deps, role, delta),

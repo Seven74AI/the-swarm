@@ -5,6 +5,7 @@ import { freeWorkers, moveWorkers as move, roleCount, stepRole as step, type Mov
 import type { RoleId } from '../data/content/roles';
 import { recordManual } from '../systems/AutomationTargets';
 import { digPress } from '../systems/Dig';
+import { feedBrood, feedRefusal } from '../systems/Brood';
 import { Phase } from '../phases/phases';
 
 /** Lay eggs by hand. Always allowed. */
@@ -25,6 +26,18 @@ export function dig(deps: ActionDeps): ActionResult {
   const s = current(deps);
   if (s.phase === Phase.EGG_LAYING) return refuse('locked');
   return commit(deps, s, digPress(s));
+}
+
+/**
+ * FEED (Story 9.4, FR57): a tap on the brood from Colony on matures waiting
+ * larvae into the free rooms, at no cost. Refused in Egg Laying, with a full
+ * nest (`at_capacity`) or with no larvae (`unavailable`).
+ */
+export function feed(deps: ActionDeps): ActionResult {
+  const s = current(deps);
+  const why = feedRefusal(s);
+  if (why) return refuse(why);
+  return commit(deps, s, feedBrood(s));
 }
 
 /** Put one free worker on a job. */

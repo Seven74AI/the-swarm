@@ -245,7 +245,7 @@ test.describe('NEST tab', () => {
     await expect.poll(digsLeft).toBeLessThan(before);
   });
 
-  test('the nest scene draws the colony, labels its exact counts, and each chamber opens its peek sheet (Story 8.5)', async ({ page }) => {
+  test('the nest scene draws the colony, labels its exact counts, and the workers chamber opens its peek sheet (Story 8.5); from Colony on the brood feeds (Story 9.4)', async ({ page }) => {
     await page.clock.install();
     await page.clock.pauseAt(Date.now() + 1000);
     await seed(page, { ...COLONY, resources: { ...COLONY.resources, eggs: 3, larvae: 2 }, eggPipeline: { count: 3, progress: 0 }, larvaPipeline: { count: 2, progress: 0 } });
@@ -261,19 +261,38 @@ test.describe('NEST tab', () => {
     const n = (k: number, one: string, many: string) => `${k} ${k === 1 ? one : many}`;
     await expect(scene).toHaveAttribute('aria-label', `Nest: ${n(workers, 'worker', 'workers')}, ${n(eggs, 'egg', 'eggs')}, ${n(larvae, 'larva', 'larvae')}`);
 
-    await scene.getByRole('button', { name: /^Brood:/ }).click();
-    const brood = page.locator('[data-sheet="peek"][data-chamber-peek="brood"]');
-    await expect(brood).toBeVisible();
-    await expect(brood.locator('[data-chamber-count="eggs"]')).toHaveText(String(eggs));
-    await expect(brood.locator('[data-chamber-count="larvae"]')).toHaveText(String(larvae));
-    // A newer peek replaces it.
+    // From Colony on the brood feeds: a larva hurries into a free room, and no peek opens.
+    await scene.getByRole('button', { name: /^Feed the brood:/ }).click();
+    await page.clock.runFor(100);
+    await expect.poll(async () => (await page.evaluate(() =>
+      (window as unknown as { __swarm: { manager: { getState(): { resources: Record<string, number> } } } }).__swarm.manager.getState().resources.workers,
+    ))).toBeGreaterThan(workers);
+    await expect(page.locator('[data-chamber-peek="brood"]')).toHaveCount(0);
     await scene.getByRole('button', { name: /^Workers:/ }).click();
     const peek = page.locator('[data-sheet="peek"][data-chamber-peek="workers"]');
     await expect(peek).toBeVisible();
-    await expect(brood).toHaveCount(0);
-    await expect(peek.locator('[data-chamber-count="workers"]')).toHaveText(String(workers));
+    await expect(peek.locator('[data-chamber-count="workers"]')).toHaveText(/^\d+$/);
     await peek.locator('[data-sheet-close]').click();
     await expect(peek).toHaveCount(0);
+  });
+
+  test('Phase 1 keeps the brood peek with its counts (Story 8.5, Story 9.4)', async ({ page }) => {
+    await page.clock.install();
+    await page.clock.pauseAt(Date.now() + 1000);
+    await seed(page, { ...EGG_LAYING, resources: { ...EGG_LAYING.resources, eggs: 3, larvae: 2 }, eggPipeline: { count: 3, progress: 0 }, larvaPipeline: { count: 2, progress: 0 } });
+    const scene = page.locator('[data-nest-scene] [data-scene="nest"]');
+    await scene.getByRole('button', { name: /^Brood:/ }).click();
+    const brood = page.locator('[data-sheet="peek"][data-chamber-peek="brood"]');
+    await expect(brood).toBeVisible();
+    await expect(brood.locator('[data-chamber-count="eggs"]')).toHaveText('3');
+    await expect(brood.locator('[data-chamber-count="larvae"]')).toHaveText('2');
+  });
+
+  test('from Colony on a full nest disables FEED with its reason (Story 9.4)', async ({ page }) => {
+    await seed(page, { ...COLONY, resources: { ...COLONY.resources, workers: 100, nestCapacity: 100, larvae: 2 }, larvaPipeline: { count: 2, progress: 0 } });
+    const brood = page.locator('[data-scene="nest"] button[data-chamber="brood"]');
+    await expect(brood).toHaveAttribute('aria-disabled', 'true');
+    await expect(brood.locator('[data-feed-reason]')).toHaveText(/^FEED\s*·.*NEST FULL$/);
   });
 
   // Story 8.6 (AR14): thousands of ants draw as a dot cloud under at most the budget of moving ants.

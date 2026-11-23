@@ -215,7 +215,10 @@ test.describe('sheets', () => {
     await seed(page, COMBAT);
     const scene = page.getByRole('group', { name: /^Nest: \d+ workers?, \d+ eggs?, \d+ larvae?$/ });
     await expect(scene).toBeVisible();
-    for (const [name, chamber] of [[/^Brood: \d+ eggs?, \d+ larvae?$/, 'brood'], [/^Workers: \d+$/, 'workers']] as const) {
+    // From Colony on the brood feeds instead of peeking (Story 9.4): a named button that passes axe.
+    await expect(scene.getByRole('button', { name: /^Feed the brood: \d+ eggs?, \d+ larvae?/ })).toBeVisible();
+    expect(await axe(page)).toEqual([]);
+    for (const [name, chamber] of [[/^Workers: \d+$/, 'workers']] as const) {
       await scene.getByRole('button', { name }).click();
       const peek = page.locator(`[data-sheet="peek"][data-chamber-peek="${chamber}"]`);
       await expect(peek).toBeVisible();
