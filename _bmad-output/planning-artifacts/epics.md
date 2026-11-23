@@ -187,7 +187,7 @@ UX-DR30: Event lines: newest first, newest prefixed `> ` in accent, older `· ` 
 UX-DR31: LOG tab: full persisted event log (never empty after Phase 1), lifetime stats, settings including PAUSE, and a LEGACY section once the prestige unlock condition is met (prestige and Legacy tree).
 UX-DR32: Settings (reached from the resource sheet and LOG; stored outside the save): sound (off by default, respects silent mode), haptics, reduced motion (follows the OS), CRT effects SCENE/FULL/OFF, decision timers normal/×2/off, confirm style hold/two-tap plus hold duration, lay mode hold/toggle, keyboard shortcuts on/off and remappable, replay intro, PAUSE, export/import save, export diagnostics; no notifications toggle on web; text size follows the browser.
 UX-DR33: App states: corrupt save or failed migration → `THIS SAVE COULDN'T BE READ.` with LOAD BACKUP / START OVER; save write failed → `• SAVE FAILED` strip marker that explains and offers EXPORT SAVE; import invalid → `THAT FILE ISN'T A SWARM SAVE.`, valid → hold-to-confirm sheet stating it replaces the run; paused → `PAUSED` overlay line, next tap resumes, never reopens paused; cold load renders terminal text before the scene.
-UX-DR34: Nest scene: vector soil (accent 7% fill, grain, strata, pebbles, grass line), round-capped tunnels, ellipse chambers, solid-accent queen, workers, eggs and larvae; the scene draws only the rooms dug so far, so a young nest fits without zooming (replaces the 2×/1.5×/1× camera steps, Story 9.6); an individually drawn worker never under 12 px; beyond ~15% chamber coverage extras become a dot cloud with 30–50 ants on top; exact counts as HTML chamber labels; each chamber a labelled focusable button opening a chamber peek sheet; a starving colony visibly thins; ants wander gently between check-ins; root labelled "Nest: 37 workers, 5 eggs, 4 larvae".
+UX-DR34: Nest scene: vector soil (accent 7% fill, grain, strata, pebbles, grass line), round-capped tunnels, ellipse chambers, solid-accent queen, workers, eggs and larvae; the scene draws only the rooms dug so far, so a young nest fits without zooming (replaces the 2×/1.5×/1× camera steps, Story 9.6); an individually drawn worker never under 12 px; beyond ~15% chamber coverage extras become a dot cloud with 30–50 ants on top; exact counts as HTML chamber labels; each chamber a labelled focusable button opening a chamber peek sheet (from Colony on the brood's button feeds instead, Story 9.4); a starving colony visibly thins; ants wander gently between check-ins; root labelled "Nest: 37 workers, 5 eggs, 4 larvae".
 UX-DR35: Glyphs: 20 TSX SVG line glyphs (14 resources, 6 buildings) plus a gear, 24×24 grid, 1.6 px round-capped stroke, `currentColor`, used only inside text (15 px strip, 13–14 px cost lines, 18–22 px cards, 30 px resource sheet); VNOM redrawn as fang or vial; no emoji anywhere, placeholders included.
 UX-DR36: CRT effects: SCENE (default) puts scanlines only on the vector scene and overlays, glow (3 px drop-shadow) on line-work, text-shadow ≤ 2 px at ≤ 35% on accent text ≥ 15 px; FULL adds scanlines everywhere and states the contrast caveat; OFF removes both; OFF auto-selected for more-contrast / reduced-transparency or text scale > 130%; scanlines in device pixels.
 UX-DR37: Game feel per trigger (lay egg, hatch/mature, newly affordable, press/hold buy, battle result, decision event, phase change, camera pull-back, ending): visual, haptic and sound as in the EXPERIENCE table; sounds rate-limited (hatch ≤ 1/s, key click ≤ 8/s).
@@ -2102,7 +2102,7 @@ So that I can make room for my colony now instead of waiting a day.
 
 **Given** the phase is Colony or later and no goal is latched
 **When** NEST renders
-**Then** its pinned primary action is `> DIG` (`[data-nest-primary=dig]`); Phase 1 keeps `> LAY EGG`, and a latched goal still swaps the slot for `> CONTINUE`; Space presses DIG when the page has focus
+**Then** its pinned primary action is `> DIG` (`[data-nest-primary=dig]`), replacing the next-action button NEST shows today (`[data-nest-primary=next]`; BUILD and WRKR keep theirs, and `NestPrimary` tests change to match); Phase 1 keeps `> LAY EGG`, and a latched goal still swaps the slot for `> CONTINUE`; Space presses DIG through the existing primary-action shortcut (Story 1.30)
 
 **Given** a DIG press (a `dig` intent in `actions/`, returning `Result`)
 **When** it applies
@@ -2133,9 +2133,9 @@ So that digging never feels like an invisible timer.
 
 **Acceptance Criteria:**
 
-**Given** a pure selector `selectNextRoom` (progress share, presses left, the next room's size, time left at the diggers' own rate, auto-dig state)
+**Given** a pure selector `selectNextRoom` (progress share, presses left, the next room's size, time left at the diggers' own rate)
 **When** NEST renders in Colony or later
-**Then** a NEXT ROOM strip sits under the scene: `NEXT ROOM` (or `NEXT ROOM · AUTO-DIG ON`), `+<size>`, a text meter, `IN <time>` and `· <n> DIGS`; with no diggers and no auto-dig the time reads `NO DIGGERS` instead
+**Then** a NEXT ROOM strip sits under the scene: `NEXT ROOM`, `+<size>`, a text meter, `IN <time>` and `· <n> DIGS`; with no diggers the time reads `NO DIGGERS` instead (Story 9.5 adds the auto-dig state to the selector and the strip)
 **And** the meter is a `role="progressbar"` with an `aria-valuetext`, and the strip refreshes at most 4 times a second
 
 **Given** the time left
@@ -2157,7 +2157,7 @@ So that a new room fills while I watch.
 **Acceptance Criteria:**
 
 **Given** the phase is Colony or later, larvae waiting and a free room (workers below capacity)
-**When** the player taps the brood in the nest scene (a real `<button>` labelled "Feed the brood")
+**When** the player taps the brood in the nest scene (the brood chamber's existing button, relabelled "Feed the brood" from Colony on)
 **Then** a `feed` intent speeds the larva pipeline by a fixed amount from `data/balance/`; it costs nothing (owner, 2026-11-23), and it never matures more larvae than there are free rooms (property test)
 
 **Given** no free room, or no larvae
@@ -2168,7 +2168,11 @@ So that a new room fills while I watch.
 **When** FEED applies
 **Then** every larva that leaves the larva pipeline becomes a worker (the pipeline rule in CLAUDE.md); resources stay integers; one state write
 
-**Covers:** FR57, FR2
+**Given** the brood chamber's peek sheet (Story 8.5)
+**When** the phase is Colony or later
+**Then** tapping the brood feeds and no longer opens its peek: the egg and larva counts stay in the chamber label and the brood line (owner, 2026-11-23); the workers chamber keeps its peek, Phase 1 keeps the brood peek, and the `nest-tab` E2E spec is updated to match
+
+**Covers:** FR57, FR2 · UX-DR34 (changed)
 
 ### Story 9.5: Auto-dig hands the digging to the diggers
 
@@ -2184,12 +2188,12 @@ So that the diggers carry on without me once I know how it works.
 
 **Given** auto-dig bought
 **When** the game runs, in the foreground or offline
-**Then** the diggers press DIG on their own at a rate from the balance (each press worth the usual chunk), the NEXT ROOM strip reads `AUTO-DIG ON`, and NEST's primary action becomes `> AUTO-DIG ON` with the hint `tap to boost the dig`; a press still adds a chunk
+**Then** the diggers press DIG on their own at a rate from the balance (each press worth the usual chunk), `selectNextRoom` reports it and the NEXT ROOM strip reads `NEXT ROOM · AUTO-DIG ON` with the time at the auto-dig rate, and NEST's primary action becomes `> AUTO-DIG ON` with the hint `tap to boost the dig`; a press still adds a chunk
 **And** the result is the same for any step length, and the purchase is saved (numbered migration if it adds a field)
 
 **Given** that this story adds content
 **When** the agent prices it
-**Then** the price lands auto-dig around the end of day 1 in the Story 9.1 report, and the PR records the price and the reason
+**Then** the price lands auto-dig around the end of day 1 in the Story 9.1 report, and the PR records the price and the reason (Story 9.9 may retune it)
 
 **Covers:** FR58, FR16 (digging)
 
@@ -2204,7 +2208,7 @@ So that a young nest fits my screen and grows as I dig.
 **Given** `selectNestView` with the rooms dug
 **When** `nestLayout` lays out the scene
 **Then** it draws only the queen's chamber, the brood and the rooms dug so far, surrounded by solid soil, and frames them so the whole dug nest fits the scene area at every phone width from 320 px without cropping a chamber (unit test on `nestLayout` over a range of room counts)
-**And** it replaces the camera steps (`sceneBalance.cameraSteps` and the 2× crop); an individually drawn worker is still never under 12 px, and the dot cloud and the 50-ant cap still apply (Story 8.6)
+**And** it replaces the camera steps (`sceneBalance.cameraSteps` and the 2× crop) and removes what only served them: the camera pull-back UI event (`ui/nest/cameraPullBack.ts`), its `camera-pull-back` game-feel trigger and `feelBalance.cameraPullBackMs`; the room opening below takes over that moment (Story 9.8 adds its sound and haptic); an individually drawn worker is still never under 12 px, and the dot cloud and the 50-ant cap still apply (Story 8.6)
 
 **Given** a room opens
 **When** the scene updates
@@ -2263,6 +2267,7 @@ So that I'm still playing at minute 30 instead of quitting at minute 2.
 **When** the dig, feed, capacity and Warehouse values in `data/balance/` and the Phase 1–2 worker guards in `transitions.ts` are tuned
 **Then** gate 1 passes (no idle gap over 2 min before 30 min of continuous play), Colony ends on day 1 in a session after the first, and the Phase 1–2 guards sit in the GDD's target ranges (about 10–20 and about 150–300 workers plus a guard)
 **And** this includes the capacity rebalance from #438: the start capacity, the room size, the room cost growth and the Warehouse cost and rooms, so that a player who doesn't tap still reaches the Colony goal (reachability test)
+**And** the worker targets stay in phase order: the Combat → Expansion (60 today) and Expansion → Space (80 today) worker conditions are raised so that each is above the one before it (property test over `transitions.ts`: worker targets strictly increase along the phase order); their final values come with batch 2
 
 **Given** the changes
 **When** CI runs
@@ -2283,4 +2288,4 @@ One system: how many ants the nest and the stores can hold. GDD *Space and Food*
 
 ### Batch 3: flavour (later)
 
-Intruders (seeded randomness; guards help), finds, a rhythm bonus on DIG, the milestone pull-out at 1,000 and 10,000 ants, first-time event lines as the tutorial, sharper mandibles (stone), reinforced rooms (stone), a building that sets who starves first.
+A nest close-up (a full-screen nest view, opened from the scene, where every chamber, count, room job, intruder and find can be tapped; it can take over the remaining peek sheets; owner, 2026-11-23), intruders (seeded randomness; guards help), finds, a rhythm bonus on DIG, the milestone pull-out at 1,000 and 10,000 ants, first-time event lines as the tutorial, sharper mandibles (stone), reinforced rooms (stone), a building that sets who starves first.

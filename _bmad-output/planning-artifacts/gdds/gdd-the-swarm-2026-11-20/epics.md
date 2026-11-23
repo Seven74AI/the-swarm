@@ -133,6 +133,6 @@ Every epic has the same shape: **Goal**, **Delivers** (the `gdd.md` sections it 
 
 *Batch 2, space and food (stories after batch 1):* crowding replaces `workerEfficiency`; starvation that shrinks to fit, with its warning and the 20% offline cap in the same release; a food storage limit; room jobs (Pantry, Larder, Gallery); rescaled Phase 3+ goals and the tuning for gates 2 and 3. (P1, P4)
 
-*Batch 3, flavour (later):* intruders (seeded randomness), finds, rhythm bonus, milestone pull-out, first-time event lines as the tutorial, sharper mandibles, reinforced rooms, a starvation-order building. (P2, P3, P4)
+*Batch 3, flavour (later):* a nest close-up (full-screen nest view), intruders (seeded randomness), finds, rhythm bonus, milestone pull-out, first-time event lines as the tutorial, sharper mandibles, reinforced rooms, a starvation-order building. (P2, P3, P4)
 
 **Done when:** a player who never taps still gets rooms; the pacing report shows gate 1 passing after batch 1 and gates 2 and 3 passing after batch 2; starvation never kills the queen, eggs or larvae and never takes more than 20% of the eaters while away; crowding and starvation give the same result for any step length; and the reachability check passes for every guard.
