@@ -30,12 +30,12 @@ while read local_ref local_sha remote_ref remote_sha; do
     continue
   fi
 
-  echo "▶ Running type-check (tsc --noEmit)..."
-  npx tsc --noEmit || { echo "✗ Type-check failed — push blocked"; exit 1; }
+  echo "▶ Running type-check (pnpm exec tsc --noEmit)..."
+  pnpm exec tsc --noEmit || { echo "✗ Type-check failed — push blocked"; exit 1; }
   echo "✓ Type-check passed"
 
-  echo "▶ Running unit tests (vitest run --changed)..."
-  npx vitest run --changed="$CHANGED_BASE" || { echo "✗ Tests failed — push blocked"; exit 1; }
+  echo "▶ Running unit tests (pnpm exec vitest run --changed)..."
+  pnpm exec vitest run --changed="$CHANGED_BASE" || { echo "✗ Tests failed — push blocked"; exit 1; }
   echo "✓ Tests passed"
 done
 
