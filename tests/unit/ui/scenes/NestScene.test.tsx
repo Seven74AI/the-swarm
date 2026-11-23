@@ -288,3 +288,24 @@ describe('NestScene: the nest grows, wanders and starves (Story 8.7)', () => {
     expect(r.container.querySelectorAll('[data-scene-part="egg"]')).toHaveLength(2);
   });
 });
+
+describe('the dig-face crack (Story 9.3)', () => {
+  afterEach(() => cleanup());
+
+  it('draws none at stage 0, and a longer crack at each later stage', async () => {
+    const { CRACK_STAGES } = await import('../../../../src/ui/scenes/nestLayout');
+    const v = view(5, 0, 0);
+    expect(render(<NestScene view={v} onChamber={() => {}} />).container.querySelector('[data-scene-part="crack"]')).toBeNull();
+    cleanup();
+    let last = 0;
+    for (let stage = 1; stage <= CRACK_STAGES; stage++) {
+      const c = render(<NestScene view={v} onChamber={() => {}} crack={stage} />).container;
+      const crack = c.querySelector('[data-scene-part="crack"]')!;
+      expect(crack.getAttribute('data-crack-stage')).toBe(String(stage));
+      const segments = (crack.getAttribute('d') ?? '').split(/[lL]/).length;
+      expect(segments).toBeGreaterThan(last);
+      last = segments;
+      cleanup();
+    }
+  });
+});

@@ -1,6 +1,7 @@
 import type { GameState } from '../state/GameState';
 import { digBalance } from '../data/balance/dig';
 import { getEffects } from './BuildingSystem';
+import { MS_PER_SEC, PERCENT } from '../data/constants';
 
 /**
  * DIG (Story 9.2, FR55): the dig state is `state.dig` (`roomsDug`, `progress`
@@ -67,4 +68,35 @@ export function digPress(s: GameState): GameState {
     resourceRemainder: { ...s.resourceRemainder, stone: exact - stone },
   };
   return addDigPoints(withStone, chunk);
+}
+
+/** How close the next room is (Story 9.3, FR56): what the NEXT ROOM strip shows. */
+export interface NextRoom {
+  /** The nest capacity the room adds. */
+  readonly size: number;
+  /** Whole points dug toward it, and its cost. */
+  readonly progress: number;
+  readonly cost: number;
+  /** Whole share done, floored: 0–99 while the room is still closed. */
+  readonly percent: number;
+  /** DIG presses left at the current chunk. */
+  readonly presses: number;
+  /** Time left at the diggers' own rate (the one `ResourceSystem` digs at); null with no diggers. */
+  readonly timeLeftMs: number | null;
+}
+
+/** The next room, from the same rules the dig system uses. Pure. */
+export function nextRoom(s: GameState): NextRoom {
+  const cost = roomCost(s.dig.roomsDug);
+  const progress = Math.min(s.dig.progress, cost);
+  const left = cost - progress;
+  const rate = diggerPointsPerSec(s);
+  return {
+    size: digBalance.roomSize,
+    progress,
+    cost,
+    percent: Math.min(PERCENT - 1, Math.floor((progress * PERCENT) / cost)),
+    presses: Math.max(1, Math.ceil(left / pressChunk(s))),
+    timeLeftMs: rate > 0 ? Math.ceil((Math.max(0, left - s.dig.carry) / rate) * MS_PER_SEC) : null,
+  };
 }

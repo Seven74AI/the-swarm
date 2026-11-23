@@ -93,6 +93,13 @@
   stroke-width: 2;
 }
 
+/* The dig-face crack (Story 9.3): grows by stage from the NEXT ROOM progress; drawn still, never animated. */
+.nest-svg__crack {
+  fill: none;
+  stroke: var(--color-bg);
+  stroke-width: 1.5;
+}
+
 .nest-svg__creature {
   fill: var(--color-accent);
 }

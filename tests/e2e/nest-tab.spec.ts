@@ -227,6 +227,24 @@ test.describe('NEST tab', () => {
     await expect.poll(async () => (await state(page)).stats.totalClicks).toBeGreaterThan(before);
   });
 
+  test('from Colony on the NEXT ROOM strip sits under the scene and a DIG press moves it (Story 9.3)', async ({ page }) => {
+    // COLONY has nobody on DIG.
+    await seed(page, COLONY);
+    const strip = page.locator('[data-nest-scene] [data-next-room]');
+    await expect(strip).toBeVisible();
+    await expect(strip).toContainText('NEXT ROOM');
+    await expect(strip.locator('[data-next-room-time]')).toHaveText('NO DIGGERS');
+    // Under the scene.
+    expect(await top(page, '[data-next-room]')).toBeGreaterThan(await top(page, '[data-nest-scene] [data-scene="nest"]'));
+    const meter = strip.locator('[role="progressbar"]');
+    await expect(meter).toHaveAttribute('aria-valuetext', /Next room/);
+    const digsLeft = async () => Number((await strip.locator('[data-next-room-digs]').textContent())!.match(/\d+/)![0]);
+    const before = await digsLeft();
+    const dig = page.locator('[data-primary-for="nest"] button[data-action="dig"]');
+    for (let i = 0; i < 3; i++) await dig.click();
+    await expect.poll(digsLeft).toBeLessThan(before);
+  });
+
   test('the nest scene draws the colony, labels its exact counts, and each chamber opens its peek sheet (Story 8.5)', async ({ page }) => {
     await page.clock.install();
     await page.clock.pauseAt(Date.now() + 1000);

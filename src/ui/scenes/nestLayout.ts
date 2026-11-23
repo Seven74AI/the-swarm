@@ -367,6 +367,33 @@ function workerSplit(workers: number, starving: boolean): { drawn: number; thinn
   return { drawn, thinned: full - drawn, cloud: { count, d: dots > 0 ? cloudDots('cloud-workers', dots, area) : '' } };
 }
 
+/** The dig-face crack's stages (Story 9.3): it shows from the first stage on, one more every equal share of the room. */
+export const CRACK_STAGES = 4;
+
+/** The crack's stage (0 = none … `CRACK_STAGES`) for a room `percent` (0–99) done. Pure, never shrinking as the percent grows. */
+export function crackStage(percent: number): number {
+  const p = Math.max(0, Math.min(99, Math.floor(percent)));
+  return Math.min(CRACK_STAGES, Math.floor((p * (CRACK_STAGES + 1)) / 100));
+}
+
+/** Where the next room is being dug (Story 9.3): below the workers chamber, toward the deeper soil. */
+const DIG_FACE: Point = { x: round(CHAMBERS.workers.cx + CHAMBERS.workers.rx * 0.55), y: round(CHAMBERS.workers.cy + CHAMBERS.workers.ry * 0.85) };
+/** Each crack stage adds these zig-zag steps (viewBox units), out from the dig face. */
+const CRACK_STEPS: readonly Point[] = [
+  { x: 4, y: 5 },
+  { x: -3, y: 4 },
+  { x: 5, y: 4 },
+  { x: -2, y: 5 },
+];
+
+/** The crack at the dig face for a stage (1 … `CRACK_STAGES`): two more steps a stage; '' at 0. Pure. */
+export function crackPath(stage: number): string {
+  const n = Math.max(0, Math.min(CRACK_STAGES, Math.floor(stage)));
+  if (n === 0) return '';
+  const steps = Array.from({ length: n * 2 }, (_, i) => CRACK_STEPS[i % CRACK_STEPS.length]);
+  return `M${DIG_FACE.x} ${DIG_FACE.y}` + steps.map((s) => ` l${s.x} ${s.y}`).join('');
+}
+
 /** The point the first workers settle around, in viewBox units. */
 export const DOOR: Point = {
   x: round(CHAMBERS.workers.cx + DOOR_AT.x * CHAMBERS.workers.rx),

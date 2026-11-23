@@ -53,6 +53,8 @@ import type { AutomationBlock, AutomationVerb } from '../data/content/automation
 import type { PrestigeUpgradeId } from '../data/prestigeTree';
 import { progressionBalance } from '../data/balance/progression';
 import { PERCENT } from '../data/constants';
+import { nextRoom, type NextRoom } from '../systems/Dig';
+import { Phase as PhaseId } from '../phases/phases';
 import type { ResearchProjectId, ResearchProjectStatus } from './GameState';
 import { nestViewOf, sameNestView, type NestView } from './nestView';
 import { conditionMet, goalFor, goalPercent, type GoalCondition, type Transition } from '../phases/transitions';
@@ -168,6 +170,25 @@ export const selectNestView = computed<NestView>(() => {
   const next = nestViewOf(selectResources.value, selectStarving.value);
   if (lastNestView && sameNestView(lastNestView, next)) return lastNestView;
   lastNestView = next;
+  return next;
+});
+
+let lastNextRoom: NextRoom | null = null;
+const sameNextRoom = (a: NextRoom, b: NextRoom): boolean =>
+  a.size === b.size && a.progress === b.progress && a.cost === b.cost && a.percent === b.percent && a.presses === b.presses && a.timeLeftMs === b.timeLeftMs;
+
+/**
+ * The NEXT ROOM strip (Story 9.3, FR56): how close the next room is, from
+ * Colony on (null in Egg Laying, where there is no DIG). Recomputes on every
+ * write; keeps its last value while nothing it shows changed, so the strip
+ * (behind a 4 Hz throttle) re-renders only on a change.
+ */
+export const selectNextRoom = computed<NextRoom | null>(() => {
+  const s = gameState.value;
+  if (s.phase === PhaseId.EGG_LAYING) return null;
+  const next = nextRoom(s);
+  if (lastNextRoom && sameNextRoom(lastNextRoom, next)) return lastNextRoom;
+  lastNextRoom = next;
   return next;
 });
 
