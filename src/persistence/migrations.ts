@@ -904,6 +904,17 @@ function migrateV35toV36(data: SaveData): SaveData {
   return { ...data, version: 36, gameState: { ...gs, dig: { ...d, roomsByHand, auto } } as unknown as GameState };
 }
 
+/**
+ * v36 → v37 (Story 9.10): the resource sheet's `NEW` marks. Adds
+ * `seenResources: null`, which counts everything the save has unlocked as
+ * seen, so an old save opens with no NEW rows. A save that has the field keeps it.
+ */
+function migrateV36toV37(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  if (Array.isArray(gs.seenResources) || gs.seenResources === null) return { ...data, version: 37 };
+  return { ...data, version: 37, gameState: { ...gs, seenResources: null } as unknown as GameState };
+}
+
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
   2: migrateV2toV3,
@@ -940,6 +951,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   33: migrateV33toV34,
   34: migrateV34toV35,
   35: migrateV35toV36,
+  36: migrateV36toV37,
 };
 
 /**

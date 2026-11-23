@@ -19,34 +19,81 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Two lines per resource: glyph, name, amount, rate; then cap and source. */
-.resource-row {
-  display: grid;
-  grid-template-columns: 1.875rem 1fr auto auto;
-  grid-template-areas:
-    "glyph name amount rate"
-    "glyph cap source source";
-  column-gap: 0.5rem;
+/* Two short lines per resource (Story 9.10): glyph, name, amount; then, dim, rate · source · sparkline · cap. The row is its peek's button. */
+.resource-sheet__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.resource-sheet__rows[hidden] { display: none; }
+.resource-row__open {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.125rem 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.resource-row__line {
+  display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
+  gap: 0 0.5rem;
+  min-width: 0;
 }
-.resource-row__glyph {
-  grid-area: glyph;
-  --glyph-size: 1.875rem;
-  line-height: 1;
-  align-self: center;
-}
-.resource-row__name { grid-area: name; }
-.resource-row__amount { grid-area: amount; font-weight: 700; text-align: right; }
-.resource-row__rate { grid-area: rate; text-align: right; min-width: 4ch; }
-.resource-row__cap,
-.resource-row__source {
+.resource-row__line--dim {
+  padding-left: calc(1.875rem + 0.5rem);
   font-size: var(--type-aside);
   color: var(--color-dim);
 }
-.resource-row__cap { grid-area: cap; }
-.resource-row__source { grid-area: source; text-align: right; }
+.resource-row__glyph {
+  --glyph-size: 1.875rem;
+  width: 1.875rem;
+  line-height: 1;
+  align-self: center;
+}
+.resource-row__name { flex: 1 1 auto; min-width: 0; }
+.resource-row__new { font-size: var(--type-aside); color: var(--color-accent); }
+.resource-row__amount { font-weight: 700; text-align: right; }
+.resource-row__spark { letter-spacing: 0; }
+.resource-row__peek {
+  margin: 0.25rem 0 0 calc(1.875rem + 0.5rem);
+  font-size: var(--type-aside);
+  color: var(--color-dim);
+}
+.resource-row__peek p { margin: 0; }
 
 .resource-row[data-capped="true"] .resource-row__amount,
 .resource-row__rate[data-trend="down"] {
   color: var(--color-warn);
 }
+
+/* Tier groups past the threshold (Story 9.10): a 44 px toggle, collapsed unless something needs a look. */
+.resource-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.resource-group__toggle {
+  min-height: 2.75rem;
+  padding: 0;
+  font: inherit;
+  font-size: var(--type-aside);
+  color: var(--color-accent);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-line);
+  cursor: pointer;
+}
+
+/* One hand (Story 9.10): on a phone the sheet stays in the lower half, so every row scrolls into thumb reach. */
+@media (max-width: 1023px) {
+  .sheet.resource-sheet { max-height: 55vh; }
+}
+.resource-row__cap { font-size: var(--type-aside); color: var(--color-accent); white-space: nowrap; }

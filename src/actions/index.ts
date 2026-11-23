@@ -41,6 +41,7 @@ export function createActions(deps: ActionDeps) {
     dig: () => nest.dig(deps),
     feed: () => nest.feed(deps),
     buyAutoDig: () => nest.buyAutoDig(deps),
+    markResourcesSeen: (ids: readonly string[]) => nest.markResourcesSeen(deps, ids),
     assignWorker: (role: WorkerRole) => nest.assignWorker(deps, role),
     unassignWorker: (role: WorkerRole) => nest.unassignWorker(deps, role),
     stepRole: (role: RoleId, delta: number) => nest.stepRole(deps, role, delta),

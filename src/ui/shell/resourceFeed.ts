@@ -8,6 +8,8 @@ import {
 } from '../../state/selectors';
 import { Phase, PHASE_ORDER } from '../../phases/phases';
 import { RESOURCES, STRIP_SETS, type ResourceId } from './resourceCatalog';
+import { sheetBalance } from '../../data/balance/sheet';
+import { sparkline } from '../../utils/format';
 
 /**
  * The resource feed (Story 1.16; UX-DR7, UX-DR8).
@@ -37,6 +39,14 @@ export interface ResourceRow {
   readonly amount: number;
   /** Whole units per second over the rate window (negative while falling). */
   readonly rate: number;
+  /**
+   * The rate per second, not rounded (Story 9.10): over the rate window when
+   * that moves a whole unit a second, else over the sparkline's longer history,
+   * so a slow resource still shows its pace.
+   */
+  readonly ratePerSec: number;
+  /** The last `sheetBalance.sparkWindowMs` of the amount as a text sparkline (Story 9.10); '' until there are two samples. */
+  readonly spark: string;
   /** Storage cap, or `null` when the resource has none. */
   readonly cap: number | null;
   readonly capped: boolean;
@@ -87,6 +97,9 @@ export function createResourceFeed(opts: { windowMs?: number; intervalMs?: numbe
   const windowMs = opts.windowMs ?? RATE_WINDOW_MS;
   const intervalMs = Math.max(REFRESH_MS, opts.intervalMs ?? REFRESH_MS);
   let history: Sample[] = [];
+  /** The sparkline's history (Story 9.10): one sample per cell of game time, fixed size, never saved. */
+  let long: Sample[] = [];
+  const sparkStepMs = Math.floor(sheetBalance.sparkWindowMs / sheetBalance.sparkCells);
   let lastPhase = -1;
 
   function build(): ResourceSnapshot {
@@ -95,7 +108,10 @@ export function createResourceFeed(opts: { windowMs?: number; intervalMs?: numbe
     const phaseIdx = PHASE_ORDER.indexOf(phase);
     const newest = history[history.length - 1];
     // A new run, a loaded save or a prestige: the old samples say nothing about now.
-    if (!newest || now.atMs < newest.atMs || phaseIdx < lastPhase) history = [];
+    if (!newest || now.atMs < newest.atMs || phaseIdx < lastPhase) {
+      history = [];
+      long = [];
+    }
     lastPhase = phaseIdx;
     if (history.length === 0 || now.atMs > history[history.length - 1].atMs) {
       history.push(now);
@@ -111,15 +127,29 @@ export function createResourceFeed(opts: { windowMs?: number; intervalMs?: numbe
     const base = history[0];
     const dt = now.atMs - base.atMs;
 
+    // The sparkline's samples: one per step of game time, at most `sparkCells` kept.
+    if (long.length === 0 || now.atMs - long[long.length - 1].atMs >= sparkStepMs) {
+      long.push(now);
+      if (long.length > sheetBalance.sparkCells) long = long.slice(long.length - sheetBalance.sparkCells);
+    }
+    const oldest = long[0];
+    const longDt = now.atMs - oldest.atMs;
+
     const cap = selectEffectiveNestCapacity.peek();
     const rows = RESOURCES.map((def): ResourceRow => {
       const amount = now.amounts[def.id];
       const rate = dt > 0 ? Math.trunc(((amount - base.amounts[def.id]) * 1000) / dt) : 0;
+      const shortPerSec = dt > 0 ? ((amount - base.amounts[def.id]) * 1000) / dt : 0;
+      const longPerSec = longDt > dt ? ((amount - oldest.amounts[def.id]) * 1000) / longDt : shortPerSec;
+      const ratePerSec = rate !== 0 ? shortPerSec : longPerSec;
+      const series = [...long.map((s) => s.amounts[def.id]), ...(long[long.length - 1] === now ? [] : [amount])];
       const rowCap = def.id === 'workers' ? Math.floor(cap) : null;
       return {
         id: def.id,
         amount,
         rate: rate === 0 ? 0 : rate, // no -0
+        ratePerSec: ratePerSec === 0 ? 0 : ratePerSec,
+        spark: series.length >= 2 ? sparkline(series) : '',
         cap: rowCap,
         capped: rowCap !== null && amount >= rowCap,
         unlocked: phaseIdx >= PHASE_ORDER.indexOf(def.unlockPhase) || amount > 0,

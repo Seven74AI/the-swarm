@@ -28,6 +28,8 @@ export type ResourceId =
 /** Where the amount lives in the state. */
 export type ResourceStore = 'resources' | 'combatResources';
 
+import type { ResourceTier } from '../../data/content/resourceTiers';
+
 export interface ResourceDef {
   readonly id: ResourceId;
   /** Strip label, at most 4 capital letters. */
@@ -40,26 +42,28 @@ export interface ResourceDef {
   readonly unlockPhase: Phase;
   /** Where it comes from, in the sheet's SOURCE column. */
   readonly source: string;
+  /** Its group in the resource sheet (Story 9.10). */
+  readonly tier: ResourceTier;
 }
 
 /** The gear of `[ SETTINGS gear ]` (Story 8.2). */
 export const GEAR_GLYPH: Glyph = GlyphGear;
 
 export const RESOURCES: readonly ResourceDef[] = [
-  { id: 'eggs', label: 'EGG', name: 'Eggs', glyph: RESOURCE_GLYPHS.eggs, store: 'resources', unlockPhase: Phase.EGG_LAYING, source: 'Laid by the queen' },
-  { id: 'larvae', label: 'LRVA', name: 'Larvae', glyph: RESOURCE_GLYPHS.larvae, store: 'resources', unlockPhase: Phase.EGG_LAYING, source: 'Hatched from eggs' },
-  { id: 'workers', label: 'WRKR', name: 'Workers', glyph: RESOURCE_GLYPHS.workers, store: 'resources', unlockPhase: Phase.EGG_LAYING, source: 'Matured from larvae' },
-  { id: 'food', label: 'FOOD', name: 'Food', glyph: RESOURCE_GLYPHS.food, store: 'resources', unlockPhase: Phase.EGG_LAYING, source: 'Gathered by workers' },
-  { id: 'wood', label: 'WOOD', name: 'Wood', glyph: RESOURCE_GLYPHS.wood, store: 'resources', unlockPhase: Phase.COLONY, source: 'Gatherers and forest territory' },
-  { id: 'stone', label: 'STON', name: 'Stone', glyph: RESOURCE_GLYPHS.stone, store: 'resources', unlockPhase: Phase.COLONY, source: 'Diggers and mountain territory' },
-  { id: 'nectar', label: 'NECT', name: 'Nectar', glyph: RESOURCE_GLYPHS.nectar, store: 'resources', unlockPhase: Phase.COLONY, source: 'Foragers and meadow territory' },
-  { id: 'silk', label: 'SILK', name: 'Silk', glyph: RESOURCE_GLYPHS.silk, store: 'combatResources', unlockPhase: Phase.COMBAT, source: 'Battle loot' },
-  { id: 'chitin', label: 'CHTN', name: 'Chitin', glyph: RESOURCE_GLYPHS.chitin, store: 'combatResources', unlockPhase: Phase.COMBAT, source: 'Battle loot' },
-  { id: 'venom', label: 'VNOM', name: 'Venom', glyph: RESOURCE_GLYPHS.venom, store: 'combatResources', unlockPhase: Phase.COMBAT, source: 'Battle loot' },
-  { id: 'voidCrystals', label: 'VC', name: 'Void crystals', glyph: RESOURCE_GLYPHS.voidCrystals, store: 'resources', unlockPhase: Phase.SPACE, source: 'Synthesis from stone and nectar' },
-  { id: 'antimatter', label: 'ANTM', name: 'Antimatter', glyph: RESOURCE_GLYPHS.antimatter, store: 'resources', unlockPhase: Phase.SPACE, source: 'Containment of void crystals' },
-  { id: 'darkMatter', label: 'DKMT', name: 'Dark matter', glyph: RESOURCE_GLYPHS.darkMatter, store: 'resources', unlockPhase: Phase.SPACE, source: 'Detection from antimatter' },
-  { id: 'surveyData', label: 'SRVY', name: 'Survey data', glyph: RESOURCE_GLYPHS.surveyData, store: 'resources', unlockPhase: Phase.SPACE, source: 'Space explorations' },
+  { id: 'eggs', label: 'EGG', name: 'Eggs', glyph: RESOURCE_GLYPHS.eggs, store: 'resources', unlockPhase: Phase.EGG_LAYING, source: 'Laid by the queen', tier: 'colony' },
+  { id: 'larvae', label: 'LRVA', name: 'Larvae', glyph: RESOURCE_GLYPHS.larvae, store: 'resources', unlockPhase: Phase.EGG_LAYING, source: 'Hatched from eggs', tier: 'colony' },
+  { id: 'workers', label: 'WRKR', name: 'Workers', glyph: RESOURCE_GLYPHS.workers, store: 'resources', unlockPhase: Phase.EGG_LAYING, source: 'Matured from larvae', tier: 'colony' },
+  { id: 'food', label: 'FOOD', name: 'Food', glyph: RESOURCE_GLYPHS.food, store: 'resources', unlockPhase: Phase.EGG_LAYING, source: 'Gathered by workers', tier: 'colony' },
+  { id: 'wood', label: 'WOOD', name: 'Wood', glyph: RESOURCE_GLYPHS.wood, store: 'resources', unlockPhase: Phase.COLONY, source: 'Gatherers and forest territory', tier: 'colony' },
+  { id: 'stone', label: 'STON', name: 'Stone', glyph: RESOURCE_GLYPHS.stone, store: 'resources', unlockPhase: Phase.COLONY, source: 'Diggers and mountain territory', tier: 'colony' },
+  { id: 'nectar', label: 'NECT', name: 'Nectar', glyph: RESOURCE_GLYPHS.nectar, store: 'resources', unlockPhase: Phase.COLONY, source: 'Foragers and meadow territory', tier: 'colony' },
+  { id: 'silk', label: 'SILK', name: 'Silk', glyph: RESOURCE_GLYPHS.silk, store: 'combatResources', unlockPhase: Phase.COMBAT, source: 'Battle loot', tier: 'battle' },
+  { id: 'chitin', label: 'CHTN', name: 'Chitin', glyph: RESOURCE_GLYPHS.chitin, store: 'combatResources', unlockPhase: Phase.COMBAT, source: 'Battle loot', tier: 'battle' },
+  { id: 'venom', label: 'VNOM', name: 'Venom', glyph: RESOURCE_GLYPHS.venom, store: 'combatResources', unlockPhase: Phase.COMBAT, source: 'Battle loot', tier: 'battle' },
+  { id: 'voidCrystals', label: 'VC', name: 'Void crystals', glyph: RESOURCE_GLYPHS.voidCrystals, store: 'resources', unlockPhase: Phase.SPACE, source: 'Synthesis from stone and nectar', tier: 'space' },
+  { id: 'antimatter', label: 'ANTM', name: 'Antimatter', glyph: RESOURCE_GLYPHS.antimatter, store: 'resources', unlockPhase: Phase.SPACE, source: 'Containment of void crystals', tier: 'space' },
+  { id: 'darkMatter', label: 'DKMT', name: 'Dark matter', glyph: RESOURCE_GLYPHS.darkMatter, store: 'resources', unlockPhase: Phase.SPACE, source: 'Detection from antimatter', tier: 'space' },
+  { id: 'surveyData', label: 'SRVY', name: 'Survey data', glyph: RESOURCE_GLYPHS.surveyData, store: 'resources', unlockPhase: Phase.SPACE, source: 'Space explorations', tier: 'space' },
 ];
 
 export const RESOURCE_BY_ID: Readonly<Record<ResourceId, ResourceDef>> = Object.fromEntries(

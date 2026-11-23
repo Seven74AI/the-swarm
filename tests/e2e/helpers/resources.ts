@@ -25,6 +25,9 @@ export async function closeResourceSheet(page: Page): Promise<void> {
 export async function readResource(page: Page, id: string): Promise<number> {
   await openResourceSheet(page);
   const cell = sheet(page).locator(`[data-resource-row="${id}"] [data-col="amount"]`);
+  // Past the threshold the rows group by tier, a quiet group collapsed (Story 9.10): open the one holding it.
+  const group = sheet(page).locator(`[data-resource-group]:has([data-resource-row="${id}"])[data-open="false"]`);
+  if ((await group.count()) > 0) await group.locator('[data-action="toggle-group"]').click();
   await expect(cell).toBeVisible();
   const text = (await cell.textContent()) ?? '';
   await closeResourceSheet(page);

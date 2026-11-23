@@ -118,7 +118,8 @@ test.describe('resource strip', () => {
     await expect(sheet).toBeVisible();
     await expect(sheet.locator('[data-resource-row="voidCrystals"] [data-col="name"]')).toHaveText('Void crystals');
     await expect(sheet.locator('[data-resource-row="eggs"] [data-col="amount"]')).toHaveText(/\d/);
-    await expect(sheet.locator('[data-resource-header]')).toContainText('/s');
+    // Each rate states its own unit, per second or per minute (Story 9.10).
+    await expect(sheet.locator('[data-resource-row="eggs"] [data-col="rate"]')).toHaveText(/^(0|[+−][\d ]+\/[SM])$/);
     await expect(sheet.locator('[data-action="settings"]')).toContainText('SETTINGS');
     await sheet.locator('[data-sheet-close]').click();
     await expect(sheet).toHaveCount(0);

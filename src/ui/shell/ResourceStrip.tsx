@@ -69,6 +69,8 @@ export interface ResourceStripProps {
   sheets: SheetController;
   /** Opens the settings screen from the resource sheet (Story 1.27). */
   onOpenSettings?: () => void;
+  /** The resource sheet closed having shown these resources (Story 9.10: `actions.markResourcesSeen`). */
+  onSeen?: (ids: readonly string[]) => void;
   /** Force the 3-cell layout on or off; by default it follows the text scale. */
   compact?: boolean;
 }
@@ -114,7 +116,7 @@ function Cell({ row }: { row: ResourceRow }) {
   );
 }
 
-export function ResourceStrip({ feed, sheets, onOpenSettings, compact }: ResourceStripProps) {
+export function ResourceStrip({ feed, sheets, onOpenSettings, onSeen, compact }: ResourceStripProps) {
   const large = useLargeText();
   // Below 28 columns of the character grid (Story 1.31) the strip narrows too.
   const narrowGrid = gridClass(useGridCols()) === 'narrow';
@@ -135,7 +137,7 @@ export function ResourceStrip({ feed, sheets, onOpenSettings, compact }: Resourc
       data-resource-strip=""
       data-compact={String(narrow)}
       data-flash={flashing ? '' : undefined}
-      onClick={() => openResourceSheet(sheets, feed, { onOpenSettings })}
+      onClick={() => openResourceSheet(sheets, feed, { onOpenSettings, onSeen })}
     >
       {shown.map((id) => (
         <Cell key={id} row={byId.get(id)!} />

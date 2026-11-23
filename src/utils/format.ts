@@ -194,3 +194,29 @@ export function formatTime(ms: number): string {
   const remainingMinutes = minutes % 60;
   return `${hours}h ${remainingMinutes}m`;
 }
+
+const SEC_PER_MIN = 60;
+
+/**
+ * The resource sheet's rate (Story 9.10, UX-DR8): from 1 a second, whole units
+ * per second (`+3/S`, `−12/S`); under that, whole units per minute (`+36/M`),
+ * rounded up so a rate that is not zero never reads as zero; `0` when flat.
+ */
+export function formatSheetRate(perSec: number): string {
+  if (!Number.isFinite(perSec) || perSec === 0) return '0';
+  const sign = perSec > 0 ? '+' : '−';
+  const abs = Math.abs(perSec);
+  if (abs >= 1) return `${sign}${formatFull(Math.floor(abs))}/S`;
+  return `${sign}${formatFull(Math.max(1, Math.round(abs * SEC_PER_MIN)))}/M`;
+}
+
+const SPARK_CELLS = '▁▂▃▄▅▆▇█';
+
+/** A text sparkline (Story 9.10): one cell per value, scaled from the lowest to the highest; flat when nothing moves. */
+export function sparkline(values: readonly number[]): string {
+  if (values.length === 0) return '';
+  const lo = Math.min(...values);
+  const hi = Math.max(...values);
+  const top = SPARK_CELLS.length - 1;
+  return values.map((v) => SPARK_CELLS[hi > lo ? Math.round(((v - lo) / (hi - lo)) * top) : 0]).join('');
+}

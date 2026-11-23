@@ -56,6 +56,7 @@ import { PERCENT } from '../data/constants';
 import { canBuyAutoDig, isAutoDigOpen, nextRoom, pressChunk, type NextRoom } from '../systems/Dig';
 import { digBalance } from '../data/balance/dig';
 import { feedRefusal } from '../systems/Brood';
+import { resourceFlows, type ResourceFlows } from '../systems/ResourceFlows';
 import { Phase as PhaseId } from '../phases/phases';
 import type { ResearchProjectId, ResearchProjectStatus } from './GameState';
 import { nestViewOf, sameNestView, type NestView } from './nestView';
@@ -228,6 +229,20 @@ export const selectDigHint = computed<string>(() => {
   const stone = perPress >= 1 ? `${Math.floor(perPress)} stone` : `1 stone/${Math.ceil(1 / perPress)} digs`;
   return `chunk +${chunk} · ${stone}`;
 });
+
+/** Resources whose sheet row no longer reads NEW this run (Story 9.10); null: all seen (an older save). */
+export const selectSeenResources = slice('seenResources');
+
+const flowsCache = new Map<string, ReadonlySignal<ResourceFlows>>();
+/** A resource's peek in the resource sheet (Story 9.10): where it comes from and what spends it, now. */
+export function selectResourceFlows(id: string): ReadonlySignal<ResourceFlows> {
+  let sel = flowsCache.get(id);
+  if (!sel) {
+    sel = computed(() => resourceFlows(gameState.value, id));
+    flowsCache.set(id, sel);
+  }
+  return sel;
+}
 
 /** The workforce fills the effective nest capacity (the strip's capped workers cell). */
 export const selectCapacityReached = computed(() => {

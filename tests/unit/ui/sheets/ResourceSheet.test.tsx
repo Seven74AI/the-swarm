@@ -66,18 +66,68 @@ describe('resource sheet', () => {
       expect(cellOf(id, 'amount')).toBe(formatFull(gameState.value.resources[id]));
       expect(cellOf(id, 'source')).toBe(RESOURCE_BY_ID[id].source);
     }
-    expect(cellOf('workers', 'cap')).toBe(formatFull(cap));
+    // A cap only where one exists, as a fill meter (Story 9.10).
+    expect(cellOf('workers', 'cap')).toMatch(/█.*100%/);
+    expect(cellOf('workers', 'cap')).toContain(formatFull(cap));
     expect(rowOf('workers').dataset.capped).toBe('true');
-    expect(cellOf('food', 'cap')).not.toMatch(/\d/);
+    expect(rowOf('food').querySelector('[data-col="cap"]')).toBeNull();
     for (const r of rows()) expect(r.querySelector('[data-glyph]')?.getAttribute('aria-hidden')).toBe('true');
   });
 
-  it('states the rate unit once, in the header', () => {
+  it('each rate states its own unit, or reads 0 while flat (Story 9.10)', () => {
     open(Phase.SPACE);
-    const text = sheet().textContent!;
-    expect(text.split('/s').length - 1).toBe(1);
-    expect(sheet().querySelector('[data-resource-header]')!.textContent).toContain('/s');
-    for (const r of rows()) expect(r.querySelector('[data-col="rate"]')!.textContent).not.toContain('/');
+    for (const r of rows()) expect(r.querySelector('[data-col="rate"]')!.textContent).toMatch(/^(0|[+−][\d ]+\/[SM])$/);
+  });
+
+  it('puts each resource on two lines, and no row shows — (Story 9.10)', () => {
+    open(Phase.COLONY);
+    for (const r of rows()) {
+      const one = r.querySelector('[data-line="1"]')!;
+      const two = r.querySelector('[data-line="2"]')!;
+      expect(one.querySelector('[data-col="name"]')).not.toBeNull();
+      expect(one.querySelector('[data-col="amount"]')).not.toBeNull();
+      expect(two.querySelector('[data-col="rate"]')).not.toBeNull();
+      expect(two.querySelector('[data-col="source"]')).not.toBeNull();
+      expect(r.textContent).not.toContain('—');
+    }
+  });
+
+  it('past the threshold, groups by tier; a quiet group is collapsed, and its toggle opens it (Story 9.10)', () => {
+    open(Phase.SPACE);
+    const groups = [...sheet().querySelectorAll<HTMLElement>('[data-resource-group]')];
+    expect(groups.length).toBeGreaterThan(1);
+    const quiet = groups.find((g) => g.dataset.open === 'false')!;
+    expect(quiet).toBeDefined();
+    expect(quiet.querySelector('ul')!.hidden).toBe(true);
+    act(() => quiet.querySelector<HTMLButtonElement>('[data-action="toggle-group"]')!.click());
+    expect(quiet.querySelector('ul')!.hidden).toBe(false);
+  });
+
+  it('marks a resource NEW until the sheet closes, then reports the rows it showed (Story 9.10)', () => {
+    const onSeen = vi.fn();
+    const s = createInitialState();
+    gameState.value = { ...s, phase: Phase.COLONY };
+    feed = createResourceFeed();
+    act(() => void openResourceSheet(sheets, feed, { onSeen }));
+    expect(rowOf('wood').hasAttribute('data-new')).toBe(true);
+    expect(rowOf('food').hasAttribute('data-new')).toBe(false);
+    act(() => sheets.close(sheets.state.value.open!.id));
+    expect(onSeen).toHaveBeenCalledTimes(1);
+    expect(onSeen.mock.calls[0][0]).toEqual(expect.arrayContaining(['wood', 'stone', 'nectar', 'food']));
+    // An older save (null) counts everything as seen.
+    gameState.value = { ...s, phase: Phase.COLONY, seenResources: null };
+    act(() => void openResourceSheet(sheets, feed));
+    expect(rows().some((r) => r.hasAttribute('data-new'))).toBe(false);
+  });
+
+  it('a tap on a row opens its peek: where it comes from and what spends it (Story 9.10)', () => {
+    open(Phase.COLONY);
+    expect(sheet().querySelector('[data-resource-peek]')).toBeNull();
+    act(() => rowOf('food').querySelector<HTMLButtonElement>('[data-action="resource-peek"]')!.click());
+    const peek = sheet().querySelector('[data-resource-peek="food"]')!;
+    expect(peek.querySelector('[data-peek="from"]')!.textContent).toMatch(/GATHER/);
+    expect(peek.querySelector('[data-peek="spent"]')!.textContent).toMatch(/EAT/);
+    expect(rowOf('food').querySelector('[data-action="resource-peek"]')!.getAttribute('aria-expanded')).toBe('true');
   });
 
   it('ends with [ SETTINGS gear ] after the list, which closes the sheet and opens settings', () => {
