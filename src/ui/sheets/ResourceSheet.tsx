@@ -5,7 +5,12 @@ import { ModalSheet } from '../shell/Sheet';
 import type { SheetController } from '../shell/SheetController';
 import { GEAR_GLYPH, RESOURCE_BY_ID, type ResourceId } from '../shell/resourceCatalog';
 import type { ResourceFeed, ResourceRow } from '../shell/resourceFeed';
-import { selectResourceFlows, selectSeenResources } from '../../state/selectors';
+import { selectFoodRatePerSec, selectResourceFlows, selectResources, selectSeenResources, selectVerdict } from '../../state/selectors';
+import type { VerdictKind } from '../../data/content/verdicts';
+import { sheetOpened, type SheetMoment } from './sheetSince';
+import { useThrottledSignal } from '../primitives/throttledSignal';
+import { REFRESH_MS } from '../shell/resourceFeed';
+import { formatDeltaFull } from '../../utils/format';
 import { sheetLayout, needsALook, type SheetGroup } from './resourceSheetLayout';
 import { Sep, decorate } from '../primitives/Deco';
 import './ResourceSheet.css';
@@ -41,6 +46,8 @@ export interface ResourceSheetOptions {
   onOpenSettings?: () => void;
   /** The sheet closed having shown these resources (Story 9.10: `actions.markResourcesSeen`). */
   onSeen?: (ids: readonly string[]) => void;
+  /** The verdict line was tapped (Story 9.11): open the screen that fixes it. The sheet closes first. */
+  onVerdict?: (kind: VerdictKind) => void;
 }
 
 export const SETTINGS_NOT_READY = 'Settings are not available yet';
@@ -118,6 +125,47 @@ function Row({ row, isNew, open, onToggle }: { row: ResourceRow; isNew: boolean;
   );
 }
 
+/** `14:02`: wall-clock hours and minutes, two digits each. */
+const clock = (ms: number): string => {
+  const d = new Date(ms);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
+/**
+ * The verdict line (Story 9.11, UX-DR50): the worst current state, a button
+ * that opens the screen that fixes it, only on its own tap (FR27). Falling
+ * reads in `warn`. Hook: `button[data-verdict=food|nest|growing][data-warn]`.
+ */
+function VerdictLine({ onVerdict, close }: { onVerdict?: (kind: VerdictKind) => void; close: () => void }) {
+  const { verdict, text } = useThrottledSignal(selectVerdict, REFRESH_MS).value;
+  return (
+    <button
+      type="button"
+      class="resource-sheet__verdict"
+      data-verdict={verdict.kind}
+      data-warn={verdict.warn ? '' : undefined}
+      onClick={() => {
+        if (verdict.kind === 'growing') return;
+        close();
+        onVerdict?.(verdict.kind);
+      }}
+    >
+      {decorate(text)}
+    </button>
+  );
+}
+
+/** `FOOD +1 204 SINCE 14:02 · NET WAS −3/S, NOW +2/S` (Story 9.11): only from the session's second opening. */
+function SinceLine({ before, now }: { before: SheetMoment; now: SheetMoment }) {
+  return (
+    <p class="resource-sheet__since" data-since="">
+      FOOD {formatDeltaFull(now.food - before.food)} SINCE {clock(before.atMs)}
+      <Sep />
+      NET WAS {formatSheetRate(before.netPerSec)}, NOW {formatSheetRate(now.netPerSec)}
+    </p>
+  );
+}
+
 function Group({ group, fresh, peek, setPeek }: { group: SheetGroup; fresh: ReadonlySet<string>; peek: ResourceId | null; setPeek: (id: ResourceId | null) => void }) {
   const [shown, setShown] = useState(group.open);
   // A group that comes to hold a falling or capped resource opens; the player's own toggle stays otherwise.
@@ -151,8 +199,14 @@ function Group({ group, fresh, peek, setPeek }: { group: SheetGroup; fresh: Read
   );
 }
 
-function ResourceSheet({ feed, close, onOpenSettings, onSeen }: { feed: ResourceFeed; close: () => void } & ResourceSheetOptions) {
+function ResourceSheet({ feed, close, onOpenSettings, onSeen, onVerdict }: { feed: ResourceFeed; close: () => void } & ResourceSheetOptions) {
   useEffect(() => feed.retain(), [feed]);
+  // What changed since the session's last opening (Story 9.11), fixed when the sheet opens.
+  const [since] = useState(() => {
+    const now: SheetMoment = { atMs: Date.now(), food: Math.floor(selectResources.peek().food), netPerSec: selectFoodRatePerSec.peek() };
+    const before = sheetOpened(now);
+    return before ? { before, now } : null;
+  });
   const rows = feed.snapshot.value.rows.filter((r) => r.unlocked);
   // NEW: unlocked and not yet seen this run, fixed when the sheet opens; marked seen when it closes.
   const [fresh] = useState<ReadonlySet<string>>(() => {
@@ -184,6 +238,8 @@ function ResourceSheet({ feed, close, onOpenSettings, onSeen }: { feed: Resource
 
   return (
     <ModalSheet headline="RESOURCES" class="resource-sheet" data-resource-sheet="" action={settings}>
+      <VerdictLine onVerdict={onVerdict} close={close} />
+      {since && <SinceLine before={since.before} now={since.now} />}
       <p class="resource-sheet__header" data-resource-header="">
         {decorate('AMOUNT · RATE · SOURCE · LAST 10 MIN · TAP FOR MORE')}
       </p>
@@ -200,6 +256,6 @@ function ResourceSheet({ feed, close, onOpenSettings, onSeen }: { feed: Resource
 export function openResourceSheet(sheets: SheetController, feed: ResourceFeed, opts: ResourceSheetOptions = {}): number {
   return sheets.open({
     priority: 'modal',
-    render: (close) => <ResourceSheet feed={feed} close={close} onOpenSettings={opts.onOpenSettings} onSeen={opts.onSeen} />,
+    render: (close) => <ResourceSheet feed={feed} close={close} onOpenSettings={opts.onOpenSettings} onSeen={opts.onSeen} onVerdict={opts.onVerdict} />,
   });
 }

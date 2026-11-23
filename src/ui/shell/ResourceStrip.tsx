@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import type { VerdictKind } from '../../data/content/verdicts';
 import { formatDelta, formatStrip } from '../../utils/format';
 import { RESOURCE_BY_ID } from './resourceCatalog';
 import { Abbr } from '../primitives/Deco';
@@ -71,6 +72,8 @@ export interface ResourceStripProps {
   onOpenSettings?: () => void;
   /** The resource sheet closed having shown these resources (Story 9.10: `actions.markResourcesSeen`). */
   onSeen?: (ids: readonly string[]) => void;
+  /** The resource sheet's verdict line was tapped (Story 9.11): open the screen that fixes it. */
+  onVerdict?: (kind: VerdictKind) => void;
   /** Force the 3-cell layout on or off; by default it follows the text scale. */
   compact?: boolean;
 }
@@ -116,7 +119,7 @@ function Cell({ row }: { row: ResourceRow }) {
   );
 }
 
-export function ResourceStrip({ feed, sheets, onOpenSettings, onSeen, compact }: ResourceStripProps) {
+export function ResourceStrip({ feed, sheets, onOpenSettings, onSeen, onVerdict, compact }: ResourceStripProps) {
   const large = useLargeText();
   // Below 28 columns of the character grid (Story 1.31) the strip narrows too.
   const narrowGrid = gridClass(useGridCols()) === 'narrow';
@@ -137,7 +140,7 @@ export function ResourceStrip({ feed, sheets, onOpenSettings, onSeen, compact }:
       data-resource-strip=""
       data-compact={String(narrow)}
       data-flash={flashing ? '' : undefined}
-      onClick={() => openResourceSheet(sheets, feed, { onOpenSettings, onSeen })}
+      onClick={() => openResourceSheet(sheets, feed, { onOpenSettings, onSeen, onVerdict })}
     >
       {shown.map((id) => (
         <Cell key={id} row={byId.get(id)!} />

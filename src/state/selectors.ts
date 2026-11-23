@@ -57,6 +57,7 @@ import { canBuyAutoDig, isAutoDigOpen, nextRoom, pressChunk, type NextRoom } fro
 import { digBalance } from '../data/balance/dig';
 import { feedRefusal } from '../systems/Brood';
 import { resourceFlows, type ResourceFlows } from '../systems/ResourceFlows';
+import { getVerdict, verdictText, type Verdict } from '../systems/Verdict';
 import { Phase as PhaseId } from '../phases/phases';
 import type { ResearchProjectId, ResearchProjectStatus } from './GameState';
 import { nestViewOf, sameNestView, type NestView } from './nestView';
@@ -228,6 +229,17 @@ export const selectDigHint = computed<string>(() => {
   if (feedRefusal(s) === null) return `chunk +${chunk} · tap the brood`;
   const stone = perPress >= 1 ? `${Math.floor(perPress)} stone` : `1 stone/${Math.ceil(1 / perPress)} digs`;
   return `chunk +${chunk} · ${stone}`;
+});
+
+/** The resource sheet's verdict line (Story 9.11): the worst current state and its text; keeps its value while the line reads the same. */
+let lastVerdict: { readonly verdict: Verdict; readonly text: string } | null = null;
+export const selectVerdict = computed<{ readonly verdict: Verdict; readonly text: string }>(() => {
+  const verdict = getVerdict(gameState.value);
+  const text = verdictText(verdict);
+  // Same line, same value: only a change of what it says notifies (#186).
+  if (lastVerdict && lastVerdict.text === text && lastVerdict.verdict.kind === verdict.kind) return lastVerdict;
+  lastVerdict = { verdict, text };
+  return lastVerdict;
 });
 
 /** Resources whose sheet row no longer reads NEW this run (Story 9.10); null: all seen (an older save). */

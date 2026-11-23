@@ -97,3 +97,22 @@
   .sheet.resource-sheet { max-height: 55vh; }
 }
 .resource-row__cap { font-size: var(--type-aside); color: var(--color-accent); white-space: nowrap; }
+
+/* The verdict line (Story 9.11): first in the sheet, a 44 px button; falling in warn. */
+.resource-sheet__verdict {
+  min-height: 2.75rem;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--color-accent);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.resource-sheet__verdict[data-warn] { color: var(--color-warn); }
+.resource-sheet__since {
+  margin: 0;
+  font-size: var(--type-aside);
+  color: var(--color-dim);
+}
