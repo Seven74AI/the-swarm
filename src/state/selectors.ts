@@ -168,7 +168,7 @@ let lastNestView: NestView | null = null;
  * (`ui/primitives/throttledSignal.ts`, `sceneBalance.viewRefreshMs`).
  */
 export const selectNestView = computed<NestView>(() => {
-  const next = nestViewOf(selectResources.value, selectStarving.value);
+  const next = nestViewOf(selectResources.value, selectStarving.value, gameState.value.dig.roomsDug);
   if (lastNestView && sameNestView(lastNestView, next)) return lastNestView;
   lastNestView = next;
   return next;

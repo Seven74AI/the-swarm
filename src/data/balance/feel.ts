@@ -18,6 +18,6 @@ export const feelBalance = {
   typeInMaxMs: 900,
   /** A creature that arrives in the nest scene (an egg by the queen, a larva, a worker walking in) takes this long. */
   arriveMs: 700,
-  /** The camera pull-back eases out over this long (Story 8.7 fires it). */
-  cameraPullBackMs: 1000,
+  /** A room that opens in the nest scene (dirt falls, its wall appears) takes this long (Story 9.6; at most about 1 s). */
+  roomOpenMs: 900,
 } as const;

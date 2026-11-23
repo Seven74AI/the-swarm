@@ -4,7 +4,6 @@ import { options } from 'preact';
 import { NestScene } from '../../../../src/ui/scenes/NestScene';
 import { createSceneClock, type SceneClock } from '../../../../src/ui/scenes/sceneClock';
 import { sceneBalance } from '../../../../src/data/balance/scene';
-import { CAMERA_CLOSE, cameraZoom } from '../../../../src/ui/scenes/nestCamera';
 import { formatFull } from '../../../../src/utils/format';
 import type { NestView } from '../../../../src/state/nestView';
 
@@ -196,14 +195,29 @@ describe('NestScene game feel (Story 8.9)', () => {
     expect(eggs[2].closest('[data-arrive]')).not.toBeNull();
   });
 
-  it('takes a camera zoom from its container (Story 8.7) and eases to it; close by default', () => {
-    const r = render(<NestScene view={view(1, 1, 1)} onChamber={() => {}} />);
-    const stage = () => r.container.querySelector<HTMLElement>('[data-camera]')!;
-    expect(stage().getAttribute('data-camera')).toBe('close');
-    r.rerender(<NestScene view={view(1, 1, 1)} onChamber={() => {}} zoom={0.5} />);
-    expect(stage().getAttribute('data-camera')).toBe('pulled-back');
-    expect(stage().style.getPropertyValue('--scene-zoom')).toBe('0.5');
-    expect(stage().style.getPropertyValue('--camera-ms')).toMatch(/^\d+ms$/);
+  it('frames the rooms dug: the viewBox and the stage follow the layout, one room drawn per room dug (Story 9.6)', () => {
+    for (const roomsDug of [0, 4, 20]) {
+      const c = render(<NestScene view={{ ...view(3, 2, 1), roomsDug }} onChamber={() => {}} />).container;
+      const svg = c.querySelector('svg.nest-svg')!;
+      const [, , w, h] = svg.getAttribute('viewBox')!.split(' ').map(Number);
+      const stage = c.querySelector<HTMLElement>('.nest-stage')!;
+      expect(stage.style.getPropertyValue('--frame-w')).toBe(String(w));
+      expect(stage.style.getPropertyValue('--frame-h')).toBe(String(h));
+      expect(stage.getAttribute('data-rooms')).toBe(String(roomsDug));
+      expect(c.querySelectorAll('[data-scene-part="room"]')).toHaveLength(roomsDug);
+      cleanup();
+    }
+  });
+
+  it('a room that opens after the first draw arrives with falling dirt; rooms there at mount do not (Story 9.6)', () => {
+    const r = render(<NestScene view={{ ...view(3, 2, 1), roomsDug: 2 }} onChamber={() => {}} />);
+    expect(r.container.querySelectorAll('[data-arrive="room"]')).toHaveLength(0);
+    r.rerender(<NestScene view={{ ...view(3, 2, 1), roomsDug: 3 }} onChamber={() => {}} />);
+    const arrived = r.container.querySelectorAll('[data-arrive="room"] [data-scene-part="room"]');
+    expect(arrived).toHaveLength(1);
+    expect(arrived[0].getAttribute('data-room')).toBe('2');
+    expect(r.container.querySelectorAll('[data-scene-part="dirt"]')).toHaveLength(1);
+    expect(r.container.querySelector<HTMLElement>('.nest-stage')!.style.getPropertyValue('--room-open-ms')).toMatch(/^\d+ms$/);
   });
 
   it('arrivals stay inside the ant budget, and arrived ants still move on the clock without a re-render', () => {
@@ -235,33 +249,24 @@ describe('NestScene game feel (Story 8.9)', () => {
 
 describe('NestScene: the nest grows, wanders and starves (Story 8.7)', () => {
   afterEach(cleanup);
-  const zooms = sceneBalance.cameraSteps.map((_, i) => cameraZoom(i));
   const stageOf = (c: Element) => c.querySelector<HTMLElement>('[data-scene="nest"] .nest-stage')!;
   const labelAt = (c: Element, id: string) => {
     const b = c.querySelector<HTMLElement>(`button[data-chamber="${id}"]`)!;
     return { x: parseFloat(b.style.left), y: parseFloat(b.style.top) };
   };
 
-  it('scales the drawing about a fixed point, so a zoom of 1 is the closest camera step', () => {
-    const stage = stageOf(scene(view(3, 2, 1)));
-    expect(Number(stage.style.getPropertyValue('--camera-close'))).toBe(CAMERA_CLOSE);
-    expect(stage.style.getPropertyValue('--camera-origin')).toMatch(/^[\d.]+% [\d.]+%$/);
-  });
-
-  it('keeps each chamber label on the stage at every camera step, and moves it with the camera', () => {
-    const places = zooms.map((zoom) => {
-      const c = render(<NestScene view={view(30, 3, 2)} onChamber={() => {}} zoom={zoom} />).container;
-      const at = { brood: labelAt(c, 'brood'), workers: labelAt(c, 'workers') };
-      for (const p of Object.values(at)) {
+  it('keeps each chamber label on the stage, at any room count', () => {
+    for (const roomsDug of [0, 10, 60]) {
+      const c = render(<NestScene view={{ ...view(30, 3, 2), roomsDug }} onChamber={() => {}} />).container;
+      for (const id of ['brood', 'workers']) {
+        const p = labelAt(c, id);
         for (const v of [p.x, p.y]) {
           expect(v).toBeGreaterThanOrEqual(0);
           expect(v).toBeLessThanOrEqual(100);
         }
       }
       cleanup();
-      return at;
-    });
-    expect(places[0].brood).not.toEqual(places[places.length - 1].brood);
+    }
   });
 
   it('thins a starving colony: fewer ants drawn, the same exact count in the labels', () => {

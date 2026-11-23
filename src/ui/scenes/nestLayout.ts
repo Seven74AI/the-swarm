@@ -105,10 +105,23 @@ export interface NestLayout {
   /** Workers a starving colony leaves out of the drawing (0 when fed): drawn + cloud + thinned = all workers. */
   readonly thinned: number;
   /**
-   * The camera's fixed point (`nestCamera.ts`): the drawing scales about it,
-   * so the close camera frames the queen's chamber and the workers' door.
+   * The rooms dug so far (Story 9.6), in the order they opened, each on a
+   * tunnel to the nest above it. `width` × `height` frames them all: the
+   * scene's viewBox, so no chamber or room is ever cropped.
    */
-  readonly cameraOrigin: Point;
+  readonly rooms: readonly RoomGeometry[];
+  /** Where the next room is being dug (its slot's centre): the crack grows here (Story 9.3). */
+  readonly digFace: Point;
+}
+
+/** A room dug (Story 9.6): a small chamber of its own, no label, no creatures of its own (no ant has a location). */
+export interface RoomGeometry {
+  readonly index: number;
+  readonly cx: number;
+  readonly cy: number;
+  readonly rx: number;
+  readonly ry: number;
+  readonly wall: string;
 }
 
 // --- Creature shapes (drawn by NestScene; their areas decide when a chamber clouds) ------------
@@ -182,11 +195,20 @@ const LARVAE_IN = { x: 0.3, y: 0.35, rx: 0.4, ry: 0.3 };
  */
 const DOOR_AT = { x: -0.6, y: -0.35 };
 /**
- * The camera's fixed point (Story 8.7). At 2× the frame is the half of the
- * drawing from (origin / 2) on: x 28–208, y 40.5–135.5 here, which holds the
- * queen, the whole brood chamber and the workers' door.
+ * The rooms dug (Story 9.6). The first fill the soil under the brood chamber,
+ * `UNDER_BROOD` columns by two rows; the rest go in rows of `ROOMS_PER_ROW`
+ * below the founding nest, each row deepening the picture by `ROW_STEP`.
  */
-const CAMERA_ORIGIN = { x: 56, y: 81 };
+const ROOM = { rx: 14, ry: 8 } as const;
+const UNDER_BROOD_X = [34, 74, 114] as const;
+const UNDER_BROOD_Y = [134, 162] as const;
+const DEEP_FIRST_Y = 200;
+const ROOMS_PER_ROW = 8;
+const ROOM_X0 = 30;
+const ROOM_STEP_X = 42;
+const ROW_STEP = 24;
+/** Soil kept below the deepest room or dig face. */
+const BOTTOM_SOIL = 8;
 
 const round = (n: number): number => Math.round(n * 10) / 10;
 const stream = (...keys: string[]): RngStream => keyedStream(...keys.map(hashString));
@@ -224,7 +246,7 @@ function cloudDots(key: string, n: number, area: Ellipse): string {
 const fitting = (area: number, each: number): number => Math.floor((sceneBalance.cloudCoverage * area) / each);
 
 /** A closed, smooth, slightly irregular ellipse (quadratic curves through midpoints). */
-function wallPath(id: ChamberId, e: Ellipse): string {
+function wallPath(id: string, e: Ellipse): string {
   const rng = stream('wall', id);
   const pts = Array.from({ length: WALL_POINTS }, (_, i) => {
     const t = (i / WALL_POINTS) * 2 * Math.PI;
@@ -307,13 +329,13 @@ function part(c: Ellipse, at: { x: number; y: number; rx: number; ry: number }):
 
 const areaOf = (e: Ellipse): number => Math.PI * e.rx * e.ry;
 
-function chamber(id: ChamberId, cloud: Cloud): ChamberGeometry {
+function chamber(id: ChamberId, cloud: Cloud, height: number): ChamberGeometry {
   const e = CHAMBERS[id];
   return {
     id,
     ...e,
     wall: wallPath(id, e),
-    label: { x: e.cx / WIDTH, y: Math.min(1, (e.cy + e.ry + LABEL_GAP) / HEIGHT) },
+    label: { x: e.cx / WIDTH, y: Math.min(1, (e.cy + e.ry + LABEL_GAP) / height) },
     area: areaOf(e),
     cloud,
   };
@@ -376,8 +398,6 @@ export function crackStage(percent: number): number {
   return Math.min(CRACK_STAGES, Math.floor((p * (CRACK_STAGES + 1)) / 100));
 }
 
-/** Where the next room is being dug (Story 9.3): below the workers chamber, toward the deeper soil. */
-const DIG_FACE: Point = { x: round(CHAMBERS.workers.cx + CHAMBERS.workers.rx * 0.55), y: round(CHAMBERS.workers.cy + CHAMBERS.workers.ry * 0.85) };
 /** Each crack stage adds these zig-zag steps (viewBox units), out from the dig face. */
 const CRACK_STEPS: readonly Point[] = [
   { x: 4, y: 5 },
@@ -386,13 +406,64 @@ const CRACK_STEPS: readonly Point[] = [
   { x: -2, y: 5 },
 ];
 
-/** The crack at the dig face for a stage (1 … `CRACK_STAGES`): two more steps a stage; '' at 0. Pure. */
-export function crackPath(stage: number): string {
+/** The crack at the dig face `at` for a stage (1 … `CRACK_STAGES`): two more steps a stage; '' at 0. Pure. */
+export function crackPath(stage: number, at: Point): string {
   const n = Math.max(0, Math.min(CRACK_STAGES, Math.floor(stage)));
   if (n === 0) return '';
   const steps = Array.from({ length: n * 2 }, (_, i) => CRACK_STEPS[i % CRACK_STEPS.length]);
-  return `M${DIG_FACE.x} ${DIG_FACE.y}` + steps.map((s) => ` l${s.x} ${s.y}`).join('');
+  return `M${at.x} ${at.y}` + steps.map((s) => ` l${s.x} ${s.y}`).join('');
 }
+
+/** Room `i`'s centre (Story 9.6): under the brood first, then row by row below the nest. Fixed, so a room never moves. */
+export function roomSlot(i: number): Point {
+  const under = UNDER_BROOD_X.length * UNDER_BROOD_Y.length;
+  if (i < under) return { x: UNDER_BROOD_X[i % UNDER_BROOD_X.length], y: UNDER_BROOD_Y[Math.floor(i / UNDER_BROOD_X.length)] };
+  const k = i - under;
+  return { x: ROOM_X0 + (k % ROOMS_PER_ROW) * ROOM_STEP_X, y: DEEP_FIRST_Y + Math.floor(k / ROOMS_PER_ROW) * ROW_STEP };
+}
+
+/** Where room `i`'s tunnel starts: the room above it, else the founding chamber above it (Story 9.6). */
+function roomParent(i: number): Point {
+  const at = roomSlot(i);
+  const under = UNDER_BROOD_X.length * UNDER_BROOD_Y.length;
+  if (i >= UNDER_BROOD_X.length && i < under) return roomSlot(i - UNDER_BROOD_X.length);
+  if (i >= under + ROOMS_PER_ROW) return roomSlot(i - ROOMS_PER_ROW);
+  if (i < UNDER_BROOD_X.length) {
+    const b = CHAMBERS.brood;
+    return { x: at.x, y: round(b.cy + b.ry * 0.85) };
+  }
+  // The first deep row: under the workers chamber, or under the brood's rooms.
+  const w = CHAMBERS.workers;
+  if (Math.abs(at.x - w.cx) < w.rx * 0.8) return { x: at.x, y: round(w.cy + w.ry * 0.85) };
+  const above = [3, 4, 5].map(roomSlot);
+  return above.reduce((best, p) => (Math.abs(p.x - at.x) < Math.abs(best.x - at.x) ? p : best));
+}
+
+function rooms(n: number): { rooms: RoomGeometry[]; tunnels: Tunnel[] } {
+  const out: RoomGeometry[] = [];
+  const ways: Tunnel[] = [];
+  for (let i = 0; i < n; i++) {
+    const c = roomSlot(i);
+    const e = { cx: c.x, cy: c.y, rx: ROOM.rx, ry: ROOM.ry };
+    out.push({ index: i, ...e, wall: wallPath(`room-${i}`, e) });
+    const from = roomParent(i);
+    const curve: Tunnel['curve'] = fromQuadratic(from, { x: (from.x + c.x) / 2 + 3, y: (from.y + c.y) / 2 }, c);
+    ways.push({ id: `room-${i}`, curve, d: cubicPath(curve) });
+  }
+  return { rooms: out, tunnels: ways };
+}
+
+/** The frame's height for `n` rooms dug: the founding drawing, deepened to hold every room and the next dig face. */
+function frameHeight(n: number): number {
+  return Math.max(HEIGHT, roomSlot(n).y + ROOM.ry + BOTTOM_SOIL);
+}
+
+/**
+ * The narrowest the stage is ever drawn, in CSS px (Story 9.6): there, a
+ * drawn worker is still `antMinPx` long (DESIGN.md: never under 12 px). The
+ * frame is always `SCENE_WIDTH` wide, so this holds at any room count.
+ */
+export const MIN_STAGE_PX = Math.ceil((sceneBalance.antMinPx * WIDTH) / ANT_LENGTH);
 
 /** The point the first workers settle around, in viewBox units. */
 export const DOOR: Point = {
@@ -426,21 +497,26 @@ export function nestLayout(view: NestView): NestLayout {
   const workers = CHAMBERS.workers;
   const b = broodSplit(whole(view.eggs), whole(view.larvae));
   const w = workerSplit(whole(view.workers), view.starving === true);
+  const dug = rooms(whole(view.roomsDug ?? 0));
   const routes = tunnels();
+  const height = frameHeight(dug.rooms.length);
+  const face = roomSlot(dug.rooms.length);
   return {
     width: WIDTH,
-    height: HEIGHT,
+    height,
     surfaceY: SURFACE_Y,
     grass: grassPath(),
     strata: STRATA_Y.map((y, i) => stratumPath(i, y)),
     pebbles: pebbles(),
-    tunnels: routes,
-    chambers: [chamber('brood', b.cloud), chamber('workers', w.cloud)],
+    // Ants walk the founding tunnels only; the rooms' own tunnels are drawn, not walked.
+    tunnels: [...routes, ...dug.tunnels],
+    chambers: [chamber('brood', b.cloud, height), chamber('workers', w.cloud, height)],
     queen: { x: round(brood.cx + QUEEN_AT.x * brood.rx), y: round(brood.cy + QUEEN_AT.y * brood.ry), angle: 0 },
     eggs: tokens('egg', b.eggs, part(brood, EGGS_IN)),
     larvae: tokens('larva', b.larvae, part(brood, LARVAE_IN)),
     workers: ants(w.drawn, { ...workers, rx: workers.rx * INNER, ry: workers.ry * INNER }, routes),
     thinned: w.thinned,
-    cameraOrigin: CAMERA_ORIGIN,
+    rooms: dug.rooms,
+    digFace: { x: face.x, y: face.y },
   };
 }

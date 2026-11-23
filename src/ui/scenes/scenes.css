@@ -17,8 +17,9 @@
  */
 .nest-stage {
   position: relative;
-  width: min(100%, calc(clamp(120px, 30dvh, 220px) * 36 / 19));
-  aspect-ratio: 36 / 19;
+  /* The frame holds the whole dug nest (Story 9.6): its aspect, so nothing crops; capped in height, never under its min-width. */
+  width: min(100%, calc(clamp(120px, 30dvh, 220px) * var(--frame-w, 36) / var(--frame-h, 19)));
+  aspect-ratio: var(--frame-w, 36) / var(--frame-h, 19);
   margin-inline: auto;
 }
 
@@ -219,32 +220,32 @@
 }
 
 /*
- * The camera (Story 8.7, UX-DR34): `--scene-zoom` is its step (1 = close).
- * The drawings scale by it times `--camera-close` about `--camera-origin`,
- * inside a clipped frame, and ease there; the chamber labels, placed by
- * NestScene through the same camera, ease with them (same time and curve, so
- * an anchored label stays on its chamber all the way).
- */
-/*
- * The camera's frame: it clips the scaled drawing to the stage. `contain: paint`
- * clips without making the frame a scroll container, so the drawing scaled past
- * the frame adds to no one's scroll size (the text-reflow checks read real
- * overflow, and the frame holds no text: the chamber labels sit outside it).
+ * The frame (Story 9.6): it clips the drawing to the stage. `contain: paint`
+ * clips without making it a scroll container (the text-reflow checks read
+ * real overflow, and the frame holds no text: the chamber labels sit outside it).
  */
 .nest-camera {
   position: absolute;
   inset: 0;
   contain: paint;
 }
-.nest-svg {
-  transform-origin: var(--camera-origin, 50% 50%);
-  transform: scale(calc(var(--scene-zoom, 1) * var(--camera-close, 1)));
-  transition: transform var(--camera-ms, 0ms) ease-out;
+
+/* A room that opens (Story 9.6): its wall fades in and a few crumbs fall, once, over --room-open-ms. One luminance change (flash rule). */
+.nest-svg__arrive--room {
+  animation: nest-room-open var(--room-open-ms, 0ms) ease-out both;
 }
-.nest-chamber {
-  transition-property: left, top, transform;
-  transition-duration: var(--camera-ms, 0ms);
-  transition-timing-function: ease-out;
+@keyframes nest-room-open {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.nest-svg__dirt circle {
+  fill: var(--color-accent);
+  opacity: 0;
+  animation: nest-dirt-fall var(--room-open-ms, 0ms) ease-in;
+}
+@keyframes nest-dirt-fall {
+  from { opacity: 0.6; transform: translateY(-6px); }
+  to { opacity: 0; transform: translateY(4px); }
 }
 
 /* A larva that arrives (Story 8.7) breaks out of its egg: the shell fades as the larva grows in. */
@@ -263,9 +264,9 @@
 :root[data-reduced-motion="true"] .nest-svg__arrive {
   animation: none;
 }
-:root[data-reduced-motion="true"] .nest-svg,
-:root[data-reduced-motion="true"] .nest-chamber {
-  transition: none;
+/* A room opens at once under reduced motion: no crumbs fall (Story 9.6). */
+:root[data-reduced-motion="true"] .nest-svg__dirt {
+  display: none;
 }
 :root[data-reduced-motion="true"] .nest-svg__hatch-shell {
   display: none;

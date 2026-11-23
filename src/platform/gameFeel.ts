@@ -28,7 +28,7 @@ export const FEEL_TRIGGERS = [
   'battle-result',
   'decision',
   'phase-change',
-  'camera-pull-back',
+  'room-open',
 ] as const;
 
 export type FeelTrigger = (typeof FEEL_TRIGGERS)[number];
@@ -101,9 +101,10 @@ export const GAME_FEEL: readonly FeelRow[] = Object.freeze([
     sound: ['phase'],
     events: ['phase_committed'],
   }),
+  // Story 9.6: a room opening took over the camera pull-back's moment; Story 9.8 adds its sound and haptic.
   row({
-    trigger: 'camera-pull-back',
-    visual: { description: 'The scene eases out over 1 s', hooks: ['data-camera', '--camera-ms'] },
+    trigger: 'room-open',
+    visual: { description: 'Dirt falls and the new room appears, under 1 s', hooks: ['data-arrive="room"', '--room-open-ms'] },
     haptic: 'none',
     sound: 'none',
     events: [],

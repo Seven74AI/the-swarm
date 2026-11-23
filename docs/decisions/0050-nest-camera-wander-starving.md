@@ -1,6 +1,6 @@
 # 0050. The nest's camera steps, wandering ants and a starving colony that thins
 
-- **Status:** accepted (2026-11-22)
+- **Status:** accepted (2026-11-22); the camera steps are superseded by Story 9.6 (2026-11-23), see the end. Wandering and the starving colony stand.
 - **Source:** Story 8.7 (#315) · UX-DR34 (camera, wandering, starving) · builds on ADRs 0045, 0047 and 0049
 
 ## Context
@@ -55,3 +55,16 @@ had already given `NestScene` a `zoom` prop (1 = close) eased in CSS, and arriva
   when the layer was made; ants may look soft after the camera moves in. If that shows on devices, drop
   `will-change` while the camera eases or re-create the layer after a step.
 - The map and star map (Epic 6) can reuse `cameraRect` / `chamberAnchor` for labels over a scaled drawing.
+
+## Superseded: framing to the rooms dug (Story 9.6)
+
+The camera steps (`sceneBalance.cameraSteps`, `nestCamera.ts`, the 2× crop) hid the workers chamber on phones and
+are gone, with what served only them: `ui/nest/cameraPullBack.ts`, the `camera-pull-back` feel trigger and
+`feelBalance.cameraPullBackMs`. `nestLayout` now draws the founding brood and workers chambers plus one small room per
+room dug (`view.roomsDug`, from `state.dig`): six under the brood, then rows of eight below the nest, each on a tunnel
+to the nest above, at fixed slots so a room never moves. The layout's `width` × `height` is the frame that holds every
+room and the next dig face (`digFace`, where the crack grows); the scene uses it as the viewBox and the stage takes its
+aspect, so nothing is ever cropped. The frame is always `SCENE_WIDTH` wide, so `MIN_STAGE_PX` keeps a drawn worker at
+`antMinPx` or more from a 320 px phone. A room that opens after the first draw arrives (`[data-arrive="room"]`): its
+wall fades in and a few crumbs fall over `feelBalance.roomOpenMs`, nothing under reduced motion. The feel table's row
+is now `room-open` (Story 9.8 adds its sound and haptic). The dot cloud and the 50-ant budget are unchanged.
