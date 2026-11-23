@@ -54,6 +54,19 @@ export function buyAutoDig(deps: ActionDeps): ActionResult {
   return commit(deps, s, buyAuto(s));
 }
 
+/**
+ * The resource sheet closed (Story 9.10): its rows no longer read `NEW` this
+ * run. One write, only when something new was seen; `null` (an older save)
+ * becomes the list.
+ */
+export function markResourcesSeen(deps: ActionDeps, ids: readonly string[]): ActionResult {
+  const s = current(deps);
+  const seen = s.seenResources ?? [];
+  const added = [...new Set(ids)].filter((id) => !seen.includes(id));
+  if (added.length === 0 && s.seenResources !== null) return refuse('unavailable');
+  return commit(deps, s, { ...s, seenResources: [...seen, ...added] });
+}
+
 /** Put one free worker on a job. */
 export function assignWorker(deps: ActionDeps, role: WorkerRole): ActionResult {
   const s = current(deps);

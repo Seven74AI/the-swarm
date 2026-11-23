@@ -92,7 +92,7 @@ export function gameViews(d: GameViewDeps): ShellViews {
         <TopBar paused={d.paused} onTogglePause={d.onTogglePause} />
         {/* The resource strip and resource sheet (Story 1.16); the `.resource-panel` hook stays. */}
         <Panel id="resource_panel" class="resource-panel" attrs={{ 'data-resource-panel': '' }}>
-          <ResourceStrip feed={d.feed} sheets={d.sheets} onOpenSettings={d.onOpenSettings} />
+          <ResourceStrip feed={d.feed} sheets={d.sheets} onOpenSettings={d.onOpenSettings} onSeen={(ids) => d.actions.markResourcesSeen(ids)} />
         </Panel>
         {/* Outside the panel: shown whenever writes fail, in any phase (Story 2.2). */}
         <SaveFailedMarker failing={d.saveFailing} sheets={d.sheets} onExport={d.onExportSave} />
