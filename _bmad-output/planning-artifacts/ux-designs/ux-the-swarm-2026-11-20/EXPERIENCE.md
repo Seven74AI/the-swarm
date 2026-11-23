@@ -131,7 +131,7 @@ Behavior only. Visual specs are in DESIGN.md → Components. Where the two files
 | Component | Behavior |
 |---|---|
 | **Resource strip** | 5 phase-relevant resources (P1: EGG, LRVA, WRKR, FOOD; P2: FOOD, WRKR, WOOD, STON, NECT; P3+: the capped or falling resources rotate in first) `[ASSUMPTION: per-phase sets]`. On screen, values refresh at most 4 times a second. Tapping opens the resource sheet. |
-| **Resource sheet** | Every unlocked resource with the exact integer, rate, cap and source. `[ SETTINGS ⚙ ]` at the bottom. |
+| **Resource sheet** | Answers "am I okay?" first: a verdict line with a runway (tap it to open the fix; nothing opens on its own) and a since-last-look line; from Colony a food block (who brings food, who eats it, one-off spends, `ONE GATHERER FEEDS 4.`), whose names open their role row or WAR; then every unlocked resource on two lines (amount; rate, source, sparkline), caps as meters only where they exist, trouble first, slow rates per minute; tap a row for its sources and spends. `[ SETTINGS ⚙ ]` at the bottom (#437, Stories 9.10–9.12). |
 | **Tab bar** | Tap to switch; tapping the active tab scrolls it to the top. `•` when something on that tab has become affordable since the last visit; it clears on visit. |
 | **Segment row** | Tap to switch segments; the last-used segment is remembered for the session. |
 | **Primary action** | The single most important verb on the current tab, pinned in the bottom zone. **Hold** repeats at about 8/s (GDD). What it shows on NEST and in the offline summary follows the **next-action rule** below. |
