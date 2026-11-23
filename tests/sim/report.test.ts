@@ -257,7 +257,9 @@ describe('the pacing report on a real run (Story 3.9)', () => {
     expect(report.critical).toEqual(criticalMoments(result.probes.checkIns, targets.criticalMoments.phase));
   });
 
-  it('runPacingReport plays a fresh game over the first-week schedule (Story 9.1)', () => {
+  // Runs two full first-week simulations (~6s) — over vitest's default 5s
+  // timeout. Bump it so a slow CI runner can't flake this test.
+  it('runPacingReport plays a fresh game over the first-week schedule (Story 9.1)', { timeout: 20000 }, () => {
     const r = runPacingReport({ seed: 1, days: 1 });
     const own = runSim({ state: createInitialState(), seed: 1, schedule: firstWeekSchedule(1) });
     expect(r.checkIns).toBe(firstWeekSchedule(1).length);
