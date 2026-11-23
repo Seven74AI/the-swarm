@@ -563,7 +563,7 @@ production. E2E tests keep seeding saves; they don't depend on cheats.
 
 ### Dependency Hygiene
 
-- As of 2026-11-21 all 73 Dependabot alerts are development-scope (Vite, Vitest, undici and their
+- Dependabot alerts in this repo are development-scope (Vite, Vitest, undici and their
   transitive packages). None ship to players.
 - **Runtime dependencies stay minimal:** `preact`, `@preact/signals`, `@preact/signals-core` (plus the
   PWA runtime). Adding one needs an ADR.
