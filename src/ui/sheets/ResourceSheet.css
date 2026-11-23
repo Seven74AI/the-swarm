@@ -116,3 +116,24 @@
   font-size: var(--type-aside);
   color: var(--color-dim);
 }
+
+/* The food block (Story 9.12): four short lines under the verdict; each name is a 44 px button. */
+.food-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  font-size: var(--type-aside);
+  color: var(--color-dim);
+}
+.food-block p { margin: 0; }
+.food-block__name {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding: 0 0.25rem;
+  font: inherit;
+  color: var(--color-accent);
+  background: transparent;
+  border: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}

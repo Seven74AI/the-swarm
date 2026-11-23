@@ -203,3 +203,44 @@ describe('resource sheet: am I okay? (Story 9.11)', () => {
     expect(since.textContent).toMatch(/^FOOD \+1\s?204 SINCE \d{2}:\d{2}\W+NET WAS −[\d\s]+\/[SM], NOW \+[\d\s]+\/[SM]$/);
   });
 });
+
+/** Story 9.12 (FR66, UX-DR51, FR12): where the food goes. */
+describe('resource sheet: the food block (Story 9.12)', () => {
+  const colony = (): GameState => {
+    const s = createInitialState();
+    return { ...s, phase: Phase.COLONY, resources: { ...s.resources, workers: 30, food: 5_000, nestCapacity: 100 }, workersAssigned: { ...s.workersAssigned, gather: 10, tend: 5 } };
+  };
+
+  it('sits under the verdict from Colony on: in with its sources, eaten with its eaters, spent this hour, one gatherer feeds', async () => {
+    const { foodParts } = await import('../../../../src/systems/ResourceSystem');
+    gameState.value = colony();
+    feed = createResourceFeed();
+    act(() => void openResourceSheet(sheets, feed));
+    const block = sheet().querySelector<HTMLElement>('[data-food-block]')!;
+    expect(sheet().querySelector('[data-verdict]')!.compareDocumentPosition(block) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const p = foodParts(gameState.value);
+    expect(block.querySelector('[data-food="in"]')!.textContent).toMatch(/^FOOD IN \+[\d\s]+\/[SM]\W+(from )?gatherers 10\W+idle 15$/);
+    expect(block.querySelector('[data-food="eaten"]')!.textContent).toMatch(/^EATEN −[\d\s]+\/[SM]\W+(by )?workers 30\W+soldiers 0$/);
+    expect(block.querySelector('[data-food="spent"]')!.textContent).toMatch(/^SPENT THIS HOUR: /);
+    expect(block.querySelector('[data-food="feeds"]')!.textContent).toBe(`ONE GATHERER FEEDS ${p.oneGathererFeeds}.`);
+  });
+
+  it('a name opens its row in WRKR, or WAR for soldiers', () => {
+    const onFoodJump = vi.fn();
+    gameState.value = colony();
+    feed = createResourceFeed();
+    act(() => void openResourceSheet(sheets, feed, { onFoodJump }));
+    act(() => sheet().querySelector<HTMLButtonElement>('[data-food-jump="gather"]')!.click());
+    expect(onFoodJump).toHaveBeenCalledWith('gather');
+    act(() => void openResourceSheet(sheets, feed, { onFoodJump }));
+    act(() => sheet().querySelector<HTMLButtonElement>('[data-food-jump="soldiers"]')!.click());
+    expect(onFoodJump).toHaveBeenLastCalledWith('soldiers');
+  });
+
+  it('Phase 1 shows no food block', () => {
+    gameState.value = createInitialState();
+    feed = createResourceFeed();
+    act(() => void openResourceSheet(sheets, feed));
+    expect(sheet().querySelector('[data-food-block]')).toBeNull();
+  });
+});

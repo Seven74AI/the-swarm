@@ -54,6 +54,7 @@ import { bindPhaseReveal } from './ui/overlays/PhaseReveal';
 import { createWarSession } from './ui/war/warSession';
 import { openBattleSummary } from './ui/sheets/BattleSummarySheet';
 import { createLineJump } from './ui/log/jump';
+import { withFoodLedger } from './ui/sheets/foodLedger';
 import { createChronicle, type Chronicle } from './state/chronicle';
 import { PhaseStateMachine } from './phases/PhaseStateMachine';
 import { Phase, PHASE_ORDER } from './phases/phases';
@@ -304,7 +305,8 @@ export function bootstrap(): {
   // Every player intent goes through an action (Story 1.6): the UI never
   // writes state or touches a system. Decision choices are an action too,
   // not a listener: no listener writes state (AR18).
-  const actions = createActions({ bus, resourceSystem, soldierSystem, battleSystem, territorySystem, phases: fsm });
+  // Every accepted action that spends food is logged for the resource sheet's SPENT THIS HOUR (Story 9.12).
+  const actions = withFoodLedger(createActions({ bus, resourceSystem, soldierSystem, battleSystem, territorySystem, phases: fsm }), () => gameState.value.resources.food);
 
   // One sheet at a time (Story 1.14, D7): every sheet is requested here, drawn by App.
   const sheets = createSheetController();

@@ -182,7 +182,11 @@ function TrainButton({ actions }: { actions: WarActions }) {
           <Sep />
           {formatFull(workers)} WORKER{workers === 1 ? '' : 'S'}
           <Sep />
-          UPKEEP <FoodRate perSec={combatBalance.army.upkeepFoodPerSec} />
+          {/* What the new eater will eat (Story 9.12), from the balance. */}
+          <span data-new-eater="">
+            +{formatUpkeep(combatBalance.army.upkeepFoodPerSec)}
+            <Abbr shown="/S" full=" food a second" /> EATEN
+          </span>
         </>
       }
       data-action="train-soldier"

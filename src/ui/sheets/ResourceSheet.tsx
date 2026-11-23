@@ -5,7 +5,10 @@ import { ModalSheet } from '../shell/Sheet';
 import type { SheetController } from '../shell/SheetController';
 import { GEAR_GLYPH, RESOURCE_BY_ID, type ResourceId } from '../shell/resourceCatalog';
 import type { ResourceFeed, ResourceRow } from '../shell/resourceFeed';
-import { selectFoodRatePerSec, selectResourceFlows, selectResources, selectSeenResources, selectVerdict } from '../../state/selectors';
+import { selectFoodParts, selectFoodRatePerSec, selectPhase, selectResourceFlows, selectResources, selectSeenResources, selectVerdict } from '../../state/selectors';
+import { foodSpentSince } from './foodLedger';
+import { Phase } from '../../phases/phases';
+import { HOUR_MS } from '../../data/constants';
 import type { VerdictKind } from '../../data/content/verdicts';
 import { sheetOpened, type SheetMoment } from './sheetSince';
 import { useThrottledSignal } from '../primitives/throttledSignal';
@@ -48,7 +51,13 @@ export interface ResourceSheetOptions {
   onSeen?: (ids: readonly string[]) => void;
   /** The verdict line was tapped (Story 9.11): open the screen that fixes it. The sheet closes first. */
   onVerdict?: (kind: VerdictKind) => void;
+  /** A name in the food block was tapped (Story 9.12): its WRKR row, or WAR for soldiers. The sheet closes first. */
+  onFoodJump?: (target: FoodJump) => void;
 }
+
+/** What a name in the food block opens (Story 9.12). */
+export type FoodJump = 'gather' | 'idle' | 'workers' | 'soldiers';
+
 
 export const SETTINGS_NOT_READY = 'Settings are not available yet';
 const METER_CELLS = 6;
@@ -166,6 +175,59 @@ function SinceLine({ before, now }: { before: SheetMoment; now: SheetMoment }) {
   );
 }
 
+/**
+ * The food block (Story 9.12, UX-DR51), under the verdict from Colony on:
+ * `FOOD IN +n/S ← gatherers n · idle n`, `EATEN −n/S → workers n · soldiers n`,
+ * `SPENT THIS HOUR: <item> n · …` (the session's one-off spends) and
+ * `ONE GATHERER FEEDS <n>.`, from `selectFoodParts`: IN − EATEN is WRKR's net.
+ * Each name is a button to its WRKR row, or WAR for soldiers.
+ */
+function FoodBlock({ onFoodJump, close }: { onFoodJump?: (t: FoodJump) => void; close: () => void }) {
+  const p = useThrottledSignal(selectFoodParts, REFRESH_MS).value;
+  const [spent] = useState(() => foodSpentSince(Date.now() - HOUR_MS));
+  const name = (target: FoodJump, label: string, n: number) => (
+    <button
+      type="button"
+      class="food-block__name"
+      data-food-jump={target}
+      onClick={() => {
+        close();
+        onFoodJump?.(target);
+      }}
+    >
+      {label} {formatFull(n)}
+    </button>
+  );
+  return (
+    <div class="food-block" data-food-block="">
+      <p data-food="in">
+        FOOD IN {formatSheetRate(p.in.total)} <span aria-hidden="true">←</span>
+        <span class="visually-hidden">from</span> {name('gather', 'gatherers', p.counts.gatherers)}
+        <Sep />
+        {name('idle', 'idle', p.counts.idle)}
+      </p>
+      <p data-food="eaten">
+        EATEN {formatSheetRate(-p.eaten.total)} <span aria-hidden="true">→</span>
+        <span class="visually-hidden">by</span> {name('workers', 'workers', p.counts.workers)}
+        <Sep />
+        {name('soldiers', 'soldiers', p.counts.soldiers)}
+      </p>
+      <p data-food="spent">
+        SPENT THIS HOUR:{' '}
+        {spent.length === 0
+          ? 'NOTHING'
+          : spent.map((s, i) => (
+              <>
+                {i > 0 && <Sep />}
+                {s.label} {formatFull(s.amount)}
+              </>
+            ))}
+      </p>
+      <p data-food="feeds">ONE GATHERER FEEDS {formatFull(p.oneGathererFeeds)}.</p>
+    </div>
+  );
+}
+
 function Group({ group, fresh, peek, setPeek }: { group: SheetGroup; fresh: ReadonlySet<string>; peek: ResourceId | null; setPeek: (id: ResourceId | null) => void }) {
   const [shown, setShown] = useState(group.open);
   // A group that comes to hold a falling or capped resource opens; the player's own toggle stays otherwise.
@@ -199,7 +261,8 @@ function Group({ group, fresh, peek, setPeek }: { group: SheetGroup; fresh: Read
   );
 }
 
-function ResourceSheet({ feed, close, onOpenSettings, onSeen, onVerdict }: { feed: ResourceFeed; close: () => void } & ResourceSheetOptions) {
+function ResourceSheet({ feed, close, onOpenSettings, onSeen, onVerdict, onFoodJump }: { feed: ResourceFeed; close: () => void } & ResourceSheetOptions) {
+  const colonyOn = selectPhase.value !== Phase.EGG_LAYING;
   useEffect(() => feed.retain(), [feed]);
   // What changed since the session's last opening (Story 9.11), fixed when the sheet opens.
   const [since] = useState(() => {
@@ -239,6 +302,7 @@ function ResourceSheet({ feed, close, onOpenSettings, onSeen, onVerdict }: { fee
   return (
     <ModalSheet headline="RESOURCES" class="resource-sheet" data-resource-sheet="" action={settings}>
       <VerdictLine onVerdict={onVerdict} close={close} />
+      {colonyOn && <FoodBlock onFoodJump={onFoodJump} close={close} />}
       {since && <SinceLine before={since.before} now={since.now} />}
       <p class="resource-sheet__header" data-resource-header="">
         {decorate('AMOUNT · RATE · SOURCE · LAST 10 MIN · TAP FOR MORE')}
@@ -256,6 +320,8 @@ function ResourceSheet({ feed, close, onOpenSettings, onSeen, onVerdict }: { fee
 export function openResourceSheet(sheets: SheetController, feed: ResourceFeed, opts: ResourceSheetOptions = {}): number {
   return sheets.open({
     priority: 'modal',
-    render: (close) => <ResourceSheet feed={feed} close={close} onOpenSettings={opts.onOpenSettings} onSeen={opts.onSeen} onVerdict={opts.onVerdict} />,
+    render: (close) => (
+      <ResourceSheet feed={feed} close={close} onOpenSettings={opts.onOpenSettings} onSeen={opts.onSeen} onVerdict={opts.onVerdict} onFoodJump={opts.onFoodJump} />
+    ),
   });
 }
