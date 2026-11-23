@@ -16,7 +16,7 @@ const BASE_GAME_STATE = {
   eggPipeline: { count: 5, progress: 0 },
   larvaPipeline: { count: 3, progress: 0 },
   soldierPipeline: { count: 0, progress: 0 },
-  capacityAccumulator: 0,
+  dig: { roomsDug: 0, progress: 0, carry: 0 },
   workersAssigned: { gather: 3, tend: 2, dig: 1, guard: 1, researchers: 0 },
   soldiers: { scouts: 0, warriors: 0, totalKilled: 0 },
   buildings: { barracks: { level: 0, count: 0 }, walls: { level: 0 }, warehouse: { level: 0 } },
@@ -151,7 +151,7 @@ test.describe('Nest Capacity UI', () => {
 
     // Should have data-tooltip attribute
     const tooltip = await digRow.getAttribute('data-tooltip');
-    expect(tooltip).toContain('nest room');
+    expect(tooltip).toMatch(/every DIG press/);
     expect(tooltip).not.toMatch(/per second/i);
   });
 

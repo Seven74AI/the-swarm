@@ -15,6 +15,7 @@ import {
 import { computeResourceRates } from '../../../../src/systems/ResourceSystem';
 import { TerritorySystem } from '../../../../src/systems/TerritorySystem';
 
+import { digBalance } from '../../../../src/data/balance/dig';
 import { roleBalance } from '../../../../src/data/balance/roles';
 import { BAR_CELLS } from '../../../../src/ui/wrkr/roleBar';
 import { testActions } from '../../helpers/actions';
@@ -174,9 +175,11 @@ describe('WRKR tab (Story 1.23)', () => {
     const c = mount();
     const tip = row(c, 'dig').getAttribute('data-tooltip') ?? '';
     expect(tip).not.toMatch(/per second/i);
-    // The tooltip names the real time one digger takes per room.
-    const hours = Math.round(roleBalance.digMsPerRoom / 3_600_000);
-    expect(tip).toContain(String(hours));
+    // Story 9.2: the tooltip states the new rule, with the balance's own numbers.
+    expect(tip).toMatch(/every DIG press/);
+    expect(tip).toMatch(/alone/);
+    expect(tip).toContain(String(digBalance.pressPointsPerDigger));
+    expect(tip).toContain(String(Math.round(digBalance.diggerPointsPerSec * 3_600)));
   });
 
   it('shows a negative net in warn with ▼', () => {

@@ -20,8 +20,8 @@ import {
 } from '../../state/selectors';
 import type { Phase } from '../../phases/phases';
 import { formatFull } from '../../utils/format';
-import { roleBalance } from '../../data/balance/roles';
-import { HOUR_MS } from '../../data/constants';
+import { digBalance } from '../../data/balance/dig';
+import { HOUR_MS, MS_PER_SEC } from '../../data/constants';
 import { Button } from '../primitives/Button';
 import { MultiplierRow, Stepper, type Multiplier } from '../primitives/Stepper';
 import { lockedTarget, type TargetLock } from '../shell/targetLock';
@@ -36,8 +36,8 @@ export interface WorkersActions {
 }
 
 const NO_FREE = 'no free workers';
-/** How long one digger takes per nest room, read from the balance (never restated). */
-const DIG_TOOLTIP = `Each digger digs one nest room in about ${Math.round(roleBalance.digMsPerRoom / HOUR_MS)}h. Tunnels dig faster.`;
+/** What a digger does (Story 9.2), read from the balance (never restated): adds to every DIG press, digs slowly alone. */
+const DIG_TOOLTIP = `Each digger adds ${digBalance.pressPointsPerDigger} to every DIG press and digs about ${Math.round(digBalance.diggerPointsPerSec * HOUR_MS / MS_PER_SEC)} an hour alone. Tunnels dig faster. Diggers bring in stone.`;
 
 const plural = (n: number, one: string) => (n === 1 ? `one ${one}` : `${n} ${one}s`);
 

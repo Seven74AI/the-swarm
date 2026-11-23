@@ -3,8 +3,9 @@
  * brings in. Read by `systems/ResourceSystem.ts` and `engine/processTick.ts`.
  * Tests import these; they never restate the numbers.
  *
- * Gather: food and wood. Forage: nectar. Tend: faster hatching. Dig: nest
- * capacity and stone. Guard: no yield (defence). An unassigned worker forages
+ * Gather: food and wood. Forage: nectar. Tend: faster hatching. Dig: adds to
+ * every DIG press, digs slowly alone (`data/balance/dig.ts`, Story 9.2) and
+ * brings in stone. Guard: no yield (defence). An unassigned worker forages
  * food at the idle rate. Wood, stone and nectar come from these roles from
  * Colony on, so the first buildings are buyable before any territory; claimed
  * territory adds to them (TerritorySystem).
@@ -24,8 +25,6 @@ export const roleBalance = {
   idleFoodPerSec: 1,
   /** Each tending worker speeds hatching by this share (+25 %). */
   tendHatchBonusPerWorker: 0.25,
-  /** Digging time of one dig worker per +1 nest capacity. */
-  digMsPerRoom: 96_000_000,
   /** Stone a digger brings in (Story 3.4). */
   digStonePerSec: 0.01,
 } as const;

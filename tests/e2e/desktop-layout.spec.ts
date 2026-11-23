@@ -78,7 +78,8 @@ test.describe('Desktop columns (≥ 1024 px)', () => {
       expect(zone.y + zone.height).toBeGreaterThanOrEqual(DESKTOP.height - 1);
       expect(Math.abs(zone.x - column.x)).toBeLessThanOrEqual(1);
     }
-    await expect(page.locator('[data-primary-for="nest"] [data-action="next-action"]')).toBeVisible();
+    // NEST's primary from Colony on is > DIG (Story 9.2).
+    await expect(page.locator('[data-primary-for="nest"] [data-action="dig"]')).toBeVisible();
   });
 
   test('picking a tab swaps columns 2–3; picking NEST focuses column 1 and keeps the last tab', async ({ page }) => {

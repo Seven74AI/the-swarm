@@ -35,6 +35,8 @@ export interface CheckInRecord {
   readonly actions: number;
   /** LAY EGG taps that landed. */
   readonly taps: number;
+  /** DIG presses that landed (Story 9.2); like taps, not counted as actions. */
+  readonly digs: number;
   /** Moves the actions refused (the policy suggested something stale). */
   readonly refused: number;
   /** `actions`, by action name (`continuePhase`, `buyBuilding`, `trainSoldier`, `fight` …). */
@@ -119,6 +121,7 @@ interface OpenCheckIn {
   waitMs: number | null;
   actions: number;
   taps: number;
+  digs: number;
   refused: number;
   byAction: Record<string, number>;
   foodCritical: boolean;
@@ -162,7 +165,7 @@ export class Probes {
     this.endCheckIn();
     this.lastCheckIn = index;
     this.open = {
-      index, startMs: atMs, startActiveMs: this.nowActiveMs, phase: s.phase, decisionsAvailable: decisionsAvailable(s), waitMs: waitMs(s), actions: 0, taps: 0, refused: 0, byAction: {},
+      index, startMs: atMs, startActiveMs: this.nowActiveMs, phase: s.phase, decisionsAvailable: decisionsAvailable(s), waitMs: waitMs(s), actions: 0, taps: 0, digs: 0, refused: 0, byAction: {},
       foodCritical: false, capacityCritical: false,
     };
     this.critical(s);
@@ -191,6 +194,11 @@ export class Probes {
   taps(count: number, eggs: number): void {
     if (this.open) this.open.taps += count;
     this.tappedEggs += eggs;
+  }
+
+  /** `count` DIG presses landed (Story 9.2). */
+  digs(count: number): void {
+    if (this.open) this.open.digs += count;
   }
 
   /** After every move and every resume: records the eggs laid since the last look, then a phase change. */

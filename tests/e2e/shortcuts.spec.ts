@@ -54,6 +54,21 @@ test('Space lays an egg in Phase 1 (the primary action) and does not pause', asy
   await expect(page.locator('body')).not.toHaveClass(/game-paused/);
 });
 
+test('Space presses DIG from Colony on, on a phone (Story 9.2)', async ({ page }) => {
+  // One column: NEST's primary is the active tab's (desktop columns press columns 2–3, tested below).
+  await page.setViewportSize({ width: 390, height: 844 });
+  await boot(page, { gameState: COLONY });
+  await expect(page.locator('[data-nest-primary="dig"] button[data-action="dig"]')).toBeVisible();
+  const dug = () => page.evaluate(() => {
+    const s = (window as any).__swarm.manager.getState();
+    return s.dig.roomsDug * 1_000_000_000 + s.dig.progress;
+  });
+  const before = await dug();
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.press('Space');
+  await expect.poll(dug).toBeGreaterThan(before);
+});
+
 test('1–5 switch tabs in bar order, P pauses and Esc closes a sheet', async ({ page }) => {
   await boot(page, { gameState: COLONY });
   const order = await page.locator('[data-tab-bar] [data-tab]').evaluateAll((els) => els.map((e) => e.getAttribute('data-tab')));

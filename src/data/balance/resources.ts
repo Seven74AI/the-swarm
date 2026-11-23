@@ -10,7 +10,7 @@
  *   but the pipelines divided the step's SECONDS by them (k = 1/50 per
  *   second), so an egg took 50 s on average, not 50 × 50 ms. Kept as 50 000 ms.
  * - `DIG_TICKS_PER_ROOM = 20` counted real 50 ms ticks: 20 × 50 ms = 1 000 ms
- *   of one dig worker per room (now `roleBalance.digMsPerRoom`).
+ *   of one dig worker per room (Story 9.2 replaced it with `data/balance/dig.ts`).
  *
  * Story 3.11 tuned these to the GDD's Difficulty Curve (the before and after
  * `pnpm sim` reports are in its story file): an egg now takes about 15 min to

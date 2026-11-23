@@ -168,6 +168,8 @@ export class SimRunner {
       for (const move of moves) {
         if (move.kind === 'layEgg') {
           any = this.tap(move.taps) > 0 || any;
+        } else if (move.kind === 'dig') {
+          any = this.dig(move.presses) > 0 || any;
         } else {
           if (budget <= 0) break;
           budget -= 1;
@@ -192,7 +194,15 @@ export class SimRunner {
     return landed;
   }
 
-  private apply(move: Exclude<SimMove, { kind: 'layEgg' }>): { readonly ok: boolean } {
+  /** `count` DIG presses (Story 9.2); returns how many landed. */
+  private dig(count: number): number {
+    let landed = 0;
+    for (let i = 0; i < count; i++) if (this.actions.dig().ok) landed += 1;
+    this.probes.digs(landed);
+    return landed;
+  }
+
+  private apply(move: Exclude<SimMove, { kind: 'layEgg' | 'dig' }>): { readonly ok: boolean } {
     switch (move.kind) {
       case 'intent':
         return this.actions.perform(move.intent);
@@ -223,7 +233,7 @@ export class SimRunner {
 }
 
 /** The action a move goes through, by name. */
-function moveName(move: Exclude<SimMove, { kind: 'layEgg' }>): string {
+function moveName(move: Exclude<SimMove, { kind: 'layEgg' | 'dig' }>): string {
   return move.kind === 'intent' ? move.intent.action : move.kind;
 }
 

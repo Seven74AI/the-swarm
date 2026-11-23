@@ -124,9 +124,13 @@ export interface GameState {
   larvaPipeline: Pipeline;
   /** Rate-based soldier training pipeline (replaces soldierTrainTimers[]) */
   soldierPipeline: Pipeline;
-  /** Dig progress toward the next nest room, in dig-worker ticks: each dig worker
-   * adds one per 50 ms of game time (any step length, Story 2.5); 20 make +1 nestCapacity. */
-  capacityAccumulator: number;
+  /**
+   * DIG (Story 9.2, save v35, `systems/Dig.ts`): the rooms dug, the whole dig
+   * points toward the next room, and the diggers' fraction of a point in [0, 1)
+   * (they dig at a rate, at any step length: Story 2.5). Replaces v34's
+   * `capacityAccumulator`.
+   */
+  dig: { roomsDug: number; progress: number; carry: number };
   /** Fractions of a unit carried between steps for the resources credited at a rate
    * (Story 2.5, AR20): the resources themselves stay whole numbers. Each in [0, 1). */
   resourceRemainder: ResourceRemainder;
@@ -510,7 +514,7 @@ export function createInitialState(): GameState {
     battlesLost: 0,
     nextEnemy: peekEnemy(rngFromSeed(DEFAULT_SEED), 0).type as EnemyType,
     soldierPipeline: { count: 0, progress: 0 },
-    capacityAccumulator: 0,
+    dig: { roomsDug: 0, progress: 0, carry: 0 },
     resourceRemainder: { food: 0, wood: 0, stone: 0, nectar: 0 },
     victoryAchieved: false,
     phaseGoal: null,

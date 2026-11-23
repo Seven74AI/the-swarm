@@ -61,6 +61,17 @@ describe('defaultPolicy', () => {
     expect(defaultPolicy(brood, { taps: 7 })).toContainEqual({ kind: 'layEgg', taps: 7 });
   });
 
+  it('presses DIG with the turn’s taps from Colony on while the nest cannot hold its brood (Story 9.2)', () => {
+    const s = colonyWithoutGuard();
+    const full = { ...s, resources: { ...s.resources, nestCapacity: s.resources.workers, larvae: 3 } };
+    expect(defaultPolicy(full, { taps: 7 })).toContainEqual({ kind: 'dig', presses: 7 });
+    expect(kinds(defaultPolicy(full, { taps: 0 }))).not.toContain('dig');
+    // Room to spare: no digging.
+    expect(kinds(defaultPolicy(s, { taps: 7 }))).not.toContain('dig');
+    // Egg Laying has no DIG.
+    expect(kinds(defaultPolicy({ ...full, phase: Phase.EGG_LAYING }, { taps: 7 }))).not.toContain('dig');
+  });
+
   it('stops tapping once the goal has its workers', () => {
     expect(kinds(defaultPolicy(colonyWithoutGuard(), { taps: 7 }))).not.toContain('layEgg');
   });

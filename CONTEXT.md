@@ -6,7 +6,7 @@
 The maximum number of workers the colony can support. When workers reach capacity, the `larvaPipeline` is blocked — existing workers continue normally, but no new workers hatch until capacity is expanded. This makes `nestCapacity` a real gameplay mechanic (previously cosmetic/dead code).
 
 Capacity is expanded via:
-- **Dig workers**: +1 capacity per `resourceBalance.digMsPerRoom` of one dig worker (integer-only accumulation)
+- **DIG** (Story 9.2, FR55): from Colony on NEST's primary action is `> DIG` (`[data-nest-primary=dig]`, `actions.dig`, hold repeats, Space presses it). A press adds a chunk of whole dig points to the current room (`pressChunk`: a base plus a share per worker on the DIG role) and stone for the dirt dug; once `roomCost(roomsDug)` is in, the room opens (+`digBalance.roomSize` capacity, the rest carries over) and the next costs more. Diggers also dig alone at a slow rate (`diggerPointsPerSec`, Tunnels speed it up), step-length independent. State: `state.dig` (`roomsDug`, `progress`, `carry`; save v35, which replaced `capacityAccumulator`). Code: `src/systems/Dig.ts`, balance `src/data/balance/dig.ts`
 - **Warehouse building**: +25 per level (soft-capped after Lv.5 via `softCapEffectiveness`)
 - **"Expand" decision**: +10 one-time from DecisionSystem
 

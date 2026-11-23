@@ -5,6 +5,8 @@ import { resourceBalance } from '../../src/data/balance/resources';
 import { roleBalance } from '../../src/data/balance/roles';
 import { MS_PER_SEC, TICK_MS } from '../../src/data/constants';
 import { createInitialState, type GameState } from '../../src/state/GameState';
+import { digBalance } from '../../src/data/balance/dig';
+import { roomCost } from '../../src/systems/Dig';
 
 /**
  * Enough live ticks for a big pipeline to move some items: 1/10 of the mean
@@ -125,11 +127,12 @@ describe('ResourceSystem', () => {
       expect(matured / state.larvaPipeline.count).toBeCloseTo(MEAN_SHARE, 2);
     });
 
-    it('one dig worker adds one room per digMsPerRoom', () => {
+    it('one dig worker alone opens a room once it has dug the room cost (Story 9.2)', () => {
       state.workersAssigned = { gather: 0, forage: 0, tend: 0, dig: 1, guard: 0, researchers: 0 };
       state.resources.workers = 1;
-      const r = system.tick(state, undefined, (3 * roleBalance.digMsPerRoom) / MS_PER_SEC);
-      expect(r.resources.nestCapacity - state.resources.nestCapacity).toBe(3);
+      const r = system.tick(state, undefined, Math.ceil(roomCost(0) / digBalance.diggerPointsPerSec));
+      expect(r.dig.roomsDug).toBe(state.dig.roomsDug + 1);
+      expect(r.resources.nestCapacity - state.resources.nestCapacity).toBe(digBalance.roomSize);
     });
   });
 
@@ -263,21 +266,20 @@ describe('ResourceSystem', () => {
   });
 
   describe('tick — dig workers', () => {
-    // Read from the balance (Story 3.11 retuned digging): one dig worker adds a room per `digMsPerRoom`.
-    const ROOM_SEC = roleBalance.digMsPerRoom / MS_PER_SEC;
-    const ROOM_STEPS = roleBalance.digMsPerRoom / TICK_MS;
+    // Read from the balance (Story 9.2): one digger alone digs the first room in this many seconds.
+    const ROOM_SEC = Math.ceil(roomCost(0) / digBalance.diggerPointsPerSec);
     const dig = (s: GameState, n: number): GameState => ({ ...s, workersAssigned: { gather: 0, forage: 0, tend: 0, dig: n, guard: 0, researchers: 0 } });
 
-    it('accumulates capacityAccumulator but does not change nestCapacity in one tick', () => {
+    it('digs toward the next room but opens none in one tick', () => {
       state.resources.workers = 5;
       const before = dig(state, 3);
       const result = system.tick(before);
-      expect(result.capacityAccumulator).toBeGreaterThan(before.capacityAccumulator);
-      expect(result.capacityAccumulator).toBeLessThan(ROOM_STEPS);
+      expect(result.dig.progress + result.dig.carry).toBeGreaterThan(before.dig.progress + before.dig.carry);
+      expect(result.dig.roomsDug).toBe(before.dig.roomsDug);
       expect(result.resources.nestCapacity).toBe(before.resources.nestCapacity);
     });
 
-    it('increases nestCapacity when accumulator crosses threshold', () => {
+    it('increases nestCapacity once a room is dug', () => {
       state.resources.workers = 10;
       const result = system.tick(dig(state, 3), undefined, ROOM_SEC);
       expect(result.resources.nestCapacity).toBeGreaterThan(state.resources.nestCapacity);
@@ -292,20 +294,21 @@ describe('ResourceSystem', () => {
 
     it('nestCapacity grows faster with more dig workers', () => {
       state.resources.workers = 10;
-      const gain1 = system.tick(dig(state, 1), undefined, ROOM_SEC).resources.nestCapacity - state.resources.nestCapacity;
-      const gain5 = system.tick(dig(state, 5), undefined, ROOM_SEC).resources.nestCapacity - state.resources.nestCapacity;
+      const gain1 = system.tick(dig(state, 1), undefined, ROOM_SEC * 4).resources.nestCapacity - state.resources.nestCapacity;
+      const gain5 = system.tick(dig(state, 5), undefined, ROOM_SEC * 4).resources.nestCapacity - state.resources.nestCapacity;
       expect(gain5).toBeGreaterThan(gain1);
     });
 
-    it('accumulator persists across ticks (integer-only, no floating-point drift)', () => {
+    it('progress persists across ticks in whole points, the fraction carried', () => {
       state.resources.workers = 5;
-      // Two half-room steps with one dig worker: the first carries, the second completes the room.
       const half = system.tick(dig(state, 1), undefined, ROOM_SEC / 2);
       expect(half.resources.nestCapacity).toBe(state.resources.nestCapacity);
-      expect(half.capacityAccumulator).toBeGreaterThan(0);
+      expect(half.dig.progress).toBeGreaterThan(0);
+      expect(Number.isInteger(half.dig.progress)).toBe(true);
+      expect(half.dig.carry).toBeGreaterThanOrEqual(0);
+      expect(half.dig.carry).toBeLessThan(1);
       const result = system.tick(half, undefined, ROOM_SEC / 2);
-      expect(result.capacityAccumulator).toBe(0);
-      expect(result.resources.nestCapacity).toBe(state.resources.nestCapacity + 1);
+      expect(result.resources.nestCapacity).toBe(state.resources.nestCapacity + digBalance.roomSize);
     });
   });
 

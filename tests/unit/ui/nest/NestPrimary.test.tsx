@@ -1,5 +1,5 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import { render, cleanup, act } from '@testing-library/preact';
+import { describe, it, expect, afterEach, vi } from 'vitest';
+import { render, cleanup, act, fireEvent } from '@testing-library/preact';
 import { signal } from '@preact/signals';
 import { gameState } from '../../../../src/state/gameSignal';
 import { Phase } from '../../../../src/phases/phases';
@@ -10,9 +10,8 @@ import { makeState } from '../../helpers/makeState';
 import type { LayMode } from '../../../../src/platform/settings';
 
 /**
- * Story 1.22: NEST's primary action is `> LAY EGG` in Phase 1 and follows
- * `getNextAction` after it, with `NEXT AFFORDABLE: …` when nothing is
- * suggested. After Phase 1 the scene area keeps a LAY EGG control
+ * Story 1.22: NEST's primary action is `> LAY EGG` in Phase 1; from Colony on
+ * it is `> DIG` (Story 9.2), which replaced the next-action button there. After Phase 1 the scene area keeps a LAY EGG control
  * (NestSceneArea.test.tsx), so eggs never stop being producible.
  */
 
@@ -45,32 +44,63 @@ describe('NestPrimary (Story 1.22)', () => {
     expect(container.querySelector('[data-next-action]')).toBeNull();
   });
 
-  it('follows getNextAction after Phase 1', () => {
+  it('is `> DIG` from Colony on, never the next-action button (Story 9.2)', () => {
     gameState.value = makeState({ phase: Phase.COLONY, resources: { food: 1_000_000, workers: 5 } });
-    const next = getNextAction(gameState.value);
-    expect(next.kind).toBe('act');
+    expect(getNextAction(gameState.value).kind).toBe('act');
     const { container } = primary();
+    expect(container.querySelector('[data-nest-primary="dig"]')).not.toBeNull();
     expect(container.querySelector('#click-egg')).toBeNull();
-    expect(container.querySelector<HTMLElement>('[data-next-action]')?.dataset.nextKey).toBe(next.key);
+    expect(container.querySelector('[data-next-action]')).toBeNull();
+    const button = container.querySelector<HTMLButtonElement>('[data-nest-primary="dig"] button[data-action="dig"]');
+    expect(button?.dataset.kind).toBe('primary');
+    expect(button?.textContent).toContain('DIG');
   });
 
-  it('shows NEXT AFFORDABLE when no action exists', () => {
-    gameState.value = makeState({ phase: Phase.COLONY, resources: { food: 0, workers: 5 }, workersAssigned: { gather: 5 } });
-    const next = getNextAction(gameState.value);
-    expect(next.kind).toBe('none');
+  it('a DIG press digs the current room through the action', () => {
+    gameState.value = makeState({ phase: Phase.COMBAT });
+    const before = gameState.value.dig;
     const { container } = primary();
-    const zone = container.querySelector('[data-next-action="none"]');
-    expect(zone).not.toBeNull();
-    if (next.kind === 'none' && next.nextAffordable) expect(zone!.textContent).toMatch(/^NEXT AFFORDABLE: .+ IN ~/);
+    const button = container.querySelector<HTMLButtonElement>('button[data-action="dig"]')!;
+    act(() => {
+      fireEvent.pointerDown(button, { pointerId: 1, button: 0 });
+      fireEvent.pointerUp(button, { pointerId: 1, button: 0 });
+    });
+    const after = gameState.value.dig;
+    expect(after.progress + after.roomsDug).toBeGreaterThan(before.progress + before.roomsDug);
   });
 
-  it('switches from LAY EGG to the next action when the phase commits', () => {
+  it('holding DIG repeats the press (UX-DR11)', () => {
+    vi.useFakeTimers();
+    try {
+      gameState.value = makeState({ phase: Phase.COLONY });
+      const { container } = primary();
+      const button = container.querySelector<HTMLButtonElement>('button[data-action="dig"]')!;
+      const points = () => gameState.value.dig.progress + gameState.value.dig.roomsDug;
+      act(() => {
+        fireEvent.pointerDown(button, { pointerId: 1, button: 0 });
+      });
+      act(() => {
+        vi.advanceTimersByTime(2_000);
+      });
+      const held = points();
+      act(() => {
+        vi.advanceTimersByTime(1_000);
+        fireEvent.pointerUp(button, { pointerId: 1, button: 0 });
+      });
+      expect(held).toBeGreaterThan(0);
+      expect(points()).toBeGreaterThan(held);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('switches from LAY EGG to DIG when the phase commits', () => {
     gameState.value = makeState({ phase: Phase.EGG_LAYING });
     const { container } = primary();
     act(() => {
       gameState.value = { ...gameState.value, phase: Phase.COLONY };
     });
     expect(container.querySelector('#click-egg')).toBeNull();
-    expect(container.querySelector('[data-next-action]')).not.toBeNull();
+    expect(container.querySelector('[data-nest-primary="dig"] button[data-action="dig"]')).not.toBeNull();
   });
 });

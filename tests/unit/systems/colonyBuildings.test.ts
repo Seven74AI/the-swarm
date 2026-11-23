@@ -8,6 +8,8 @@ import { EventBus } from '../../../src/engine/EventBus';
 import { roleBalance } from '../../../src/data/balance/roles';
 import { MS_PER_SEC } from '../../../src/data/constants';
 import { FIRST_PRODUCED_IN } from '../../../src/data/content/producers';
+import { digBalance } from '../../../src/data/balance/dig';
+import { roomCost } from '../../../src/systems/Dig';
 
 /**
  * Story 4.7 (FR19): the Colony's own new buildings. The Fungus Garden makes
@@ -88,7 +90,8 @@ describe('Colony buildings (Story 4.7)', () => {
 
   describe('Tunnels', () => {
     const system = new ResourceSystem(new EventBus());
-    const ROOM_SEC = roleBalance.digMsPerRoom / MS_PER_SEC;
+    // One digger's time for the first room (Story 9.2), read from the balance.
+    const ROOM_SEC = roomCost(0) / digBalance.diggerPointsPerSec;
     const diggers = (n: number) => colony((s) => (s.workersAssigned = { ...s.workersAssigned, dig: n }));
     const rooms = (s: GameState, sec: number) => system.tick(s, undefined, sec).resources.nestCapacity - s.resources.nestCapacity;
 
@@ -110,7 +113,7 @@ describe('Colony buildings (Story 4.7)', () => {
       let fine = s;
       for (let i = 0; i < 40; i++) fine = system.tick(fine, undefined, ROOM_SEC / 10);
       const coarse = system.tick(s, undefined, ROOM_SEC * 4);
-      expect(Math.abs(fine.resources.nestCapacity - coarse.resources.nestCapacity)).toBeLessThanOrEqual(1);
+      expect(Math.abs(fine.resources.nestCapacity - coarse.resources.nestCapacity)).toBeLessThanOrEqual(digBalance.roomSize);
     });
   });
 
