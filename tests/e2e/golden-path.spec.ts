@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 import { openTab } from './helpers/tabs';
 import { readResource } from './helpers/resources';
 import { tapContinue } from './helpers/phase';
+import { goalTarget } from './helpers/guards';
 
 /**
  * Golden Path E2E: Full progression seed → all panels unlock → save/load.
@@ -22,7 +23,7 @@ const SEED = {
     resources: {
       eggs: 5,
       larvae: 3,
-      workers: 60,
+      workers: goalTarget('combat', 'workers'),
       food: 5000,
       nestCapacity: 100,
       wood: 400,

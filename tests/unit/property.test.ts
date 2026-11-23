@@ -262,32 +262,12 @@ describe('Phase transitions — property-based (no dead ends)', () => {
       // For each transition, construct a state that satisfies the guard
       const state = createInitialState();
 
-      switch (t.from) {
-        case Phase.EGG_LAYING:
-          // EGG_LAYING → COLONY: workers >= 10
-          state.resources.workers = 10;
-          break;
-        case Phase.COLONY:
-          // COLONY → COMBAT: workers >= 50 AND guard >= 1
-          state.resources.workers = 50;
-          state.workersAssigned.guard = 1;
-          break;
-        case Phase.COMBAT:
-          // COMBAT → EXPANSION: workers >= 60 AND battlesWon >= 5
-          state.resources.workers = 60;
-          state.battlesWon = 5;
-          break;
-        case Phase.EXPANSION:
-          // EXPANSION → SPACE: workers >= 80 AND food >= 5000
-          state.resources.workers = 80;
-          state.resources.food = 5000;
-          break;
-        case Phase.SPACE:
-          // SPACE → TRANSCENDENCE: voidCrystals >= 2000, antimatter >= 400, darkMatter >= 200
-          state.resources.voidCrystals = 2000;
-          state.resources.antimatter = 400;
-          state.resources.darkMatter = 200;
-          break;
+      // Each condition at its own target, read from transitions.ts (Story 9.9 retuned them).
+      for (const c of t.conditions) {
+        const target = c.target(state);
+        if (c.id in state.resources) (state.resources as Record<string, number>)[c.id] = target;
+        else if (c.id === 'guard') state.workersAssigned.guard = target;
+        else (state as unknown as Record<string, number>)[c.id] = target;
       }
 
       expect(
@@ -380,9 +360,9 @@ describe('Phase transitions — property-based (no dead ends)', () => {
   });
 
   it('a state satisfying the guard actually triggers the transition', () => {
-    // EGG_LAYING → COLONY is the simplest: workers >= 10
+    // EGG_LAYING → COLONY is the simplest: its workers target, read from transitions.ts.
     const state = createInitialState();
-    state.resources.workers = 10;
+    state.resources.workers = TRANSITIONS.find((t) => t.from === Phase.EGG_LAYING)!.conditions.find((c) => c.id === 'workers')!.target(state);
     const sm = new PhaseStateMachine(TRANSITIONS);
     const latched = sm.latch(state);
     expect(latched.phase).toBe(Phase.EGG_LAYING);

@@ -8,17 +8,17 @@
  */
 export const digBalance = {
   /** Nest capacity one room adds (more than 1). */
-  roomSize: 5,
+  roomSize: 6,
   /** Dig points the first room costs. */
-  firstRoomPoints: 25000,
+  firstRoomPoints: 3500,
   /** Each room dug adds this share of the first room's cost to every later room (linear, so a big nest stays diggable). */
-  roomGrowthPerRoom: 0.25,
+  roomGrowthPerRoom: 0.22,
   /** Dig points a press adds on its own. */
   pressPoints: 10,
   /** Dig points every worker on the DIG role adds to each press (the sum floored to whole points). */
   pressPointsPerDigger: 0.25,
   /** Dig points one digger digs a second on its own (Tunnels multiply it). */
-  diggerPointsPerSec: 0.05,
+  diggerPointsPerSec: 0.1,
   /** Dig points of dirt per stone a press brings in. */
   pointsPerStone: 200,
 } as const;

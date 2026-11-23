@@ -26,9 +26,9 @@ import { createInitialState, type GameState } from '../../src/state/GameState';
 import { Phase } from '../../src/phases/phases';
 import { goalFor, type Transition } from '../../src/phases/transitions';
 import { simBalance } from '../../src/data/balance/sim';
-import { DAY_MS, MS_PER_SEC } from '../../src/data/constants';
+import { pacingTargets } from '../../src/data/balance/pacing';
+import { DAY_MS } from '../../src/data/constants';
 
-const MINUTE_MS = 60 * MS_PER_SEC;
 
 // catch-up logs one info line per resume; keep the test output readable.
 beforeEach(() => {
@@ -44,16 +44,18 @@ const SEED = 288;
 const CEILING_FACTOR = 10;
 
 /**
- * The GDD's pacing targets, at their slow end: Phase 1 in 3–5 min of active
- * play; Phase 2 in 20–40 min of active play, within day 1; Phase 3 over
- * days 2–3 of real time.
+ * The GDD's pacing targets, at their slow end, read from `pacingTargets`
+ * (Story 9.1: the first-week Difficulty Curve): each phase's most active play,
+ * and the last day it should end on.
  */
 type MvpPhase = Phase.EGG_LAYING | Phase.COLONY | Phase.COMBAT;
-const GDD_TARGET: Record<MvpPhase, { readonly activeMs?: number; readonly realMs?: number }> = {
-  [Phase.EGG_LAYING]: { activeMs: 5 * MINUTE_MS },
-  [Phase.COLONY]: { activeMs: 40 * MINUTE_MS, realMs: DAY_MS },
-  [Phase.COMBAT]: { realMs: 3 * DAY_MS },
-};
+function gddTarget(phase: MvpPhase): { readonly activeMs?: number; readonly realMs?: number } {
+  const t = pacingTargets.phases.find((p) => p.phase === phase)!;
+  return {
+    ...(t.activeMs ? { activeMs: t.activeMs.max } : {}),
+    ...(t.finish.kind === 'days' ? { realMs: t.finish.toDay * DAY_MS } : {}),
+  };
+}
 
 interface Ceiling {
   readonly activeMs: number;
@@ -61,7 +63,7 @@ interface Ceiling {
 }
 
 function ceilingFor(phase: MvpPhase): Ceiling {
-  const t = GDD_TARGET[phase];
+  const t = gddTarget(phase);
   const dailyActive = simBalance.checkInsPerDay * simBalance.checkInActiveMs;
   const activeMs = t.activeMs === undefined ? Infinity : t.activeMs * CEILING_FACTOR;
   // Without a real-time target, give the schedule the days the active ceiling needs.
@@ -166,5 +168,26 @@ for (const [name, policy] of POLICIES) describe(`every MVP phase goal is reachab
       expect(prev.commits).toEqual([{ from: before, to: phase }]);
       expect(entryOf(phase)).toBe(prev.end);
     }
+  });
+});
+
+/**
+ * Story 9.9 (#438's capacity rebalance): a player who never taps (no LAY EGG,
+ * no DIG, no FEED) still reaches the Colony goal: the queen lays on her own
+ * once AUTO is on, and the diggers dig alone.
+ */
+describe('the Colony goal without a single tap (Story 9.9)', () => {
+  const noTaps: PlayerPolicy = (s, turn) => defaultPolicy(s, { ...turn, taps: 0 });
+
+  it('is reached within the ceiling, without prestige or a stalled day', () => {
+    const egg = reach(createInitialState(), ceilingFor(Phase.EGG_LAYING), defaultPolicy);
+    expect(egg.reached).toBe(true);
+    const r = reach(egg.end, ceilingFor(Phase.COLONY), noTaps);
+    const presses = r.result.probes.checkIns.reduce((n, c) => n + c.taps + c.digs + c.feeds, 0);
+    expect(presses).toBe(0);
+    expect(r.stalled, 'stalled: a full simulated day with no progress').toBe(false);
+    expect(r.reached, 'the Colony goal was not met within the ceiling').toBe(true);
+    expect(r.prestiged).toBe(false);
+    expect(r.result.elapsedMs).toBeLessThanOrEqual(ceilingFor(Phase.COLONY).realMs);
   });
 });

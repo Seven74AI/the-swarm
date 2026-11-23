@@ -52,7 +52,7 @@ function workers(target: number): GoalCondition {
 export const EGG_TO_COLONY: Transition = transition({
   from: Phase.EGG_LAYING,
   to: Phase.COLONY,
-  conditions: [workers(10)],
+  conditions: [workers(15)],
   onEnter: (state, eventBus) => {
     return state;
   },
@@ -68,7 +68,7 @@ export const COLONY_TO_COMBAT: Transition = transition({
   from: Phase.COLONY,
   to: Phase.COMBAT,
   conditions: [
-    workers(50),
+    workers(200),
     { id: 'guard', label: 'guards', one: 'guard', current: (s) => s.workersAssigned.guard, target: () => 1 },
   ],
 });
@@ -83,7 +83,7 @@ export const COMBAT_TO_EXPANSION: Transition = transition({
   from: Phase.COMBAT,
   to: Phase.EXPANSION,
   conditions: [
-    workers(60),
+    workers(400),
     { id: 'battlesWon', label: 'battles won', one: 'battle won', current: (s) => s.battlesWon, target: () => 5 },
   ],
   onEnter: (state, eventBus) => {
@@ -104,7 +104,7 @@ export const EXPANSION_TO_SPACE: Transition = transition({
   from: Phase.EXPANSION,
   to: Phase.SPACE,
   conditions: [
-    workers(80),
+    workers(600),
     { id: 'food', label: 'food', current: (s) => s.resources.food, target: () => 5000 },
   ],
   onEnter: (state, eventBus) => {

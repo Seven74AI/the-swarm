@@ -8,6 +8,9 @@ import { EventBus } from '../../src/engine/EventBus';
 import { createInitialState } from '../../src/state/GameState';
 import type { GameState } from '../../src/state/GameState';
 
+/** Colony's workers target, read from transitions.ts (Story 9.9 retuned it). */
+const NEED = COLONY_TO_COMBAT.conditions.find((c) => c.id === 'workers')!.target(createInitialState());
+
 describe('Phase enum — COMBAT', () => {
   it('has COMBAT value as string', () => {
     expect(Phase.COMBAT).toBe('combat');
@@ -33,30 +36,30 @@ describe('Transition COLONY → COMBAT', () => {
     expect(COLONY_TO_COMBAT.to).toBe(Phase.COMBAT);
   });
 
-  it('guard returns false when workers < 50', () => {
+  it('guard returns false when one worker short', () => {
     const state = createInitialState();
-    state.resources.workers = 49;
+    state.resources.workers = NEED - 1;
     state.workersAssigned.guard = 1;
     expect(COLONY_TO_COMBAT.guard(state)).toBe(false);
   });
 
   it('guard returns false when guard === 0 (even with 50+ workers)', () => {
     const state = createInitialState();
-    state.resources.workers = 50;
+    state.resources.workers = NEED;
     state.workersAssigned.guard = 0;
     expect(COLONY_TO_COMBAT.guard(state)).toBe(false);
   });
 
-  it('guard returns false when workers < 50 AND guard === 0', () => {
+  it('guard returns false when one worker short AND guard === 0', () => {
     const state = createInitialState();
-    state.resources.workers = 49;
+    state.resources.workers = NEED - 1;
     state.workersAssigned.guard = 0;
     expect(COLONY_TO_COMBAT.guard(state)).toBe(false);
   });
 
-  it('guard returns true when workers >= 50 AND guard >= 1', () => {
+  it('guard returns true with the workers AND guard >= 1', () => {
     const state = createInitialState();
-    state.resources.workers = 50;
+    state.resources.workers = NEED;
     state.workersAssigned.guard = 1;
     expect(COLONY_TO_COMBAT.guard(state)).toBe(true);
   });
@@ -82,20 +85,20 @@ describe('PhaseStateMachine — COLONY → COMBAT', () => {
     state = { ...createInitialState(), phase: Phase.COLONY };
   });
 
-  it('does not latch when workers < 50', () => {
-    state.resources.workers = 49;
+  it('does not latch when one worker short', () => {
+    state.resources.workers = NEED - 1;
     state.workersAssigned.guard = 1;
     expect(fsm.latch(state).phaseGoal).toBeNull();
   });
 
   it('does not latch when guard === 0', () => {
-    state.resources.workers = 50;
+    state.resources.workers = NEED;
     state.workersAssigned.guard = 0;
     expect(fsm.latch(state).phaseGoal).toBeNull();
   });
 
-  it('latches the COMBAT goal when workers >= 50 AND guard >= 1, without changing phase', () => {
-    state.resources.workers = 50;
+  it('latches the COMBAT goal with the workers AND guard >= 1, without changing phase', () => {
+    state.resources.workers = NEED;
     state.workersAssigned.guard = 1;
     const latched = fsm.latch(state);
     expect(latched.phase).toBe(Phase.COLONY);
@@ -103,7 +106,7 @@ describe('PhaseStateMachine — COLONY → COMBAT', () => {
   });
 
   it('CONTINUE commits COMBAT once; COMBAT has its own goal', () => {
-    state.resources.workers = 50;
+    state.resources.workers = NEED;
     state.workersAssigned.guard = 1;
     const latched = fsm.latch(state);
     const next = fsm.commit(fsm.pending(latched)!, latched, bus);

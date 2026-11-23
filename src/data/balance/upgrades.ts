@@ -38,7 +38,7 @@ export const NEST_UPGRADE_IDS = ['warm_brood', 'lean_rations', 'side_chamber'] a
 export const upgradeBalance: Readonly<Record<UpgradeId, UpgradeBalance>> = {
   click_power: { ...resourceBalance.clickPower, perLevel: { eggsPerTap: resourceBalance.eggsPerTapPerLevel } },
   // Hatching: the brood already laid turns into larvae sooner. Pillar 1 (the pipeline), Pillar 3 (spend, not tap).
-  warm_brood: { baseCost: 20, costMultiplier: 1.5, maxLevel: 3, perLevel: { hatchPercent: 15 } },
+  warm_brood: { baseCost: 10, costMultiplier: 1.5, maxLevel: 3, perLevel: { hatchPercent: 15 } },
   // Upkeep: workers eat less, so food comes in faster. Pillar 4: the cut is capped, upkeep always bites.
   lean_rations: { baseCost: 25, costMultiplier: 2.2, maxLevel: 3, perLevel: { upkeepCutPercent: 15 } },
   // Capacity: more rooms for the workers to come. Pillar 1 (bounded by capacity); no help before the nest fills.

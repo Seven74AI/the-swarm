@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { REVEAL, tapContinue } from './helpers/phase';
+import { goalTarget } from './helpers/guards';
 
 /**
  * E2E: Phase-Based Panel Reveal + Phase Theme Shifting (UX-10).
@@ -130,7 +131,7 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
     test('Phase 2 panel appears after colony phase transition (no scroll needed)', async ({ page }) => {
       // Start with workers=10 to trigger immediate EGG→COLONY transition
       const data = makeSaveData({
-        resources: { eggs: 5, larvae: 0, workers: 10, food: 200, nestCapacity: 50, wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0 },
+        resources: { eggs: 5, larvae: 0, workers: goalTarget('egg_laying', 'workers'), food: 200, nestCapacity: 50, wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0 },
       });
       await page.addInitScript((saveStr) => {
         localStorage.setItem('the_swarm_save', saveStr);
@@ -152,7 +153,7 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
 
     test('lazily loaded panels are unlocked when their phase starts', async ({ page }) => {
       const data = makeSaveData({
-        resources: { eggs: 5, larvae: 0, workers: 10, food: 200, nestCapacity: 50, wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0 },
+        resources: { eggs: 5, larvae: 0, workers: goalTarget('egg_laying', 'workers'), food: 200, nestCapacity: 50, wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0 },
       });
       await page.addInitScript((saveStr) => {
         localStorage.setItem('the_swarm_save', saveStr);
@@ -192,7 +193,7 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
 
     test('phase transition to colony sets body class phase-colony', async ({ page }) => {
       // Use workers=10 to trigger immediate EGG→COLONY transition on first tick
-      const data = makeSaveData({ resources: { eggs: 5, larvae: 0, workers: 10, food: 200, nestCapacity: 50, wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0 } });
+      const data = makeSaveData({ resources: { eggs: 5, larvae: 0, workers: goalTarget('egg_laying', 'workers'), food: 200, nestCapacity: 50, wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0 } });
       await page.addInitScript((saveStr) => {
         localStorage.setItem('the_swarm_save', saveStr);
       }, JSON.stringify(data));
@@ -220,7 +221,7 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
     });
 
     test('phase body class changes on phase transition', async ({ page }) => {
-      const data = makeSaveData({ resources: { eggs: 5, larvae: 0, workers: 10, food: 200, nestCapacity: 50, wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0 } });
+      const data = makeSaveData({ resources: { eggs: 5, larvae: 0, workers: goalTarget('egg_laying', 'workers'), food: 200, nestCapacity: 50, wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0 } });
       await page.addInitScript((saveStr) => {
         localStorage.setItem('the_swarm_save', saveStr);
       }, JSON.stringify(data));
@@ -251,7 +252,7 @@ test.describe('Phase-Based Panel Reveal + Phase Theme (UX-10)', () => {
     });
 
     test('phase theme changes background color on transition', async ({ page }) => {
-      const data = makeSaveData({ resources: { eggs: 5, larvae: 0, workers: 10, food: 200, nestCapacity: 50, wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0 } });
+      const data = makeSaveData({ resources: { eggs: 5, larvae: 0, workers: goalTarget('egg_laying', 'workers'), food: 200, nestCapacity: 50, wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0 } });
       await page.addInitScript((saveStr) => {
         localStorage.setItem('the_swarm_save', saveStr);
       }, JSON.stringify(data));

@@ -4,6 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openTab, type TabId, type SegmentId } from './helpers/tabs';
 import { REVEAL, tapContinue } from './helpers/phase';
+import { goalTarget } from './helpers/guards';
 
 /**
  * E2E: every screen uses only the phase palette (Story 8.3, FR43).
@@ -254,7 +255,7 @@ test.describe('the first enemy creature', () => {
     // Colony with its goal met: every Colony screen is drawn first, then CONTINUE commits Combat.
     await seed(page, {
       ...PHASES.colony,
-      resources: { ...PHASES.colony.resources, workers: 60, food: 5_000, nestCapacity: 200 },
+      resources: { ...PHASES.colony.resources, workers: goalTarget('colony', 'workers'), food: 5_000, nestCapacity: goalTarget('colony', 'workers') },
       workersAssigned: { gather: 30, tend: 10, dig: 10, guard: 10, researchers: 0 },
       buildings: { barracks: { level: 1, count: 1 } },
     });
@@ -276,7 +277,7 @@ test.describe('the first enemy creature', () => {
   test('is not drawn in the Colony reveal', async ({ page }) => {
     await seed(page, {
       ...PHASES.egg,
-      resources: { ...PHASES.egg.resources, workers: 10, food: 200, nestCapacity: 50 },
+      resources: { ...PHASES.egg.resources, workers: goalTarget('egg_laying', 'workers'), food: 200, nestCapacity: 50 },
     });
     await expect(enemy(page)).toHaveCount(0);
     await tapContinue(page, 15_000, { reveal: 'keep' });

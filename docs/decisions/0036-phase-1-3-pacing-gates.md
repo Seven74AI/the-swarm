@@ -35,3 +35,12 @@ Combat over days 2–3, for a player checking in about 6 times a day.
   the check-in model needs a new pass.
 - Pillar 3's "under 10% of eggs from tapping after Colony" cannot be measured until automation lays eggs in
   Colony (Story 4.10). Phases 4–5 are not tuned (Epic 6).
+
+## Retuned for the first week (Story 9.9)
+
+The DIG core (Epic 9) replaced digging-as-a-trickle with rooms dug a press at a time. Story 9.9 retuned Phases 1–2
+against the first-week gates: the brood takes 10 min to hatch and 10 to mature, rooms are cheap at first and grow
+slowly (`digBalance`), the Colony goal asks for 200 workers (GDD range 150–300), and every later worker goal stays
+above the one before it (`tests/unit/phases/workerTargetsOrder.test.ts`). Gate 1 passes and Colony ends after
+session 1. The before and after reports are in `_bmad-output/implementation-artifacts/9-9-tune-the-dig-core.md`.
+Phase 3's length (gate 2) and post-week check-ins (gate 3) are batch 2's.

@@ -19,9 +19,9 @@
  */
 export const resourceBalance = {
   /** Mean time an egg takes to hatch (pipeline rate k = 1 / hatchMs). */
-  hatchMs: 900_000,
+  hatchMs: 600_000,
   /** Mean time a larva takes to mature into a worker. */
-  matureMs: 900_000,
+  matureMs: 600_000,
   /** Food each worker eats. */
   upkeepFoodPerSec: 0.5,
   /** Eggs one tap lays at Click Power 0 (FR1). */

@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { openTab } from './helpers/tabs';
 import { REVEAL, tapContinue, waitOutReveal } from './helpers/phase';
 import { NARRATIVE_BEATS } from '../../src/data/content/narrative';
+import { goalTarget } from './helpers/guards';
 
 /**
  * E2E: the phase reveal (Story 1.20, UX-DR27).
@@ -27,7 +28,7 @@ function makeSaveData(overrides?: Record<string, unknown>) {
     gameState: {
       phase: 'egg_laying',
       resources: {
-        eggs: 5, larvae: 0, workers: 10, food: 200,
+        eggs: 5, larvae: 0, workers: goalTarget('egg_laying', 'workers'), food: 200,
         nestCapacity: 50, wood: 0, stone: 0, nectar: 0,
         voidCrystals: 0, antimatter: 0, darkMatter: 0,
       },

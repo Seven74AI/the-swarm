@@ -4,6 +4,7 @@ import { readResource } from './helpers/resources';
 import { tapContinue } from './helpers/phase';
 import { resourceBalance } from '../../src/data/balance/resources';
 import { skipGameTime } from './helpers/time';
+import { goalTarget } from './helpers/guards';
 
 /**
  * Worker Management & Resource Loop E2E Tests
@@ -96,14 +97,14 @@ test.describe('Worker Management', () => {
 
   test('worker panel visible in colony phase', async ({ page }) => {
     // Seed egg_laying with 10 workers → the goal latches on the first tick
-    await page.addInitScript(() => {
+    await page.addInitScript((target: number) => {
       const data = {
         version: 11,
         timestamp: Date.now(),
         playTimeMs: 0,
         gameState: {
           phase: 'egg_laying',
-          resources: { eggs: 0, larvae: 0, workers: 10, food: 0, nestCapacity: 25, wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0 },
+          resources: { eggs: 0, larvae: 0, workers: target, food: 0, nestCapacity: 25, wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0 },
           eggPipeline: { count: 0, progress: 0 },
           larvaPipeline: { count: 0, progress: 0 },
           soldierPipeline: { count: 0, progress: 0 },
@@ -142,7 +143,7 @@ test.describe('Worker Management', () => {
         },
       };
       localStorage.setItem('the_swarm_save', JSON.stringify(data));
-    });
+    }, goalTarget('egg_laying', 'workers'));
     await page.goto('/');
     // The goal latches; CONTINUE enters Colony (Story 1.19)
     await tapContinue(page);
@@ -161,7 +162,7 @@ test.describe('Worker Management', () => {
     // Seed egg_laying with 10 workers → the goal latches on the first tick
     await seedAndGoto(page, {
       phase: 'egg_laying',
-      resources: { eggs: 0, larvae: 0, workers: 10, food: 50, nestCapacity: 25 },
+      resources: { eggs: 0, larvae: 0, workers: goalTarget('egg_laying', 'workers'), food: 50, nestCapacity: 25 },
     });
 
     // The goal latched; CONTINUE enters Colony (Story 1.19)
