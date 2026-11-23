@@ -314,3 +314,24 @@ describe('the dig-face crack (Story 9.3)', () => {
     }
   });
 });
+
+describe('a DIG press in the scene (Story 9.8)', () => {
+  afterEach(() => cleanup());
+
+  it('puffs dirt at the dig face for each press, and marks the stage for its shake', async () => {
+    const { nestLayout } = await import('../../../../src/ui/scenes/nestLayout');
+    const v = { ...view(3, 0, 0), roomsDug: 2 };
+    const r = render(<NestScene view={v} onChamber={() => {}} />);
+    expect(r.container.querySelector('[data-dig-puff]')).toBeNull();
+    r.rerender(<NestScene view={v} onChamber={() => {}} pulse={1} />);
+    const puff = r.container.querySelector('[data-dig-puff]')!;
+    expect(puff).not.toBeNull();
+    const face = nestLayout(v).digFace;
+    expect(puff.getAttribute('data-dig-puff')).toBe('1');
+    expect(puff.getAttribute('transform')).toBe(`translate(${face.x} ${face.y})`);
+    expect(r.container.querySelector('.nest-stage')!.getAttribute('data-dig-shake')).toBe('1');
+    r.rerender(<NestScene view={v} onChamber={() => {}} pulse={2} />);
+    expect(r.container.querySelectorAll('[data-dig-puff]')).toHaveLength(1);
+    expect(r.container.querySelector('[data-dig-puff]')!.getAttribute('data-dig-puff')).toBe('2');
+  });
+});

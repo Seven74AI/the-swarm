@@ -24,6 +24,10 @@ export interface SwarmEvents {
   state_changed: GameState;
   /** The queen laid an egg by tap/click (was `click:egg`). */
   egg_clicked: NoPayload;
+  /** A DIG press landed (Story 9.8): the crunch and the dirt puff. */
+  dig_pressed: NoPayload;
+  /** A room opened, by a press, the diggers or auto-dig (Story 9.8): the breakthrough. `roomsDug` after it. */
+  room_opened: { roomsDug: number };
 
   // ── Resources (ResourceSystem) ──
   eggs_changed: { eggs: number };

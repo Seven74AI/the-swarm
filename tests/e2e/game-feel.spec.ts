@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { settleReveals } from './helpers/reveal';
+import { roomCost } from '../../src/systems/Dig';
 
 /**
  * Story 8.9 (FR41, UX-DR37): every important moment has its own feel, as the
@@ -164,5 +165,116 @@ test.describe('decision headline (Story 8.9)', () => {
     const typed = page.locator('#decision-popup [data-sheet-headline] [data-type-in]');
     await expect(typed).toBeVisible();
     await expect(typed).toHaveCSS('animation-name', 'none');
+  });
+});
+
+/** Story 9.8 (UX-DR49, UX-DR37, UX-DR38): each DIG press digs; a breakthrough lands. */
+test.describe('DIG feel (Story 9.8)', () => {
+  const colony = (progress: number) => ({
+    phase: 'colony',
+    resources: { eggs: 0, larvae: 0, workers: 10, food: 1_000_000, nestCapacity: 100 },
+    workersAssigned: { gather: 10, forage: 0, tend: 0, dig: 0, guard: 0, researchers: 0 },
+    dig: { roomsDug: 0, progress, carry: 0, roomsByHand: 0, auto: false },
+  });
+  const dig = (page: Page) => page.locator('[data-primary-for="nest"] button[data-action="dig"]');
+
+  test('a press puffs dirt at the dig face and shakes the scene within 100 ms', async ({ page }) => {
+    await seed(page, colony(0));
+    await expect(dig(page)).toBeVisible();
+    await settleReveals(page);
+    const box = (await dig(page).boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    const seen = page.evaluate(
+      () =>
+        new Promise<number>((resolve) => {
+          const stage = document.querySelector('[data-scene="nest"] .nest-stage')!;
+          const obs = new MutationObserver(() => {
+            if (stage.querySelector('[data-dig-puff]') && stage.hasAttribute('data-dig-shake')) {
+              obs.disconnect();
+              resolve(performance.now() - (window as unknown as { __pressAt: number }).__pressAt);
+            }
+          });
+          obs.observe(stage, { subtree: true, childList: true, attributes: true });
+          document.querySelector('[data-primary-for="nest"] button[data-action="dig"]')!.addEventListener('pointerup', () => ((window as unknown as { __pressAt: number }).__pressAt = performance.now()), { capture: true, once: true });
+        }),
+    );
+    await page.mouse.down();
+    await page.mouse.up();
+    expect(await seen).toBeLessThanOrEqual(100);
+    await expect(page.locator('[data-dig-puff] circle').first()).toBeVisible();
+  });
+
+  test('under reduced motion a press shows no puff and no shake; the strip still moves', async ({ page }) => {
+    await seed(page, colony(0), { reducedMotion: 'on' });
+    const digs = page.locator('[data-next-room-digs]');
+    const before = await digs.textContent();
+    await dig(page).click();
+    await expect(page.locator('[data-dig-puff]')).toBeHidden();
+    await expect.poll(() => digs.textContent()).not.toBe(before);
+  });
+
+  test('a room breaking through vibrates where it can', async ({ page }) => {
+    // One press short of the first room: the press breaks through.
+    await seed(page, colony(roomCost(0) - 1), { haptics: true });
+    const before = (await vibes(page)).length;
+    await dig(page).click();
+    await expect(page.locator('[data-scene="nest"] .nest-stage')).toHaveAttribute('data-rooms', '1');
+    await expect.poll(async () => (await vibes(page)).length).toBeGreaterThan(before);
+  });
+
+  test('where vibrate does not exist, a breakthrough still opens the room and nothing fails', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.addInitScript(() => {
+      // iPhone Safari: no navigator.vibrate at all.
+      delete (Navigator.prototype as unknown as { vibrate?: unknown }).vibrate;
+    });
+    await page.addInitScript((save) => {
+      localStorage.setItem('the_swarm_save', save);
+      localStorage.setItem('the_swarm_onboarding', 'done');
+    }, JSON.stringify({ version: 36, timestamp: Date.now(), playTimeMs: 0, gameState: colony(roomCost(0) - 1) }));
+    await page.goto('/');
+    await dig(page).click();
+    await expect(page.locator('[data-scene="nest"] .nest-stage')).toHaveAttribute('data-rooms', '1');
+    expect(errors).toEqual([]);
+  });
+
+  test('a 2 s DIG hold keeps the flash rule', async ({ page }) => {
+    await seed(page, colony(0));
+    await expect(dig(page)).toBeVisible();
+    await settleReveals(page);
+    const box = (await dig(page).boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    const watching = page.evaluate(
+      (ms) =>
+        new Promise<number[]>((resolve) => {
+          const el = document.querySelector('[data-primary-for="nest"] button[data-action="dig"]') as HTMLElement;
+          const stage = document.querySelector('[data-scene="nest"] .nest-stage') as HTMLElement;
+          const changes: number[] = [];
+          const start = performance.now();
+          let last = '';
+          const frame = (): void => {
+            const cs = getComputedStyle(el);
+            const cursor = el.querySelector('[data-cursor]');
+            const cur = cursor ? getComputedStyle(cursor) : null;
+            const sig = [cs.backgroundColor, cs.color, cs.borderColor, cur?.opacity, cur?.color, getComputedStyle(stage).backgroundColor].join('|');
+            const now = performance.now() - start;
+            if (last && sig !== last) changes.push(now);
+            last = sig;
+            (window as unknown as { __sampling: boolean }).__sampling = true;
+            if (now < ms) requestAnimationFrame(frame);
+            else resolve(changes);
+          };
+          requestAnimationFrame(frame);
+        }),
+      2100,
+    );
+    await page.waitForFunction(() => (window as unknown as { __sampling?: boolean }).__sampling === true);
+    await page.mouse.down();
+    const changes = await watching;
+    await page.mouse.up();
+    const progress = await page.evaluate(() => (window as any).__swarm.manager.getState().dig.progress);
+    expect(progress, 'the hold kept digging').toBeGreaterThan(0);
+    for (const t of changes) expect(changes.filter((u) => u >= t && u < t + 1000).length, `changes: ${changes.map(Math.round)}`).toBeLessThanOrEqual(3);
   });
 });

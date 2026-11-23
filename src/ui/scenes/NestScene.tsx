@@ -75,6 +75,12 @@ export interface NestSceneProps {
    * its control in, and the scene anchors it on the queen (`[data-queen-tap]`).
    */
   readonly queen?: ComponentChildren;
+  /**
+   * DIG presses that landed (Story 9.8, `ui/nest/digPulse.ts`): each new value
+   * puffs dirt at the dig face (`[data-dig-puff]`) and shakes the stage once
+   * (`[data-dig-shake]`), within a frame; none under reduced motion (CSS).
+   */
+  readonly pulse?: number;
 }
 
 type ArriveKind = 'egg' | 'larva' | 'worker' | 'room';
@@ -213,6 +219,18 @@ function Ants({ ants, tunnels, clock, live }: { ants: readonly Ant[]; tunnels: r
   );
 }
 
+/** A DIG press's shake (Story 9.8): a pixel each way, back to rest. */
+const SHAKE: Keyframe[] = [{ transform: 'none' }, { transform: 'translate(1px, 0)' }, { transform: 'translate(-1px, 0.5px)' }, { transform: 'none' }];
+
+/** A DIG press's dirt puff (Story 9.8): crumbs around the dig face, thrown up and out once by CSS. */
+const PUFF: readonly { x: number; y: number; r: number }[] = [
+  { x: -5, y: -2, r: 1.4 },
+  { x: -1, y: -5, r: 1.1 },
+  { x: 4, y: -3, r: 1.3 },
+  { x: 6, y: 1, r: 0.9 },
+  { x: -6, y: 2, r: 0.9 },
+];
+
 /** The queen's own control (Story 9.7), anchored on her and kept inside the stage like a chamber label. */
 function QueenTap({ at, children }: { at: { x: number; y: number }; children: ComponentChildren }) {
   const x = `${(at.x * 100).toFixed(1)}%`;
@@ -248,7 +266,7 @@ function Queen({ t }: { t: Token }) {
   );
 }
 
-export function NestScene({ view, onChamber, clock = sceneClock(), crack = 0, feed = null, queen }: NestSceneProps) {
+export function NestScene({ view, onChamber, clock = sceneClock(), crack = 0, feed = null, queen, pulse = 0 }: NestSceneProps) {
   const layout = useMemo(() => nestLayout(view), [view]);
   // False during the first draw: what is there when the scene opens doesn't arrive.
   const drawn = useRef(false);
@@ -256,6 +274,14 @@ export function NestScene({ view, onChamber, clock = sceneClock(), crack = 0, fe
     drawn.current = true;
   }, []);
   const live = drawn.current;
+  // A DIG press shakes the frame once (Story 9.8), restarted by each press; never under reduced motion.
+  const frameRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = frameRef.current;
+    if (pulse <= 0 || !el || typeof el.animate !== 'function') return;
+    if (document.documentElement.dataset.reducedMotion === 'true') return;
+    el.animate(SHAKE, { duration: feelBalance.digShakeMs, easing: 'ease-out' });
+  }, [pulse]);
   const soilH = layout.height - layout.surfaceY;
   return (
     <div class="nest-scene-view" data-scene="nest" data-starving={view.starving ? '' : undefined} role="group" aria-label={nestAriaLabel(view)}>
@@ -263,6 +289,7 @@ export function NestScene({ view, onChamber, clock = sceneClock(), crack = 0, fe
         class="nest-stage"
         data-crt-surface=""
         data-rooms={String(layout.rooms.length)}
+        data-dig-shake={pulse > 0 ? String(pulse) : undefined}
         style={{
           '--arrive-ms': `${feelBalance.arriveMs}ms`,
           '--room-open-ms': `${feelBalance.roomOpenMs}ms`,
@@ -271,7 +298,7 @@ export function NestScene({ view, onChamber, clock = sceneClock(), crack = 0, fe
           minWidth: `${MIN_STAGE_PX}px`,
         }}
       >
-        <div class="nest-camera">
+        <div class="nest-camera" ref={frameRef}>
         <svg class="nest-svg" data-line-work="" viewBox={`0 0 ${layout.width} ${layout.height}`} aria-hidden="true" focusable="false">
           <defs>
             <pattern id="nest-grain" width={14} height={12} patternUnits="userSpaceOnUse">
@@ -311,6 +338,13 @@ export function NestScene({ view, onChamber, clock = sceneClock(), crack = 0, fe
               <path data-scene-part="room" data-room={String(r.index)} class="nest-svg__chamber nest-svg__room" d={r.wall} />
             </Arrival>
           ))}
+          {pulse > 0 && (
+            <g key={pulse} data-dig-puff={String(pulse)} class="nest-svg__puff" transform={`translate(${layout.digFace.x} ${layout.digFace.y})`}>
+              {PUFF.map((p, i) => (
+                <circle key={i} cx={p.x} cy={p.y} r={p.r} />
+              ))}
+            </g>
+          )}
           {crack > 0 && <path data-scene-part="crack" data-crack-stage={String(crack)} class="nest-svg__crack" stroke-linecap="round" d={crackPath(crack, layout.digFace)} />}
           {layout.chambers.map((c) =>
             c.cloud.d ? <path key={c.id} data-scene-part="cloud" data-cloud={c.id} class="nest-svg__cloud" d={c.cloud.d} /> : null,

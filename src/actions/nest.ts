@@ -25,7 +25,13 @@ export function layEgg(deps: ActionDeps): ActionResult {
 export function dig(deps: ActionDeps): ActionResult {
   const s = current(deps);
   if (s.phase === Phase.EGG_LAYING) return refuse('locked');
-  return commit(deps, s, digPress(s));
+  const r = commit(deps, s, digPress(s));
+  if (r.ok) {
+    deps.bus.emit('dig_pressed', {});
+    const rooms = current(deps).dig.roomsDug;
+    if (rooms > s.dig.roomsDug) deps.bus.emit('room_opened', { roomsDug: rooms });
+  }
+  return r;
 }
 
 /**

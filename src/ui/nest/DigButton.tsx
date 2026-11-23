@@ -1,5 +1,6 @@
 import { selectAutoDigOn, selectDigHint } from '../../state/selectors';
 import { Button } from '../primitives/Button';
+import { pulseDig } from './digPulse';
 
 export interface DigButtonProps {
   /** Digs: `actions.dig`. */
@@ -27,7 +28,11 @@ export function DigButton({ dig }: DigButtonProps) {
       verb={auto ? 'AUTO-DIG ON' : 'DIG'}
       cost={auto ? 'tap to boost the dig' : hint}
       repeat
-      onPress={() => dig()}
+      onPress={() => {
+        const r = dig();
+        if (r.ok) pulseDig();
+        return r;
+      }}
       data-action="dig"
       data-auto-dig={auto ? 'on' : undefined}
     />

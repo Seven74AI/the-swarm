@@ -29,6 +29,7 @@ export const FEEL_TRIGGERS = [
   'decision',
   'phase-change',
   'room-open',
+  'dig',
 ] as const;
 
 export type FeelTrigger = (typeof FEEL_TRIGGERS)[number];
@@ -105,9 +106,18 @@ export const GAME_FEEL: readonly FeelRow[] = Object.freeze([
   row({
     trigger: 'room-open',
     visual: { description: 'Dirt falls and the new room appears, under 1 s', hooks: ['data-arrive="room"', '--room-open-ms'] },
+    // Story 9.8: where `navigator.vibrate` works (not iPhone Safari, where the sound and the shake carry it).
+    haptic: 'medium',
+    sound: ['breakthrough'],
+    events: ['room_opened'],
+  }),
+  // Story 9.8: each DIG press digs visibly and audibly; no haptic, so a hold does not buzz 8 times a second.
+  row({
+    trigger: 'dig',
+    visual: { description: 'A dirt puff at the dig face and a small shake, within 100 ms', hooks: ['data-dig-puff', 'data-dig-shake'] },
     haptic: 'none',
-    sound: 'none',
-    events: [],
+    sound: ['crunch'],
+    events: ['dig_pressed'],
   }),
 ]);
 

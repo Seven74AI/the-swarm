@@ -108,6 +108,19 @@ describe('NestPrimary (Story 1.22)', () => {
     expect(gameState.value.dig.progress).toBeGreaterThan(before);
   });
 
+  it('a DIG press that lands pulses the scene (Story 9.8); a refused one does not', async () => {
+    const { digPulse } = await import('../../../../src/ui/nest/digPulse');
+    gameState.value = makeState({ phase: Phase.COLONY });
+    const { container } = primary();
+    const before = digPulse.value;
+    const button = container.querySelector<HTMLButtonElement>('button[data-action="dig"]')!;
+    act(() => {
+      fireEvent.pointerDown(button, { pointerId: 1, button: 0 });
+      fireEvent.pointerUp(button, { pointerId: 1, button: 0 });
+    });
+    expect(digPulse.value).toBe(before + 1);
+  });
+
   it('switches from LAY EGG to DIG when the phase commits', () => {
     gameState.value = makeState({ phase: Phase.EGG_LAYING });
     const { container } = primary();
