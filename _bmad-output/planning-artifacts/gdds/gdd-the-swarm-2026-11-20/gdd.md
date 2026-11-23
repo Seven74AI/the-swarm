@@ -4,9 +4,12 @@ game_type: idle-incremental
 platforms: ["mobile (portrait, touch) - primary; distribution TBD in architecture", "desktop browser - secondary"]
 status: final
 created: 2026-11-20
-updated: 2026-11-21
+updated: 2026-11-23
 inputs:
   - _bmad-output/planning-artifacts/briefs/brief-the-swarm-2026-11-20/brief.md
+  - _bmad-output/playtest-2026-11-22.md
+  - _bmad-output/brainstorming-session-2026-11-22.md
+  - _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-23.md
 baseline_code: "Seven74AI/the-swarm main @ 0b0b364"
 ---
 
@@ -16,7 +19,7 @@ baseline_code: "Seven74AI/the-swarm main @ 0b0b364"
 **Game Type:** Idle/Incremental
 **Target Platform(s):** Mobile first (portrait, touch); desktop browser second
 
-> **Reading this document.** Numbers marked *baseline* are the values in the current build (main @ 0b0b364), recorded so architecture and epics start from reality. They are not commitments: the pacing pass (Epic 3) re-tunes them against the targets in *Progression and Balance*. Targets are design intent. Source code stays authoritative for current behavior; phase guards live only in `src/phases/transitions.ts`.
+> **Reading this document.** Numbers marked *baseline* are the values in the current build (main @ 0b0b364), recorded so architecture and epics start from reality. They are not commitments: the pacing pass (Epic 3) re-tunes them against the targets in *Progression and Balance*. Targets are design intent. The first-week pacing correction (2026-11-23, issue #438, `sprint-change-proposal-2026-11-23.md`) changed the session shape, the scale, capacity, crowding, starvation and the phase targets; sections it touched say so. Source code stays authoritative for current behavior; phase guards live only in `src/phases/transitions.ts`.
 
 ---
 
@@ -32,7 +35,7 @@ You are the queen whose single egg becomes a swarm big enough to swallow the uni
 
 ### Target Audience
 
-- **Primary:** mobile idle players who check in for 30–90 s several times a day, one-handed in portrait. They expect offline progress and sessions they can drop at any moment. [ASSUMPTION: session shape, carried from brief]
+- **Primary:** mobile idle players, one-handed in portrait. They expect offline progress and sessions they can drop at any moment. The first week is hands-on and tapers into check-ins of 90–120 s, about 6 a day (see *Session Shape*; owner, 2026-11-22).
 - **Secondary:** desktop-browser incremental players (Universal Paperclips, Kittens Game) who play longer sessions. The layout scales up for them; it is not designed around them.
 
 ### Unique Selling Points (USPs)
@@ -76,28 +79,42 @@ A desktop-shaped prototype of the full six-phase arc exists: about 23 panels, ab
 
 Every feature must serve at least one pillar. A feature that serves none is cut or parked.
 
-**Structural requirement (not a pillar): respect the check-in.** Every feature must work in a 30–90 s phone session and must keep making progress offline. Offline and check-in features (Epic 2) answer to this requirement, not to a pillar.
+**Structural requirement (not a pillar): respect the check-in.** Every feature must work in a 90–120 s phone check-in (the steady state after the first week) and must keep making progress offline. Offline and check-in features (Epic 2) answer to this requirement, not to a pillar.
 
 1. **Every number is an ant.** All resources are integers. Population moves through physical pipelines (egg → larva → worker), is bounded by nest capacity and costs food upkeep. *Steers:* no fractional resources, no abstract "colony power" stat, and no multiplier that does not come back to countable units. A new resource must be producible before the feature that consumes it exists.
 2. **Each phase changes the game.** Every phase adds at least one new kind of decision, one narrative beat and its own visual identity. *Steers:* a phase that only raises numbers is incomplete. A content addition that fits no phase's new decision type goes to the parking lot.
-3. **Allocation beats clicking.** Tapping bootstraps Phase 1 only. The skill is in splitting the workforce, and automation takes over rote actions as soon as the player has shown they understand them. *Steers:* no late-game mechanic needs repeated tapping. Every automation replaces a verb the player has already performed by hand.
-4. **Growth bites back.** Scale brings consequences: food upkeep, overcrowding, combat losses, risky decisions and double-edged entropy. *Steers:* every major growth lever has a visible cost or risk. There is no strictly dominant "buy everything" path.
+3. **Allocation beats clicking.** Tapping is a boost for the hands-on first week, never a requirement: LAY EGG bootstraps Phase 1, DIG and FEED speed up Phases 2–3, and a player who never taps still progresses, only slower. The skill is in splitting the workforce, and bought automation takes over rote actions once the player has shown they understand them. *Steers:* no mechanic requires repeated tapping, and none after the first week rewards it much. Every automation replaces a verb the player has already performed by hand. (Changed 2026-11-23: was "tapping bootstraps Phase 1 only".)
+4. **Growth bites back.** Scale brings consequences: food upkeep and starvation, crowding, combat losses, risky decisions and double-edged entropy. *Steers:* every major growth lever has a visible cost or risk. There is no strictly dominant "buy everything" path.
+
+### Session Shape
+
+*Decided by the owner after the 2026-11-22 playtest (party mode, issue #438). Replaces the earlier assumption of 30–90 s check-ins from the first day.*
+
+| When | Session | What carries it |
+|---|---|---|
+| **Session 1** | 45–60 min of continuous play. **No wait wall before about 30 min**: the player is never left with nothing useful to do for more than 2 min. | Phase 1 (LAY EGG), then Colony as the hook: DIG rooms, FEED larvae into them, first buildings |
+| **Days 1–3** | Sessions of 5–15 min, about 6 a day | Colony's goal (later on day 1), then Combat's first decisions; digging by hand until auto-dig is bought |
+| **Days 4–7** | Sessions shrinking toward the steady state | Combat, with new decisions each day (not slower timers) |
+| **After about a week** | Check-ins of **90–120 s**, about 6 a day, each with at least one decision | Allocation, buildings, research, combat choices; automation carries the rote verbs |
+
+Phases 1–3 are stretched across this first week with new decisions, not slower timers (owner chose this over pulling Phases 4–5 in). The `pnpm sim` gates in *Success Metrics* measure it.
 
 ### Core Gameplay Loop
 
 | Loop | Duration | Player actions | Reward |
 |---|---|---|---|
-| **Check-in** | 30–90 s | Collect the offline summary → reassign workers → answer a pending decision → buy one upgrade or building | Visible growth since last visit, one meaningful choice |
+| **First-week session** | 45–60 min (session 1), then 5–15 min | DIG a room (stone falls out) → FEED larvae into it → buy a building → dig again | A nest that visibly grows, room by room |
+| **Check-in** | 90–120 s (after about a week) | Collect the offline summary → reassign workers → answer a pending decision → buy one upgrade or building | Visible growth since last visit, one meaningful choice |
 | **Mid loop** | Hours (across check-ins) | Build and upgrade buildings, turn combat drops into equipment and mutations, claim map tiles, run research chains | New capability: a building level, a mutation, territory |
 | **Outer loop** | Days (per phase) | Meet a phase guard → phase transition | New scale of play: new verbs, narrative beat, new look |
 | **Meta loop** | Per run | Prestige → spend Legacy Points on permanent upgrades | Faster later runs, new starting options |
 
-Each check-in must offer **at least one decision worth making** (an allocation change or an affordable upgrade; a decision event counts when one is active). If it doesn't, the pacing is broken. Decision events fire only while the game is open and do not queue offline (owner decision), so allocation and upgrades must carry this rule on their own. [ASSUMPTION: rule proposed in drafting; confirm]
+Each check-in must offer **at least one decision worth making** (an allocation change or an affordable upgrade; a decision event counts when one is active). If it doesn't, the pacing is broken. Decision events fire only while the game is open and do not queue offline (owner decision), so allocation and upgrades must carry this rule on their own. The game offers the decision; the return summary does not point at it (owner, 2026-11-22: the summary reports only what happened while away, PR #439).
 
 ### Win/Loss Conditions
 
 - **Win:** reach Transcendence (void crystals (VC) ≥ 2000, antimatter ≥ 400, dark matter ≥ 200 at baseline) and complete its ending sequence. Victory is recorded permanently and survives prestige as a record only (see *Prestige and Reset Mechanics*).
-- **No hard loss.** The colony cannot be wiped out. Setbacks are soft: battles lost cost soldiers, starvation stops growth and shrinks the workforce, failed expeditions cost scouts and warriors, and entropy erodes production. The design rule is that a setback costs time, never the run.
+- **No hard loss.** The colony cannot be wiped out: the queen, eggs and larvae never starve. Setbacks are soft: battles lost cost soldiers, starvation kills just enough workers and soldiers to bring food use back to production (see *Space and Food*), failed expeditions cost scouts and warriors, and entropy erodes production. The design rule is that a setback costs time, never the run.
 - **Soft-lock prohibition:** from every reachable state, the player can make progress without prestiging. A guard that cannot be met with the current resources is a bug.
 
 ---
@@ -110,9 +127,14 @@ Each check-in must offer **at least one decision worth making** (an allocation c
 |---|---|---|---|
 | **Lay egg** | Tap the queen to lay eggs | 1 egg per tap + 1 per Click Power level (cost 10 food, ×1.15 per level) | 3 (bootstrap only) |
 | **Population pipeline** | Eggs hatch into larvae, larvae mature into workers | Hatch 50 ticks, mature 50 ticks, at 20 ticks/s [NOTE FOR DESIGNER: code comment says "1 s per tick"; at 20 Hz, 50 ticks = 2.5 s. Confirm the intended unit in the pacing pass] | 1 |
-| **Worker roles** | Assign workers to Gather, Forage, Tend, Dig, Guard, Research | Gather: 2 food plus some wood. **Forage (new):** nectar. **Dig:** nest capacity plus stone. Tend: +25% hatch rate each. Unassigned: half gather rate. Upkeep: workers / 2 food. Wood, stone and nectar yields are new; rates are set in the pacing pass [ASSUMPTION] | 1, 3 |
-| **Nest capacity** | Dig and Warehouse raise the population ceiling | Capacity = base + Warehouse effect | 1, 4 |
-| **Scale penalty** | Efficiency drops above 500 workers | `1 / (1 + 0.0005 × (workers − 500))` | 4 |
+| **Dig** (Phase 2 on) | Press **DIG**, the main button, to dig the next room; diggers add to every press and dig slowly on their own; bought auto-dig hands it to them | One press = one fixed chunk; each room takes more presses than the last; every chunk comes out as stone; a finished room holds several ants. Baseline: no DIG button, one digger ≈ 27 h per +1 capacity (`digMsPerRoom`). New values set in the batch 1 tuning story | 1, 3 |
+| **Feed** (Phase 2 on) | Tap the brood in the nest scene to speed larvae toward becoming workers | Works only while a room is free; greyed out when the nest is full. Rate set in tuning | 3 |
+| **Worker roles** | Assign workers to Gather, Forage, Tend, Dig, Guard, Research | Gather: 2 food plus some wood. **Forage (new):** nectar. **Dig:** adds to every DIG press and digs slowly on its own; stone comes from the dirt dug. Tend: +25% hatch rate each. Unassigned: half gather rate. Upkeep: workers / 2 food. Wood, stone and nectar yields are new; rates are set in the pacing pass [ASSUMPTION] | 1, 3 |
+| **Nest capacity** | Rooms (dug), Warehouse and Gallery rooms raise the worker ceiling; a hard cap: larvae wait in the brood when it is full | Capacity = rooms × ants per room + Warehouse effect. Baseline: start 25, each room +1 | 1, 4 |
+| **Crowding** (batch 2; replaces the scale penalty) | A packed nest works slower; digging relieves it | Work slows with creatures per unit of room space; everyone counts (workers, soldiers, eggs, larvae; not the queen). Shown in the scene and the NEXT ROOM strip (`CROWDED · −20% WORK`). Baseline it replaces: `workerEfficiency = 1 / (1 + 0.0005 × (workers − 500))`, invisible, gathering only | 1, 4 |
+| **Starvation** (batch 2) | When food runs out, the colony shrinks to fit | Warning first; then only eaters die (workers and soldiers, at random), just enough to bring food use back to production, spread over time. Baseline: food clamps at 0 and nobody dies | 4 |
+| **Food storage** (batch 2) | The nest stores only so much food | Food past the limit is lost; Larder rooms raise it. Baseline: no limit | 1, 4 |
+| **Room jobs** (batch 2) | When a room opens, pick one of three jobs, or leave it plain | **Pantry:** starvation warns sooner and bites slower. **Larder:** raises the food limit. **Gallery:** holds twice as many ants. Colony-wide effects counted by rooms (no ant has a location) | 1, 4 |
 | **Buildings** | Build and upgrade 6 buildings | Cost `floor(base × 2.5^level)`. Soft cap above Lv.5: `effect / (1 + 0.08 × (level − 5))` | 1, 4 |
 | **Combat soldiers** | Train soldiers that auto-battle escalating enemies | 5 food + 1 worker, 75-tick training. Weapons/armor to Lv.5. Enemies scale with battles won^0.6; max 20 rounds per battle | 2, 4 |
 | **Scouts and warriors** | Recruit an expedition force | Barracks Lv.1: up to 2 scouts. Lv.2: up to 3 scouts and 2 warriors. Partial-success losses split proportionally | 2, 4 |
@@ -129,12 +151,12 @@ Each check-in must offer **at least one decision worth making** (an allocation c
 
 **Mobile (primary), portrait, one-handed:**
 - One primary action per screen, reachable by the thumb in the bottom 40% of a 360×640 viewport.
-- Tap: lay egg, confirm, buy. Tap-and-hold on a buy or assign control repeats it (about 8/s). Steppers (−/+) with ×1, ×10 and ×max toggles for worker assignment.
+- Tap: lay egg, dig, feed (a tap on the brood in the scene), confirm, buy. Tap-and-hold on a buy or assign control repeats it (about 8/s). Steppers (−/+) with ×1, ×10 and ×max toggles for worker assignment.
 - Bottom tab bar with at most 5 destinations. Each phase adds or changes tabs; it never adds a sixth. The 23 desktop panels are consolidated into those destinations (exact information architecture goes to `gds-ux`).
 - Hit targets at least 44×44 pt. No hover-only information. Every tooltip has a tap equivalent.
 - Decision events appear as a bottom sheet. They pause their own timer while the app is backgrounded.
 
-**Desktop (secondary):** same screens, laid out in two or three columns. Mouse click equals tap. Keyboard shortcuts: Space lays an egg, 1–5 switch tabs. [ASSUMPTION: shortcut set]
+**Desktop (secondary):** same screens, laid out in two or three columns. Mouse click equals tap. Keyboard shortcuts: Space presses the primary action (LAY EGG, DIG), 1–5 switch tabs. [ASSUMPTION: shortcut set]
 
 ---
 
@@ -142,9 +164,12 @@ Each check-in must offer **at least one decision worth making** (an allocation c
 
 ### Core Click/Interaction
 
-- Tapping lays eggs and matters only in Phase 1 (Pillar 3). Target: tapping supplies at least 80% of eggs in the first 2 min and under 10% once the player reaches Colony. [ASSUMPTION: targets]
-- Satisfaction comes from the egg visibly entering the pipeline, not from the count going up. Each tap gives immediate visual and haptic feedback (haptics on mobile where available).
-- Click Power is the only tap upgrade. After Phase 1 there is no tap-scaling upgrade path. The Legacy upgrade Auto Egg Laying removes tapping from later runs entirely.
+- **Phase 1: LAY EGG.** Tapping lays eggs. Target: tapping supplies at least 80% of eggs in the first 2 min and under 10% once the player reaches Colony. [ASSUMPTION: targets]
+- **Phase 2 on: DIG.** DIG takes LAY EGG's place as the single main button. One press digs one fixed chunk of the next room; the dirt comes out as stone. Each room takes more presses than the last, so the first session flies and digging slows as diggers take over. Diggers add to every press, and dig slowly on their own, so a player who never taps still gets rooms (Pillar 3). Later the player **buys auto-dig** (like the egg-laying automation); from then on the diggers press on their own and DIG becomes an optional boost.
+- **FEED** is a tap on the brood in the nest scene, not a second button. It speeds larvae toward becoming workers, only while a room is free, so DIG and FEED take turns: dig a room, feed ants into it, dig again.
+- **Progress is visible twice:** a crack grows at the dig face in the scene, and a NEXT ROOM strip in the nest panel shows a bar, the time left and the presses left.
+- Satisfaction comes from the egg visibly entering the pipeline and the dirt visibly giving way, not from the count going up. Each press gives immediate feedback: LAY EGG as before; DIG a crunch, a small shake and a puff of dirt, and a vibration on breakthrough where the device supports it (iPhone Safari ignores the vibration API: there the breakthrough sound and shake carry it; owner, 2026-11-23).
+- Click Power is the only egg-tap upgrade. The Legacy upgrade Auto Egg Laying removes egg tapping from later runs entirely. A cheap stone upgrade that makes each DIG press bigger (sharper mandibles) is planned for batch 3, held in check by rooms growing.
 
 ### Upgrade Trees
 
@@ -165,7 +190,7 @@ Each check-in must offer **at least one decision worth making** (an allocation c
 
 ### Automation Systems
 
-- Automation replaces a verb the player has already performed by hand (Pillar 3). Order: egg laying (Legacy Auto Egg Laying) → hatching (Basic Incubation, Thermal Regulation) → recruitment and soldier training → expeditions and explorations.
+- Automation replaces a verb the player has already performed by hand (Pillar 3). Order: egg laying (Legacy Auto Egg Laying) → digging (bought auto-dig, Phase 2) → hatching (Basic Incubation, Thermal Regulation) → recruitment and soldier training → expeditions and explorations.
 - **Unlock rule:** a verb can be automated once the player has performed it manually at least N times or reached the phase after the one that introduced it. [ASSUMPTION: N = 10; tune in pacing pass]
 - Automation is never all-or-nothing. Each automated verb has a player-set target (for example "keep 20 soldiers in training"), so allocation stays the skill.
 - Offline progress simulates the same automation the player configured. It never makes decisions on their behalf. Decision events fire only while the game is open; none are generated or queued offline.
@@ -186,14 +211,15 @@ Each check-in must offer **at least one decision worth making** (an allocation c
 ### Number Balancing
 
 - **Integers only.** Every resource and cost uses `floor()`. Entropy is a 0–100 meter, not a resource; fractional values are internal and displayed rounded. Non-integer intermediate values (pipeline progress, rates) are allowed internally but are never shown or spent.
-- **Growth shapes (baseline):** building costs are exponential (×2.5 per level), building effects are soft-capped above Lv.5, worker efficiency decays linearly above 500, enemy strength grows sub-linearly (battles won^0.6), and LP grows logarithmically with lifetime food.
+- **Scale (decided 2026-11-22):** THE SWARM reaches thousands of ants, not hundreds. The phase goals are rescaled to the ladder in *Player Progression*; numbers past 999,999 use the display rule below.
+- **Growth shapes (baseline):** building costs are exponential (×2.5 per level), building effects are soft-capped above Lv.5, worker efficiency decays linearly above 500 (replaced by crowding in batch 2), enemy strength grows sub-linearly (battles won^0.6), and LP grows logarithmically with lifetime food.
 - **Display:** numbers up to 999,999 are shown in full. Above that, short-scale suffixes (1.2M, 3.4B). No scientific notation before Transcendence. [ASSUMPTION: display rule; prototype has break_infinity support]
 - **Walls and wall-breakers:** phase guards are the time gates; Legacy upgrades are the wall-breakers.
 - **Pacing guards:** every phase guard must be reachable from that phase's own production, with no prestige, within the target duration (see *Difficulty Curve*).
 
 ### Meta-Progression
 
-- **Legacy tree (baseline, 8 nodes):** egg-laying bonus (3 LP), hatching bonus (3), food bonus (3), soldier-training bonus (5), worker-efficiency bonus (5), starting resources (8), Auto Egg Laying (10), Phase Skip (12).
+- **Legacy tree (baseline, 8 nodes):** egg-laying bonus (3 LP), hatching bonus (3), food bonus (3), soldier-training bonus (5), worker-efficiency bonus (5; with crowding it scales the work multiplier), starting resources (8), Auto Egg Laying (10), Phase Skip (12).
 - **Offline efficiency chain (decided):**
   - **Step 1, 50% → 75%: run research**, available in Phases 2–3 and paid in that phase's currencies, so the first run benefits. It is wiped on prestige like other research and re-bought cheaply each run. [ASSUMPTION: research cost tuned in pacing pass]
   - **Step 2, 75% → 100%: Legacy upgrade** (replaces the baseline Temporal Resonance / Chrono Synchronization pair). It survives prestige.
@@ -220,22 +246,33 @@ Progression is gated by phase. Guards at baseline:
 | Expansion → Space | workers ≥ 80 and food ≥ 5000 |
 | Space → Transcendence | void crystals ≥ 2000, antimatter ≥ 400, dark matter ≥ 200 |
 
+**Rescaled goals (decided 2026-11-22: the swarm reaches thousands).** The worker guards above are baseline and too small. Target ranges for the worker count each guard asks for; the exact values are set in `transitions.ts` by the tuning stories against the `pnpm sim` gates (owner, 2026-11-23: ranges here, sim picks exact):
+
+| Guard | Baseline | Target range [ASSUMPTION: ranges] |
+|---|---|---|
+| Egg Laying → Colony | 10 workers | about 10–20 |
+| Colony → Combat | 50 workers + 1 guard | about 150–300 (+ 1 guard) |
+| Combat → Expansion | 60 workers + 5 wins | about 1,000–2,000 (+ wins) |
+| Expansion → Space | 80 workers + 5,000 food | about 5,000 or more |
+
+Phase 1–2 guards are rescaled with the DIG core (batch 1). Phase 3 and later need crowding first (batch 2), because the baseline scale penalty starts at 500 workers.
+
 **Decision: Combat is mandatory.** The baseline's Colony → Expansion alternate route is a leftover and is removed (Epic 3). Every run passes through Combat. A deliberate peaceful path is a parked idea (see *Out of Scope*). If it is ever added, Combat-only rewards (silk, chitin, venom and the mutations they buy) need a non-combat source, and Combat must stay worth choosing.
 
 ### Difficulty Curve
 
-Phase duration targets in real time, for a player who checks in about 6 times a day. **First victory in about 3 weeks is decided (owner).** The per-phase split below derives from it and is to be validated in playtest. [ASSUMPTION: per-phase split]
+Phase duration targets in real time, for the *Session Shape* above. **First victory in about 4 weeks (owner, 2026-11-23; was about 3 weeks).** Phases 1–3 fill the first week; Phases 4–5 move back by a week. The per-phase split is to be validated in playtest. [ASSUMPTION: per-phase split of Phases 4–5]
 
-| Phase | Active-play target | Real-time target (with check-ins) |
+| Phase | Active-play target | Real-time target |
 |---|---|---|
-| 1 Egg Laying | 3–5 min | First session |
-| 2 Colony | 20–40 min | Day 1 |
-| 3 Combat | [ASSUMPTION: TBD from E3 telemetry] | Days 2–3 |
-| 4 Expansion | [ASSUMPTION: TBD from E3 telemetry] | Days 4–7 |
-| 5 Space | [ASSUMPTION: TBD from E3 telemetry] | Weeks 2–3 |
-| 6 Transcendence | Ending sequence ≤ 5 min [ASSUMPTION] | Reached at about 3 weeks (the victory) |
+| 1 Egg Laying | 3–5 min | The first minutes of session 1 |
+| 2 Colony | about 45–70 min (the rest of session 1 plus a short later session) [ASSUMPTION: derived] | Ends later on day 1, in a session after the first (owner, 2026-11-23) |
+| 3 Combat | Days 2–7 of sessions, 5–15 min shrinking toward 90–120 s | Days 2–7: lasts to about day 7 |
+| 4 Expansion | [ASSUMPTION: TBD after the MVP playtest] | Week 2 |
+| 5 Space | [ASSUMPTION: TBD after the MVP playtest] | Weeks 3–4 |
+| 6 Transcendence | Ending sequence ≤ 5 min [ASSUMPTION] | Reached at about 4 weeks (the victory) |
 
-The curve is a staircase: each phase opens with a burst of new options, then slows until the guard is in sight. A check-in where the next affordable thing is more than one check-in interval away (about 4 h) is a pacing defect.
+The curve is a staircase: each phase opens with a burst of new options, then slows until the guard is in sight. In session 1, more than 2 min with nothing useful to do before 30 min of play is a pacing defect. After the first week, a check-in where the next affordable thing is more than one check-in interval away (about 4 h) is a pacing defect.
 
 ### Economy and Resources
 
@@ -246,11 +283,23 @@ The curve is a staircase: each phase opens with a burst of new options, then slo
 | Combat drops | silk, chitin, venom | Battles | Combat buildings, mutations |
 | Space | void crystals, antimatter, dark matter, survey data | Expeditions (10% chance of space drops), planets, research | Ships, Transcendence guard, entropy dampener |
 
+### Space and Food
+
+*Batch 2 of the first-week pacing work (issue #438). Space and food are one system: how many ants the nest and the stores can hold.*
+
+- **Capacity stays a hard cap on workers.** Rooms (dug), the Warehouse and Gallery rooms set it; larvae wait in the brood when it is full, and FEED only works while a room is free (owner, 2026-11-23).
+- **Crowding replaces `workerEfficiency`.** Work slows with the number of creatures per unit of room space. Everyone takes up room: workers, soldiers, eggs and larvae (the queen aside), so a full brood crowds the nest too. Digging relieves it. Shown in the scene (an over-full room spills into the tunnels) and in the NEXT ROOM strip (`CROWDED · −20% WORK`). Upkeep is not reduced, so crowding bites.
+- **Starvation.** A warning comes first (`FOOD RUNS OUT IN 2M`). Then only eaters die (workers and soldiers, at random); eggs, larvae and the queen never starve. The colony **shrinks to fit**: just enough eaters die to bring food use back to production, spread over time (one death every few seconds), so the player can react. While away, at most **20%** of the eaters can be lost (the offline floor rises from 50% to 80% kept). The warning and the offline cap ship together with deaths, or not at all.
+- **Food storage limit.** The nest stores only so much food; food past the limit is lost. Larder rooms raise it. The offline summary says when food stopped at the limit; the resource strip shows the capped state.
+- **Room jobs.** When a room opens, the player picks one of three jobs with one tap, or leaves it plain (a plain room is always fine): **Pantry** (starvation warns sooner and bites slower), **Larder** (raises the food limit), **Gallery** (holds twice as many ants). Effects are colony-wide, counted by rooms; no ant has a location.
+- **Offline-safe rule:** crowding and starvation are formulas of the current state, so the offline catch-up steps give the same result as live play.
+- **Later (batch 3 or a later phase):** a building that lets the player choose who goes hungry first (workers or soldiers).
+
 **Offline progress (decision):**
 - **Cap 12 h** (baseline 4 h). Legacy upgrades can raise it to 24 h. [ASSUMPTION: 24 h ceiling]
 - **Efficiency:** base 50%; Phase 2–3 research raises it to 75%; a Legacy upgrade raises it to 100% (see *Meta-Progression*).
 - **Short gaps (decided):** time away under 60 s (a glance at another app, a stalled frame) counts at full efficiency and shows no summary. From 60 s on, the time is offline: the offline efficiency and cap apply and the summary sheet opens. The same rule applies whether the player returns from the background or cold-loads.
-- On return, the player sees a summary sheet: elapsed time, resources gained, and the one most useful next action (decision events do not queue offline). Starvation offline cannot drop workers below 50% of their pre-absence count. [ASSUMPTION: floor]
+- On return, the player sees a summary sheet: elapsed time, efficiency, resources gained and lost, and whether the cap was reached. It reports only what happened while away and suggests no next move (owner, 2026-11-22, shipped in PR #439). Offline starvation never drops workers below 50% of their pre-absence count (baseline); with starvation deaths (batch 2) at most 20% of the eaters can be lost, so 80% are kept.
 - **Pause (decided):** pause is in-session only. Hiding or closing the app ends it, and the time away counts as normal offline time. A pause is never saved.
 - **Notifications (decided):** none in the web build. A closed web page cannot detect "nest is full" or "offline cap reached". A later store build (native wrapper) may add local notifications scheduled at predicted times. The game must never depend on them.
 
@@ -271,7 +320,7 @@ The game's "levels" are its six phases. Each defines a scale, a new decision typ
 | Phase | Scale | New decision type | Narrative beat |
 |---|---|---|---|
 | 1 Egg Laying | Brood chamber | Tap vs. wait; first allocation | The queen alone |
-| 2 Colony | Nest | Worker-role split, buildings | A colony forms |
+| 2 Colony | Nest | Dig and feed, worker-role split, buildings | A colony forms |
 | 3 Combat | Battlefield | Soldiers vs. workers, equipment, mutations | First enemy |
 | 4 Expansion | 8×8 surface map | Which tiles to scout, claim, risk | The world above |
 | 5 Space | Star map, 4 planets | Ship investment, entropy trade-off | Leaving the planet |
@@ -296,13 +345,13 @@ The game's "levels" are its six phases. Each defines a scale, a new decision typ
 ### Art Style
 
 - **Baseline:** dark earth-toned UI, a per-phase color theme, emoji icons as placeholders.
-- **Direction:** readable at arm's length on a phone. Each phase owns a palette shift. Ants are shown as countable units where the screen allows (for example, a nest cross-section that fills up), so Pillar 1 is visible. Detailed art direction goes to `gds-ux`.
+- **Direction:** readable at arm's length on a phone. Each phase owns a palette shift. Ants are shown as countable units where the screen allows (for example, a nest cross-section that fills up), so Pillar 1 is visible. The nest scene draws only the rooms dug so far: a young nest is small and fits a phone without zooming, and each new room opens up the picture (replaces the 2× camera crop; owner, 2026-11-22). A room opening gets a quick, light animation. Detailed art direction goes to `gds-ux`.
 - Constraint: solo owner, no art budget. Art must be producible with procedural/vector assets or a small icon set. [ASSUMPTION: carried from brief]
 
 ### Audio and Music
 
 - **Baseline:** 5 synthesized sound effects, no music.
-- **MVP:** sound effects for tap, hatch, battle result, phase transition and decision event. Sound effects are muted by default on mobile and respect the device's silent mode.
+- **MVP:** sound effects for tap, dig (a crunch) and room breakthrough, hatch, battle result, phase transition and decision event. Sound effects are muted by default on mobile and respect the device's silent mode.
 - **Music:** out of scope for MVP. A per-phase ambient layer is a later candidate. [ASSUMPTION]
 
 ---
@@ -344,8 +393,9 @@ The game's "levels" are its six phases. Each defines a scale, a new decision typ
 | E6 | Phases 4–5 on mobile, with depth | Map and star map in portrait, depth bar, entropy tuning | — |
 | E7 | Transcendence and ending | Ending sequence, victory record, Legacy balance | — |
 | E8 | Art and audio pass | Direction from `gds-ux`, icon set, phase palettes, sound effects, countable-ant nest scene (MVP) | Partial |
+| E9 | The first week digs in | Session shape and sim gates; batch 1 DIG core (DIG, FEED, bigger rooms, NEXT ROOM progress, auto-dig, a nest that shows only dug rooms); batch 2 space and food (crowding, starvation, food limit, room jobs); batch 3 flavour | ✅ (batches 1–2) |
 
-**Sequence:** E1 → E2 → E3 ↔ E4 (iterate) → E5 → MVP playtest → E6 → E7, with E8 running in parallel from E1. Details are in `epics.md`.
+**Sequence:** E1 → E2 → E3 ↔ E4 (iterate) → E5 → MVP playtest → **E9** (from the 2026-11-22 playtest) → E6 → E7, with E8 running in parallel from E1. Details are in `epics.md`.
 
 ---
 
@@ -355,15 +405,19 @@ The game's "levels" are its six phases. Each defines a scale, a new decision typ
 
 - All performance targets in *Technical Specifications* met on the reference device (load speed is a quality goal, not a pass/fail target).
 - Zero soft-locks: an automated check that every phase guard is reachable from that phase's own production.
+- **`pnpm sim` gates (first-week pacing, owner 2026-11-22).** The pacing report marks each gate pass or fail; they are tuning targets, never asserted in CI:
+  1. **No idle gap over 2 min before 30 min of continuous play** (session 1: a player who plays straight through always has something useful to do). Gate for batch 1.
+  2. **Phase 3 lasts to about day 7** under the *Session Shape* schedule.
+  3. **Post-week check-ins:** after day 7, the median check-in is 90–120 s and every check-in offers at least one decision.
 - Save migration from every shipped save version passes.
 
 ### Gameplay Metrics
 
 Passion project: these are quality signals from playtests, not business KPIs.
 - Phase 1 finished in under 5 min by at least 4 of 5 first-time playtesters.
-- Median check-in length 30–90 s. Every check-in offers at least one decision.
+- Session 1 lasts 45–60 min with no wait wall before about 30 min; after the first week the median check-in is 90–120 s. Every check-in offers at least one decision.
 - Playtesters return voluntarily on day 2 and day 3 of the MVP.
-- Measured time to first victory, compared against the target of about 3 weeks.
+- Measured time to first victory, compared against the target of about 4 weeks.
 
 ---
 
@@ -381,14 +435,14 @@ Passion project: these are quality signals from playtests, not business KPIs.
 
 **Assumption index:**
 1. Intended feel ("how did it get this big?" vertigo plus pride in own choices), carried from the brief.
-2. Session shape: 30–90 s check-ins, about 6 per day.
+2. Session shape: decided 2026-11-22 (*Session Shape*); about 6 check-ins a day stays an assumption.
 3. Differentiators (real ending, physical growth, premium-feeling reveal) not yet confirmed by the owner.
 4. "At least one decision per check-in" rule.
-5. Per-phase duration split (the 3-week total is decided).
+5. Per-phase duration split of Phases 4–5 (the 4-week total and Phases 1–3 across the first week are decided).
 6. Tap-share targets for Phase 1.
 7. "No dominant upgrade" rule.
 8. Automation unlock after 10 manual performances.
-9. Offline: 24 h ceiling, 50% starvation floor.
+9. Offline: 24 h ceiling. (The starvation floor is decided: 50% today, 80% kept once starvation deaths ship.)
 10. Number display rule (full to 999,999, then suffixes).
 11. Phase Skip cannot skip a never-completed phase.
 12. Second run reaches the furthest phase in at most 50% of the time.
@@ -397,6 +451,8 @@ Passion project: these are quality signals from playtests, not business KPIs.
 15. Offline-efficiency research cost.
 16. Phase 3–5 active-play minutes and ending-sequence length.
 17. Wood, stone and nectar yields from Gather, Forage and Dig.
+18. Target ranges of the rescaled phase goals (exact values set by tuning).
+19. Phase 2 active-play target (45–70 min), derived from the session shape.
 
 **Notes for the designer (open):**
 - Tick-unit mismatch in hatch, mature and train times, and in the per-tick territory and entropy rates.

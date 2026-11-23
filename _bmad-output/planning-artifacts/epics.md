@@ -13,7 +13,8 @@ inputDocuments:
   - _bmad-output/planning-artifacts/ux-designs/ux-the-swarm-2026-11-20/DESIGN.md
   - _bmad-output/planning-artifacts/ux-designs/ux-the-swarm-2026-11-20/EXPERIENCE.md
   - _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-21.md
-scope: "MVP stories (E1–E5 and the MVP part of E8); E6 and E7 stay epic stubs"
+  - _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-23.md
+scope: "MVP stories (E1–E5, the MVP part of E8, and E9 batch 1); E6 and E7 stay epic stubs"
 baseline_code: "Seven74AI/the-swarm main @ 1a79c18"
 ---
 
@@ -33,12 +34,12 @@ Each story becomes one `needs-triage` GitHub issue (CLAUDE.md → *Planning with
 
 *From the GDD. MVP = Phases 1–3. Items tagged (post-MVP) are kept for coverage and map to the E6/E7 stubs.*
 
-FR1: Tapping the queen lays eggs: 1 egg per tap plus 1 per Click Power level. Click Power (paid in food, cost rising per level) is the only tap upgrade; there is no tap-scaling path after Phase 1.
+FR1: Tapping the queen lays eggs: 1 egg per tap plus 1 per Click Power level. Click Power (paid in food, cost rising per level) is the only egg-tap upgrade. From Colony on, DIG takes LAY EGG's place as the main button (FR55).
 FR2: Population moves through physical pipelines, egg → larva → worker. Every pipeline exit feeds the next pipeline's count.
-FR3: Workers can be assigned to six roles: Gather (food plus wood), Forage (new: nectar), Tend (hatch-rate bonus), Dig (nest capacity plus stone), Guard, Research. Unassigned workers produce at half the gather rate.
-FR4: Workers cost food upkeep (baseline workers / 2). Starvation stops growth and shrinks the workforce but never wipes the colony (no hard loss).
-FR5: Nest capacity (base plus Warehouse effect, raised by Dig) bounds the population.
-FR6: Worker efficiency decays above 500 workers (baseline `1 / (1 + 0.0005 × (workers − 500))`).
+FR3: Workers can be assigned to six roles: Gather (food plus wood), Forage (new: nectar), Tend (hatch-rate bonus), Dig (adds to every DIG press and digs slowly on its own, FR55), Guard, Research. Unassigned workers produce at half the gather rate.
+FR4: Workers cost food upkeep (baseline workers / 2). Starvation stops growth and shrinks the workforce but never wipes the colony (no hard loss). Batch 2 makes the shrink real (FR61).
+FR5: Nest capacity (rooms dug plus Warehouse effect) is a hard cap on workers: larvae wait in the brood when it is full (owner, 2026-11-23).
+FR6: Worker efficiency decays above 500 workers (baseline `1 / (1 + 0.0005 × (workers − 500))`). Replaced by crowding in batch 2 (FR60).
 FR7: Six buildings (Barracks, Walls, Warehouse, Silk Weaving, Chitin Armory, Venom Lab) can be built and upgraded; cost grows exponentially and effects are soft-capped above Lv.5. The Buildings tree unlocks in Phase 2, combat buildings in Phase 3.
 FR8: Combat soldiers cost food plus one worker, train through a pipeline and auto-battle escalating enemies (sub-linear scaling, bounded rounds). A battle ends in victory, defeat or draw.
 FR9: Weapons and armor can be upgraded Lv.1–5 in Phase 3.
@@ -55,11 +56,11 @@ FR19: Depth bar per MVP phase: at least 4 upgrades or buildings competing for th
 FR20: Offline progress uses one cap: 12 h base, raised to 24 h by Legacy upgrades.
 FR21: Offline efficiency chain: base 50%; Phase 2–3 research raises it to 75% (wiped on prestige); a Legacy upgrade raises it to 100% (kept). This replaces Temporal Resonance / Chrono Synchronization, and saves that own them migrate.
 FR22: Time away under 60 s counts at full efficiency and opens no summary; 60 s or more is offline time. The rule is the same for a return from the background and a cold load.
-FR23: On return after ≥ 60 s the player sees a summary: elapsed time, efficiency, resources gained and lost, whether the cap was reached, and the one most useful next action.
-FR24: Offline starvation never drops workers below 50% of their pre-absence count.
+FR23: On return after ≥ 60 s the player sees a summary: elapsed time, efficiency, resources gained and lost, and whether the cap was reached. It reports only the absence and suggests no next move (owner, 2026-11-22, PR #439).
+FR24: Offline starvation never drops workers below 50% of their pre-absence count. With starvation deaths (FR61) at most 20% of the eaters can be lost while away (80% kept).
 FR25: Pause is in-session only: hiding or closing the app ends it, the time away is normal offline time, and a pause is never saved.
 FR26: No notifications in the web build; nothing in the game may depend on notifications.
-FR27: Every check-in offers at least one decision worth making (an allocation change or an affordable upgrade) without relying on decision events.
+FR27: Every check-in offers at least one decision worth making (an allocation change or an affordable upgrade) without relying on decision events. The game state carries this; the return summary does not name the decision (changed 2026-11-22, PR #439).
 FR28: Prestige unlocks when Barracks, Walls and Warehouse reach Lv.5 and lifetime production passes the food, wood, stone and nectar thresholds.
 FR29: Legacy Points = `floor(log10(totalFoodProduced) × phaseScore / 10)` + entropy bonus. The production bonus (+15% per LP) is based on LP earned across all runs, so spending LP never lowers it.
 FR30: Prestige wipes everything except LP, purchased Legacy upgrades (including the offline upgrades), lifetime statistics and the victory record; existing saves that carry space resources across prestige migrate.
@@ -72,7 +73,7 @@ FR36: Wood, stone and nectar are producible from worker roles in Phase 2, so the
 FR37: Every resource is producible before the feature that consumes it unlocks (catch-22 rule).
 FR38: Local, privacy-respecting play telemetry records time per phase, check-in length and decisions per check-in; no network.
 FR39: An automated check proves every phase guard is reachable from that phase's own production, with no prestige.
-FR40: Phases 1–3 are tuned to the Difficulty Curve targets (Phase 1 in 3–5 min active, Phase 2 in 20–40 min active within day 1, Phase 3 over days 2–3); the hatch, mature and train times have an unambiguous unit.
+FR40: Phases 1–3 are tuned to the Difficulty Curve targets (Phase 1 in 3–5 min active, Phase 2 in 20–40 min active within day 1, Phase 3 over days 2–3); the hatch, mature and train times have an unambiguous unit. Superseded by the first-week targets (FR54, FR65), tuned in Epic 9.
 FR41: Each tap gives immediate visual feedback, plus haptics where available.
 FR42: MVP sound effects for tap, hatch, battle result, phase transition and decision event; muted by default on mobile; respect the device's silent mode.
 FR43: Each phase applies its own palette on entry (Phase 1–3 palettes are MVP); an icon exists for every resource and building (Phase 1–3 icons are MVP).
@@ -86,6 +87,18 @@ FR50 (post-MVP): Entropy (0–100) is raised by dark matter, erodes production, 
 FR51 (post-MVP): Reaching Transcendence plays the ending sequence (≤ 5 min), records the victory and offers prestige.
 FR52 (post-MVP): The Legacy tree is balanced so a second run reaches the first run's furthest phase in at most 50% of the time.
 FR53 (post-MVP): Phases 4–5 meet the depth bar and the Days 4–7 / Weeks 2–3 targets; the per-tick territory and entropy rates get an unambiguous unit.
+FR54: Session shape (owner, 2026-11-22): session 1 runs 45–60 min with no wait wall before ~30 min; days 1–3 sessions of 5–15 min; check-ins taper to 90–120 s after about a week. Phases 1–3 fill the first week (Colony ends later on day 1, Combat lasts to ~day 7); first victory in about 4 weeks.
+FR55: DIG is the main button from Colony on: one press digs one fixed chunk of the next room; each room takes more presses than the last; every chunk comes out as stone; a room holds several ants; diggers add to every press and dig slowly on their own, so a player who never taps still gets rooms.
+FR56: Digging progress is visible: a crack grows at the dig face in the scene, and a NEXT ROOM strip shows a bar, the time left and the presses left.
+FR57: FEED is a free tap on the brood in the scene that speeds larvae toward becoming workers, only while a room is free.
+FR58: Auto-dig is bought with stone once the player has dug a few rooms by hand; from then on the diggers press DIG on their own and DIG becomes an optional boost.
+FR59: The nest scene draws only the rooms dug so far, so a young nest fits a phone without zooming; each new room grows the picture with a quick opening animation (replaces the 2× camera crop).
+FR60 (batch 2): Crowding replaces worker efficiency: work slows with creatures per unit of room space; workers, soldiers, eggs and larvae count (not the queen); shown in the scene and the NEXT ROOM strip; a formula of the current state.
+FR61 (batch 2): Starvation warns first, then kills only eaters (workers and soldiers, at random), just enough to bring food use back to production, spread over time; queen, eggs and larvae never starve; at most 20% lost while away. The warning and the offline cap ship with the deaths. A formula of the current state.
+FR62 (batch 2): Food has a storage limit; food past it is lost; Larder rooms raise it; the offline summary says when food stopped at the limit.
+FR63 (batch 2): When a room opens the player may give it one of three jobs (Pantry, Larder, Gallery) or leave it plain; effects are colony-wide, counted by rooms.
+FR64: The swarm reaches thousands: phase goals are rescaled to the GDD's target ranges (Phase 1–2 with batch 1, Phase 3+ with batch 2); exact guards live in `transitions.ts`.
+FR65: `pnpm sim` reports three first-week gates as pass/fail (never asserted in CI): no idle gap over 2 min before 30 min of continuous play; Phase 3 lasts to about day 7; after day 7 the median check-in is 90–120 s and every check-in offers at least one decision.
 
 ### NonFunctional Requirements
 
@@ -101,8 +114,8 @@ NFR9: Hit targets are at least 44×44 px with 8 px spacing; no information is ho
 NFR10: No network is needed to play; no accounts, cloud saves, leaderboards or multiplayer; telemetry and diagnostics stay on the device.
 NFR11: No art budget: all art is vector/procedural (TSX SVG glyphs and scenes, synthesized audio); no emoji and no binary game assets.
 NFR12: Zero soft-locks, enforced by a CI test.
-NFR13: Every feature works within a 30–90 s phone session and keeps progressing offline ("respect the check-in").
-NFR14: Banned: ads, gacha, energy timers, timed "claim" buttons, streaks, numeric badges, interstitials, and any mechanic needing repeated tapping after Phase 1.
+NFR13: Every feature works within a 90–120 s phone check-in (the steady state after the first week) and keeps progressing offline ("respect the check-in").
+NFR14: Banned: ads, gacha, energy timers, timed "claim" buttons, streaks, numeric badges, interstitials, and any mechanic that requires repeated tapping (DIG and FEED are first-week boosts: progress never depends on them).
 NFR15: Accessibility floor: reduced motion, live regions, full keyboard operation, visible focus, hue never the only signal, measured contrast (DESIGN.md table).
 
 ### Additional Requirements
@@ -152,7 +165,7 @@ UX-DR8: Resource sheet: every unlocked resource with a 30 px glyph, full name, e
 UX-DR9: Tab bar: tabs revealed by phase (Phase 1 none; Colony reveals NEST · WRKR · BUILD · LOG at once; Combat adds FRONT); active tab inverse video; `•` when something on that tab became affordable since the last visit, cleared on visit; tapping the active tab scrolls to top; 4-letter names above 130% text; no numeric badges; each tab keeps scroll position and segment for the session; nothing deeper than tab → segment → sheet.
 UX-DR10: FRONT segment row `WAR · MAP · STARS` that grows by phase, opens on the newest segment, remembers the last used, 44 px targets.
 UX-DR11: Primary action: 1.5 px accent border, `> ` prefix, block cursor blinking 1 Hz for ≤ 5 s after input (steady under reduced motion or CRT OFF); pressed = inverse video held until release (not re-inverted per repeat); truncates the target name, never the verb; cost line moves inside as a second line when the label would wrap or height < 560 px; fires on pointer-up (drag-off cancels); hold repeats ~8/s, accelerating after 1 s.
-UX-DR12: Next-action rule as a pure `getNextAction(state)` shared by NEST (after Phase 1), WRKR and the offline summary: 1 goal met → CONTINUE (Phase 6 TRANSCEND); 2 food critical → allocation fix; 3 capacity ≥ 95% → DIG or Warehouse; 4 affordable item from the phase's critical-path table (data); 5 any affordable item; 6 none → `NEXT AFFORDABLE: <item> IN ~<time>`; target locked during a hold and for 1 s after the last tap.
+UX-DR12: Next-action rule as a pure `getNextAction(state)` shared by NEST (after Phase 1), WRKR and the offline summary: 1 goal met → CONTINUE (Phase 6 TRANSCEND); 2 food critical → allocation fix; 3 capacity ≥ 95% → DIG or Warehouse; 4 affordable item from the phase's critical-path table (data); 5 any affordable item; 6 none → `NEXT AFFORDABLE: <item> IN ~<time>`; target locked during a hold and for 1 s after the last tap. **Changed 2026-11-23:** from Colony on NEST's primary action is DIG (CONTINUE when the goal is met), and the offline summary has no next-action button (PR #439); the rule stays for WRKR, the tab dots and the simulated player.
 UX-DR13: Goal meter: `NEXT: <conditions>` read from `transitions.ts` conditions, one row per condition with `met`/`need` and ✓/✗, never naming the next phase; latched state `GOAL MET` with dipped rows reading `<now> now, reached <value> at <time>`; a condensed one-line meter (`NEXT ████······ 74%`) on other tabs.
 UX-DR14: Phase change: never automatic; when the goal is met NEST gets `•` and its primary action becomes `> CONTINUE`; nothing about the next phase shows before the tap.
 UX-DR15: Stepper and role row (WRKR): `[−] value [+]` 44 px brackets with a `×1 ×10 ×MAX` multiplier row; every step applies immediately; values stay within 0 and available (×MAX respects capacity; Research counts toward the assigned total); hold repeats; role rows show name, text bar, count; `[+]` disabled with `no free workers`; the upkeep readout `UPKEEP n / PRODUCTION n` with net (negative `warn` ▼) updates live.
@@ -164,7 +177,7 @@ UX-DR20: Button states: secondary action (dim, no border, ≥ 44 px); disabled (
 UX-DR21: Hold-to-confirm primitive for prestige, research cancel and save import: a square ring of block cells fills over the hold (1 s default, adjustable); releasing early drains it; two-tap mode arms for 5 s with `> TAP AGAIN TO …` in inverse; holding Enter or Space works on keyboard.
 UX-DR22: Sheets: modal bottom sheet (raised, accent top rule, handle, display headline, body, ≤ 2 actions, scrim; closes by swipe down, scrim tap, `[ CLOSE ]` or Esc except decision sheets); peek sheet (≤ 160 px, no scrim, header names the target, ≤ 2 actions); sheets never stack; `role="dialog"`, `aria-modal`, focus to headline, trapped, returned to trigger on close.
 UX-DR23: Decision sheet: situation, 2 choices with visible cost/risk, timer meter under the headline when timed, `IGNORE: <outcome>` line; free (`IGNORE: NOTHING HAPPENS`), costly (outcome on timeout, logged, toast once) and unavoidable (no timer, no dismiss) policies; a one-time `TIMERS CAN BE SLOWED IN SETTINGS` hint on the first timed event; not closable with Esc; held while an overlay is up.
-UX-DR24: Offline summary sheet: `YOU WERE GONE 6H 12M. THE NEST KEPT WORKING.` voice; elapsed time, efficiency %, gains and losses with glyphs, a cap line reading the live cap (`THE NEST STOPPED GROWING AFTER <cap>.`), warn lines (e.g. upkeep outran food); one next-action button that opens the relevant tab with the target highlighted; never empty; focused on open.
+UX-DR24: Offline summary sheet: `YOU WERE GONE 6H 12M. THE NEST KEPT WORKING.` voice; elapsed time, efficiency %, gains and losses with glyphs, a cap line reading the live cap (`THE NEST STOPPED GROWING AFTER <cap>.`), warn lines (e.g. upkeep outran food); no next-action button (removed 2026-11-22, PR #439); never empty; focused on open.
 UX-DR25: Battle summary sheet: VICTORY / DEFEAT / DRAW headline, losses, drops, one cause line (`THEIR SHELLS TURNED YOUR VENOM.`), `> CHANGE → <card>` opening the relevant mutation or equipment card.
 UX-DR26: Enemy card: type and trait shown before committing; `> FIGHT` as primary action, disabled with `train soldiers first` when there are no soldiers; round counter while a battle runs.
 UX-DR27: Phase reveal overlay: full screen, input-blocking, 3 s palette cross-fade, phase name in display, one event line typing in, ≤ 3.5 s; skippable (tap, Enter, Esc) only after that reveal has been seen once (`lifetime.revealsSeen`); the Combat reveal draws the first enemy; decision events wait until it ends.
@@ -174,7 +187,7 @@ UX-DR30: Event lines: newest first, newest prefixed `> ` in accent, older `· ` 
 UX-DR31: LOG tab: full persisted event log (never empty after Phase 1), lifetime stats, settings including PAUSE, and a LEGACY section once the prestige unlock condition is met (prestige and Legacy tree).
 UX-DR32: Settings (reached from the resource sheet and LOG; stored outside the save): sound (off by default, respects silent mode), haptics, reduced motion (follows the OS), CRT effects SCENE/FULL/OFF, decision timers normal/×2/off, confirm style hold/two-tap plus hold duration, lay mode hold/toggle, keyboard shortcuts on/off and remappable, replay intro, PAUSE, export/import save, export diagnostics; no notifications toggle on web; text size follows the browser.
 UX-DR33: App states: corrupt save or failed migration → `THIS SAVE COULDN'T BE READ.` with LOAD BACKUP / START OVER; save write failed → `• SAVE FAILED` strip marker that explains and offers EXPORT SAVE; import invalid → `THAT FILE ISN'T A SWARM SAVE.`, valid → hold-to-confirm sheet stating it replaces the run; paused → `PAUSED` overlay line, next tap resumes, never reopens paused; cold load renders terminal text before the scene.
-UX-DR34: Nest scene: vector soil (accent 7% fill, grain, strata, pebbles, grass line), round-capped tunnels, ellipse chambers, solid-accent queen, workers, eggs and larvae; camera 2× in Phase 1, 1.5× from ~50 workers, 1× from ~150; an individually drawn worker never under 12 px; beyond ~15% chamber coverage extras become a dot cloud with 30–50 ants on top; exact counts as HTML chamber labels; each chamber a labelled focusable button opening a chamber peek sheet; a starving colony visibly thins; ants wander gently between check-ins; root labelled "Nest: 37 workers, 5 eggs, 4 larvae".
+UX-DR34: Nest scene: vector soil (accent 7% fill, grain, strata, pebbles, grass line), round-capped tunnels, ellipse chambers, solid-accent queen, workers, eggs and larvae; the scene draws only the rooms dug so far, so a young nest fits without zooming (replaces the 2×/1.5×/1× camera steps, Story 9.6); an individually drawn worker never under 12 px; beyond ~15% chamber coverage extras become a dot cloud with 30–50 ants on top; exact counts as HTML chamber labels; each chamber a labelled focusable button opening a chamber peek sheet; a starving colony visibly thins; ants wander gently between check-ins; root labelled "Nest: 37 workers, 5 eggs, 4 larvae".
 UX-DR35: Glyphs: 20 TSX SVG line glyphs (14 resources, 6 buildings) plus a gear, 24×24 grid, 1.6 px round-capped stroke, `currentColor`, used only inside text (15 px strip, 13–14 px cost lines, 18–22 px cards, 30 px resource sheet); VNOM redrawn as fang or vial; no emoji anywhere, placeholders included.
 UX-DR36: CRT effects: SCENE (default) puts scanlines only on the vector scene and overlays, glow (3 px drop-shadow) on line-work, text-shadow ≤ 2 px at ≤ 35% on accent text ≥ 15 px; FULL adds scanlines everywhere and states the contrast caveat; OFF removes both; OFF auto-selected for more-contrast / reduced-transparency or text scale > 130%; scanlines in device pixels.
 UX-DR37: Game feel per trigger (lay egg, hatch/mature, newly affordable, press/hold buy, battle result, decision event, phase change, camera pull-back, ending): visual, haptic and sound as in the EXPERIENCE table; sounds rate-limited (hatch ≤ 1/s, key click ≤ 8/s).
@@ -187,6 +200,9 @@ UX-DR43: Resume from background: after ≥ 60 s the offline summary opens exactl
 UX-DR44 (post-MVP): Map tile select-only: a tap selects (inverse video) and opens a peek sheet with terrain, yield, risk and SCOUT / CLAIM / EXPEDITION; a tap never commits; tapping another tile retargets; auto-scroll keeps the tile 16 px above the sheet; FRONT primary hidden while the peek is open; below 352 px tiles stay 40 px and the map pans with a `[◂ ▸ ▴ ▾]` control; unknown tiles `?` with `SEND SCOUTS TO SEE.`
 UX-DR45 (post-MVP): Expedition force steppers capped by Barracks level, expedition result sheet (success/partial/failure, losses, loot, tiles revealed), `3 of 3 out · back in 14m` disabled state, star map with planet peek sheets, entropy meter `warn` above 75%.
 UX-DR46 (post-MVP): Phase 6 NEST final goal meter with `> TRANSCEND`; Transcendence ending overlay (colony breaks into characters, scatters, `THE SWARM IS EVERYWHERE NOW.`), then LOG → LEGACY opens with prestige offered; after prestige `A QUEEN, AGAIN.` with no cinematic.
+UX-DR47: NEXT ROOM strip under the nest scene: `NEXT ROOM` (or `NEXT ROOM · AUTO-DIG ON`), the next room's size `+N`, a text meter, `IN <time>` and `· <n> DIGS`; a matching crack at the scene's dig face; batch 2 adds `CROWDED · −<n>% WORK`.
+UX-DR48: NEST from Colony: the goal block condensed to at most 4 lines; scene; NEXT ROOM strip; brood control on one line (`BROOD <n> EGGS · <n> LARVAE  KEEP [−] N [+] AUTO`); event lines; `> DIG` in the pinned primary zone with a hint line (`chunk +n · n stone · tap the brood to feed when a room is free`); FEED is a tap on the brood in the scene (a labelled button), greyed `FEED · NEST FULL` with no free room. Mockups: https://claude.ai/artifact/Rs3RWvuwqrsbx7p5CWEsNp (their two-button row is superseded: DIG alone, FEED in the scene).
+UX-DR49: Dig feel: each press a crunch, a small shake (none under reduced motion) and a dirt puff; breakthrough a short opening animation, a sound and a vibration where `navigator.vibrate` works (iPhone Safari: sound and shake only); within the flash rule (UX-DR38) and the sound rate limits.
 
 ### FR Coverage Map
 
@@ -245,12 +261,21 @@ FR50: Epic 6 - Entropy tuning (post-MVP)
 FR51: Epic 7 - Transcendence ending (post-MVP)
 FR52: Epic 7 - Legacy balance for the second run (post-MVP)
 FR53: Epic 6 - Phase 4–5 depth and units (post-MVP)
+FR54: Epic 9 - Session shape (sim schedule, Story 9.1; tuning, Story 9.9 and batch 2)
+FR55: Epic 9 - DIG (Story 9.2)
+FR56: Epic 9 - NEXT ROOM progress (Story 9.3)
+FR57: Epic 9 - FEED (Story 9.4)
+FR58: Epic 9 - Auto-dig (Story 9.5)
+FR59: Epic 9 - Nest shows only dug rooms (Story 9.6)
+FR60–FR63: Epic 9 - Batch 2 (stories to be written after batch 1)
+FR64: Epic 9 - Rescaled goals (Phase 1–2 in Story 9.9, Phase 3+ in batch 2)
+FR65: Epic 9 - Sim gates (report in Story 9.1; gate 1 passes in Story 9.9, gates 2–3 in batch 2)
 
-NFR1–NFR3, NFR7, NFR9, NFR14, NFR15: Epic 1 · NFR4–NFR6, NFR8, NFR10, NFR13: Epic 2 · NFR12: Epic 3 · NFR11: Epic 8
+NFR1–NFR3, NFR7, NFR9, NFR14, NFR15: Epic 1 · NFR4–NFR6, NFR8, NFR10, NFR13: Epic 2 · NFR12: Epic 3 · NFR11: Epic 8 · UX-DR47–UX-DR49: Epic 9
 
 ## Epic List
 
-**Order:** Epic 1 → Epic 2 → Epic 3 ↔ Epic 4 → Epic 5 → MVP playtest → Epic 6 → Epic 7. Epic 8 runs alongside Epics 1–4 and starts once Epic 1's selectors and shell exist. Epic numbers match the GDD's E1–E8.
+**Order:** Epic 1 → Epic 2 → Epic 3 ↔ Epic 4 → Epic 5 → MVP playtest → Epic 9 → Epic 6 → Epic 7. Epic 8 runs alongside Epics 1–4 and starts once Epic 1's selectors and shell exist. Epic numbers match the GDD's E1–E8.
 
 **Owner decision (2026-11-21):** the full countable-ant nest scene (UX-DR34) is MVP, which changes the GDD's E8 assumption that it was post-MVP.
 
@@ -285,6 +310,10 @@ The first run ends in a real victory that offers prestige. Stories are written a
 ### Epic 8: Each phase looks and sounds like itself
 Phases 1–3 each have their own palette, glyphs, sounds and a living countable-ant nest.
 **FRs covered:** FR42, FR43, FR44
+
+### Epic 9: The first week digs in
+From the 2026-11-22 playtest (Correct Course, `sprint-change-proposal-2026-11-23.md`). Session 1 runs 45–60 min with no wait wall before about 30 min, Phases 1–3 fill the first week, check-ins settle at 90–120 s after it, and the swarm grows to thousands. Batch 1 (the DIG core) is written as stories; batch 2 (space and food) and batch 3 (flavour) are listed.
+**FRs covered:** FR54, FR55, FR56, FR57, FR58, FR59, FR64, FR65 (batch 1) · FR60, FR61, FR62, FR63 (batch 2)
 
 ## Epic 1: Play the game one-handed on a phone
 
@@ -1178,6 +1207,8 @@ So that coming back is rewarded before my first prestige.
 
 ### Story 2.9: The return summary always offers a next move
 
+> **Changed 2026-11-22 (PR #439, owner after the playtest):** the summary reports only what happened while away and has no next-action button (`getReturnMove` removed). The "never empty" property now applies to the game state, not the summary: every resumed state offers at least one allocation change or affordable upgrade. The criteria below are kept as built, with the next-move parts struck by this note.
+
 As a player checking in,
 I want to see what happened while I was away and one useful thing to do,
 So that every return starts with a decision.
@@ -1469,6 +1500,8 @@ So that the owner can tune pacing without the game calling home.
 **Covers:** FR38 · NFR10
 
 ### Story 3.11: Tune Phases 1–3 to the target curve
+
+> **Superseded targets (2026-11-23):** the first-week session shape and gates replace this story's targets; Story 9.9 and batch 2 re-tune against them.
 
 As a mobile player,
 I want Phase 1 in a few minutes, Colony within my first day and Combat over the next two,
@@ -1952,6 +1985,8 @@ So that growth never makes the game stutter.
 
 ### Story 8.7: The nest grows, wanders and starves
 
+> **Changed 2026-11-23:** the camera steps are replaced by a nest that shows only dug rooms (Story 9.6). Wandering and the starving colony stay.
+
 As a player,
 I want the nest to change as the colony changes,
 So that I can read the colony's health at a glance.
@@ -2024,3 +2059,228 @@ So that the queen's story starts before the first tap.
 **Then** replay plays it again without touching the save, and `seedSave(page, state, { introSeen: true })` skips it in tests
 
 **Covers:** UX-DR28
+
+## Epic 9: The first week digs in
+
+From the owner's mobile playtest (2026-11-22, `_bmad-output/playtest-2026-11-22.md`): the owner quit in Colony after a capacity wall of about 5 h, two minutes into play. Issues #436 and #438; brainstorm `_bmad-output/brainstorming-session-2026-11-22.md`; Correct Course `sprint-change-proposal-2026-11-23.md`. Mockups: https://claude.ai/artifact/Rs3RWvuwqrsbx7p5CWEsNp (their two-button row is superseded: DIG is the only main button, FEED is a tap on the brood in the scene).
+
+Batch 1 (the DIG core, Stories 9.1–9.9) is written below and builds in order. Batch 2 and batch 3 stories are written after batch 1 ships.
+
+### Story 9.1: The simulated player plays the first week
+
+As a designer,
+I want `pnpm sim` to play the first week the way the GDD's session shape describes,
+So that I can see whether the first-week gates pass before tuning anything.
+
+**Acceptance Criteria:**
+
+**Given** a `firstWeekSchedule(days)` in `src/sim/schedule.ts`, its shape read from `data/balance/sim.ts`
+**When** it builds a run
+**Then** session 1 is one continuous session (45–60 min), days 1–3 hold sessions of 5–15 min about 6 a day, days 4–7 shrink toward the steady state, and after day 7 each check-in is played until the policy has no useful move left (capped by a ceiling in the balance file), so the check-in length is measured, not given
+**And** unit tests check the schedule's invariants (real-time order, session 1 continuous, sessions shorter after day 3 than before), never its numbers
+
+**Given** the probes
+**When** a run plays
+**Then** they record payoffs: a room opened, an item newly affordable, a goal condition newly met, a phase entered; an **idle gap** is a stretch of play with no payoff
+**And** they record each check-in's length and the decisions available in it (existing probe)
+
+**Given** `pnpm sim` (default: the first-week schedule, a fresh game, 10 days)
+**When** it prints the report
+**Then** the report shows the three gates (GDD *Success Metrics*) as pass or fail next to their targets: (1) the longest idle gap in the first 30 min of continuous play, against 2 min; (2) the day Phase 3 ended, against about day 7; (3) after day 7, the median check-in length against 90–120 s and the share of check-ins with at least one decision, against 100%
+**And** the phase targets in `data/balance/pacing.ts` follow the new *Difficulty Curve* (Phase 1 in the first minutes of session 1; Colony ends on day 1 in a later session; Combat days 2–7)
+**And** the gate verdicts are pure functions over probe data with unit tests on synthetic probes (a gap over the limit fails, one under passes); CI never asserts a gate on a real run
+
+**Covers:** FR54 (schedule), FR65 (report) · AR15
+
+### Story 9.2: DIG digs the next room
+
+As a player in Colony,
+I want one big DIG button that digs the next room a chunk at a time,
+So that I can make room for my colony now instead of waiting a day.
+
+**Acceptance Criteria:**
+
+**Given** the phase is Colony or later and no goal is latched
+**When** NEST renders
+**Then** its pinned primary action is `> DIG` (`[data-nest-primary=dig]`); Phase 1 keeps `> LAY EGG`, and a latched goal still swaps the slot for `> CONTINUE`; Space presses DIG when the page has focus
+
+**Given** a DIG press (a `dig` intent in `actions/`, returning `Result`)
+**When** it applies
+**Then** it adds one chunk to the current room's progress: a fixed base plus a share for each worker on the DIG role (values in `data/balance/`), and it adds stone for the dirt dug, as an integer
+**And** when progress reaches the current room's cost, the room opens: nest capacity rises by the room's size (more than 1), progress carries over, the rooms-dug count rises, and the next room costs more presses than this one (property test: cost strictly increases with the rooms dug)
+**And** hold-to-repeat works as on every primary action (UX-DR11)
+
+**Given** diggers and no presses
+**When** time passes, live or in catch-up
+**Then** diggers dig on their own at a slow rate (Tunnels still speed them up), so a run that never presses DIG still opens rooms (sim test: no presses, at least one digger, a room opens within a generous ceiling); the result is the same for any step length (Story 2.5 property)
+
+**Given** the change to the state
+**When** a save from before this story loads
+**Then** a numbered migration adds the dig state (rooms dug, progress) and never lowers the nest capacity the save had; resources stay integers
+
+**Given** the simulated player
+**When** it plays a check-in in Colony or later
+**Then** it presses DIG at `simBalance.tapsPerSec` while a room is needed, through the same action a player uses
+**And** the WRKR Dig role text describes the new rule (adds to every press, digs slowly alone), read from the balance, never restated
+
+**Covers:** FR55, FR3 (Dig), FR5 · UX-DR11
+
+### Story 9.3: NEXT ROOM shows how close the next room is
+
+As a player,
+I want to see how far the next room is and how long it will take,
+So that digging never feels like an invisible timer.
+
+**Acceptance Criteria:**
+
+**Given** a pure selector `selectNextRoom` (progress share, presses left, the next room's size, time left at the diggers' own rate, auto-dig state)
+**When** NEST renders in Colony or later
+**Then** a NEXT ROOM strip sits under the scene: `NEXT ROOM` (or `NEXT ROOM · AUTO-DIG ON`), `+<size>`, a text meter, `IN <time>` and `· <n> DIGS`; with no diggers and no auto-dig the time reads `NO DIGGERS` instead
+**And** the meter is a `role="progressbar"` with an `aria-valuetext`, and the strip refreshes at most 4 times a second
+
+**Given** the time left
+**When** the strip shows it
+**Then** it comes from the same rate the dig system uses (unit test: the selector's time matches the simulated time to open the room within one step)
+
+**Given** the nest scene
+**When** progress grows
+**Then** a crack at the dig face grows in a few visible stages from the same selector (none of it animates under reduced motion)
+
+**Covers:** FR56 · UX-DR47
+
+### Story 9.4: FEED hurries larvae into a free room
+
+As a player who just dug a room,
+I want to tap the brood to hurry larvae into it,
+So that a new room fills while I watch.
+
+**Acceptance Criteria:**
+
+**Given** the phase is Colony or later, larvae waiting and a free room (workers below capacity)
+**When** the player taps the brood in the nest scene (a real `<button>` labelled "Feed the brood")
+**Then** a `feed` intent speeds the larva pipeline by a fixed amount from `data/balance/`; it costs nothing (owner, 2026-11-23), and it never matures more larvae than there are free rooms (property test)
+
+**Given** no free room, or no larvae
+**When** the brood control renders
+**Then** it is disabled with its reason (`FEED · NEST FULL`, or no larvae), and DIG remains the move
+
+**Given** the pipelines
+**When** FEED applies
+**Then** every larva that leaves the larva pipeline becomes a worker (the pipeline rule in CLAUDE.md); resources stay integers; one state write
+
+**Covers:** FR57, FR2
+
+### Story 9.5: Auto-dig hands the digging to the diggers
+
+As a player who has dug a few rooms by hand,
+I want to buy auto-dig,
+So that the diggers carry on without me once I know how it works.
+
+**Acceptance Criteria:**
+
+**Given** the player has opened a few rooms by hand (count in `data/balance/automation.ts`, following FR16's manual-count rule)
+**When** BUILD renders
+**Then** an auto-dig card appears, paid in stone (owner, 2026-11-23); stone comes from digging, so it is always producible first (Story 3.6 check passes)
+
+**Given** auto-dig bought
+**When** the game runs, in the foreground or offline
+**Then** the diggers press DIG on their own at a rate from the balance (each press worth the usual chunk), the NEXT ROOM strip reads `AUTO-DIG ON`, and NEST's primary action becomes `> AUTO-DIG ON` with the hint `tap to boost the dig`; a press still adds a chunk
+**And** the result is the same for any step length, and the purchase is saved (numbered migration if it adds a field)
+
+**Given** that this story adds content
+**When** the agent prices it
+**Then** the price lands auto-dig around the end of day 1 in the Story 9.1 report, and the PR records the price and the reason
+
+**Covers:** FR58, FR16 (digging)
+
+### Story 9.6: The nest shows only what I've dug
+
+As a player on a phone,
+I want the nest to show just the rooms I've dug,
+So that a young nest fits my screen and grows as I dig.
+
+**Acceptance Criteria:**
+
+**Given** `selectNestView` with the rooms dug
+**When** `nestLayout` lays out the scene
+**Then** it draws only the queen's chamber, the brood and the rooms dug so far, surrounded by solid soil, and frames them so the whole dug nest fits the scene area at every phone width from 320 px without cropping a chamber (unit test on `nestLayout` over a range of room counts)
+**And** it replaces the camera steps (`sceneBalance.cameraSteps` and the 2× crop); an individually drawn worker is still never under 12 px, and the dot cloud and the 50-ant cap still apply (Story 8.6)
+
+**Given** a room opens
+**When** the scene updates
+**Then** a quick, light opening animation plays (dirt falls, the chamber outline appears), at most about 1 s, instant under reduced motion, within the flash rule
+
+**Covers:** FR59, FR44 · UX-DR34 (changed) · AR14
+
+### Story 9.7: The NEST tab fits the digging loop
+
+As a player in Colony on a phone,
+I want the NEST tab laid out around digging,
+So that the goal, the next room, the brood and DIG fit on one screen.
+
+**Acceptance Criteria:**
+
+**Given** the phase is Colony or later on a 390×844 phone viewport (and the 360×512 minimum)
+**When** NEST renders
+**Then** from top to bottom it shows: the goal block condensed to at most 4 lines, the scene, the NEXT ROOM strip, the brood control on one line (`BROOD <n> EGGS · <n> LARVAE` with the laying target `KEEP [−] N [+] AUTO`), the event lines, and `> DIG` in the pinned primary zone with a hint line (`chunk +n · n stone · tap the brood to feed when a room is free`)
+**And** nothing overlaps or scrolls sideways, the primary action stays in the bottom 40%, and every control is at least 44×44 px (Playwright, seeded with a Colony save that satisfies the real guards)
+
+**Given** the existing `data-*` hooks on NEST
+**When** the layout changes
+**Then** they are kept, and new parts get hooks (`[data-next-room]`, `[data-brood-feed]`)
+
+**Covers:** UX-DR48, UX-DR5 · NFR7, NFR9
+
+### Story 9.8: Every dig press feels like moving earth
+
+As a player,
+I want each DIG press to crunch and each breakthrough to land,
+So that twenty presses feel like digging, not like a chore.
+
+**Acceptance Criteria:**
+
+**Given** a DIG press
+**When** it lands
+**Then** within 100 ms the scene shows a dirt puff at the dig face and a small shake, and a crunch plays when sound is on (rate-limited like key clicks)
+**And** under reduced motion there is no shake and no particles; the crack and the strip still move
+
+**Given** a room breaking through
+**When** it opens
+**Then** a breakthrough sound plays (sound on) and the device vibrates through the `Haptics` service where `navigator.vibrate` works; where it does not (iPhone Safari), the sound and the shake carry it and nothing fails (owner, 2026-11-23)
+**And** the flash rule holds during a 2 s DIG hold (the Story 1.11 test extended to DIG)
+
+**Covers:** UX-DR49, UX-DR37, UX-DR38 · FR41
+
+### Story 9.9: Tune the DIG core so session 1 never walls
+
+As a new player,
+I want my first half hour to always have something worth doing,
+So that I'm still playing at minute 30 instead of quitting at minute 2.
+
+**Acceptance Criteria:**
+
+**Given** the Story 9.1 report
+**When** the dig, feed, capacity and Warehouse values in `data/balance/` and the Phase 1–2 worker guards in `transitions.ts` are tuned
+**Then** gate 1 passes (no idle gap over 2 min before 30 min of continuous play), Colony ends on day 1 in a session after the first, and the Phase 1–2 guards sit in the GDD's target ranges (about 10–20 and about 150–300 workers plus a guard)
+**And** this includes the capacity rebalance from #438: the start capacity, the room size, the room cost growth and the Warehouse cost and rooms, so that a player who doesn't tap still reaches the Colony goal (reachability test)
+
+**Given** the changes
+**When** CI runs
+**Then** the reachability test (Story 3.8) passes for every MVP phase, no test hard-codes a tuned number, the E2E seeds still satisfy the real guards, and the story file records the before and after report
+**And** the agent tunes autonomously: if a target can't be met by values alone, it gets as close as it can and explains the gap in the PR description
+
+**Covers:** FR64 (Phase 1–2), FR65 (gate 1), FR54 (session 1) · FR5
+
+### Batch 2: space and food (stories after batch 1)
+
+One system: how many ants the nest and the stores can hold. GDD *Space and Food*.
+
+- **Crowding replaces `workerEfficiency`** (FR60): work slows with creatures per unit of room space; workers, soldiers, eggs and larvae count, not the queen; capacity stays a hard cap on workers; shown in the scene (spill into the tunnels) and the NEXT ROOM strip; a formula of the current state.
+- **Starvation** (FR61, FR24): warning first, shrink to fit, only eaters die, at most 20% lost while away (offline floor 0.5 → 0.8). The warning and the offline cap ship in the same story as the deaths.
+- **Food storage limit** (FR62), raised by Larders; the offline summary line.
+- **Room jobs** (FR63): Pantry, Larder, Gallery, one tap when a room opens, plain is fine.
+- **Rescale Phase 3+ and tune gates 2 and 3** (FR64, FR65): Combat lasts to about day 7; post-week check-ins 90–120 s with a decision each.
+
+### Batch 3: flavour (later)
+
+Intruders (seeded randomness; guards help), finds, a rhythm bonus on DIG, the milestone pull-out at 1,000 and 10,000 ants, first-time event lines as the tutorial, sharper mandibles (stone), reinforced rooms (stone), a building that sets who starves first.

@@ -431,6 +431,17 @@ Recorded as ADRs in `docs/decisions/` (created in the same PR as this document):
   EXPERIENCE.md Settings through `gds-correct-course` when the stories are written.
   **Done 2026-11-21** (`sprint-change-proposal-2026-11-21.md`, GDD decision log #24–#28), together
   with the load budgets, in-session pause and the 60 s full-efficiency window.
+- **First-week pacing (2026-11-23, `sprint-change-proposal-2026-11-23.md`, Epic 9).** No new primitive and no
+  ADR needed; the decisions fit D1, D2, D11 and D12:
+  - The nest scene's camera steps (D11) are replaced by framing to the rooms dug; `selectNestView` gains the
+    rooms dug and dig progress. The dot cloud and the 50-ant cap stay.
+  - DIG and FEED are `actions/` intents (`Result`), not tick logic; diggers' own digging and bought auto-dig
+    run in `processTick` and must be step-length independent (D2 property test).
+  - Batch 2 crowding (replacing `workerEfficiency`) and starvation are pure formulas of the current state, so
+    macro-step catch-up matches live play; the offline starvation floor (offline-only rule) moves from 50% to 80% kept.
+  - `getNextAction` no longer drives NEST from Colony on, or the offline summary (PR #439); WRKR, the tab dots
+    and the sim policy still use it.
+  - The sim (D12) gains a first-week schedule and payoff probes; the three gates are report verdicts, never CI asserts.
 
 ## Cross-cutting Concerns
 
@@ -650,7 +661,7 @@ migrated); `package-lock.json` (stale; the repo is pnpm-only).
 | Combat | `src/systems/BattleSystem.ts`, `SoldierSystem.ts`, `EnemySystem.ts` | Auto-battle, enemy traits, battle cause |
 | Scouts/warriors, expeditions | `src/systems/RecruitmentSystem.ts`, `ExpeditionSystem.ts` | Separate from combat soldiers (existing rule) |
 | Decision events | `src/systems/DecisionSystem.ts` + `src/data/content/decisions.ts` | Spawn on session clock, `applyChoice` (D8) |
-| Next action | `src/systems/NextAction.ts` | Pure `getNextAction(state)` for NEST, WRKR, offline summary |
+| Next action | `src/systems/NextAction.ts` | Pure `getNextAction(state)` for WRKR, the tab dots and the sim policy (NEST shows DIG from Colony; the offline summary has no action since PR #439) |
 | Phase flow | `src/phases/transitions.ts`, `PhaseStateMachine.ts` | Conditions, evaluate/commit, latch (D3) |
 | Prestige | `src/systems/PrestigeSystem.ts`, `src/data/content/prestigeTree.ts` | Full wipe rules (E5) |
 | Saves and migrations | `src/persistence/` | Load status, numbered migrations (D4) |
