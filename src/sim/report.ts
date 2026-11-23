@@ -2,12 +2,12 @@ import { createInitialState, type GameState } from '../state/GameState';
 import { Phase, PHASE_ORDER } from '../phases/phases';
 import { DAY_MS } from '../data/constants';
 import { simBalance } from '../data/balance/sim';
-import { pacingReportDefaults, pacingTargets, type PacingTargets, type PhaseTarget } from '../data/balance/pacing';
+import { pacingReportDefaults, pacingTargets, type FirstWeekGates, type PacingTargets, type PhaseTarget } from '../data/balance/pacing';
 import { formatTime } from '../utils/format';
 import { SimRunner, runSim, type SimResult } from './runner';
-import { dailySchedule, type CheckInSchedule } from './schedule';
+import { firstWeekSchedule, type CheckInSchedule } from './schedule';
 import { defaultPolicy, maxArmyPolicy, type PlayerPolicy } from './policy';
-import type { CheckInRecord, EggSample, ProbeReport } from './probes';
+import type { CheckInRecord, EggSample, Payoff, ProbeReport } from './probes';
 import { MUTATIONS } from '../systems/MutationSystem';
 import type { BuildingType } from '../systems/BuildingSystem';
 import { BUILDING_UNLOCK_PHASE } from '../data/content/buildings';
@@ -81,6 +81,7 @@ function judgeRealTime(span: PhaseSpan, target: PhaseTarget, run: RunEnd): Verdi
   }
   if (span.endedOnDay === null) return run.atMs >= t.toDay * DAY_MS ? 'slow' : 'open';
   if (span.endedOnDay < t.fromDay) return 'fast';
+  if (t.afterCheckIns !== undefined && span.endedInCheckIn !== null && span.endedInCheckIn < t.afterCheckIns) return 'fast';
   return span.endedOnDay > t.toDay ? 'slow' : 'ok';
 }
 
@@ -125,6 +126,90 @@ export function criticalMoments(checkIns: readonly CheckInRecord[], phase: strin
   return { food: inPhase.filter((c) => c.foodCritical).length, capacity: inPhase.filter((c) => c.capacityCritical).length };
 }
 
+/** A first-week gate's verdict (Story 9.1): `open` while the run is too short to say. */
+export type GateVerdict = 'pass' | 'fail' | 'open';
+
+/**
+ * The longest stretch of play in `[0, windowMs]` of time played with no
+ * payoff, counted from 0 and to the window's end (Story 9.1). Pure.
+ */
+export function longestIdleGap(payoffs: readonly Payoff[], windowMs: number): number {
+  const times = payoffs.map((p) => p.activeMs).filter((t) => t >= 0 && t <= windowMs).sort((a, b) => a - b);
+  let prev = 0;
+  let longest = 0;
+  for (const t of [...times, windowMs]) {
+    longest = Math.max(longest, t - prev);
+    prev = t;
+  }
+  return longest;
+}
+
+/** Gate 1: the longest idle gap in the window, measured only as far as session 1 (`playedMs`) went. Pure. */
+export function idleGapGate(payoffs: readonly Payoff[], playedMs: number, gate: FirstWeekGates['idleGap']): { readonly windowMs: number; readonly valueMs: number; readonly verdict: GateVerdict } {
+  const windowMs = Math.min(gate.windowMs, playedMs);
+  if (windowMs <= 0) return { windowMs, valueMs: 0, verdict: 'open' };
+  const valueMs = longestIdleGap(payoffs, windowMs);
+  return { windowMs, valueMs, verdict: valueMs > gate.maxMs ? 'fail' : 'pass' };
+}
+
+/** Gate 2: the day the gate's phase ended (null while open or never reached), against its days. Pure. */
+export function phaseEndGate(spans: readonly PhaseSpan[], run: { readonly atMs: number }, gate: FirstWeekGates['phaseEnd']): { readonly endedOnDay: number | null; readonly verdict: GateVerdict } {
+  const span = spans.find((s) => s.phase === gate.phase);
+  const day = span?.completed ? span.endedOnDay : null;
+  if (day === null) return { endedOnDay: null, verdict: run.atMs >= gate.toDay * DAY_MS ? 'fail' : 'open' };
+  return { endedOnDay: day, verdict: day >= gate.fromDay && day <= gate.toDay ? 'pass' : 'fail' };
+}
+
+/**
+ * Gate 3: the check-ins that start after the week. Their median length
+ * against the range, and the share (whole %, floored) that offered a decision
+ * (one open on arrival, or a move made). Pure.
+ */
+export function postWeekGate(checkIns: readonly CheckInRecord[], gate: FirstWeekGates['postWeek']): { readonly count: number; readonly medianMs: number | null; readonly decisionShare: number | null; readonly verdict: GateVerdict } {
+  const late = checkIns.filter((c) => c.startMs >= gate.afterDay * DAY_MS);
+  if (late.length === 0) return { count: 0, medianMs: null, decisionShare: null, verdict: 'open' };
+  const medianMs = median(late.map((c) => c.activeMs)) ?? 0;
+  const decisionShare = Math.floor((late.filter((c) => c.decisionsAvailable > 0 || c.actions > 0).length * 100) / late.length);
+  const ok = medianMs >= gate.medianMs.min && medianMs <= gate.medianMs.max && decisionShare >= gate.decisionSharePercent;
+  return { count: late.length, medianMs, decisionShare, verdict: ok ? 'pass' : 'fail' };
+}
+
+/** One gate as the report prints it. */
+export interface GateLine {
+  readonly label: string;
+  readonly target: string;
+  readonly value: string;
+  readonly verdict: GateVerdict;
+}
+
+/** The three gates over one run (Story 9.1). Pure. */
+export function firstWeekGates(probes: ProbeReport, spans: readonly PhaseSpan[], run: { readonly atMs: number }, gates: FirstWeekGates): GateLine[] {
+  const g1 = idleGapGate(probes.payoffs, probes.checkIns[0]?.activeMs ?? 0, gates.idleGap);
+  const g2 = phaseEndGate(spans, run, gates.phaseEnd);
+  const g3 = postWeekGate(probes.checkIns, gates.postWeek);
+  const range = `${formatTime(gates.postWeek.medianMs.min)}–${formatTime(gates.postWeek.medianMs.max)}`;
+  return [
+    {
+      label: `Gate 1, longest idle gap in the first ${formatTime(gates.idleGap.windowMs)} of session 1`,
+      target: `≤ ${formatTime(gates.idleGap.maxMs)}`,
+      value: g1.verdict === 'open' ? 'not played' : `${formatTime(g1.valueMs)}${g1.windowMs < gates.idleGap.windowMs ? ` (only ${formatTime(g1.windowMs)} played)` : ''}`,
+      verdict: g1.verdict,
+    },
+    {
+      label: 'Gate 2, day Phase 3 ended',
+      target: `day ${gates.phaseEnd.fromDay}–${gates.phaseEnd.toDay}`,
+      value: g2.endedOnDay === null ? 'not ended' : `day ${g2.endedOnDay}`,
+      verdict: g2.verdict,
+    },
+    {
+      label: `Gate 3, check-ins after day ${gates.postWeek.afterDay}`,
+      target: `median ${range}, ${gates.postWeek.decisionSharePercent}% with a decision`,
+      value: g3.medianMs === null ? 'none played' : `${g3.count} check-ins, median ${formatTime(Math.floor(g3.medianMs))}, ${g3.decisionShare}% with a decision`,
+      verdict: g3.verdict,
+    },
+  ];
+}
+
 export interface PacingRow {
   readonly target: PhaseTarget;
   /** Null when the run never reached the phase. */
@@ -149,6 +234,8 @@ export interface PacingReport {
   readonly idle: readonly CheckInRecord[];
   /** Check-ins of `targets.criticalMoments.phase` where food, and capacity, was critical (Story 3.11). */
   readonly critical: { readonly food: number; readonly capacity: number };
+  /** The three first-week gates (Story 9.1). */
+  readonly gates: readonly GateLine[];
   /** The default and the max-army player through Combat from the same seed (Story 4.4); absent when not run. */
   readonly army?: ArmyComparison;
 }
@@ -263,7 +350,7 @@ export function compareArmies(entry: GameState, opts: { readonly seed: number; r
 /** A fresh game to Combat with the default player, then Combat with both players (Story 4.4). Null when Combat is never reached. */
 export function runArmyComparison(opts: { readonly seed?: number; readonly days?: number } = {}): ArmyComparison | null {
   const seed = opts.seed ?? pacingReportDefaults.seed;
-  const schedule = dailySchedule(opts.days ?? pacingReportDefaults.days);
+  const schedule = firstWeekSchedule(opts.days ?? pacingReportDefaults.days);
   const entry = combatEntry(seed, schedule);
   return entry ? compareArmies(entry.state, { seed, schedule, first: entry.nextCheckIn }) : null;
 }
@@ -293,14 +380,15 @@ export function buildPacingReport(result: SimResult, opts: { readonly seed: numb
     medianActions: median(probes.checkIns.map((c) => c.actions)),
     idle: idleCheckIns(probes.checkIns, targets.idleCheckInMaxMs),
     critical: criticalMoments(probes.checkIns, targets.criticalMoments.phase),
+    gates: firstWeekGates(probes, spans, { atMs: result.elapsedMs }, targets.gates),
   };
 }
 
-/** Play a fresh game over `days` of check-ins and measure it (architecture N2's `runPacingReport`). */
+/** Play a fresh game over `days` of the first-week schedule (Story 9.1) and measure it (architecture N2's `runPacingReport`). */
 export function runPacingReport(opts: { readonly seed?: number; readonly days?: number } = {}): PacingReport {
   const seed = opts.seed ?? pacingReportDefaults.seed;
   const days = opts.days ?? pacingReportDefaults.days;
-  const result = runSim({ state: createInitialState(), seed, schedule: dailySchedule(days) });
+  const result = runSim({ state: createInitialState(), seed, schedule: firstWeekSchedule(days) });
   const army = runArmyComparison({ seed, days });
   return { ...buildPacingReport(result, { seed, days }), ...(army ? { army } : {}) };
 }
@@ -323,6 +411,13 @@ function ended(s: PhaseSpan | null): string {
 }
 
 const VERDICT: Record<Verdict, string> = { fast: 'FAST', ok: 'ok', slow: 'SLOW', open: '…', none: '' };
+const GATE: Record<GateVerdict, string> = { pass: 'PASS', fail: 'FAIL', open: 'open (run too short)' };
+
+/** The first-week schedule's shape, in words. */
+function scheduleLine(): string {
+  const fw = simBalance.firstWeek;
+  return `first-week schedule: session 1 of ${formatTime(fw.session1Ms)}, ${simBalance.checkInsPerDay} a day of ${formatTime(fw.earlySessionMs)} to day ${fw.earlyDays}, shrinking to day ${fw.weekDays}, then played until idle (at most ${formatTime(fw.checkInCeilingMs)})`;
+}
 
 function pad(cells: readonly string[], widths: readonly number[]): string {
   return cells.map((c, i) => c.padEnd(widths[i])).join('  ').trimEnd();
@@ -381,8 +476,11 @@ export function formatPacingReport(r: PacingReport): string {
   ]);
   const widths = head.map((_, i) => Math.max(...[head, ...body].map((l) => l[i].length)));
   const lines = [
-    `THE SWARM pacing report: seed ${r.seed}, ${r.days} day(s), ${r.checkIns} check-ins (${simBalance.checkInsPerDay} a day, ${formatTime(simBalance.checkInActiveMs)} each)`,
+    `THE SWARM pacing report: seed ${r.seed}, ${r.days} day(s), ${r.checkIns} check-ins (${scheduleLine()})`,
     `Played ${formatTime(r.activeMs)} over ${span(r.elapsedMs)} of real time.`,
+    '',
+    'First-week gates (GDD Success Metrics):',
+    ...r.gates.map((g) => `  ${g.label}: ${g.value} (target ${g.target})  ${GATE[g.verdict]}`),
     '',
     pad(head, widths),
     ...body.map((l) => pad(l, widths)),

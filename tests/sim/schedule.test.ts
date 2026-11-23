@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { dailySchedule, repeatCheckIns, scheduleMs } from '../../src/sim/schedule';
+import { dailySchedule, firstWeekSchedule, repeatCheckIns, scheduleMs } from '../../src/sim/schedule';
 import { simBalance } from '../../src/data/balance/sim';
 import { DAY_MS } from '../../src/data/constants';
 
@@ -39,5 +39,54 @@ describe('CheckInSchedule', () => {
     const s = repeatCheckIns(3, { awayMs: 10, activeMs: 5 });
     expect(s).toHaveLength(3);
     expect(scheduleMs(s)).toBe(45);
+  });
+});
+
+/** Story 9.1 (FR54): the first-week schedule follows the GDD's session shape. */
+describe('firstWeekSchedule', () => {
+  const fw = simBalance.firstWeek;
+  const days = fw.weekDays + 3;
+  const s = firstWeekSchedule(days);
+  const starts = s.map((_, i) => scheduleMs(s.slice(0, i)) + s[i].awayMs);
+  const dayOf = (i: number) => Math.floor(starts[i] / DAY_MS) + 1;
+
+  it('is in real-time order: whole, non-negative gaps and strictly later starts', () => {
+    for (const c of s) {
+      expect(Number.isInteger(c.awayMs)).toBe(true);
+      expect(Number.isInteger(c.activeMs)).toBe(true);
+      expect(c.awayMs).toBeGreaterThanOrEqual(0);
+      expect(c.activeMs).toBeGreaterThan(0);
+    }
+    for (let i = 1; i < starts.length; i++) expect(starts[i]).toBeGreaterThan(starts[i - 1] + s[i - 1].activeMs - 1);
+  });
+
+  it('opens with session 1: no gap, one continuous check-in longer than any other', () => {
+    expect(s[0].awayMs).toBe(0);
+    expect(s[0].activeMs).toBe(fw.session1Ms);
+    expect(s[0].untilIdle ?? false).toBe(false);
+    for (const c of s.slice(1)) expect(c.activeMs).toBeLessThan(s[0].activeMs);
+  });
+
+  it('holds the same number of check-ins every day, the first day included, and covers every day', () => {
+    for (let d = 1; d <= days; d++) {
+      expect(s.filter((_, i) => dayOf(i) === d)).toHaveLength(simBalance.checkInsPerDay);
+    }
+  });
+
+  it('shortens the sessions after the early days, day by day, and never lengthens them', () => {
+    const early = s.filter((_, i) => i > 0 && dayOf(i) <= fw.earlyDays).map((c) => c.activeMs);
+    const later = s.filter((_, i) => dayOf(i) > fw.earlyDays && dayOf(i) <= fw.weekDays).map((c) => c.activeMs);
+    expect(later.length).toBeGreaterThan(0);
+    expect(Math.max(...later)).toBeLessThan(Math.min(...early));
+    for (let i = 1; i < later.length; i++) expect(later[i]).toBeLessThanOrEqual(later[i - 1]);
+    expect(later[later.length - 1]).toBeLessThan(later[0]);
+  });
+
+  it('after the week, plays each check-in until the player has nothing useful left, up to the ceiling', () => {
+    s.forEach((c, i) => {
+      const after = dayOf(i) > fw.weekDays;
+      expect(c.untilIdle ?? false).toBe(after);
+      if (after) expect(c.activeMs).toBe(fw.checkInCeilingMs);
+    });
   });
 });

@@ -70,3 +70,20 @@ from the one players get.
   tapping makes things affordable.
 - **Tap share** comes from the probes' egg ledger: each sample is the eggs laid since the last look (the
   `stats.totalEggsLaid` delta), the ones LAY EGG taps laid, and the phase they were laid in.
+
+## First-week schedule and gates (Story 9.1)
+
+- **`firstWeekSchedule(days)`** (`schedule.ts`, shape in `simBalance.firstWeek`) follows the GDD *Session Shape*:
+  session 1 is one continuous check-in with no gap; every day holds `checkInsPerDay` check-ins spread over the waking
+  day (session 1 is day 1's first); they last `earlySessionMs` through `earlyDays`, then shrink day by day to
+  `weekDays`; after the week each is **measured** (`CheckIn.untilIdle`): the player leaves after the first look that
+  lands no move and no tap, at most `checkInCeilingMs`. The time left unplayed joins the next gap, so every check-in
+  still starts at its planned time. `pnpm sim` plays it by default over 10 days; `dailySchedule` stays for the tests
+  that use it.
+- **Payoffs** (`ProbeReport.payoffs`): a room opened (`resources.nestCapacity` grew), an item newly affordable (an
+  `itemKey` not affordable at the previous observation), a goal condition newly met (within the same phase), a phase
+  entered. An **idle gap** is a stretch of play with none. Each check-in record also carries its played `activeMs`.
+- **The three gates** (`pacingTargets.gates`, GDD *Success Metrics*) are pure verdicts over probe data
+  (`longestIdleGap`, `idleGapGate`, `phaseEndGate`, `postWeekGate`, `firstWeekGates`): pass, fail, or open while the
+  run is too short. A check-in "offers a decision" when one was open on arrival or a move landed in it. Tests check
+  them on synthetic probes; CI never asserts a gate on a real run.

@@ -1,5 +1,6 @@
 import type { GameState } from '../state/GameState';
-import { getNextAction, isCapacityCritical, isFoodCritical, isItemAffordable, listItems } from '../systems/NextAction';
+import { getNextAction, isCapacityCritical, isFoodCritical, isItemAffordable, itemKey, listItems } from '../systems/NextAction';
+import { conditionMet, goalFor } from '../state/queries';
 import { MS_PER_SEC } from '../data/constants';
 
 /** The moment a phase was entered (Story 3.7). */
@@ -18,6 +19,8 @@ export interface CheckInRecord {
   readonly index: number;
   /** Real time since the run started, when the player arrived. */
   readonly startMs: number;
+  /** How long the check-in was played (Story 9.1): measured for an `untilIdle` check-in. */
+  readonly activeMs: number;
   /** The phase on arrival. */
   readonly phase: string;
   /** Decisions open on arrival: every item affordable now, plus CONTINUE when the goal has latched. */
@@ -53,11 +56,39 @@ export interface EggSample {
   readonly tapped: number;
 }
 
+/**
+ * What can give the player something new (Story 9.1, FR65): a room opened (the
+ * nest gained room), an item newly affordable, a goal condition newly met, a
+ * phase entered. A stretch of play with none is an **idle gap**.
+ */
+export type PayoffKind = 'room' | 'affordable' | 'goal' | 'phase';
+
+export interface Payoff {
+  readonly kind: PayoffKind;
+  /** Real time and time played since the run started. */
+  readonly atMs: number;
+  readonly activeMs: number;
+  /** The check-in it came in (0 before the first). */
+  readonly checkIn: number;
+}
+
 export interface ProbeReport {
   readonly phaseEntries: readonly PhaseEntry[];
   readonly checkIns: readonly CheckInRecord[];
   /** Every egg laid in the run, in order (Story 3.9's tap share). */
   readonly eggs: readonly EggSample[];
+  /** Every payoff, in time order (Story 9.1). */
+  readonly payoffs: readonly Payoff[];
+}
+
+/** The items affordable now, by `itemKey`. */
+function affordableKeys(s: GameState): Set<string> {
+  return new Set(listItems().filter((ref) => isItemAffordable(s, ref)).map(itemKey));
+}
+
+/** The conditions of the phase's goal met now, by id. */
+function metConditions(s: GameState): Set<string> {
+  return new Set((goalFor(s.phase)?.conditions ?? []).filter((c) => conditionMet(c, s)).map((c) => c.id));
 }
 
 /**
@@ -82,6 +113,7 @@ export function waitMs(s: GameState): number | null {
 interface OpenCheckIn {
   index: number;
   startMs: number;
+  startActiveMs: number;
   phase: string;
   decisionsAvailable: number;
   waitMs: number | null;
@@ -108,18 +140,29 @@ export class Probes {
   private lastPhase: string;
   private lastLaid: number;
   private tappedEggs = 0;
+  private readonly payoffList: Payoff[] = [];
+  private lastRoom: number;
+  private lastAffordable: Set<string>;
+  private lastMet: Set<string>;
+  /** Time played at the last observation, and the check-in it was in. */
+  private nowActiveMs = 0;
+  private lastCheckIn = 0;
 
   constructor(start: GameState) {
     this.lastPhase = start.phase;
     this.lastLaid = start.stats.totalEggsLaid;
+    this.lastRoom = start.resources.nestCapacity;
+    this.lastAffordable = affordableKeys(start);
+    this.lastMet = metConditions(start);
     this.entries.push({ phase: start.phase, atMs: 0, activeMs: 0, checkIn: 0 });
   }
 
   /** A check-in starts: the player has just arrived to `s`. */
   beginCheckIn(index: number, s: GameState, atMs: number): void {
     this.endCheckIn();
+    this.lastCheckIn = index;
     this.open = {
-      index, startMs: atMs, phase: s.phase, decisionsAvailable: decisionsAvailable(s), waitMs: waitMs(s), actions: 0, taps: 0, refused: 0, byAction: {},
+      index, startMs: atMs, startActiveMs: this.nowActiveMs, phase: s.phase, decisionsAvailable: decisionsAvailable(s), waitMs: waitMs(s), actions: 0, taps: 0, refused: 0, byAction: {},
       foodCritical: false, capacityCritical: false,
     };
     this.critical(s);
@@ -158,20 +201,53 @@ export class Probes {
     }
     this.lastLaid = s.stats.totalEggsLaid;
     this.tappedEggs = 0;
+    this.nowActiveMs = activeMs;
     this.critical(s);
+    this.payoffs(s, atMs, activeMs);
     if (s.phase === this.lastPhase) return;
     this.lastPhase = s.phase;
     this.entries.push({ phase: s.phase, atMs, activeMs, checkIn: this.open?.index ?? 0 });
   }
 
+  /** Record the payoffs `s` brings since the last observation (Story 9.1). */
+  private payoffs(s: GameState, atMs: number, activeMs: number): void {
+    const at = { atMs, activeMs, checkIn: this.lastCheckIn };
+    const kinds: PayoffKind[] = [];
+    if (s.resources.nestCapacity > this.lastRoom) kinds.push('room');
+    this.lastRoom = s.resources.nestCapacity;
+    const affordable = affordableKeys(s);
+    for (const key of affordable) {
+      if (!this.lastAffordable.has(key)) {
+        kinds.push('affordable');
+        break;
+      }
+    }
+    this.lastAffordable = affordable;
+    const met = metConditions(s);
+    if (s.phase !== this.lastPhase) {
+      // A new goal: its conditions already met on entry are not news; entering is.
+      kinds.push('phase');
+    } else {
+      for (const id of met) {
+        if (!this.lastMet.has(id)) {
+          kinds.push('goal');
+          break;
+        }
+      }
+    }
+    this.lastMet = met;
+    for (const kind of kinds) this.payoffList.push({ kind, ...at });
+  }
+
   endCheckIn(): void {
     if (!this.open) return;
-    this.records.push({ ...this.open, byAction: { ...this.open.byAction } });
+    const { startActiveMs, ...open } = this.open;
+    this.records.push({ ...open, activeMs: this.nowActiveMs - startActiveMs, byAction: { ...open.byAction } });
     this.open = null;
   }
 
   report(): ProbeReport {
     this.endCheckIn();
-    return { phaseEntries: [...this.entries], checkIns: [...this.records], eggs: [...this.eggSamples] };
+    return { phaseEntries: [...this.entries], checkIns: [...this.records], eggs: [...this.eggSamples], payoffs: [...this.payoffList] };
   }
 }

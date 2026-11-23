@@ -1,5 +1,7 @@
 import { HOUR_MS } from '../constants';
 
+const MIN_MS = 60_000;
+
 /**
  * The simulated player (Story 3.7, AR15, D12): how often it checks in, how
  * long it plays and how fast it taps. These describe a player, not the game,
@@ -19,4 +21,20 @@ export const simBalance = {
   tapsPerSec: 4,
   /** At most this many moves (taps excluded) in one look, so a policy can never spin. */
   maxMovesPerTurn: 25,
+  /**
+   * The first week (Story 9.1, FR54; GDD *Session Shape*), `firstWeekSchedule`'s
+   * shape: session 1 is one continuous session, then `checkInsPerDay` check-ins a
+   * day spread over the waking day (session 1 is day 1's first). Through
+   * `earlyDays` each lasts `earlySessionMs`; to the end of `weekDays` they shrink
+   * linearly toward `steadySessionMs`; after it each is played until the player
+   * has no useful move left, at most `checkInCeilingMs` (its length is measured).
+   */
+  firstWeek: {
+    session1Ms: 50 * MIN_MS,
+    earlyDays: 3,
+    earlySessionMs: 10 * MIN_MS,
+    weekDays: 7,
+    steadySessionMs: 2 * MIN_MS,
+    checkInCeilingMs: 5 * MIN_MS,
+  },
 } as const;
