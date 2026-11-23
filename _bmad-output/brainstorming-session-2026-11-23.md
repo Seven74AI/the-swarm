@@ -198,7 +198,7 @@ _Novelty_: Fixes a real legibility bug and keeps whole numbers (Pillar 1). (Kept
 
 ### Output
 
-- 27 ideas (23 kept, 2 dropped, 1 parked, plus one recommendation folded into another)
+- 27 ideas (24 kept, 2 dropped, 1 parked)
 - 3 developed concepts (verdict line; food block; where starvation settles)
 - 5 themes
 
