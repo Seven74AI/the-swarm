@@ -20,7 +20,7 @@ baseline_code: "Seven74AI/the-swarm main @ 24da5b1"
 
 - **Surfaces:** phone, portrait-first, one-handed touch (primary). Desktop browser with mouse and keyboard (secondary): the same screens in more columns. Landscape is never blocked.
 - **Engine / UI system:** none committed (architecture decides). Two rendering needs follow from DESIGN.md: a **monospace text UI** on a computed character grid, using a shipped subset font; and a **vector scene layer** for the nest, map, star map, title cinematic, phase reveals and the ending.
-- **Session shape:** 30–90 s check-ins about 6 times a day. Every surface works with under 10 s of attention and survives being dropped mid-action. **Resuming from the background counts as a check-in**, the same as a cold load (see State Patterns).
+- **Session shape** (GDD *Session Shape*, owner 2026-11-22): a 45–60 min first session with no wait wall before about 30 min, sessions of 5–15 min on days 1–3, tapering to 90–120 s check-ins about 6 times a day after a week. Every surface works with under 10 s of attention and survives being dropped mid-action. **Resuming from the background counts as a check-in**, the same as a cold load (see State Patterns).
 - **No network needed** to play. Offline is the normal case.
 
 ## Glossary (player-facing)
@@ -36,9 +36,9 @@ baseline_code: "Seven74AI/the-swarm main @ 24da5b1"
 
 | Term | Meaning |
 |---|---|
-| **Check-in** | A 30–90 s session, from a cold load or a resume from the background |
+| **Check-in** | A session from a cold load or a resume from the background: 90–120 s in the steady state after the first week |
 | **Latch** | Once a goal is met it stays met until CONTINUE is tapped |
-| **Next-action rule** | The ordered rule choosing the NEST and offline-summary action (Component Patterns) |
+| **Next-action rule** | The ordered rule choosing WRKR's suggestion and the tab dots (Component Patterns). It no longer drives NEST from Colony on, or the offline summary |
 | **Critical-path table** | Per-phase E4 content listing the items the next-action rule prefers |
 | **Ignore policy** | Free, costly or unavoidable: what happens when a decision event times out |
 | **Modal sheet / peek sheet** | A modal sheet has a scrim and takes focus; a peek sheet has no scrim and leaves the screen usable |
@@ -52,7 +52,7 @@ At most 5 tabs, revealed by phase. A phase adds tabs or segments, never a sixth 
 
 | Tab (label) | Appears | Primary action (pinned, bottom zone) | Holds |
 |---|---|---|---|
-| **NEST** (home) | Phase 1 | Phase 1: **> LAY EGG**. Later: chosen by the next-action rule (Component Patterns). Goal met: **> CONTINUE**. Phase 6 goal met: **> TRANSCEND** | Vector nest scene, phase line, goal meter, newest event lines. **Phase 1 only:** the Click Power card once it is first affordable |
+| **NEST** (home) | Phase 1 | Phase 1: **> LAY EGG**. From Colony: **> DIG** (**> AUTO-DIG ON** once auto-dig is bought; a press still boosts). Goal met: **> CONTINUE**. Phase 6 goal met: **> TRANSCEND** | Vector nest scene, phase line, goal meter, newest event lines. **From Colony:** the NEXT ROOM strip and the one-line brood control (Nest digging layout). **Phase 1 only:** the Click Power card once it is first affordable |
 | **WRKR** (Workers) | Phase 2 | The single most useful reallocation when one exists (for example, **> MOVE 4 TO GATHER**), otherwise none | Upkeep readout, role rows (Gather, Forage, Tend, Dig, Guard, Research), automation target rows |
 | **BUILD** | Phase 2 | **> BUY** on the highlighted card | Buildings (including Click Power from Phase 2), research (with progress and cancel), resource converter |
 | **FRONT** (Frontier) | Phase 3 | WAR: **> FIGHT**. MAP: **> SEND EXPEDITION**. STARS: **> LAUNCH** | Segment row that grows: WAR → WAR · MAP → WAR · MAP · STARS, opening on the newest segment. WAR: soldiers, training target, equipment, mutations, enemy card, combat log. MAP: the 8×8 map, the expedition force (scouts and warriors recruited here, capped by Barracks level), active expeditions. STARS: ships, planets, explorations, entropy |
@@ -143,27 +143,38 @@ Behavior only. Visual specs are in DESIGN.md → Components. Where the two files
 | **Goal meter** | `NEXT: <conditions>`, one row per condition with `met`/`need` and ✓/✗. **Latch:** once every condition is met, the goal stays met until CONTINUE is tapped, even if numbers dip. The meter then shows `GOAL MET`, and any condition that has since dipped reads `<now> now, reached <value> at <time>`. The condensed version shows on the other tabs. |
 | **Phase change** | The phase **does not change on its own**. When the goal is met, NEST gets `•` and its primary action becomes **> CONTINUE**; tapping it plays the phase reveal. Nothing about the next phase shows before the tap. |
 | **Decision event** | A bottom sheet with the situation, 2 choices with visible cost or risk, and its ignore line. Spawning, ignore policies and lifecycle: **Decision events** below. |
-| **Offline summary** | Shown on any resume (cold load or return from the background) after at least 60 s away (owner, 2026-11-21; the code uses 30 s today). Shorter gaps count at full efficiency and open no sheet (State Patterns → Resume from background). Elapsed time, efficiency %, gains and losses with glyphs, whether the cap was reached, and **one next-action button** (next-action rule) that opens the relevant tab with the target highlighted. |
+| **Offline summary** | Shown on any resume (cold load or return from the background) after at least 60 s away (owner, 2026-11-21; the code uses 30 s today). Shorter gaps count at full efficiency and open no sheet (State Patterns → Resume from background). Elapsed time, efficiency %, gains and losses with glyphs, whether the cap was reached. **No next-action button:** the sheet reports only what happened while away (owner, 2026-11-22, PR #439). |
 | **Battle summary** | VICTORY, DEFEAT or DRAW; losses; drops; one cause line; **> CHANGE → <card>** opens the relevant mutation or equipment card. |
 | **Enemy card** | Type and trait shown before committing (GDD Combat interest bar). **> FIGHT** is the primary action. |
 | **Expedition force** (FRONT · MAP) | Steppers for scouts and warriors, capped by Barracks level (scouts from Lv.1, warriors from Lv.2). Recruiting pulls directly from workers. This is separate from combat soldiers, which train in WAR. |
 | **Expedition result** | A modal sheet: success, partial or failure; losses split proportionally (GDD); loot; tiles revealed. |
 | **Map tile** | A tap **selects** the tile (inverse video) and opens a **peek sheet** with its terrain, yield, risk and actions (SCOUT / CLAIM / EXPEDITION). **A tap never commits.** Tapping another tile retargets the sheet; swipe down or `[ CLOSE ]` closes it. The map auto-scrolls so the selected tile sits at least 16 px above the sheet. The FRONT primary action is hidden while the peek sheet is open. Below 352 px of content width, tiles stay at 40 px and the map pans. **Non-drag alternative:** a `[◂ ▸ ▴ ▾]` pan control appears whenever the map overflows. |
 | **Star map** | A tap on a planet opens its peek sheet: resource, ships there, exploration progress and actions. |
-| **Nest scene** | Mostly watch-only. Each chamber is a separate focusable control; activating it opens a peek sheet with that chamber's counts. The scene camera pulls back as the colony grows (DESIGN.md). |
+| **Nest scene** | Mostly watch-only. Each chamber is a separate focusable control; activating it opens a peek sheet with that chamber's counts. From Colony, the brood is also the FEED button. The scene shows only the rooms dug so far and grows with each room (DESIGN.md); it no longer zooms. |
 | **Bottom sheet** | Non-decision sheets close with swipe down, a tap on the scrim, `[ CLOSE ]` or Esc. Decision sheets close only by a choice or a timeout. |
 | **Hold-to-confirm** | For irreversible actions: prestige, research cancel, save import. The default is a 1 s hold (duration adjustable). **Two-tap mode** (setting): the first tap arms the action for 5 s and the second confirms. Holding Enter or Space works the same on a keyboard. |
 | **Toast** | One line for 2 s, replacing any earlier toast. Never the only place something you must act on appears. |
 | **Coach mark** | One element, one line, once per concept. Dismissed by performing the action it points to, or by `[ GOT IT ]`; the dismissing tap is consumed. Also announced politely to screen readers. |
 | **Event line** | Newest first; persisted with the save (LOG). Tapping a line that points at something jumps to it. |
 
+### Nest digging layout (Colony on)
+
+*Correct Course 2026-11-23 (Epic 9, Story 9.7). Mockups: https://claude.ai/artifact/Rs3RWvuwqrsbx7p5CWEsNp; their two-button row is superseded: DIG is the only main button and FEED is a tap on the brood in the scene.*
+
+Top to bottom: goal block condensed to at most 4 lines → nest scene (only the rooms dug so far, no camera crop) → **NEXT ROOM strip** (`NEXT ROOM +5 [ ██████ ············ ] IN 4M · 13 DIGS`; `NEXT ROOM · AUTO-DIG ON` once bought; `NO DIGGERS` in place of the time when nobody digs; batch 2 adds `CROWDED · −20% WORK`) → brood control on one line (`BROOD 4 EGGS · 2 LARVAE  KEEP [−] 10 [+] AUTO`) → event lines → pinned **> DIG** with a hint line (`chunk +1 · 3 stone · tap the brood to feed when a room is free`).
+
+- **DIG:** one press digs one chunk; hold repeats like every primary action. Each room takes more presses than the last. A crack at the dig face grows with progress.
+- **FEED:** tapping the brood in the scene (a labelled button, "Feed the brood") hurries larvae into a free room. Free. With no free room it reads `FEED · NEST FULL` and is disabled.
+- **Room opens:** a quick opening animation, an event line (`ROOM 7 OPENED.`), the picture grows by one room. Batch 2: a one-tap job choice (Pantry, Larder, Gallery) with plain always allowed.
+- **Never required:** diggers dig on their own, slowly; no nudges, no pressure, no penalty for not tapping.
+
 ### Next-action rule
 
-Used by NEST after Phase 1 and by the offline summary's button. First match wins:
+Used by WRKR's suggestion, the tab dots and the simulated player (from Colony on, NEST shows DIG; the offline summary has no action since PR #439). First match wins:
 
 1. Goal met → **> CONTINUE** (Phase 6: **> TRANSCEND**).
 2. Food critical (net food rate below 0 and stock under 60 s of upkeep) → the allocation fix.
-3. Capacity critical (≥ 95% of nest capacity) → DIG or Warehouse.
+3. Capacity critical (≥ 95% of nest capacity) → more diggers or Warehouse (on NEST, DIG is already the button).
 4. An affordable item from the phase's **critical-path table** (E4 content, one table per phase; never hard-coded names).
 5. Any affordable item.
 6. None → no button; the zone shows `NEXT AFFORDABLE: <item> IN ~<time>`.
@@ -211,9 +222,9 @@ Text size follows the browser.
 | NEST | Phase 1, nothing hatched | Empty chamber with the queen; `EGGS HATCH INTO LARVAE.` |
 | NEST | Phase 1, Click Power affordable | The Click Power card appears under the event lines. |
 | NEST | Starving | FOOD turns `warn` ▼; an event line; next-action rule (2); the drawn colony visibly thins. |
-| NEST | At capacity | Capacity turns `warn` ▲; next-action rule (3). |
+| NEST | At capacity | Capacity turns `warn` ▲; FEED reads `FEED · NEST FULL`; DIG stays the move. |
 | NEST | Goal met (latched) | `GOAL MET`; **> CONTINUE**; dipped conditions explained. |
-| NEST | No next action | No button; `NEXT AFFORDABLE: <item> IN ~<time>`. |
+| NEST | No next action (Phase 1 only) | No case: Phase 1 always has LAY EGG, Colony on always has DIG. `NEXT AFFORDABLE: <item> IN ~<time>` lives in the BUILD header. |
 | NEST | Large colony | Dot cloud with ants moving on top; exact counts in the chamber labels and strip. |
 | NEST | Phase 6 | The final goal meter (VC, antimatter, dark matter, GDD); when met, **> TRANSCEND** plays the ending. |
 | NEST | After the ending | `THE SWARM IS EVERYWHERE NOW.`, then LOG → LEGACY opens with prestige offered (GDD E7). The victory is recorded. |
@@ -331,12 +342,12 @@ Priya is on a bus, phone in one hand, and has never played an idle game.
 Dev is on day 2 of his run and checks in between meetings, resuming the app from the background, where he left it.
 
 1. He switches to the app. The resume path runs catch-up, and the sheet reads `YOU WERE GONE 4H 10M · 50%`, with gains listed by glyph and one `warn` line: `UPKEEP OUTRAN FOOD FOR 20M.`
-2. The sheet's next action is **> BUY WAREHOUSE LV.3**. BUILD opens with that card highlighted, and he buys it.
+2. He closes the sheet. BUILD has `•`: he opens it and buys **WAREHOUSE LV.3**. (Changed 2026-11-22: the sheet no longer suggests a move.)
 3. WRKR has `•`. He moves 2 from DIG to GATHER.
 4. **Climax:** NEST's goal meter shows `workers 50/50 met · guards 0/1 need`. He assigns one GUARD. `GOAL MET`, and **> CONTINUE** appears. He saves the reveal for tonight and locks the phone at 45 s.
 5. That evening, starvation has dropped him to 48 workers. The meter reads `GOAL MET · workers 48 now, reached 50 at 13:02`. CONTINUE is still there, and he knows why.
 
-*Failure path:* nothing is affordable → the sheet's action is an allocation change, or `NEXT AFFORDABLE: WAREHOUSE IN ~2H`. The summary is never empty (E2 done-when).
+*Failure path:* nothing is affordable → WRKR suggests an allocation change, or BUILD reads `NEXT AFFORDABLE: WAREHOUSE IN ~2H`, and DIG is always there. The summary is never empty (E2 done-when). *Note (2026-11-23):* in the new session shape this check-in is 90–120 s and comes after the first week; the flow's numbers predate the rescale.
 
 ### Flow 3: Priya loses her first fight (Phase 3)
 
@@ -366,7 +377,7 @@ Dev is on day 2 of his run and checks in between meetings, resuming the app from
 3. Incubation completes. A training automation target appears in WAR: he sets `KEEP 20 IN TRAINING` and `[AUTO]`.
 4. **Climax:** he closes the app. Next morning the offline summary shows soldiers kept at 20 overnight, with upkeep paid, because offline runs the same targets (GDD).
 
-*Failure path:* food runs short overnight. The target shows `holding at 14 · food short` in `warn`, and the summary's next action is the allocation fix.
+*Failure path:* food runs short overnight. The target shows `holding at 14 · food short` in `warn`, and WRKR suggests the allocation fix.
 
 ### Flow 6: Nadia's first expedition (Phase 4, post-MVP)
 

@@ -1,6 +1,6 @@
 # Run all stories
 
-The spec for a long, unattended session that builds every MVP story (issues #231–#318) one after another until none is left. The owner starts it. Nightly sweeps skip every issue whose title starts with `Story ` and leave the stories to this run.
+The spec for a long, unattended session that builds every MVP story (issues #231–#318, then Epic 9 batch 1: #443–#451) one after another until none is left. The owner starts it. Nightly sweeps skip every issue whose title starts with `Story ` and leave the stories to this run.
 
 ## Starting a run
 
@@ -26,9 +26,9 @@ You are the autonomous developer for THE SWARM. The owner has started this sessi
 
 ### The queue
 
-The stories are the open issues titled `Story <epic>.<n>: …` (#231–#318), each linking its spec section in `_bmad-output/planning-artifacts/epics.md`. That section is the spec; the issue body is a copy of it.
+The stories are the open issues titled `Story <epic>.<n>: …` (#231–#318 and #443–#451), each linking its spec section in `_bmad-output/planning-artifacts/epics.md`. That section is the spec; the issue body is a copy of it.
 
-Build order is the issue number, ascending (Epic 1 → 2 → 3 → 4 → 5, then Epic 8; Epic 8 stories may be taken earlier, but only once Stories 1.5, 1.7, 1.15 and 1.22 are closed). Every story builds on the ones before it, so work strictly **one story at a time**: don't start the next until the current PR has merged.
+Build order is the issue number, ascending (Epic 1 → 2 → 3 → 4 → 5, then Epic 8, then Epic 9 (Stories 9.1–9.9, from the 2026-11-22 playtest); Epic 8 stories may be taken earlier, but only once Stories 1.5, 1.7, 1.15 and 1.22 are closed). Every story builds on the ones before it, so work strictly **one story at a time**: don't start the next until the current PR has merged.
 
 5. Pick the lowest-numbered open story issue that is labelled `ready-for-agent`, has no open PR referencing it, and has no `ready-for-human` label. If none is left, go to Report.
 6. For that issue:
