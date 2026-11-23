@@ -72,6 +72,17 @@ describe('defaultPolicy', () => {
     expect(kinds(defaultPolicy({ ...full, phase: Phase.EGG_LAYING }, { taps: 7 }))).not.toContain('dig');
   });
 
+  it('taps FEED while larvae wait and a room is free, no more taps than free rooms (Story 9.4)', () => {
+    const s = colonyWithoutGuard();
+    const waiting = { ...s, resources: { ...s.resources, larvae: 9 }, larvaPipeline: { count: 9, progress: 0 } };
+    const feed = defaultPolicy(waiting, { taps: 7 }).find((m) => m.kind === 'feed');
+    expect(feed).toBeDefined();
+    expect(feed && feed.kind === 'feed' ? feed.taps : 0).toBeGreaterThan(0);
+    // A full nest: no FEED.
+    const full = { ...waiting, resources: { ...waiting.resources, nestCapacity: waiting.resources.workers } };
+    expect(kinds(defaultPolicy(full, { taps: 7 }))).not.toContain('feed');
+  });
+
   it('stops tapping once the goal has its workers', () => {
     expect(kinds(defaultPolicy(colonyWithoutGuard(), { taps: 7 }))).not.toContain('layEgg');
   });

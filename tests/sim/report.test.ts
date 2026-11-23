@@ -43,7 +43,7 @@ afterEach(() => {
 const MIN = 60_000;
 
 function checkIn(index: number, over: Partial<CheckInRecord> = {}): CheckInRecord {
-  return { index, startMs: index * HOUR_MS, activeMs: 5 * MIN, phase: Phase.COLONY, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, digs: 0, refused: 0, byAction: {}, foodCritical: false, capacityCritical: false, ...over };
+  return { index, startMs: index * HOUR_MS, activeMs: 5 * MIN, phase: Phase.COLONY, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, digs: 0, feeds: 0, refused: 0, byAction: {}, foodCritical: false, capacityCritical: false, ...over };
 }
 
 function egg(activeMs: number, phase: Phase, laid: number, tapped: number): EggSample {

@@ -218,7 +218,10 @@ for (const setup of SETUPS) {
       await seed(page, setup);
       await openTab(page, 'nest');
       const found: string[] = [];
-      for (const chamber of ['brood', 'workers']) {
+      // From Colony on the brood feeds instead of peeking (Story 9.4): its label, FEED's wording included, must fit.
+      await page.locator('[data-scene="nest"] button[data-chamber="brood"]').scrollIntoViewIfNeeded();
+      found.push(...(await layoutProblems(page)).map((p) => `brood label: ${p}`));
+      for (const chamber of ['workers']) {
         const button = page.locator(`[data-scene="nest"] button[data-chamber="${chamber}"]`);
         await button.scrollIntoViewIfNeeded();
         await button.click();

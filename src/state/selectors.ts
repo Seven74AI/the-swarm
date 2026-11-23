@@ -54,6 +54,7 @@ import type { PrestigeUpgradeId } from '../data/prestigeTree';
 import { progressionBalance } from '../data/balance/progression';
 import { PERCENT } from '../data/constants';
 import { nextRoom, type NextRoom } from '../systems/Dig';
+import { feedRefusal } from '../systems/Brood';
 import { Phase as PhaseId } from '../phases/phases';
 import type { ResearchProjectId, ResearchProjectStatus } from './GameState';
 import { nestViewOf, sameNestView, type NestView } from './nestView';
@@ -190,6 +191,24 @@ export const selectNextRoom = computed<NextRoom | null>(() => {
   if (lastNextRoom && sameNextRoom(lastNextRoom, next)) return lastNextRoom;
   lastNextRoom = next;
   return next;
+});
+
+/**
+ * FEED on the brood (Story 9.4, FR57): null in Egg Laying (the brood opens its
+ * peek there); from Colony on, why a tap can't feed (`NEST FULL`, `NO LARVAE`)
+ * or null when it can. A string, so it notifies only when the answer changes.
+ */
+export type FeedBlock = 'NEST FULL' | 'NO LARVAE';
+export const selectFeed = computed<{ readonly blocked: FeedBlock | null } | null>(() => {
+  const why = selectFeedReason.value;
+  return why === 'phase' ? null : why === 'ok' ? FEED_OPEN : why === 'NEST FULL' ? FEED_FULL : FEED_EMPTY;
+});
+const FEED_OPEN = { blocked: null } as const;
+const FEED_FULL = { blocked: 'NEST FULL' } as const;
+const FEED_EMPTY = { blocked: 'NO LARVAE' } as const;
+const selectFeedReason = computed<'phase' | 'ok' | FeedBlock>(() => {
+  const why = feedRefusal(gameState.value);
+  return why === 'locked' ? 'phase' : why === 'at_capacity' ? 'NEST FULL' : why === 'unavailable' ? 'NO LARVAE' : 'ok';
 });
 
 /** The workforce fills the effective nest capacity (the strip's capped workers cell). */

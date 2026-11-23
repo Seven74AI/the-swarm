@@ -149,7 +149,10 @@ test.describe('type rules on screen', () => {
   });
 
   test('the nest scene\'s chamber labels and peek sheets keep the type rules (Story 8.5)', async ({ page }) => {
-    for (const chamber of ['brood', 'workers']) {
+    // From Colony on the brood feeds instead of peeking (Story 9.4): its label keeps the rules with the rest of NEST.
+    await expect(page.locator('[data-scene="nest"] button[data-chamber="brood"]')).toBeVisible();
+    expect.soft(await typeRuleBreaks(page), 'brood label').toEqual([]);
+    for (const chamber of ['workers']) {
       await page.locator(`[data-scene="nest"] button[data-chamber="${chamber}"]`).click();
       await expect(page.locator(`[data-chamber-peek="${chamber}"]`)).toBeVisible();
       expect.soft(await typeRuleBreaks(page), chamber).toEqual([]);

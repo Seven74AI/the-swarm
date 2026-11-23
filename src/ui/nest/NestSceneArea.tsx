@@ -1,5 +1,5 @@
 import { Phase } from '../../phases/phases';
-import { selectNestView, selectNextRoom, selectPhase } from '../../state/selectors';
+import { selectFeed, selectNestView, selectNextRoom, selectPhase } from '../../state/selectors';
 import { sceneBalance } from '../../data/balance/scene';
 import { useThrottledSignal } from '../primitives/throttledSignal';
 import { useEffect, useMemo, useRef } from 'preact/hooks';
@@ -31,26 +31,38 @@ import { NextRoomStrip } from './NextRoomStrip';
  * brood's automation target row: `KEEP [−] N [+] IN THE BROOD [AUTO]`.
  *
  * From Colony on the NEXT ROOM strip sits under the scene (Story 9.3), and the
- * scene's dig-face crack follows the same `selectNextRoom`.
+ * scene's dig-face crack follows the same `selectNextRoom`. From Colony on a tap
+ * on the brood FEEDs it (Story 9.4, `selectFeed`) instead of opening its peek;
+ * the workers chamber keeps its peek, and Phase 1 keeps the brood's.
  *
  * Hooks: `[data-nest-scene]` (the area), `[data-scene="nest"]` (the scene).
  */
 export function NestSceneArea({
   lay,
+  feed,
   automation,
   sheets,
 }: {
   lay: () => { readonly ok: boolean };
+  /** FEED (Story 9.4): `actions.feed`. From Colony on the brood button calls it instead of opening its peek. */
+  feed?: () => { readonly ok: boolean };
   automation?: AutomationRowActions;
   sheets: SheetController;
 }) {
+  const feedState = feed ? selectFeed.value : null;
   const view = useThrottledSignal(selectNestView, sceneBalance.viewRefreshMs);
   const room = useThrottledSignal(selectNextRoom, sceneBalance.viewRefreshMs).value;
   const zoom = useCameraZoom(view.value.workers);
   const phase1 = selectPhase.value === Phase.EGG_LAYING;
   return (
     <div class="nest-scene" data-nest-scene="">
-      <NestScene view={view.value} onChamber={(id) => openChamberPeek(sheets, id)} zoom={zoom} crack={room ? crackStage(room.percent) : 0} />
+      <NestScene
+        view={view.value}
+        onChamber={(id) => (id === 'brood' && feed && feedState ? feed() : openChamberPeek(sheets, id))}
+        zoom={zoom}
+        crack={room ? crackStage(room.percent) : 0}
+        feed={feedState}
+      />
       <NextRoomStrip />
       {!phase1 && (
         <div class="nest-scene__queen">

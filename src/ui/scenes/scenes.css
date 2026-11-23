@@ -160,6 +160,12 @@
   color: var(--color-accent);
 }
 
+/* FEED's reason under the brood label when a tap can't feed (Story 9.4). */
+.nest-chamber__reason {
+  display: block;
+  color: var(--color-dim);
+}
+
 /* The chamber peek sheet (Story 8.5): that chamber's counts. */
 .chamber-peek__line {
   margin: 0;
