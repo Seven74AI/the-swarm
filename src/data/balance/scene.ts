@@ -8,9 +8,10 @@
  * The exact counts are always HTML text (chamber labels), so neither the
  * cloud nor its dot cap ever hides a number.
  *
- * Story 8.7 (UX-DR34) adds the camera steps, wandering and the starving
- * colony's thinning (`ui/scenes/nestCamera.ts`, `antMotion.ts`). How long the
- * camera eases and a creature arrives is game feel (`feelBalance`, Story 8.9).
+ * Story 8.7 (UX-DR34) adds wandering and the starving colony's thinning
+ * (`antMotion.ts`); Story 9.6 replaced its camera steps with framing to the
+ * rooms dug (`nestLayout.ts`). How long a creature arrives or a room opens is
+ * game feel (`feelBalance`, Story 8.9).
  */
 export const sceneBalance = {
   /** The scene reads its view at most this often (4 times a second). */
@@ -30,21 +31,6 @@ export const sceneBalance = {
   tunnelWalkerEvery: 6,
   /** A tunnel walker goes from one end of its tunnel to the other in this time, and back in the same. */
   tunnelWalkMs: 9000,
-  /**
-   * The camera's steps (UX-DR34): 2× for a young colony, 1.5× from about 50
-   * workers, 1× from about 150. Ordered by `workers`, each step's zoom below the last.
-   */
-  cameraSteps: [
-    { workers: 0, zoom: 2 },
-    { workers: 50, zoom: 1.5 },
-    { workers: 150, zoom: 1 },
-  ],
-  /**
-   * Once pulled back, the camera comes in again only when the colony falls
-   * under this share of the step's threshold, so a colony hovering at it does
-   * not pump the camera.
-   */
-  cameraZoomInShare: 0.9,
   /** An individually drawn worker is never smaller than this on screen, in CSS px (DESIGN.md). */
   antMinPx: 12,
   /** A chamber ant wanders up to this far from where it rests, along each axis (viewBox units). */

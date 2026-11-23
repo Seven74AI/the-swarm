@@ -14,15 +14,17 @@ export interface NestView {
   readonly larvae: number;
   /** The colony is starving (`isStarving`, Story 8.7): the scene draws it thinner; the labels keep the counts. */
   readonly starving: boolean;
+  /** Rooms dug (Story 9.6, `state.dig.roomsDug`): the scene draws them and frames the whole dug nest. 0 when absent. */
+  readonly roomsDug?: number;
 }
 
 const whole = (n: number): number => (Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
 
 /** The view of a state's resources (the strip's eggs, larvae and workers, floored) and whether it starves. */
-export function nestViewOf(r: GameState['resources'], starving = false): NestView {
-  return { workers: whole(r.workers), eggs: whole(r.eggs), larvae: whole(r.larvae), starving };
+export function nestViewOf(r: GameState['resources'], starving = false, roomsDug = 0): NestView {
+  return { workers: whole(r.workers), eggs: whole(r.eggs), larvae: whole(r.larvae), starving, roomsDug: whole(roomsDug) };
 }
 
 export function sameNestView(a: NestView, b: NestView): boolean {
-  return a.workers === b.workers && a.eggs === b.eggs && a.larvae === b.larvae && a.starving === b.starving;
+  return a.workers === b.workers && a.eggs === b.eggs && a.larvae === b.larvae && a.starving === b.starving && (a.roomsDug ?? 0) === (b.roomsDug ?? 0);
 }

@@ -41,7 +41,7 @@ come faster than 8 a second (a held button speeds up to about 16 repeats a secon
   a worker walks in from the tunnel side. What is there when the scene opens doesn't arrive. The animation is CSS on
   the wrapper, so it adds no render per frame, and the scene clock still writes each ant's own `transform`
   (ADR 0047). Only drawn creatures arrive: the dot cloud and the 50-ant budget are unchanged.
-- **Camera pull-back hook:** `NestScene` takes `zoom` (1 = close) and sets `[data-camera=close|pulled-back]`,
+- **Camera pull-back hook** (replaced by the `room-open` row in Story 9.6, ADR 0050): `NestScene` takes `zoom` (1 = close) and sets `[data-camera=close|pulled-back]`,
   `--scene-zoom` and `--camera-ms` (`feelBalance.cameraPullBackMs`). Both drawings (the scene and the ants layer) ease to the zoom, with no easing
   under reduced motion. Story 8.7 owns the camera: it computes the zoom and passes it down. No haptic, no sound.
 - **Timings** are in `src/data/balance/feel.ts` (`…Ms`, `…PerSec`) and reach CSS as custom properties.

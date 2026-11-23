@@ -4,9 +4,8 @@ import { feelBalance } from '../../data/balance/feel';
 import type { NestView } from '../../state/nestView';
 import { formatFull } from '../../utils/format';
 import { Sep } from '../primitives/Deco';
-import { ANT_BODY, ANT_SCALE, EGG_SHAPE, LARVA_PATH, crackPath, nestLayout, type Ant, type ChamberGeometry, type ChamberId, type Token, type Tunnel } from './nestLayout';
+import { ANT_BODY, ANT_SCALE, EGG_SHAPE, LARVA_PATH, MIN_STAGE_PX, crackPath, nestLayout, type Ant, type ChamberGeometry, type ChamberId, type Token, type Tunnel } from './nestLayout';
 import { antPose } from './antMotion';
-import { CAMERA_CLOSE, cameraRect, chamberAnchor, MIN_STAGE_PX } from './nestCamera';
 import { sceneClock, useSceneClock, type SceneClock } from './sceneClock';
 import './scenes.css';
 
@@ -41,21 +40,21 @@ import './scenes.css';
  * (a one-off CSS animation over `feelBalance.arriveMs` on the wrapper, so no
  * frame re-renders and the ants' own per-frame transform is untouched; none
  * under reduced motion). Only drawn creatures arrive: the cloud and the
- * 50-ant budget are unchanged. The camera pull-back is a prop: Story 8.7's
- * container passes `zoom` (1 = close) and the drawings ease to it over
- * `feelBalance.cameraPullBackMs` (`[data-camera]`).
+ * 50-ant budget are unchanged.
  *
- * Story 8.7 (UX-DR34): `zoom` is the camera step `NestSceneArea` picks from
- * the colony's size (`nestCamera.ts`). The drawings scale by
- * `zoom × CAMERA_CLOSE` about `layout.cameraOrigin` inside the clipped stage
- * (`--camera-close`, `--camera-origin`), and the chamber labels follow the
- * camera, clamped to the stage, easing with it. A larva that arrives breaks
+ * Story 9.6 (FR59, UX-DR34): the scene draws only the rooms dug so far
+ * (`view.roomsDug`), and its viewBox is the layout's frame, which holds the
+ * whole dug nest: the stage takes the frame's aspect, so nothing is ever
+ * cropped, and a drawn worker is never under `antMinPx` (`MIN_STAGE_PX`).
+ * This replaced Story 8.7's camera steps. A room that opens after the first
+ * draw arrives (`[data-arrive="room"]`): dirt falls and its wall appears over
+ * `feelBalance.roomOpenMs`, none under reduced motion. A larva that arrives breaks
  * out of an egg shell (`hatch-shell`, faded out by scenes.css). A starving
  * colony (`view.starving`, `[data-starving]`) draws fewer ants; the labels
  * keep the exact counts.
  *
  * Hooks: `[data-scene="nest"]` (`[data-starving]`), `svg [data-scene-part]`, `button[data-chamber]`,
- * `[data-arrive]`, `[data-camera=close|pulled-back]`.
+ * `[data-arrive]`, `[data-rooms]`, `svg [data-scene-part="room"][data-room]`.
  */
 
 export interface NestSceneProps {
@@ -63,8 +62,6 @@ export interface NestSceneProps {
   readonly onChamber: (id: ChamberId) => void;
   /** The clock the ants move on (the shared scene clock unless a test hands in its own). */
   readonly clock?: SceneClock;
-  /** The camera's scale, 1 = close (default). Below 1 the scene has pulled back (Story 8.7 sets it). */
-  readonly zoom?: number;
   /** The dig-face crack's stage (Story 9.3, `crackStage`): 0 or absent draws none. It never animates. */
   readonly crack?: number;
   /**
@@ -75,7 +72,7 @@ export interface NestSceneProps {
   readonly feed?: { readonly blocked: string | null } | null;
 }
 
-type ArriveKind = 'egg' | 'larva' | 'worker';
+type ArriveKind = 'egg' | 'larva' | 'worker' | 'room';
 
 /**
  * Marks a creature as arriving if it first draws after the scene's first draw; the mark is fixed at mount.
@@ -147,7 +144,7 @@ function ChamberButton({
 }) {
   const feeds = chamber.id === 'brood' && !!feed;
   const blocked = feeds ? feed!.blocked : null;
-  // Anchored at its chamber through the camera, and shifted by the same share of its own size, so it never leaves the scene.
+  // Anchored at its chamber, and shifted by the same share of its own size, so it never leaves the scene.
   const x = `${(anchor.x * 100).toFixed(1)}%`;
   const y = `${(anchor.y * 100).toFixed(1)}%`;
   return (
@@ -211,6 +208,17 @@ function Ants({ ants, tunnels, clock, live }: { ants: readonly Ant[]; tunnels: r
   );
 }
 
+/** The dirt a room's opening shakes loose (Story 9.6): a few crumbs that fall once, drawn only beside an arriving room. */
+function Dirt({ x, y }: { x: number; y: number }) {
+  return (
+    <g data-scene-part="dirt" class="nest-svg__dirt">
+      {[-8, -3, 2, 7].map((dx, i) => (
+        <circle key={i} cx={x + dx} cy={y - 6 + (i % 2) * 2} r={1.1} />
+      ))}
+    </g>
+  );
+}
+
 /** The queen: abdomen, thorax, head, six legs and antennae. */
 function Queen({ t }: { t: Token }) {
   return (
@@ -224,7 +232,7 @@ function Queen({ t }: { t: Token }) {
   );
 }
 
-export function NestScene({ view, onChamber, clock = sceneClock(), zoom = 1, crack = 0, feed = null }: NestSceneProps) {
+export function NestScene({ view, onChamber, clock = sceneClock(), crack = 0, feed = null }: NestSceneProps) {
   const layout = useMemo(() => nestLayout(view), [view]);
   // False during the first draw: what is there when the scene opens doesn't arrive.
   const drawn = useRef(false);
@@ -233,20 +241,17 @@ export function NestScene({ view, onChamber, clock = sceneClock(), zoom = 1, cra
   }, []);
   const live = drawn.current;
   const soilH = layout.height - layout.surfaceY;
-  const frame = cameraRect(layout, zoom * CAMERA_CLOSE);
-  const origin = `${((layout.cameraOrigin.x / layout.width) * 100).toFixed(2)}% ${((layout.cameraOrigin.y / layout.height) * 100).toFixed(2)}%`;
   return (
     <div class="nest-scene-view" data-scene="nest" data-starving={view.starving ? '' : undefined} role="group" aria-label={nestAriaLabel(view)}>
       <div
         class="nest-stage"
         data-crt-surface=""
-        data-camera={zoom < 1 ? 'pulled-back' : 'close'}
+        data-rooms={String(layout.rooms.length)}
         style={{
-          '--scene-zoom': String(zoom),
-          '--camera-close': String(CAMERA_CLOSE),
-          '--camera-origin': origin,
-          '--camera-ms': `${feelBalance.cameraPullBackMs}ms`,
           '--arrive-ms': `${feelBalance.arriveMs}ms`,
+          '--room-open-ms': `${feelBalance.roomOpenMs}ms`,
+          '--frame-w': String(layout.width),
+          '--frame-h': String(layout.height),
           minWidth: `${MIN_STAGE_PX}px`,
         }}
       >
@@ -285,7 +290,12 @@ export function NestScene({ view, onChamber, clock = sceneClock(), zoom = 1, cra
           {layout.chambers.map((c) => (
             <path key={c.id} data-scene-part="chamber" data-chamber-wall={c.id} class="nest-svg__chamber" d={c.wall} />
           ))}
-          {crack > 0 && <path data-scene-part="crack" data-crack-stage={String(crack)} class="nest-svg__crack" stroke-linecap="round" d={crackPath(crack)} />}
+          {layout.rooms.map((r) => (
+            <Arrival key={r.index} kind="room" live={live} extra={<Dirt x={r.cx} y={r.cy} />}>
+              <path data-scene-part="room" data-room={String(r.index)} class="nest-svg__chamber nest-svg__room" d={r.wall} />
+            </Arrival>
+          ))}
+          {crack > 0 && <path data-scene-part="crack" data-crack-stage={String(crack)} class="nest-svg__crack" stroke-linecap="round" d={crackPath(crack, layout.digFace)} />}
           {layout.chambers.map((c) =>
             c.cloud.d ? <path key={c.id} data-scene-part="cloud" data-cloud={c.id} class="nest-svg__cloud" d={c.cloud.d} /> : null,
           )}
@@ -312,7 +322,7 @@ export function NestScene({ view, onChamber, clock = sceneClock(), zoom = 1, cra
         </svg>
         </div>
         {layout.chambers.map((c) => (
-          <ChamberButton key={c.id} chamber={c} anchor={chamberAnchor(c, layout, frame)} view={view} onChamber={onChamber} feed={feed} />
+          <ChamberButton key={c.id} chamber={c} anchor={c.label} view={view} onChamber={onChamber} feed={feed} />
         ))}
       </div>
     </div>

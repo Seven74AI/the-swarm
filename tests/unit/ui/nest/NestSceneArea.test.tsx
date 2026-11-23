@@ -10,8 +10,6 @@ import { sceneBalance } from '../../../../src/data/balance/scene';
 import { formatFull } from '../../../../src/utils/format';
 import { testActions } from '../../helpers/actions';
 import { makeState } from '../../helpers/makeState';
-import { onCameraPullBack } from '../../../../src/ui/nest/cameraPullBack';
-import { cameraZoom } from '../../../../src/ui/scenes/nestCamera';
 
 /**
  * NEST's scene area: the nest scene (Story 8.5) in place of the Story 1.22
@@ -170,33 +168,18 @@ describe('NestSceneArea (Story 1.22, Story 8.5)', () => {
     expect(c.querySelector('[data-chamber="workers"]')!.textContent).toContain('30');
   });
 
-  it('sets the scene camera zoom from the colony size, and announces each pull-back through onCameraPullBack (Story 8.7)', () => {
+  it('hands the scene the rooms dug, so it frames them (Story 9.6)', () => {
     vi.useFakeTimers();
-    const steps = sceneBalance.cameraSteps;
-    gameState.value = makeState({ resources: { eggs: 0, larvae: 0, workers: steps[0].workers, food: 1_000 } });
-    const heard: { from: number; to: number }[] = [];
-    const stop = onCameraPullBack((p) => heard.push(p));
+    gameState.value = makeState({ phase: Phase.COLONY, resources: { workers: 5 }, dig: { roomsDug: 2, progress: 0, carry: 0, roomsByHand: 2, auto: false } });
     const c = area();
-    const stage = () => c.querySelector('[data-scene="nest"] [data-camera]')!;
-    expect(stage().getAttribute('data-camera')).toBe('close');
-    expect(heard).toEqual([]);
+    expect(c.querySelectorAll('[data-scene-part="room"]')).toHaveLength(2);
     const s = gameState.value;
     act(() => {
-      gameState.value = { ...s, resources: { ...s.resources, workers: steps[1].workers } };
+      gameState.value = { ...s, dig: { ...s.dig, roomsDug: 3 } };
     });
     act(() => {
       vi.advanceTimersByTime(sceneBalance.viewRefreshMs);
     });
-    expect(stage().getAttribute('data-camera')).toBe('pulled-back');
-    expect(heard).toEqual([{ from: cameraZoom(0), to: cameraZoom(1) }]);
-    stop();
-    const t = gameState.value;
-    act(() => {
-      gameState.value = { ...t, resources: { ...t.resources, workers: steps[2].workers } };
-    });
-    act(() => {
-      vi.advanceTimersByTime(sceneBalance.viewRefreshMs);
-    });
-    expect(heard).toHaveLength(1);
+    expect(c.querySelectorAll('[data-scene-part="room"]')).toHaveLength(3);
   });
 });
