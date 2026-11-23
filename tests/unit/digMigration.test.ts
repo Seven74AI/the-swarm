@@ -58,6 +58,27 @@ describe('v34 → v35: the dig state', () => {
     localStorage.setItem('the_swarm_save', JSON.stringify(oldSave(200)));
     const loaded = new SaveManager(createLocalSaveStore(localStorage)).load()!;
     expect(loaded.gameState.resources.nestCapacity).toBe(200);
-    expect(loaded.gameState.dig).toEqual({ roomsDug: 0, progress: 0, carry: 0 });
+    expect(loaded.gameState.dig).toMatchObject({ roomsDug: 0, progress: 0, carry: 0 });
+  });
+});
+
+/** Story 9.5: v35 → v36 adds auto-dig's state. */
+describe('v35 → v36: auto-dig', () => {
+  const v35 = (dig: Record<string, unknown>): SaveData =>
+    ({ version: 35, timestamp: 1, playTimeMs: 0, gameState: { ...structuredClone(createInitialState()), dig } as unknown as GameState });
+
+  it('adds auto off and counts the rooms dug so far as dug by hand', () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 0, max: 500 }), (rooms) => {
+        const gs = migrateSave(v35({ roomsDug: rooms, progress: 3, carry: 0 }), 35, 36).gameState;
+        expect(gs.dig).toEqual({ roomsDug: rooms, progress: 3, carry: 0, roomsByHand: rooms, auto: false });
+      }),
+    );
+  });
+
+  it('keeps auto-dig state already there', () => {
+    const gs = migrateSave(v35({ roomsDug: 4, progress: 0, carry: 0, roomsByHand: 2, auto: true }), 35, 36).gameState;
+    expect(gs.dig.roomsByHand).toBe(2);
+    expect(gs.dig.auto).toBe(true);
   });
 });

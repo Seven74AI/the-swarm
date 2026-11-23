@@ -31,6 +31,19 @@ export const automationBalance = {
    * still counts), far slower than a player's taps: it keeps a brood topped
    * up, it doesn't replace Phase 1's tapping.
    */
+  /**
+   * Auto-dig (Story 9.5, FR58, FR16's manual-count rule): the BUILD card opens
+   * once `unlockAfterRoomsByHand` rooms have been opened by a DIG press, costs
+   * `costStone` (stone comes from digging, so it is always producible first),
+   * and then the diggers press DIG on their own `pressesPerSec` times a
+   * second, each press worth the usual chunk. Priced so the first-week sim
+   * buys it around the end of day 1; Story 9.9 may retune it.
+   */
+  autoDig: {
+    unlockAfterRoomsByHand: 3,
+    costStone: 20_000,
+    pressesPerSec: 1,
+  },
   targets: {
     unlockAfterManual: 10,
     defaultTarget: 10,

@@ -16,6 +16,7 @@ import { combatBalance } from '../data/balance/combat';
 import { MAX_SHIP_LEVEL, canAffordShipCost, getShipCost } from './SpaceshipSystem';
 import { OFFLINE_RESEARCH_ID, canStartProject, getAssignedResearchers, getProjectStatus, getProjects } from './ResearchSystem';
 import { canBuildParticleLab, getParticleLabCost, isParticleLabOpen } from './ResourceConversionSystem';
+import { canBuyAutoDig, getAutoDigCost, isAutoDigOpen } from './Dig';
 import {
   AUTOMATION_BUILDINGS,
   RESEARCHES,
@@ -39,7 +40,7 @@ export type ActionIntent =
   | { readonly action: 'buyUpgrade'; readonly id: string }
   | { readonly action: 'buyBuilding'; readonly id: BuildingType }
   | { readonly action: 'buyMutation'; readonly id: string }
-  | { readonly action: 'upgradeWeapon' | 'upgradeArmor' | 'buildShip' | 'upgradeShip' | 'buildParticleLab' }
+  | { readonly action: 'upgradeWeapon' | 'upgradeArmor' | 'buildShip' | 'upgradeShip' | 'buildParticleLab' | 'buyAutoDig' }
   | { readonly action: 'startResearch'; readonly id: ResearchProjectId }
   | { readonly action: 'researchAutomation'; readonly id: ResearchType }
   | { readonly action: 'buildAutomation'; readonly id: AutomationBuildingType };
@@ -186,6 +187,17 @@ function defOf(ref: ItemRef): ItemDef {
         intent: () => ({ action: 'buildParticleLab' }),
       };
     }
+    case 'autodig':
+      return {
+        panel: 'building_panel',
+        name: 'Auto-dig',
+        open: isAutoDigOpen,
+        cost: () => nonZero({ ...getAutoDigCost() }),
+        affordable: canBuyAutoDig,
+        verb: () => 'BUY',
+        target: () => 'AUTO-DIG',
+        intent: () => ({ action: 'buyAutoDig' }),
+      };
     case 'research': {
       const def = getProjects().find((p) => p.id === ref.id);
       return {
@@ -302,6 +314,7 @@ export function listItems(): ItemRef[] {
     ...getProjects().map((p): ItemRef => ({ kind: 'research', id: p.id })),
     { kind: 'ship' },
     { kind: 'particle_lab' },
+    { kind: 'autodig' },
   ];
 }
 

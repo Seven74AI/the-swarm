@@ -1,4 +1,5 @@
 import type { GameState } from './GameState';
+import { canBuyAutoDig } from '../systems/Dig';
 import { canBuild, type BuildingType } from '../systems/BuildingSystem';
 import { canStartProject, getProjects } from '../systems/ResearchSystem';
 import { canPurchaseMutation, MUTATIONS } from '../systems/MutationSystem';
@@ -41,6 +42,7 @@ export function affordableKeys(state: GameState): string[] {
     if (canResearch(r, state)) keys.push(`automation_panel:research-${r}`);
   }
   if (canBuildParticleLab(state)) keys.push('resource_converter_panel:particle_lab');
+  if (canBuyAutoDig(state)) keys.push('building_panel:autodig');
   if (isPrestigeAvailable(state)) keys.push('prestige_panel:prestige');
   return keys;
 }

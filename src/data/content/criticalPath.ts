@@ -16,6 +16,8 @@ export type ItemRef =
   | { readonly kind: 'equipment'; readonly id: 'weapon' | 'armor' }
   | { readonly kind: 'ship' }
   | { readonly kind: 'particle_lab' }
+  /** Auto-dig (Story 9.5): one-off, on BUILD. */
+  | { readonly kind: 'autodig' }
   | { readonly kind: 'research'; readonly id: ResearchProjectId }
   | { readonly kind: 'auto_research'; readonly id: ResearchType }
   | { readonly kind: 'auto_building'; readonly id: AutomationBuildingType };

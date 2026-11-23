@@ -2,6 +2,8 @@ import type { GameState } from '../state/GameState';
 import { digBalance } from '../data/balance/dig';
 import { getEffects } from './BuildingSystem';
 import { MS_PER_SEC, PERCENT } from '../data/constants';
+import { automationBalance } from '../data/balance/automation';
+import { Phase } from '../phases/phases';
 
 /**
  * DIG (Story 9.2, FR55): the dig state is `state.dig` (`roomsDug`, `progress`
@@ -26,6 +28,37 @@ export function diggerPointsPerSec(s: GameState): number {
   if (diggers <= 0) return 0;
   const speed = 1 + (getEffects('tunnels', s.buildings.tunnels?.level ?? 0).digSpeedBonus ?? 0);
   return diggers * digBalance.diggerPointsPerSec * speed;
+}
+
+/** Dig points auto-dig presses a second (Story 9.5): `pressesPerSec` chunks, once bought, while anyone is on DIG. */
+export function autoDigPointsPerSec(s: GameState): number {
+  if (!s.dig.auto || s.workersAssigned.dig <= 0) return 0;
+  return automationBalance.autoDig.pressesPerSec * pressChunk(s);
+}
+
+/** Everything that digs on its own a second: the diggers, plus auto-dig's presses. */
+export function digRate(s: GameState): number {
+  return diggerPointsPerSec(s) + autoDigPointsPerSec(s);
+}
+
+/** Auto-dig's price (Story 9.5): stone only. */
+export function getAutoDigCost(): { readonly stone: number } {
+  return { stone: automationBalance.autoDig.costStone };
+}
+
+/** The auto-dig card is on sale: from Colony on, after enough rooms by hand, until bought. */
+export function isAutoDigOpen(s: GameState): boolean {
+  return s.phase !== Phase.EGG_LAYING && !s.dig.auto && s.dig.roomsByHand >= automationBalance.autoDig.unlockAfterRoomsByHand;
+}
+
+export function canBuyAutoDig(s: GameState): boolean {
+  return isAutoDigOpen(s) && s.resources.stone >= getAutoDigCost().stone;
+}
+
+/** Buy auto-dig: the stone goes, the diggers dig on. Unchanged when it can't be bought. */
+export function buyAutoDig(s: GameState): GameState {
+  if (!canBuyAutoDig(s)) return s;
+  return { ...s, resources: { ...s.resources, stone: s.resources.stone - getAutoDigCost().stone }, dig: { ...s.dig, auto: true } };
 }
 
 /** Every dig point dug so far (each room's cost, the progress and the carry), for comparisons. */
@@ -67,7 +100,10 @@ export function digPress(s: GameState): GameState {
     resources: { ...s.resources, stone: s.resources.stone + stone },
     resourceRemainder: { ...s.resourceRemainder, stone: exact - stone },
   };
-  return addDigPoints(withStone, chunk);
+  const dug = addDigPoints(withStone, chunk);
+  // Rooms this press opened count as opened by hand (Story 9.5).
+  const opened = dug.dig.roomsDug - s.dig.roomsDug;
+  return opened > 0 ? { ...dug, dig: { ...dug.dig, roomsByHand: dug.dig.roomsByHand + opened } } : dug;
 }
 
 /** How close the next room is (Story 9.3, FR56): what the NEXT ROOM strip shows. */
@@ -81,8 +117,10 @@ export interface NextRoom {
   readonly percent: number;
   /** DIG presses left at the current chunk. */
   readonly presses: number;
-  /** Time left at the diggers' own rate (the one `ResourceSystem` digs at); null with no diggers. */
+  /** Time left at the diggers' own rate, auto-dig included (the one `ResourceSystem` digs at); null with no diggers. */
   readonly timeLeftMs: number | null;
+  /** Auto-dig is on (Story 9.5): the strip reads `NEXT ROOM · AUTO-DIG ON`. */
+  readonly auto: boolean;
 }
 
 /** The next room, from the same rules the dig system uses. Pure. */
@@ -90,7 +128,7 @@ export function nextRoom(s: GameState): NextRoom {
   const cost = roomCost(s.dig.roomsDug);
   const progress = Math.min(s.dig.progress, cost);
   const left = cost - progress;
-  const rate = diggerPointsPerSec(s);
+  const rate = digRate(s);
   return {
     size: digBalance.roomSize,
     progress,
@@ -98,5 +136,6 @@ export function nextRoom(s: GameState): NextRoom {
     percent: Math.min(PERCENT - 1, Math.floor((progress * PERCENT) / cost)),
     presses: Math.max(1, Math.ceil(left / pressChunk(s))),
     timeLeftMs: rate > 0 ? Math.ceil((Math.max(0, left - s.dig.carry) / rate) * MS_PER_SEC) : null,
+    auto: s.dig.auto,
   };
 }

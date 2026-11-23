@@ -17,6 +17,7 @@ import { SaveFailedMarker } from './shell/SaveFailedMarker';
 import { PhaseLine, phaseClass } from './shell/GoalMeter';
 import type { ConfirmSettings } from './primitives/HoldToConfirm';
 import { NestPrimary } from './nest/NestPrimary';
+import { AutoDigCard } from './build/AutoDigCard';
 import { NestSceneArea } from './nest/NestSceneArea';
 import { ClickPowerCard } from './nest/ClickPowerCard';
 import { NestUpgradeCards, NestUpgradesHeading } from './nest/NestUpgradeCard';
@@ -152,6 +153,7 @@ export function gameViews(d: GameViewDeps): ShellViews {
           </Panel>
           <Panel id="building_panel" tag="section" domId="building-panel" class="build-section building-panel">
             <BuildingCards buy={(id) => d.actions.buyBuilding(id)} />
+            <AutoDigCard buy={() => d.actions.buyAutoDig()} />
           </Panel>
           <Panel id="research_panel" tag="section" domId="research-panel" class="build-section research-panel">
             <ResearchCards

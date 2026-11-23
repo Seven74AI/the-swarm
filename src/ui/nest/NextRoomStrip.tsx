@@ -21,8 +21,16 @@ export function NextRoomStrip() {
   const time = room.timeLeftMs === null ? 'NO DIGGERS' : `IN ${formatTime(room.timeLeftMs).toUpperCase()}`;
   const digs = `${room.presses} ${room.presses === 1 ? 'DIG' : 'DIGS'}`;
   return (
-    <div class="next-room" data-next-room="">
-      <span class="next-room__label">NEXT ROOM</span>
+    <div class="next-room" data-next-room="" data-auto-dig={room.auto ? 'on' : 'off'}>
+      <span class="next-room__label">
+        NEXT ROOM
+        {room.auto && (
+          <>
+            <Sep />
+            AUTO-DIG ON
+          </>
+        )}
+      </span>
       <span class="next-room__size">+{room.size}</span>
       <Meter
         class="next-room__meter"

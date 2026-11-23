@@ -245,6 +245,31 @@ test.describe('NEST tab', () => {
     await expect.poll(digsLeft).toBeLessThan(before);
   });
 
+  test('auto-dig: bought on BUILD, NEST reads > AUTO-DIG ON with its hint and the strip says so (Story 9.5)', async ({ page }) => {
+    await seed(page, {
+      ...COLONY,
+      resources: { ...COLONY.resources, stone: 1_000_000 },
+      workersAssigned: { gather: 2, tend: 0, dig: 3, guard: 0, researchers: 0 },
+      dig: { roomsDug: 5, progress: 0, carry: 0, roomsByHand: 5, auto: false },
+    });
+    const zone = page.locator('[data-primary-for="nest"]');
+    await expect(zone.locator('button[data-action="dig"]')).toBeVisible();
+    const zoneHeight = Math.round((await zone.boundingBox())!.height);
+    await page.locator('[data-tab="build"]').click();
+    const card = page.locator('.build-item[data-auto-dig]');
+    await expect(card).toBeVisible();
+    await card.locator('[data-action="buy-auto-dig"]').click();
+    await expect(card).toHaveAttribute('data-auto-dig', 'on');
+    await page.locator('[data-tab="nest"]').click();
+    const dig = page.locator('[data-primary-for="nest"] button[data-action="dig"]');
+    await expect(dig).toContainText('AUTO-DIG ON');
+    await expect(page.locator('[data-primary-for="nest"]')).toContainText('tap to boost the dig');
+    // The primary zone keeps its height with the hint line.
+    expect(Math.round((await zone.boundingBox())!.height)).toBe(zoneHeight);
+    await expect(page.locator('[data-next-room]')).toHaveAttribute('data-auto-dig', 'on');
+    await expect(page.locator('[data-next-room] .next-room__label')).toContainText('AUTO-DIG ON');
+  });
+
   test('the nest scene draws the colony, labels its exact counts, and the workers chamber opens its peek sheet (Story 8.5); from Colony on the brood feeds (Story 9.4)', async ({ page }) => {
     await page.clock.install();
     await page.clock.pauseAt(Date.now() + 1000);

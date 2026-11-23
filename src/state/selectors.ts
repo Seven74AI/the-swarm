@@ -53,7 +53,7 @@ import type { AutomationBlock, AutomationVerb } from '../data/content/automation
 import type { PrestigeUpgradeId } from '../data/prestigeTree';
 import { progressionBalance } from '../data/balance/progression';
 import { PERCENT } from '../data/constants';
-import { nextRoom, type NextRoom } from '../systems/Dig';
+import { canBuyAutoDig, isAutoDigOpen, nextRoom, type NextRoom } from '../systems/Dig';
 import { feedRefusal } from '../systems/Brood';
 import { Phase as PhaseId } from '../phases/phases';
 import type { ResearchProjectId, ResearchProjectStatus } from './GameState';
@@ -176,7 +176,7 @@ export const selectNestView = computed<NestView>(() => {
 
 let lastNextRoom: NextRoom | null = null;
 const sameNextRoom = (a: NextRoom, b: NextRoom): boolean =>
-  a.size === b.size && a.progress === b.progress && a.cost === b.cost && a.percent === b.percent && a.presses === b.presses && a.timeLeftMs === b.timeLeftMs;
+  a.auto === b.auto && a.size === b.size && a.progress === b.progress && a.cost === b.cost && a.percent === b.percent && a.presses === b.presses && a.timeLeftMs === b.timeLeftMs;
 
 /**
  * The NEXT ROOM strip (Story 9.3, FR56): how close the next room is, from
@@ -256,6 +256,10 @@ export function selectCanBuild(id: BuildingType): ReadonlySignal<boolean> {
 
 /** Whether the Particle Lab's next level is on sale and affordable now (Story 3.6). */
 export const selectCanBuildParticleLab = computed(() => canBuildParticleLab(gameState.value));
+/** Auto-dig (Story 9.5): its card is on sale, it can be bought now, it is on. */
+export const selectAutoDigOpen = computed(() => isAutoDigOpen(gameState.value));
+export const selectCanBuyAutoDig = computed(() => canBuyAutoDig(gameState.value));
+export const selectAutoDigOn = computed(() => gameState.value.dig.auto);
 
 /** Whether BUILD lists the building in this phase (Story 3.5). */
 export function selectBuildingUnlocked(id: BuildingType): ReadonlySignal<boolean> {

@@ -14,6 +14,7 @@ import type { AutomationVerb } from '../data/content/automation';
 import { automationCount, isAutomationActive, isAutomationShown, maxAutomationTarget } from '../systems/AutomationTargets';
 import { getEffects } from '../systems/BuildingSystem';
 import { feedRefusal, freeRooms } from '../systems/Brood';
+import { canBuyAutoDig } from '../systems/Dig';
 
 /**
  * One move of the simulated player (Story 3.7, AR15). Each names the action
@@ -187,10 +188,12 @@ function needsRoom(s: GameState): boolean {
 /** Every move but Combat's: the same for each player below, so they differ only in how they fight. */
 function baseMoves(s: GameState, turn: PolicyTurn): SimMove[] {
   const moves: SimMove[] = [...layAutomation(s)];
+  // Auto-dig (Story 9.5): bought as soon as it can be; from then on the diggers dig and the player stops pressing DIG.
+  if (canBuyAutoDig(s)) moves.push({ kind: 'intent', intent: { action: 'buyAutoDig' } });
   // The player's presses FEED larvae into free rooms (Story 9.4), else go to DIG while the nest is short of room
   // (Story 9.2), else to LAY EGG while the goal needs workers.
   if (turn.taps > 0 && feedRefusal(s) === null) moves.push({ kind: 'feed', taps: Math.min(turn.taps, freeRooms(s)) });
-  else if (turn.taps > 0 && needsRoom(s)) moves.push({ kind: 'dig', presses: turn.taps });
+  else if (turn.taps > 0 && needsRoom(s) && !s.dig.auto) moves.push({ kind: 'dig', presses: turn.taps });
   else if (turn.taps > 0 && needsWorkers(s)) moves.push({ kind: 'layEgg', taps: turn.taps });
   const next = getNextAction(s);
   if (next.kind === 'act') moves.push({ kind: 'intent', intent: next.intent });

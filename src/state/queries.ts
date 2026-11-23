@@ -94,6 +94,7 @@ export {
   type ResearchType,
 } from '../systems/AutomationSystem';
 export { canAffordShipCost, getShipCost, MAX_SHIP_LEVEL } from '../systems/SpaceshipSystem';
+export { getAutoDigCost } from '../systems/Dig';
 // BUILD's cards match the highlighted item by its key (Story 1.24).
 export { itemKey, itemPanel } from '../systems/NextAction';
 /** The phase goals (Story 1.18), read-only: the simulated player reads its goal here (Story 3.7). */

@@ -4,7 +4,7 @@ import { getAssignedWorkers, getUpgradeCost, upgradeRefusal, type WorkerRole } f
 import { freeWorkers, moveWorkers as move, roleCount, stepRole as step, type MoveSource } from '../systems/Workforce';
 import type { RoleId } from '../data/content/roles';
 import { recordManual } from '../systems/AutomationTargets';
-import { digPress } from '../systems/Dig';
+import { buyAutoDig as buyAuto, canBuyAutoDig, digPress, isAutoDigOpen } from '../systems/Dig';
 import { feedBrood, feedRefusal } from '../systems/Brood';
 import { Phase } from '../phases/phases';
 
@@ -38,6 +38,14 @@ export function feed(deps: ActionDeps): ActionResult {
   const why = feedRefusal(s);
   if (why) return refuse(why);
   return commit(deps, s, feedBrood(s));
+}
+
+/** Buy auto-dig (Story 9.5, FR58): stone only; the diggers then press DIG on their own. */
+export function buyAutoDig(deps: ActionDeps): ActionResult {
+  const s = current(deps);
+  if (!isAutoDigOpen(s)) return refuse(s.dig.auto ? 'already_owned' : 'locked');
+  if (!canBuyAutoDig(s)) return refuse('cannot_afford');
+  return commit(deps, s, buyAuto(s));
 }
 
 /** Put one free worker on a job. */

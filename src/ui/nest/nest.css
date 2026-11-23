@@ -29,6 +29,12 @@
   width: 100%;
 }
 
+/* > AUTO-DIG ON carries its hint line (Story 9.5): tighter so the two lines keep the 64 px zone. */
+.nest-primary .swarm-btn[data-auto-dig] {
+  gap: 0;
+  padding-block: 3px;
+}
+
 .shell-primary [data-primary-continue] {
   box-sizing: border-box;
   padding: 6.5px var(--shell-margin, 14px); /* 50 px button + 13 px + the zone's 1 px rule = 64 px */

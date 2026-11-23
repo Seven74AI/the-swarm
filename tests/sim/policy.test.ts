@@ -5,6 +5,8 @@ import { createInitialState, type GameState } from '../../src/state/GameState';
 import { Phase } from '../../src/phases/phases';
 import { goalFor } from '../../src/phases/transitions';
 import { getNextAction } from '../../src/systems/NextAction';
+import { getAutoDigCost } from '../../src/systems/Dig';
+import { automationBalance } from '../../src/data/balance/automation';
 
 function deepFreeze<T>(o: T): T {
   if (o && typeof o === 'object' && !Object.isFrozen(o)) {
@@ -81,6 +83,14 @@ describe('defaultPolicy', () => {
     // A full nest: no FEED.
     const full = { ...waiting, resources: { ...waiting.resources, nestCapacity: waiting.resources.workers } };
     expect(kinds(defaultPolicy(full, { taps: 7 }))).not.toContain('feed');
+  });
+
+  it('buys auto-dig once it can, then leaves the digging to it (Story 9.5)', () => {
+    const s = colonyWithoutGuard();
+    const full = { ...s, resources: { ...s.resources, nestCapacity: s.resources.workers, larvae: 3, stone: getAutoDigCost().stone }, dig: { ...s.dig, roomsByHand: automationBalance.autoDig.unlockAfterRoomsByHand } };
+    expect(defaultPolicy(full, { taps: 7 })).toContainEqual({ kind: 'intent', intent: { action: 'buyAutoDig' } });
+    const on = { ...full, dig: { ...full.dig, auto: true } };
+    expect(kinds(defaultPolicy(on, { taps: 7 }))).not.toContain('dig');
   });
 
   it('stops tapping once the goal has its workers', () => {
