@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { tapContinue } from './helpers/phase';
+import { goalTarget } from './helpers/guards';
 
 test('click egg button increments counter and spawns particle', async ({ page }) => {
   // Suppress onboarding overlay — it intercepts clicks in E2E tests
@@ -30,14 +31,14 @@ test('phase indicator shows initial phase', async ({ page }) => {
 
 test('phase transitions from egg_laying to colony', async ({ page }) => {
   // Set save data before page loads so bootstrap picks it up
-  await page.addInitScript(() => {
+  await page.addInitScript((target: number) => {
     const data = {
       version: 11,
       timestamp: Date.now(),
       playTimeMs: 0,
       gameState: {
         phase: 'egg_laying',
-        resources: { eggs: 0, larvae: 0, workers: 10, food: 0, nestCapacity: 25, wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0 },
+        resources: { eggs: 0, larvae: 0, workers: target, food: 0, nestCapacity: 25, wood: 0, stone: 0, nectar: 0, voidCrystals: 0, antimatter: 0, darkMatter: 0 },
         eggPipeline: { count: 0, progress: 0 },
         larvaPipeline: { count: 0, progress: 0 },
         soldierPipeline: { count: 0, progress: 0 },
@@ -76,7 +77,7 @@ test('phase transitions from egg_laying to colony', async ({ page }) => {
       },
     };
     localStorage.setItem('the_swarm_save', JSON.stringify(data));
-  });
+  }, goalTarget('egg_laying', 'workers'));
 
   await page.addInitScript(() => { localStorage.setItem('the_swarm_onboarding', 'done'); });
   await page.goto('/');

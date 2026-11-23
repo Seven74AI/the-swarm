@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tapContinue } from './helpers/phase';
+import { goalTarget } from './helpers/guards';
 
 /**
  * E2E: phase design tokens (Story 1.8).
@@ -60,17 +61,17 @@ test.describe('Phase tokens', () => {
   });
 
   test('entering Colony rebinds the aliases through the root attribute alone', async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((target: number) => {
       localStorage.setItem(
         'the_swarm_save',
         JSON.stringify({
           version: 14,
           timestamp: Date.now(),
           playTimeMs: 0,
-          gameState: { phase: 'egg_laying', resources: { workers: 10, food: 200, nestCapacity: 50 } },
+          gameState: { phase: 'egg_laying', resources: { workers: target, food: 200, nestCapacity: 50 } },
         }),
       );
-    });
+    }, goalTarget('egg_laying', 'workers'));
     await page.goto('/');
     // The goal is met; Colony is entered on CONTINUE (Story 1.19).
     await expect(page.locator('html')).toHaveAttribute('data-phase', 'egg');

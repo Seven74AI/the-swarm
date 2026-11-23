@@ -2,6 +2,7 @@ import { test, expect, type Page, type Request } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { tapContinue } from './helpers/phase';
 import { createInitialState } from '../../src/state/GameState';
+import { goalTarget } from './helpers/guards';
 
 /**
  * Story 3.10 (FR38, NFR10): play telemetry stays on the device.
@@ -30,7 +31,7 @@ async function setVisibility(page: Page, state: 'hidden' | 'visible'): Promise<v
 /** Phase 1 with its goal met: CONTINUE commits Colony. */
 function phaseOneMet() {
   const base = createInitialState();
-  const gameState = { ...base, phase: 'egg_laying', resources: { ...base.resources, workers: 10, food: 200 } };
+  const gameState = { ...base, phase: 'egg_laying', resources: { ...base.resources, workers: goalTarget('egg_laying', 'workers'), food: 200 } };
   return { version: 26, timestamp: Date.now(), playTimeMs: 0, gameState };
 }
 

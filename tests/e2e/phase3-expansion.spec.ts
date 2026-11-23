@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { tapContinue } from './helpers/phase';
+import { goalTarget } from './helpers/guards';
 
 /**
  * Phase 3 E2E: Expansion phase — Map, Expeditions, Buildings, Territory.
@@ -11,7 +12,7 @@ test.describe('Phase 3 — Expansion', () => {
     // (60 workers, 5 battles won), with 1000 food, 200 wood, 200 stone
     // Plus 5 scouts for expedition testing
     // Note: 35 assigned (gather:24 + tend:8 + dig:3), 25 available workers
-    await page.addInitScript(() => {
+    await page.addInitScript((target: number) => {
       const data = {
         version: 11,
         timestamp: Date.now(),
@@ -19,7 +20,7 @@ test.describe('Phase 3 — Expansion', () => {
         gameState: {
           phase: 'combat',
           resources: {
-            eggs: 0, larvae: 0, workers: 60, food: 1000,
+            eggs: 0, larvae: 0, workers: target, food: 1000,
             nestCapacity: 100, wood: 200, stone: 200, nectar: 50,
           },
           eggPipeline: { count: 0, progress: 0 },
@@ -75,7 +76,7 @@ test.describe('Phase 3 — Expansion', () => {
         },
       };
       localStorage.setItem('the_swarm_save', JSON.stringify(data));
-    });
+    }, goalTarget('combat', 'workers'));
     await page.goto('/');
 
     // Verify seed data was loaded into localStorage

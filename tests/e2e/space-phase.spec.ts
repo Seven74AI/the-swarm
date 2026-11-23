@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { openTab } from './helpers/tabs';
 import { tapContinue } from './helpers/phase';
+import { goalTarget } from './helpers/guards';
 
 /**
  * E2E: Space Phase UI — Neon Theme, Spaceship & Exploration Panels.
@@ -16,7 +17,7 @@ function makeSaveData(overrides?: Record<string, unknown>) {
     gameState: {
       phase: 'expansion',
       resources: {
-        eggs: 5, larvae: 3, workers: 80, food: 5000,
+        eggs: 5, larvae: 3, workers: goalTarget('expansion', 'workers'), food: goalTarget('expansion', 'food'),
         nestCapacity: 100, wood: 500, stone: 500, nectar: 300,
         voidCrystals: 500, antimatter: 99, darkMatter: 49,
       },
@@ -206,7 +207,7 @@ test.describe('Space Phase — Neon Theme & Panels', () => {
     await seedAndWaitForSpace(page, {
       spaceship: { level: 1, fuel: 80, maxFuel: 100 },
       resources: {
-        eggs: 5, larvae: 3, workers: 80, food: 5000,
+        eggs: 5, larvae: 3, workers: goalTarget('expansion', 'workers'), food: goalTarget('expansion', 'food'),
         nestCapacity: 100, wood: 500, stone: 500, nectar: 300,
         voidCrystals: 200, antimatter: 50, darkMatter: 10,
       },
@@ -231,7 +232,7 @@ test.describe('Space Phase — Neon Theme & Panels', () => {
   test('spaceship build button disabled without resources', async ({ page }) => {
     await seedAndWaitForSpace(page, {
       resources: {
-        eggs: 5, larvae: 3, workers: 80, food: 5000,
+        eggs: 5, larvae: 3, workers: goalTarget('expansion', 'workers'), food: goalTarget('expansion', 'food'),
         nestCapacity: 100, wood: 0, stone: 0, nectar: 0,
         voidCrystals: 0, antimatter: 0, darkMatter: 0,
       },
