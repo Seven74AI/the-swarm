@@ -98,11 +98,13 @@ test.describe('automation target rows', () => {
     await expect.poll(() => army(page)).toBe(12);
   });
 
-  test('laying: the row sits under the queen, and the queen lays on her own toward it', async ({ page }) => {
+  test('laying: the row sits in the brood line, and the queen lays on her own toward it', async ({ page }) => {
     await seed(page, combat({ automation: { targets: { lay: { target: 30, on: true } } } }));
-    const row = page.locator('[data-nest-scene] [data-automation="lay"]');
+    // From Colony on the laying target is part of NEST's brood line, which names the brood (Story 9.7).
+    const row = page.locator('[data-nest-scene] [data-brood-feed] [data-automation="lay"]');
     await expect(row).toBeVisible();
-    await expect(row).toContainText('IN THE BROOD');
+    await expect(page.locator('[data-brood-feed] [data-brood-counts]')).toContainText('BROOD');
+    await expect(row).toContainText('KEEP');
     const laid = () => page.evaluate(() => (window as unknown as { __swarm: { manager: { getState(): { stats: { totalEggsLaid: number; totalClicks: number } } } } }).__swarm.manager.getState().stats);
     const before = await laid();
     await skipGameTime(page, HOUR_MS);

@@ -21,3 +21,13 @@
 }
 .automation-row__status { margin: 0; color: var(--color-dim); }
 .automation-row__status[data-warn] { color: var(--color-warn); }
+
+/* NEST's brood line (Story 9.7): one line, no margin of its own. */
+.automation-row--compact { margin: 0; }
+.automation-row--compact { flex: 0 1 auto; min-width: 0; max-width: 100%; }
+.automation-row--compact .stepper,
+.automation-row--compact .stepper__row { max-width: 100%; flex-wrap: wrap; }
+.automation-row--compact .automation-row__line { align-items: center; }
+/* Each control keeps its 44 px target, with no padding beyond it. */
+.automation-row--compact [data-step] { padding-inline: 0; }
+.automation-row--compact .automation-row__auto { padding-inline: 0.25rem; }

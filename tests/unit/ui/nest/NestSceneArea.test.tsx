@@ -138,6 +138,29 @@ describe('NestSceneArea (Story 1.22, Story 8.5)', () => {
     expect(c.querySelector('[data-feed-reason]')!.textContent).toMatch(/^FEED\s*·.*NO LARVAE$/);
   });
 
+  it('from Colony on: the brood line under the scene, the laying target in it, and LAY EGG on the queen (Story 9.7)', () => {
+    gameState.value = makeState({ phase: Phase.COLONY, resources: { eggs: 4, larvae: 2, workers: 5 }, automation: { performed: { lay: 20 } } });
+    const c = render(
+      <>
+        <NestSceneArea lay={() => ({ ok: true })} automation={testActions()} sheets={sheets} />
+        <SheetHost sheets={sheets} />
+      </>,
+    ).container;
+    const line = c.querySelector('[data-brood-feed]')!;
+    expect(line.querySelector('[data-brood-counts]')!.textContent).toMatch(/^BROOD\W+4 EGGS\W+2 LARVAE$/);
+    expect(line.querySelector('[data-automation="lay"]')).not.toBeNull();
+    // Compact: steps of one, no multiplier row.
+    expect(line.querySelector('.stepper__multipliers')).toBeNull();
+    expect(c.querySelector('[data-queen-tap] #click-egg')).not.toBeNull();
+  });
+
+  it('Phase 1 has no brood line and no queen tap: LAY EGG is the primary action', () => {
+    gameState.value = makeState({ phase: Phase.EGG_LAYING });
+    const c = area();
+    expect(c.querySelector('[data-brood-feed]')).toBeNull();
+    expect(c.querySelector('[data-queen-tap]')).toBeNull();
+  });
+
   it('Phase 1 keeps the brood peek and has no FEED', () => {
     gameState.value = makeState({ phase: Phase.EGG_LAYING, resources: { larvae: 4, workers: 2 } });
     const c = area(testActions().feed);
