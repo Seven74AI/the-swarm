@@ -1,5 +1,5 @@
 import { Phase } from '../../phases/phases';
-import { selectNestView, selectPhase } from '../../state/selectors';
+import { selectNestView, selectNextRoom, selectPhase } from '../../state/selectors';
 import { sceneBalance } from '../../data/balance/scene';
 import { useThrottledSignal } from '../primitives/throttledSignal';
 import { useEffect, useMemo, useRef } from 'preact/hooks';
@@ -10,6 +10,8 @@ import { openChamberPeek } from '../sheets/ChamberPeekSheet';
 import { LayEggButton } from './LayEggButton';
 import { cameraPulledBack } from './cameraPullBack';
 import { AutomationRow, type AutomationRowActions } from '../shell/AutomationRow';
+import { crackStage } from '../scenes/nestLayout';
+import { NextRoomStrip } from './NextRoomStrip';
 
 /**
  * NEST's scene area (Story 1.22): the nest scene (Story 8.5), in NEST's
@@ -28,6 +30,9 @@ import { AutomationRow, type AutomationRowActions } from '../shell/AutomationRow
  * under the scene. Under it, once laying can be automated (Story 4.10), the
  * brood's automation target row: `KEEP [−] N [+] IN THE BROOD [AUTO]`.
  *
+ * From Colony on the NEXT ROOM strip sits under the scene (Story 9.3), and the
+ * scene's dig-face crack follows the same `selectNextRoom`.
+ *
  * Hooks: `[data-nest-scene]` (the area), `[data-scene="nest"]` (the scene).
  */
 export function NestSceneArea({
@@ -40,11 +45,13 @@ export function NestSceneArea({
   sheets: SheetController;
 }) {
   const view = useThrottledSignal(selectNestView, sceneBalance.viewRefreshMs);
+  const room = useThrottledSignal(selectNextRoom, sceneBalance.viewRefreshMs).value;
   const zoom = useCameraZoom(view.value.workers);
   const phase1 = selectPhase.value === Phase.EGG_LAYING;
   return (
     <div class="nest-scene" data-nest-scene="">
-      <NestScene view={view.value} onChamber={(id) => openChamberPeek(sheets, id)} zoom={zoom} />
+      <NestScene view={view.value} onChamber={(id) => openChamberPeek(sheets, id)} zoom={zoom} crack={room ? crackStage(room.percent) : 0} />
+      <NextRoomStrip />
       {!phase1 && (
         <div class="nest-scene__queen">
           <LayEggButton variant="secondary" lay={lay} />

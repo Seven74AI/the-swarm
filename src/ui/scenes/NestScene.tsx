@@ -4,7 +4,7 @@ import { feelBalance } from '../../data/balance/feel';
 import type { NestView } from '../../state/nestView';
 import { formatFull } from '../../utils/format';
 import { Sep } from '../primitives/Deco';
-import { ANT_BODY, ANT_SCALE, EGG_SHAPE, LARVA_PATH, nestLayout, type Ant, type ChamberGeometry, type ChamberId, type Token, type Tunnel } from './nestLayout';
+import { ANT_BODY, ANT_SCALE, EGG_SHAPE, LARVA_PATH, crackPath, nestLayout, type Ant, type ChamberGeometry, type ChamberId, type Token, type Tunnel } from './nestLayout';
 import { antPose } from './antMotion';
 import { CAMERA_CLOSE, cameraRect, chamberAnchor, MIN_STAGE_PX } from './nestCamera';
 import { sceneClock, useSceneClock, type SceneClock } from './sceneClock';
@@ -65,6 +65,8 @@ export interface NestSceneProps {
   readonly clock?: SceneClock;
   /** The camera's scale, 1 = close (default). Below 1 the scene has pulled back (Story 8.7 sets it). */
   readonly zoom?: number;
+  /** The dig-face crack's stage (Story 9.3, `crackStage`): 0 or absent draws none. It never animates. */
+  readonly crack?: number;
 }
 
 type ArriveKind = 'egg' | 'larva' | 'worker';
@@ -199,7 +201,7 @@ function Queen({ t }: { t: Token }) {
   );
 }
 
-export function NestScene({ view, onChamber, clock = sceneClock(), zoom = 1 }: NestSceneProps) {
+export function NestScene({ view, onChamber, clock = sceneClock(), zoom = 1, crack = 0 }: NestSceneProps) {
   const layout = useMemo(() => nestLayout(view), [view]);
   // False during the first draw: what is there when the scene opens doesn't arrive.
   const drawn = useRef(false);
@@ -260,6 +262,7 @@ export function NestScene({ view, onChamber, clock = sceneClock(), zoom = 1 }: N
           {layout.chambers.map((c) => (
             <path key={c.id} data-scene-part="chamber" data-chamber-wall={c.id} class="nest-svg__chamber" d={c.wall} />
           ))}
+          {crack > 0 && <path data-scene-part="crack" data-crack-stage={String(crack)} class="nest-svg__crack" stroke-linecap="round" d={crackPath(crack)} />}
           {layout.chambers.map((c) =>
             c.cloud.d ? <path key={c.id} data-scene-part="cloud" data-cloud={c.id} class="nest-svg__cloud" d={c.cloud.d} /> : null,
           )}

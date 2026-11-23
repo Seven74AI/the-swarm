@@ -120,3 +120,18 @@
   padding: 0;
   list-style: none;
 }
+
+/* NEXT ROOM strip (Story 9.3, UX-DR47): one meta row under the nest scene. */
+.next-room {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 1ch;
+  font-size: var(--type-meta);
+}
+.next-room__label {
+  color: var(--color-dim);
+}
+.next-room__meter {
+  color: var(--color-accent);
+}
