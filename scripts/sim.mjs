@@ -2,7 +2,7 @@
 // pacing report against the GDD targets. Not part of CI: the numbers are for
 // tuning (Story 3.11), never asserted.
 //
-//   pnpm sim                    # defaults from src/data/balance/pacing.ts
+//   pnpm sim                    # first-week schedule, 10 days (src/data/balance/pacing.ts)
 //   pnpm sim --seed 3 --days 10
 //
 // The game code reads `import.meta.env`, so it is loaded through Vite's module

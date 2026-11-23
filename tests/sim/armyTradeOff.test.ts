@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultPolicy, maxArmyPolicy, type SimMove } from '../../src/sim/policy';
 import { combatEntry, compareArmies, formatArmyComparison, onlyMaxArmyFoodCritical, runArmyComparison, type ArmyComparison } from '../../src/sim/report';
 import type { CheckInRecord } from '../../src/sim/probes';
-import { dailySchedule } from '../../src/sim/schedule';
+import { firstWeekSchedule } from '../../src/sim/schedule';
 import { createInitialState, type GameState } from '../../src/state/GameState';
 import { Phase } from '../../src/phases/phases';
 import { soldierBalance } from '../../src/data/balance/soldiers';
@@ -76,7 +76,7 @@ describe('maxArmyPolicy (Story 4.4)', () => {
 
 describe('onlyMaxArmyFoodCritical', () => {
   const rec = (index: number, foodCritical: boolean, phase: string = Phase.COMBAT): CheckInRecord => ({
-    index, startMs: 0, phase, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, refused: 0, byAction: {}, foodCritical, capacityCritical: false,
+    index, startMs: 0, activeMs: 0, phase, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, refused: 0, byAction: {}, foodCritical, capacityCritical: false,
   });
 
   it('keeps the Combat check-ins both runs played where only the max-army colony was food-critical', () => {
@@ -95,7 +95,7 @@ describe('the army trade-off in the pacing harness (Story 4.4)', () => {
   });
 
   it('both players start Combat from the same state', () => {
-    const schedule = dailySchedule(DAYS);
+    const schedule = firstWeekSchedule(DAYS);
     const entry = combatEntry(SEED, schedule);
     expect(entry?.state.phase).toBe(Phase.COMBAT);
     // The same entry, seed and schedule replay the same run.

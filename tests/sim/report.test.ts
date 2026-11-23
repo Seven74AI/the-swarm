@@ -16,12 +16,16 @@ import {
   phaseSpans,
   runPacingReport,
   tapShare,
+  idleGapGate,
+  longestIdleGap,
+  phaseEndGate,
+  postWeekGate,
   type PacingTargets,
   type PhaseSpan,
 } from '../../src/sim/report';
-import type { CheckInRecord, EggSample, ProbeReport } from '../../src/sim/probes';
+import type { CheckInRecord, EggSample, Payoff, ProbeReport } from '../../src/sim/probes';
 import { runSim } from '../../src/sim/runner';
-import { dailySchedule, repeatCheckIns } from '../../src/sim/schedule';
+import { dailySchedule, firstWeekSchedule, repeatCheckIns } from '../../src/sim/schedule';
 import { createInitialState } from '../../src/state/GameState';
 import { Phase, PHASE_ORDER } from '../../src/phases/phases';
 import { pacingTargets } from '../../src/data/balance/pacing';
@@ -39,7 +43,7 @@ afterEach(() => {
 const MIN = 60_000;
 
 function checkIn(index: number, over: Partial<CheckInRecord> = {}): CheckInRecord {
-  return { index, startMs: index * HOUR_MS, phase: Phase.COLONY, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, refused: 0, byAction: {}, foodCritical: false, capacityCritical: false, ...over };
+  return { index, startMs: index * HOUR_MS, activeMs: 5 * MIN, phase: Phase.COLONY, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, refused: 0, byAction: {}, foodCritical: false, capacityCritical: false, ...over };
 }
 
 function egg(activeMs: number, phase: Phase, laid: number, tapped: number): EggSample {
@@ -55,6 +59,7 @@ const probes: ProbeReport = {
   ],
   checkIns: [checkIn(0), checkIn(1), checkIn(7)],
   eggs: [],
+  payoffs: [],
 };
 const end = { atMs: 2 * DAY_MS + 5 * HOUR_MS, activeMs: 50 * MIN };
 
@@ -252,10 +257,23 @@ describe('the pacing report on a real run (Story 3.9)', () => {
     expect(report.critical).toEqual(criticalMoments(result.probes.checkIns, targets.criticalMoments.phase));
   });
 
-  it('runPacingReport plays a fresh game over the day schedule it is given', () => {
+  it('runPacingReport plays a fresh game over the first-week schedule (Story 9.1)', () => {
     const r = runPacingReport({ seed: 1, days: 1 });
-    expect(r.checkIns).toBe(schedule.length);
-    expect(r.rows).toEqual(report.rows);
+    const own = runSim({ state: createInitialState(), seed: 1, schedule: firstWeekSchedule(1) });
+    expect(r.checkIns).toBe(firstWeekSchedule(1).length);
+    expect(r.rows).toEqual(buildPacingReport(own, { seed: 1, days: 1 }).rows);
+    expect(r.gates).toEqual(buildPacingReport(own, { seed: 1, days: 1 }).gates);
+  });
+
+  it('prints the three gates, each with its target and a pass or fail (Story 9.1)', () => {
+    const text = formatPacingReport(report);
+    expect(report.gates).toHaveLength(3);
+    for (const g of report.gates) {
+      const line = text.split('\n').find((l) => l.includes(g.label));
+      expect(line).toBeDefined();
+      expect(line).toContain(g.target);
+      expect(line).toMatch(/PASS|FAIL|open/);
+    }
   });
 });
 
@@ -321,5 +339,103 @@ describe('critical-moment probes (Story 3.11)', () => {
     const run = runSim({ state: createInitialState(), seed: 1, schedule: repeatCheckIns(1, { awayMs: 0, activeMs: simBalance.activeStepMs }) });
     expect(run.probes.checkIns[0].foodCritical).toBe(false);
     expect(run.probes.checkIns[0].capacityCritical).toBe(false);
+  });
+});
+
+/** Story 9.1 (FR65): the three first-week gates are pure verdicts over probe data. */
+describe('first-week gates (Story 9.1)', () => {
+  const gates = pacingTargets.gates;
+  const payoff = (activeMs: number): Payoff => ({ kind: 'affordable', atMs: activeMs, activeMs, checkIn: 0 });
+
+  describe('longestIdleGap', () => {
+    it('is the longest stretch of play with no payoff, counted to the window end', () => {
+      expect(longestIdleGap([payoff(0), payoff(1 * MIN), payoff(4 * MIN)], 5 * MIN)).toBe(3 * MIN);
+      expect(longestIdleGap([payoff(1 * MIN)], 5 * MIN)).toBe(4 * MIN);
+    });
+
+    it('ignores payoffs past the window and is the whole window with none', () => {
+      expect(longestIdleGap([payoff(20 * MIN)], 5 * MIN)).toBe(5 * MIN);
+      expect(longestIdleGap([], 5 * MIN)).toBe(5 * MIN);
+    });
+  });
+
+  describe('gate 1: idle gaps in session 1', () => {
+    const over = gates.idleGap.maxMs + MIN;
+    const under = Math.floor(gates.idleGap.maxMs / 2);
+    const every = (gap: number) => Array.from({ length: Math.ceil(gates.idleGap.windowMs / gap) + 1 }, (_, i) => payoff(i * gap));
+
+    it('fails a gap over the limit and passes gaps under it', () => {
+      expect(idleGapGate(every(over), gates.idleGap.windowMs, gates.idleGap).verdict).toBe('fail');
+      expect(idleGapGate(every(under), gates.idleGap.windowMs, gates.idleGap).verdict).toBe('pass');
+    });
+
+    it('measures only as far as session 1 was played', () => {
+      const short = Math.floor(gates.idleGap.windowMs / 2);
+      const g = idleGapGate([payoff(0)], short, gates.idleGap);
+      expect(g.valueMs).toBe(short);
+    });
+  });
+
+  describe('gate 2: when Phase 3 ends', () => {
+    const span = (endedOnDay: number | null): PhaseSpan => ({
+      phase: gates.phaseEnd.phase, startedAtMs: 0, startedActiveMs: 0, activeMs: 0, realMs: 0,
+      completed: endedOnDay !== null, endedAtMs: endedOnDay === null ? null : (endedOnDay - 1) * DAY_MS, endedOnDay, endedInCheckIn: endedOnDay === null ? null : 0,
+    });
+    const after = { atMs: (gates.phaseEnd.toDay + 1) * DAY_MS };
+
+    it('passes inside the window, fails before or after it', () => {
+      expect(phaseEndGate([span(gates.phaseEnd.fromDay)], after, gates.phaseEnd).verdict).toBe('pass');
+      expect(phaseEndGate([span(gates.phaseEnd.toDay)], after, gates.phaseEnd).verdict).toBe('pass');
+      expect(phaseEndGate([span(gates.phaseEnd.fromDay - 1)], after, gates.phaseEnd).verdict).toBe('fail');
+      expect(phaseEndGate([span(gates.phaseEnd.toDay + 1)], after, gates.phaseEnd).verdict).toBe('fail');
+    });
+
+    it('fails a phase still open past the window (or never reached), and is open before it', () => {
+      expect(phaseEndGate([span(null)], after, gates.phaseEnd).verdict).toBe('fail');
+      expect(phaseEndGate([], after, gates.phaseEnd).verdict).toBe('fail');
+      expect(phaseEndGate([span(null)], { atMs: DAY_MS }, gates.phaseEnd).verdict).toBe('open');
+    });
+  });
+
+  describe('gate 3: post-week check-ins', () => {
+    const late = (i: number, activeMs: number, decisionsAvailable: number): CheckInRecord =>
+      checkIn(i, { startMs: gates.postWeek.afterDay * DAY_MS + i * HOUR_MS, activeMs, decisionsAvailable });
+    const inRange = Math.floor((gates.postWeek.medianMs.min + gates.postWeek.medianMs.max) / 2);
+
+    it('passes a median inside the range with a decision in every check-in', () => {
+      const g = postWeekGate([late(0, inRange, 1), late(1, inRange, 2), late(2, inRange, 1)], gates.postWeek);
+      expect(g.verdict).toBe('pass');
+    });
+
+    it('fails a median outside the range', () => {
+      const long = gates.postWeek.medianMs.max + MIN;
+      expect(postWeekGate([late(0, long, 1), late(1, long, 1)], gates.postWeek).verdict).toBe('fail');
+      const short = Math.floor(gates.postWeek.medianMs.min / 2);
+      expect(postWeekGate([late(0, short, 1), late(1, short, 1)], gates.postWeek).verdict).toBe('fail');
+    });
+
+    it('fails when a check-in offers no decision', () => {
+      expect(postWeekGate([late(0, inRange, 1), late(1, inRange, 0)], gates.postWeek).verdict).toBe('fail');
+    });
+
+    it('counts only check-ins after the week, and is open with none', () => {
+      const early = checkIn(0, { startMs: 0, activeMs: inRange, decisionsAvailable: 0 });
+      expect(postWeekGate([early, late(1, inRange, 1)], gates.postWeek).verdict).toBe('pass');
+      expect(postWeekGate([early], gates.postWeek).verdict).toBe('open');
+    });
+  });
+});
+
+describe('phase targets follow the first-week Difficulty Curve (Story 9.1)', () => {
+  const colony = pacingTargets.phases.find((t) => t.phase === Phase.COLONY)!;
+
+  it('Colony ends on day 1 but in a later session than the first: ending in session 1 is fast', () => {
+    expect(colony.finish.kind).toBe('days');
+    const ended = (checkInIndex: number): PhaseSpan => ({
+      phase: Phase.COLONY, startedAtMs: 0, startedActiveMs: 0, activeMs: 0, realMs: 0, completed: true,
+      endedAtMs: HOUR_MS, endedOnDay: 1, endedInCheckIn: checkInIndex,
+    });
+    expect(judgeSpan(ended(0), colony).realTime).toBe('fast');
+    expect(judgeSpan(ended(2), colony).realTime).toBe('ok');
   });
 });

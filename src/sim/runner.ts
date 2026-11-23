@@ -70,6 +70,8 @@ export class SimRunner {
   private clockMs = 0;
   private playedMs = 0;
   private halted = false;
+  /** A measured check-in's unplayed time, added to the next gap (Story 9.1). */
+  private carryMs = 0;
 
   constructor(private readonly options: SimOptions) {
     this.s = { ...options.state, seed: options.seed, rng: rngFromSeed(options.seed) };
@@ -117,19 +119,30 @@ export class SimRunner {
     };
   }
 
-  /** One check-in: resume the gap, then play `activeMs`, looking every `activeStepMs`. */
+  /**
+   * One check-in: resume the gap, then play `activeMs`, looking every
+   * `activeStepMs`. A measured check-in (`untilIdle`, Story 9.1) ends after
+   * the first look that lands nothing; its unplayed time is added to the next
+   * gap, so the next check-in still starts on plan.
+   */
   checkIn(c: CheckIn, index: number): void {
     if (this.halted) return;
-    if (this.advance(c.awayMs, false)) return;
+    const carried = this.carryMs;
+    this.carryMs = 0;
+    if (this.advance(c.awayMs + carried, false)) return;
     this.probes.beginCheckIn(index, this.s, this.clockMs);
     const step = simBalance.activeStepMs;
     let left = Math.floor(c.activeMs);
-    if (this.look(step)) return;
+    if (this.look(step).stop) return;
     while (left > 0) {
       const ms = left < step ? left : step;
       left -= ms;
-      if (this.advance(ms, true) || this.look(ms)) return;
+      if (this.advance(ms, true)) return;
+      const looked = this.look(ms);
+      if (looked.stop) return;
+      if (c.untilIdle && !looked.landed) break;
     }
+    this.carryMs = left;
     this.probes.endCheckIn();
   }
 
@@ -143,17 +156,18 @@ export class SimRunner {
     return this.check();
   }
 
-  /** One look: ask the policy, apply its moves, ask again while moves land. True when the run stops. */
-  private look(sinceLastMs: number): boolean {
+  /** One look: ask the policy, apply its moves, ask again while moves land. `landed`: a move or a tap went through. */
+  private look(sinceLastMs: number): { readonly stop: boolean; readonly landed: boolean } {
     let taps = Math.floor((sinceLastMs * simBalance.tapsPerSec) / MS_PER_SEC);
     let budget = simBalance.maxMovesPerTurn;
+    let any = false;
     while (budget > 0) {
       const moves = this.policy(this.s, { taps });
       taps = 0;
       let landed = false;
       for (const move of moves) {
         if (move.kind === 'layEgg') {
-          this.tap(move.taps);
+          any = this.tap(move.taps) > 0 || any;
         } else {
           if (budget <= 0) break;
           budget -= 1;
@@ -161,18 +175,21 @@ export class SimRunner {
           this.probes.move(moveName(move), ok);
           landed ||= ok;
         }
-        if (this.check()) return true;
+        if (this.check()) return { stop: true, landed: true };
       }
+      any ||= landed;
       if (!landed) break;
     }
-    return false;
+    return { stop: false, landed: any };
   }
 
-  private tap(count: number): void {
+  /** `count` LAY EGG presses; returns how many landed. */
+  private tap(count: number): number {
     let landed = 0;
     const before = this.s.stats.totalEggsLaid;
     for (let i = 0; i < count; i++) if (this.actions.layEgg().ok) landed += 1;
     this.probes.taps(landed, this.s.stats.totalEggsLaid - before);
+    return landed;
   }
 
   private apply(move: Exclude<SimMove, { kind: 'layEgg' }>): { readonly ok: boolean } {
