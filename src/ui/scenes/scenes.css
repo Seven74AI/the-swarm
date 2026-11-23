@@ -271,3 +271,9 @@
 :root[data-reduced-motion="true"] .nest-svg__hatch-shell {
   display: none;
 }
+
+/* From Colony on the queen is LAY EGG (Story 9.7): her control sits on her, over the drawing. */
+.nest-queen-tap {
+  position: absolute;
+  z-index: 1;
+}

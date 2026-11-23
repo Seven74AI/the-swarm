@@ -29,10 +29,15 @@
   width: 100%;
 }
 
-/* > AUTO-DIG ON carries its hint line (Story 9.5): tighter so the two lines keep the 64 px zone. */
-.nest-primary .swarm-btn[data-auto-dig] {
+/* > DIG and > AUTO-DIG ON carry a hint line (Stories 9.5, 9.7): tighter so the two lines keep the 64 px zone, the hint on one line. */
+.nest-primary .swarm-btn[data-action="dig"] {
   gap: 0;
   padding-block: 3px;
+}
+/* The hint fits one line on the full grid; on the medium and narrow grids it drops, never clips (Story 1.31). */
+:root[data-grid="medium"] .nest-primary .swarm-btn[data-action="dig"] .swarm-btn__cost,
+:root[data-grid="narrow"] .nest-primary .swarm-btn[data-action="dig"] .swarm-btn__cost {
+  display: none;
 }
 
 .shell-primary [data-primary-continue] {
@@ -140,4 +145,20 @@
 }
 .next-room__meter {
   color: var(--color-accent);
+}
+
+/* The brood control (Story 9.7): one line under the NEXT ROOM strip. */
+.brood-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 1ch;
+  font-size: var(--type-meta);
+}
+.brood-line__counts {
+  flex: 1 1 9ch;
+  min-width: 9ch;
+  color: var(--color-dim);
+  line-height: 1.2;
 }

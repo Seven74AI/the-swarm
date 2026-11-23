@@ -70,6 +70,11 @@ export interface NestSceneProps {
    * (`FEED · NEST FULL`). Absent: the brood button peeks (Phase 1).
    */
   readonly feed?: { readonly blocked: string | null } | null;
+  /**
+   * Story 9.7 (FR1): from Colony on, the queen is LAY EGG. The container hands
+   * its control in, and the scene anchors it on the queen (`[data-queen-tap]`).
+   */
+  readonly queen?: ComponentChildren;
 }
 
 type ArriveKind = 'egg' | 'larva' | 'worker' | 'room';
@@ -208,6 +213,17 @@ function Ants({ ants, tunnels, clock, live }: { ants: readonly Ant[]; tunnels: r
   );
 }
 
+/** The queen's own control (Story 9.7), anchored on her and kept inside the stage like a chamber label. */
+function QueenTap({ at, children }: { at: { x: number; y: number }; children: ComponentChildren }) {
+  const x = `${(at.x * 100).toFixed(1)}%`;
+  const y = `${(at.y * 100).toFixed(1)}%`;
+  return (
+    <div class="nest-queen-tap" data-queen-tap="" style={{ left: x, top: y, transform: `translate(-${x}, -${y})` }}>
+      {children}
+    </div>
+  );
+}
+
 /** The dirt a room's opening shakes loose (Story 9.6): a few crumbs that fall once, drawn only beside an arriving room. */
 function Dirt({ x, y }: { x: number; y: number }) {
   return (
@@ -232,7 +248,7 @@ function Queen({ t }: { t: Token }) {
   );
 }
 
-export function NestScene({ view, onChamber, clock = sceneClock(), crack = 0, feed = null }: NestSceneProps) {
+export function NestScene({ view, onChamber, clock = sceneClock(), crack = 0, feed = null, queen }: NestSceneProps) {
   const layout = useMemo(() => nestLayout(view), [view]);
   // False during the first draw: what is there when the scene opens doesn't arrive.
   const drawn = useRef(false);
@@ -324,6 +340,7 @@ export function NestScene({ view, onChamber, clock = sceneClock(), crack = 0, fe
         {layout.chambers.map((c) => (
           <ChamberButton key={c.id} chamber={c} anchor={c.label} view={view} onChamber={onChamber} feed={feed} />
         ))}
+        {queen && <QueenTap at={{ x: layout.queen.x / layout.width, y: layout.queen.y / layout.height }}>{queen}</QueenTap>}
       </div>
     </div>
   );

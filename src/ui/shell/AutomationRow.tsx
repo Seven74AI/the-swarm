@@ -59,15 +59,19 @@ function Status({ verb }: { verb: AutomationVerb }) {
  * Hooks: `[data-automation=<verb>][data-auto=on|off]`, the stepper's
  * `[data-step]`, `button[data-action="toggle-automation"][aria-pressed]`,
  * `[data-automation-status=holding|working|blocked][data-warn]`.
+ *
+ * `compact` (NEST's brood line, Story 9.7): `KEEP [−] N [+] [AUTO]` on one
+ * line, steps of one (no ×1/×10/×MAX row) and no "what" word (the brood
+ * line beside it names the brood). The status line stays, while AUTO is on.
  */
-export function AutomationRow({ verb, actions }: { verb: AutomationVerb; actions: AutomationRowActions }) {
+export function AutomationRow({ verb, actions, compact = false }: { verb: AutomationVerb; actions: AutomationRowActions; compact?: boolean }) {
   if (!selectAutomationShown(verb).value) return null;
   const def = automationVerb(verb);
   const target = selectAutomationTarget(verb).value;
   const on = selectAutomationOn(verb).value;
   const things = (n: number) => `${n === 1 ? 'one' : n} ${n === 1 ? def.one : def.many}`;
   return (
-    <div class="automation-row" data-automation={verb} data-auto={on ? 'on' : 'off'}>
+    <div class={compact ? 'automation-row automation-row--compact' : 'automation-row'} data-automation={verb} data-auto={on ? 'on' : 'off'}>
       <div class="automation-row__line" role="group" aria-label={`Automation target: keep ${target} ${def.keep.toLowerCase()}`}>
         <span class="automation-row__keep">KEEP</span>
         <Stepper
@@ -78,9 +82,10 @@ export function AutomationRow({ verb, actions }: { verb: AutomationVerb; actions
           removeLabel={(n) => `Keep ${things(n)} fewer`}
           addDisabled="at the most"
           removeDisabled="at none"
+          multiplier={compact ? 1 : undefined}
           data-automation-target=""
         />
-        <span class="automation-row__what">{def.keep}</span>
+        {!compact && <span class="automation-row__what">{def.keep}</span>}
         <button
           type="button"
           class="automation-row__auto"

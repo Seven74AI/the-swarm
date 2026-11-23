@@ -31,3 +31,13 @@
   color: var(--color-dim);
   border-bottom: 1px solid var(--color-line);
 }
+
+/* At most 4 lines on NEST (Story 9.7): the conditions share one line, wrapping only when they must. */
+.goal-meter__conditions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 2ch;
+}
+.goal-meter__row {
+  white-space: nowrap;
+}

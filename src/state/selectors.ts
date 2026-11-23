@@ -53,7 +53,8 @@ import type { AutomationBlock, AutomationVerb } from '../data/content/automation
 import type { PrestigeUpgradeId } from '../data/prestigeTree';
 import { progressionBalance } from '../data/balance/progression';
 import { PERCENT } from '../data/constants';
-import { canBuyAutoDig, isAutoDigOpen, nextRoom, type NextRoom } from '../systems/Dig';
+import { canBuyAutoDig, isAutoDigOpen, nextRoom, pressChunk, type NextRoom } from '../systems/Dig';
+import { digBalance } from '../data/balance/dig';
 import { feedRefusal } from '../systems/Brood';
 import { Phase as PhaseId } from '../phases/phases';
 import type { ResearchProjectId, ResearchProjectStatus } from './GameState';
@@ -209,6 +210,23 @@ const FEED_EMPTY = { blocked: 'NO LARVAE' } as const;
 const selectFeedReason = computed<'phase' | 'ok' | FeedBlock>(() => {
   const why = feedRefusal(gameState.value);
   return why === 'locked' ? 'phase' : why === 'at_capacity' ? 'NEST FULL' : why === 'unavailable' ? 'NO LARVAE' : 'ok';
+});
+
+/**
+ * DIG's hint line (Story 9.7, UX-DR48): what a press digs and the stone it
+ * brings (`chunk +12 · 1 stone/17 digs`, or `· 2 stone` once a press brings
+ * whole stone); while a room is free and larvae wait, the FEED tip in place
+ * of the stone (`chunk +12 · tap the brood`). Short enough for one line on
+ * the full grid; below it the line drops (nest.css), it never clips.
+ * Read from the balance, never restated; a string, so it notifies on change.
+ */
+export const selectDigHint = computed<string>(() => {
+  const s = gameState.value;
+  const chunk = pressChunk(s);
+  const perPress = chunk / digBalance.pointsPerStone;
+  if (feedRefusal(s) === null) return `chunk +${chunk} · tap the brood`;
+  const stone = perPress >= 1 ? `${Math.floor(perPress)} stone` : `1 stone/${Math.ceil(1 / perPress)} digs`;
+  return `chunk +${chunk} · ${stone}`;
 });
 
 /** The workforce fills the effective nest capacity (the strip's capped workers cell). */
