@@ -12,6 +12,7 @@ import {
   criticalMoments,
   starvationReport,
   crowdedShares,
+  foodLostPerDay,
   idleCheckIns,
   judgeSpan,
   median,
@@ -45,7 +46,7 @@ afterEach(() => {
 const MIN = 60_000;
 
 function checkIn(index: number, over: Partial<CheckInRecord> = {}): CheckInRecord {
-  return { index, startMs: index * HOUR_MS, activeMs: 5 * MIN, phase: Phase.COLONY, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, digs: 0, feeds: 0, refused: 0, byAction: {}, foodCritical: false, capacityCritical: false, startCrowded: false, starving: false, starvedTotal: 0, ...over };
+  return { index, startMs: index * HOUR_MS, activeMs: 5 * MIN, phase: Phase.COLONY, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, digs: 0, feeds: 0, refused: 0, byAction: {}, foodCritical: false, capacityCritical: false, startCrowded: false, starving: false, starvedTotal: 0, foodLostAtLimit: 0, ...over };
 }
 
 function egg(activeMs: number, phase: Phase, laid: number, tapped: number): EggSample {
@@ -208,6 +209,24 @@ describe('criticalMoments (Story 3.11)', () => {
   });
 });
 
+describe('foodLostPerDay (Story 9.15)', () => {
+  it('gives the food lost at the limit in each day, from the running count on arrival', () => {
+    const at = (day: number, h: number) => day * DAY_MS + h * HOUR_MS;
+    const list = [
+      checkIn(0, { startMs: at(0, 1), foodLostAtLimit: 0 }),
+      checkIn(1, { startMs: at(0, 9), foodLostAtLimit: 40 }),
+      checkIn(2, { startMs: at(1, 2), foodLostAtLimit: 100 }),
+      checkIn(3, { startMs: at(2, 3), foodLostAtLimit: 100 }),
+    ];
+    const days = foodLostPerDay(list);
+    expect(days.map((d) => d.day)).toEqual([1, 2, 3]);
+    expect(days.reduce((n, d) => n + d.lost, 0)).toBe(100);
+    expect(days[0].lost).toBe(40);
+    expect(days[2].lost).toBe(0);
+    for (const d of days) expect(d.lost).toBeGreaterThanOrEqual(0);
+  });
+});
+
 describe('crowdedShares (Story 9.13)', () => {
   it('gives, per phase, the whole percent of its check-ins that started crowded', () => {
     const list = [
@@ -302,6 +321,11 @@ describe('the pacing report on a real run (Story 3.9)', () => {
     expect(text).toContain(`${report.idle.length}`);
     expect(text).toMatch(/food-critical/i);
     expect(text).toMatch(/capacity-critical/i);
+  });
+
+  it('prints the food lost at the limit per day (Story 9.15)', () => {
+    expect(report.foodLost).toEqual(foodLostPerDay(result.probes.checkIns));
+    expect(formatPacingReport(report)).toMatch(/lost at the limit/i);
   });
 
   it('prints the share of check-ins that started crowded, per phase (Story 9.13)', () => {

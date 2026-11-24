@@ -5,7 +5,7 @@ import { ModalSheet } from '../shell/Sheet';
 import type { SheetController } from '../shell/SheetController';
 import { GEAR_GLYPH, RESOURCE_BY_ID, type ResourceId } from '../shell/resourceCatalog';
 import type { ResourceFeed, ResourceRow } from '../shell/resourceFeed';
-import { selectFoodParts, selectFoodRatePerSec, selectPhase, selectResourceFlows, selectResources, selectSeenResources, selectVerdict } from '../../state/selectors';
+import { selectFoodLimitLine, selectFoodParts, selectFoodRatePerSec, selectPhase, selectResourceFlows, selectResources, selectSeenResources, selectVerdict } from '../../state/selectors';
 import { foodSpentSince } from './foodLedger';
 import { Phase } from '../../phases/phases';
 import { HOUR_MS } from '../../data/constants';
@@ -186,6 +186,7 @@ function SinceLine({ before, now }: { before: SheetMoment; now: SheetMoment }) {
 function FoodBlock({ onFoodJump, close }: { onFoodJump?: (t: FoodJump) => void; close: () => void }) {
   const p = useThrottledSignal(selectFoodParts, REFRESH_MS).value;
   const [spent] = useState(() => foodSpentSince(Date.now() - HOUR_MS));
+  const limitLine = useThrottledSignal(selectFoodLimitLine, REFRESH_MS).value;
   const name = (target: FoodJump, label: string, n: number) => (
     <button
       type="button"
@@ -213,6 +214,7 @@ function FoodBlock({ onFoodJump, close }: { onFoodJump?: (t: FoodJump) => void; 
         <Sep />
         {name('soldiers', 'soldiers', p.counts.soldiers)}
       </p>
+      <p data-food="limit">{limitLine}</p>
       <p data-food="spent">
         SPENT THIS HOUR:{' '}
         {spent.length === 0

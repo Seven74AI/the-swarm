@@ -16,7 +16,7 @@ import { TerritorySystem } from '../../../src/systems/TerritorySystem';
 import { catchUp } from '../../../src/engine/catchUp';
 import { offlineDeathCap } from '../../../src/engine/offlineRules';
 import { migrateSave } from '../../../src/persistence/migrations';
-import { SaveManager, type SaveData } from '../../../src/persistence/SaveManager';
+import type { SaveData } from '../../../src/persistence/SaveManager';
 import { prestige } from '../../../src/systems/PrestigeSystem';
 import { MS_PER_SEC, OFFLINE_WORKER_FLOOR_SHARE, TICK_MS } from '../../../src/data/constants';
 
@@ -269,7 +269,8 @@ describe('Story 9.16: away, food that runs out late still starves', () => {
 
 describe('Story 9.16: saves and prestige', () => {
   it('a save from before starvation loads with a still clock, no deaths and no Pantry', () => {
-    const v = SaveManager.SAVE_VERSION;
+    // The v38 → v39 step (Story 9.16), whatever the current version.
+    const v = 39;
     const s = structuredClone(createInitialState()) as unknown as Record<string, unknown>;
     delete s.starvation;
     delete (s.roomJobs as { jobs: Record<string, number> }).jobs.pantry;

@@ -14,6 +14,7 @@ import { getEffects } from './BuildingSystem';
 import { addDigPoints, digRate } from './Dig';
 import { productionMultiplierFor } from '../engine/ProgressionCurve';
 import { getCrowding } from './Crowding';
+import { capFood, getFoodLimit } from './FoodLimit';
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
 import { getMutationEffects } from './MutationSystem';
 
@@ -305,6 +306,7 @@ export class ResourceSystem {
     let stone = state.resources.stone;
     let nectar = state.resources.nectar;
     let remainder = state.resourceRemainder;
+    let foodLost = 0;
 
     let eggsChanged = false;
     let larvaeChanged = false;
@@ -375,6 +377,12 @@ export class ResourceSystem {
         const netFood = (rates.foodProducedPerSec - rates.foodConsumedPerSec) * dtSec;
         const before = food;
         food = credit('food', food, netFood);
+        // The food limit (Story 9.15): whole income past it is lost; the fraction carries, so any step length loses the same.
+        const capped = capFood(before, food, getFoodLimit(dug));
+        if (capped.lost > 0) {
+          food = capped.food;
+          foodLost += capped.lost;
+        }
         if (food !== before) foodChanged = true;
       }
       if (rates.woodPerSec > 0) {
@@ -418,6 +426,7 @@ export class ResourceSystem {
       dig: dug.dig,
       roomJobs: dug.roomJobs,
       resourceRemainder: remainder,
+      foodLostAtLimit: state.foodLostAtLimit + foodLost,
     };
 
     if (result.dig.roomsDug > state.dig.roomsDug) events.emit('room_opened', { roomsDug: result.dig.roomsDug });

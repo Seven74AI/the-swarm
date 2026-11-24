@@ -136,6 +136,17 @@ describe('createResourceFeed', () => {
     expect(row(createResourceFeed().snapshot.value, 'workers').capped).toBe(false);
   });
 
+  it('marks food capped at the food limit (Story 9.15)', async () => {
+    const { getFoodLimit } = await import('../../../../src/systems/FoodLimit');
+    const limit = getFoodLimit(gameState.value);
+    write(advance(0, { food: limit }));
+    const snap = createResourceFeed().snapshot.value;
+    expect(row(snap, 'food').cap).toBe(limit);
+    expect(row(snap, 'food').capped).toBe(true);
+    write(advance(0, { food: limit - 1 }));
+    expect(row(createResourceFeed().snapshot.value, 'food').capped).toBe(false);
+  });
+
   it('refreshes at most 4 times a second while retained, and stops when released', () => {
     vi.useFakeTimers();
     expect(REFRESH_MS).toBeGreaterThanOrEqual(250);

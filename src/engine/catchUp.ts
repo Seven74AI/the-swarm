@@ -10,6 +10,7 @@ import { EventQueue } from './events';
 import { processTick } from './processTick';
 import { creditWhole } from '../utils/math';
 import { applyOfflineRules, offlineDeathCap, offlineRulesFor } from './offlineRules';
+import { capFood, getFoodLimit } from '../systems/FoodLimit';
 
 export interface CatchUpDeps {
   resourceSystem: ResourceSystem;
@@ -63,6 +64,8 @@ export interface CatchUpReport {
   foodRanOutAfterMs: number | null;
   /** Workers who starved during the absence (Story 9.16: the summary's `<n> WORKERS LOST`). */
   starvedEaters: number;
+  /** Ms after leaving when food reached the food limit (Story 9.15); null when it never did. */
+  foodFullAfterMs: number | null;
 }
 
 /** The starvation options of one catch-up step from `done` for `stepLen` ms (Story 9.16). */
@@ -76,6 +79,17 @@ function foodRunsOutMsOf(stock: number, foodDelta: number, effectiveMs: number):
   if (!(effectiveMs > 0) || !(foodDelta < 0)) return null;
   const at = (Math.max(0, stock) / -foodDelta) * effectiveMs;
   return at < effectiveMs ? Math.floor(at) : null;
+}
+
+/**
+ * When the closed-form food reached the limit (Story 9.15): the stock rises
+ * at one net rate over the whole absence, so it hits `limit` at
+ * `(limit − stock) / net`, or never (falling, already over, or not that far).
+ */
+function foodFullAfterMsOf(stock: number, foodDelta: number, effectiveMs: number, limit: number): number | null {
+  if (!(effectiveMs > 0) || !(foodDelta > 0) || stock >= limit) return null;
+  const at = ((limit - stock) / foodDelta) * effectiveMs;
+  return at < effectiveMs ? Math.max(0, Math.floor(at)) : null;
 }
 
 /**
@@ -111,7 +125,11 @@ export function catchUpWithReport(
 
   // Credited in whole units, the fractions carried (Story 2.5, as in a live tick).
   const rem = state.resourceRemainder;
-  const food = creditWhole(state.resources.food, rem.food, d.foodDelta);
+  const credited = creditWhole(state.resources.food, rem.food, d.foodDelta);
+  // The food limit (Story 9.15): what the closed form would take past it is lost.
+  const limit = getFoodLimit(state);
+  const capped = capFood(state.resources.food, credited.amount, limit);
+  const food = { amount: capped.food, remainder: credited.remainder };
   const wood = creditWhole(state.resources.wood, rem.wood, d.woodDelta);
   const stone = creditWhole(state.resources.stone, rem.stone, d.stoneDelta);
   const nectar = creditWhole(state.resources.nectar, rem.nectar, d.nectarDelta);
@@ -134,6 +152,7 @@ export function catchUpWithReport(
       ...state.prestige,
       totalFoodProduced: state.prestige.totalFoodProduced + d.grossFoodProduced,
     },
+    foodLostAtLimit: state.foodLostAtLimit + capped.lost,
   };
 
   const rules = offlineRulesFor(state);
@@ -162,5 +181,6 @@ export function catchUpWithReport(
   log.info('catch-up', `simulated ${simulatedMs} ms in ${steps} steps`, { effectiveMs, simulatedMs, steps, stepMs: step });
   const starvedMs = starvedMsOf(state.resources.food + rem.food, d.foodDelta, effectiveMs);
   const starvedEaters = s.starvation.starvedWorkers - state.starvation.starvedWorkers;
-  return { state: s, report: { starvedMs, foodRanOutAfterMs: foodRunsOutAtMs, starvedEaters } };
+  const foodFullAfterMs = foodFullAfterMsOf(state.resources.food + rem.food, d.foodDelta, effectiveMs, limit);
+  return { state: s, report: { starvedMs, foodRanOutAfterMs: foodRunsOutAtMs, starvedEaters, foodFullAfterMs } };
 }

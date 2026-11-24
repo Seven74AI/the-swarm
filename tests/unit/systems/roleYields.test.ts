@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { foodLimitBalance } from '../../../src/data/balance/foodLimit';
 import { createInitialState, type GameState } from '../../../src/state/GameState';
 import { Phase } from '../../../src/phases/phases';
 import { EventBus } from '../../../src/engine/EventBus';
@@ -33,7 +34,8 @@ const systems = {
 function colony(roles: Partial<GameState['workersAssigned']>): GameState {
   const s = createInitialState();
   s.phase = Phase.COLONY;
-  s.resources = { ...s.resources, workers: 30, food: 5_000, nestCapacity: 100 };
+  // Food under the food limit (Story 9.15), so income can show.
+  s.resources = { ...s.resources, workers: 30, food: Math.floor(foodLimitBalance.base / 2), nestCapacity: 100 };
   s.workersAssigned = { ...s.workersAssigned, ...roles };
   return s;
 }

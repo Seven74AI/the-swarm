@@ -55,6 +55,8 @@ export interface CheckInRecord {
   readonly starving: boolean;
   /** The run's starved workers and soldiers so far, when the check-in ended (Story 9.16). */
   readonly starvedTotal: number;
+  /** The run's food lost at the limit so far, on arrival (Story 9.15, `state.foodLostAtLimit`). */
+  readonly foodLostAtLimit: number;
 }
 
 /** Eggs laid since the previous sample (Story 3.9): `tapped` of the `laid` came from LAY EGG taps. */
@@ -139,6 +141,7 @@ interface OpenCheckIn {
   capacityCritical: boolean;
   startCrowded: boolean;
   starving: boolean;
+  foodLostAtLimit: number;
 }
 
 /**
@@ -181,7 +184,7 @@ export class Probes {
     this.lastCheckIn = index;
     this.open = {
       index, startMs: atMs, startActiveMs: this.nowActiveMs, phase: s.phase, decisionsAvailable: decisionsAvailable(s), waitMs: waitMs(s), actions: 0, taps: 0, digs: 0, feeds: 0, refused: 0, byAction: {},
-      foodCritical: false, capacityCritical: false, startCrowded: crowdingBites(s), starving: false,
+      foodCritical: false, capacityCritical: false, startCrowded: crowdingBites(s), starving: false, foodLostAtLimit: s.foodLostAtLimit,
     };
     this.critical(s);
   }

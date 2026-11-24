@@ -25,7 +25,7 @@ import { visibleText } from '../../helpers/a11y';
 function info(overrides: Partial<OfflineLoadInfo> = {}): OfflineLoadInfo {
   return {
     elapsedMs: 11_640_000, effectiveMs: 11_640_000, offlineTicks: 116_400, efficiency: 0.5,
-    capMs: 43_200_000, capped: false, starvedMs: 0, foodRanOutAfterMs: null, starvedEaters: 0, ...overrides,
+    capMs: 43_200_000, capped: false, starvedMs: 0, foodRanOutAfterMs: null, starvedEaters: 0, foodFullAfterMs: null, ...overrides,
   };
 }
 
@@ -104,6 +104,17 @@ describe('offline summary sheet', () => {
   it('has no starvation-loss line when nobody starved', () => {
     act(() => void openOfflineSummary(sheets, summary({ info: info({ foodRanOutAfterMs: 2 * 3600_000, starvedEaters: 0 }) })));
     expect(popup()!.querySelector('[data-offline-warn="starved-lost"]')).toBeNull();
+  });
+
+  it('says when the food stopped at the limit (Story 9.15)', () => {
+    act(() => void openOfflineSummary(sheets, summary({ info: info({ foodFullAfterMs: 90 * 60_000 }) })));
+    const warn = popup()!.querySelector('[data-offline-warn="food-limit"]');
+    expect(warn?.textContent).toBe(COLONY_LINES.offline_food_limit.text.replace('{time}', formatAway(90 * 60_000).toUpperCase()));
+  });
+
+  it('has no food limit line when the store never filled', () => {
+    act(() => void openOfflineSummary(sheets, summary()));
+    expect(popup()!.querySelector('[data-offline-warn="food-limit"]')).toBeNull();
   });
 
   it('has no upkeep line when food never ran out', () => {

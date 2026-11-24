@@ -941,6 +941,20 @@ function migrateV38toV39(data: SaveData): SaveData {
   return { ...data, version: 39, gameState: { ...gs, roomJobs: { ...rj, jobs }, starvation } as unknown as GameState };
 }
 
+/**
+ * v39 → v40 (Story 9.15): the food limit. Adds `foodLostAtLimit: 0` and the
+ * Larder room job at zero. Food over the new limit is kept: only income past
+ * it is lost from now on.
+ */
+function migrateV39toV40(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  const rj = (gs.roomJobs ?? {}) as { jobs?: Record<string, unknown>; fresh?: unknown };
+  const jobs = { ...(rj.jobs ?? {}) };
+  if (typeof jobs.larder !== 'number') jobs.larder = 0;
+  const lost = typeof gs.foodLostAtLimit === 'number' && Number.isFinite(gs.foodLostAtLimit) ? gs.foodLostAtLimit : 0;
+  return { ...data, version: 40, gameState: { ...gs, roomJobs: { ...rj, jobs }, foodLostAtLimit: lost } as unknown as GameState };
+}
+
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
   2: migrateV2toV3,
@@ -980,6 +994,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   36: migrateV36toV37,
   37: migrateV37toV38,
   38: migrateV38toV39,
+  39: migrateV39toV40,
 };
 
 /**

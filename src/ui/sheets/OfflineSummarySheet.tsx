@@ -103,6 +103,11 @@ export function OfflineSummarySheet({ summary }: { summary: OfflineSummary }) {
           })}
         </p>
       )}
+      {info.foodFullAfterMs !== null && info.foodFullAfterMs !== undefined && (
+        <p class="offline-warn" data-offline-warn="food-limit">
+          {colonyLine('offline_food_limit', { time: formatAway(info.foodFullAfterMs) })}
+        </p>
+      )}
       {info.capped && (
         <p class="offline-cap offline-warn" data-offline-cap={String(info.capMs)}>
           {colonyLine('offline_cap', { cap: formatAway(info.capMs) })}
