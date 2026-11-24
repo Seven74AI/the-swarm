@@ -410,6 +410,7 @@ export class ResourceSystem {
       eggPipeline: { count: newEggCount, progress: newEggProgress },
       larvaPipeline: { count: newLarvaCount, progress: newLarvaProgress },
       dig: dug.dig,
+      roomJobs: dug.roomJobs,
       resourceRemainder: remainder,
     };
 

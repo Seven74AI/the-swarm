@@ -2,7 +2,6 @@ import type { SheetController } from '../shell/SheetController';
 import { PeekSheet } from '../shell/Sheet';
 import { Button } from '../primitives/Button';
 import { selectRoomJobRows, type RoomJobChange } from '../../state/selectors';
-import { digBalance } from '../../data/balance/dig';
 import { PLAIN_ROOM, ROOM_JOBS, ROOM_JOB_REFUSALS, type RoomSlot } from '../../data/content/roomJobs';
 import { formatFull } from '../../utils/format';
 import type { ActionResult } from '../../actions';
@@ -28,7 +27,7 @@ function RoomJobChoice({ actions, close }: { actions: RoomJobActions; close: () 
   const rows = selectRoomJobRows.value;
   return (
     <PeekSheet header="ROOM OPENED." data-room-job-choice="">
-      <p class="room-jobs__line">{`+${digBalance.roomSize} ROOM. GIVE IT A JOB?`}</p>
+      <p class="room-jobs__line">A NEW ROOM. GIVE IT A JOB?</p>
       <div class="room-jobs__picks">
         {ROOM_JOBS.map((job) => (
           <Button

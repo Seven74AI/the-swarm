@@ -15,6 +15,7 @@ import { EventBus } from '../../../src/engine/EventBus';
 import { testActions } from '../helpers/actions';
 import { makeState } from '../helpers/makeState';
 import { defaultPolicy } from '../../../src/sim/policy';
+import { ResourceSystem } from '../../../src/systems/ResourceSystem';
 
 /**
  * Story 9.14 (FR59, FR63): a room can take a job. Room jobs are counts by job
@@ -219,5 +220,20 @@ describe('Story 9.14: the simulated player picks a job through the same intent',
     expect(defaultPolicy(crowded, { taps: 0 })).toContainEqual(pick);
     expect(defaultPolicy(roomy, { taps: 0 })).not.toContainEqual(pick);
     expect(defaultPolicy(crowd(nest(2, 0), roomSpace(roomy) * 3), { taps: 0 })).not.toContainEqual(pick);
+  });
+});
+
+describe('Story 9.14: rooms the diggers open on their own are fresh too', () => {
+  it('a tick that opens a room keeps it plain and never assigned', () => {
+    const base = nest(0);
+    const s: GameState = {
+      ...base,
+      resources: { ...base.resources, workers: 10 },
+      workersAssigned: { ...base.workersAssigned, dig: 10 },
+      dig: { ...base.dig, progress: roomCost(0) - 1 },
+    };
+    const after = new ResourceSystem(new EventBus()).tick(s, undefined, 5);
+    expect(after.dig.roomsDug).toBeGreaterThan(s.dig.roomsDug);
+    expect(after.roomJobs.fresh).toBe(s.roomJobs.fresh + (after.dig.roomsDug - s.dig.roomsDug));
   });
 });
