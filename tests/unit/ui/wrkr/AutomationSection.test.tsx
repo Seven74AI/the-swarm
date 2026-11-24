@@ -91,12 +91,28 @@ describe('AutomationSection (Story 1.23)', () => {
     expect(c.querySelector('[data-research="basic_incubation"]')!.classList.contains('researched')).toBe(true);
   });
 
-  it('builds an affordable automation building one level', async () => {
+  it('disables a gated building until its research is done, naming the research (#193)', () => {
     const s = createInitialState();
     const cost = getAutoBuildCost('nursery', 1);
     const resources = { ...s.resources };
     for (const [k, v] of Object.entries(cost)) resources[k as keyof typeof resources] += v ?? 0;
     gameState.value = { ...s, resources };
+    const c = mount();
+    const row = c.querySelector('[data-building="nursery"]')!;
+    expect(row.querySelector('button')!.getAttribute('aria-disabled')).toBe('true');
+    expect(row.textContent).toContain(`needs ${RESEARCHES.thermal_regulation.name.toUpperCase()}`);
+  });
+
+  it('builds an affordable automation building one level', async () => {
+    const s = createInitialState();
+    const cost = getAutoBuildCost('nursery', 1);
+    const resources = { ...s.resources };
+    for (const [k, v] of Object.entries(cost)) resources[k as keyof typeof resources] += v ?? 0;
+    gameState.value = {
+      ...s,
+      resources,
+      autoProduction: { ...s.autoProduction, researches: { ...s.autoProduction.researches, thermal_regulation: true } },
+    };
     const c = mount();
     await act(() => press(c.querySelector('[data-building="nursery"] button')!));
     expect(gameState.value.autoProduction.buildings.nursery).toBe(1);

@@ -383,3 +383,16 @@ describe('getNextAction (Story 1.21)', () => {
     });
   });
 });
+
+describe('research-gated automation buildings (#193)', () => {
+  it('offers a gated automation building only once its research is done', () => {
+    const base = makeState({});
+    const nursery: ItemRef = { kind: 'auto_building', id: 'nursery' };
+    expect(itemCost(base, nursery)).toBeNull();
+    const researched: GameState = {
+      ...base,
+      autoProduction: { ...base.autoProduction, researches: { ...base.autoProduction.researches, thermal_regulation: true } },
+    };
+    expect(itemCost(researched, nursery)).not.toBeNull();
+  });
+});

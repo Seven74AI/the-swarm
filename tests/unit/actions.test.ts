@@ -200,12 +200,26 @@ describe('buildings and automation', () => {
     expectRefused(actions.researchAutomation(first), 'already_owned', after);
   });
 
+  it('refuses a research-gated automation building as locked until its research is done (#193)', () => {
+    const gated = (Object.keys(RESEARCHES) as (keyof typeof RESEARCHES)[])
+      .map((r) => [r, RESEARCHES[r].effect.unlocksBuilding] as const)
+      .filter(([, b]) => b !== undefined);
+    expect(gated.length).toBeGreaterThan(0);
+    for (const [r, b] of gated) {
+      const before = given(rich());
+      expectRefused(actions.buildAutomation(b!), 'locked', before);
+      const unlocked = given(rich({ autoProduction: { ...before.autoProduction, researches: { ...before.autoProduction.researches, [r]: true } } }));
+      expectApplied(actions.buildAutomation(b!), unlocked);
+    }
+  });
+
   it('builds an automation building up to its max level', () => {
     const id = (Object.keys(AUTOMATION_BUILDINGS) as (keyof typeof AUTOMATION_BUILDINGS)[])[0];
-    let before = given(poor());
+    const researched = { autoProduction: { ...createInitialState().autoProduction, researches: Object.fromEntries(Object.keys(RESEARCHES).map((r) => [r, true])) } };
+    let before = given(poor(researched));
     expectRefused(actions.buildAutomation(id), 'cannot_afford', before);
 
-    before = given(rich());
+    before = given(rich(researched));
     const after = expectApplied(actions.buildAutomation(id), before);
     expect(after.autoProduction.buildings[id] ?? 0).toBeGreaterThan(before.autoProduction.buildings[id] ?? 0);
 

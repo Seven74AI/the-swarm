@@ -4,6 +4,7 @@ import {
   RESEARCHES,
   getAutoBuildCost,
   getBuildingEffect,
+  researchUnlocking,
   type AutomationBuildingType,
   type ResearchType,
 } from '../../state/queries';
@@ -93,6 +94,10 @@ function BuildingRow({ id, actions }: { id: AutomationBuildingType; actions: Aut
   const level = selectAutoProduction.value.buildings[id] ?? 0;
   const affordable = selectCanBuildAuto(id).value;
   const maxed = level >= def.maxLevel;
+  // #193: a gated building waits for its research (an owned one keeps its levels).
+  const gate = researchUnlocking(id);
+  const lockedBy = gate && selectAutoProduction.value.researches[gate] !== true ? gate : undefined;
+  const reason = lockedBy ? `needs ${RESEARCHES[lockedBy].name.toUpperCase()}` : "can't afford";
   return (
     <div class="auto-building-row" data-building={id}>
       <Card
@@ -109,7 +114,7 @@ function BuildingRow({ id, actions }: { id: AutomationBuildingType; actions: Aut
             <Button
               verb="BUILD"
               label={`Build ${def.name} level ${level + 1}`}
-              disabled={affordable ? false : "can't afford"}
+              disabled={affordable ? false : reason}
               onPress={() => actions.buildAutomation(id)}
             />
           )

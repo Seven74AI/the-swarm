@@ -84,11 +84,14 @@ function probes(ref: ItemRef, phase: Phase): GameState[] {
       }));
     case 'ship':
       return levels.map((l) => ({ ...s, spaceship: { ...s.spaceship, level: l } }));
-    case 'auto_building':
+    case 'auto_building': {
+      // Its unlocking research done (#193).
+      const researches = Object.fromEntries((Object.keys(RESEARCHES) as ResearchType[]).map((r) => [r, true]));
       return levels.map((l) => ({
         ...s,
-        autoProduction: { ...s.autoProduction, buildings: { ...s.autoProduction.buildings, [ref.id]: l } },
+        autoProduction: { ...s.autoProduction, researches, buildings: { ...s.autoProduction.buildings, [ref.id]: l } },
       }));
+    }
     case 'particle_lab':
       return levels.map((l) => ({ ...s, conversions: { ...s.conversions, particleLab: l } }));
     case 'autodig':

@@ -90,6 +90,7 @@ export {
   getAutoEggRate,
   getBuildingEffect,
   RESEARCHES,
+  researchUnlocking,
   type AutomationBuildingType,
   type ResearchType,
 } from '../systems/AutomationSystem';
