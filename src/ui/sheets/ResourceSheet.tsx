@@ -6,12 +6,12 @@ import { ModalSheet } from '../shell/Sheet';
 import type { SheetController } from '../shell/SheetController';
 import { GEAR_GLYPH, RESOURCE_BY_ID, type ResourceId } from '../shell/resourceCatalog';
 import type { ResourceFeed, ResourceRow } from '../shell/resourceFeed';
-import { selectFoodLimitLine, selectFoodParts, selectFoodRatePerSec, selectPhase, selectResourceFlows, selectResources, selectSeenResources, selectVerdict } from '../../state/selectors';
+import { selectFoodLimitLine, selectFoodParts, selectRunLosses, selectSettlesLine, selectFoodRatePerSec, selectPhase, selectResourceFlows, selectResources, selectSeenResources, selectVerdict } from '../../state/selectors';
 import { foodSpentSince } from './foodLedger';
 import { Phase } from '../../phases/phases';
 import { HOUR_MS } from '../../data/constants';
 import { sheetBalance } from '../../data/balance/sheet';
-import type { VerdictKind } from '../../data/content/verdicts';
+import type { VerdictFix, VerdictKind } from '../../data/content/verdicts';
 import { sheetOpened, type SheetMoment } from './sheetSince';
 import { useThrottledSignal } from '../primitives/throttledSignal';
 import { REFRESH_MS } from '../shell/resourceFeed';
@@ -52,7 +52,8 @@ export interface ResourceSheetOptions {
   /** The sheet closed having shown these resources (Story 9.10: `actions.markResourcesSeen`). */
   onSeen?: (ids: readonly string[]) => void;
   /** The verdict line was tapped (Story 9.11): open the screen that fixes it. The sheet closes first. */
-  onVerdict?: (kind: VerdictKind) => void;
+  /** `fix` (Story 9.17): the screen a hunger verdict opens, WRKR's Gather or NEST's room jobs. */
+  onVerdict?: (kind: VerdictKind, fix?: VerdictFix) => void;
   /** A name in the food block was tapped (Story 9.12): its WRKR row, or WAR for soldiers. The sheet closes first. */
   onFoodJump?: (target: FoodJump) => void;
 }
@@ -145,10 +146,12 @@ const clock = (ms: number): string => {
 /**
  * The verdict line (Story 9.11, UX-DR50): the worst current state, a button
  * that opens the screen that fixes it, only on its own tap (FR27). Falling
- * reads in `warn`. Hook: `button[data-verdict=food|nest|growing][data-warn]`.
+ * reads in `warn`. Hook: `button[data-verdict=starving|food|limit|nest|growing][data-warn]`; under a
+ * starving or falling verdict, `[data-settles]` says where the colony settles (Story 9.17).
  */
-function VerdictLine({ onVerdict, close }: { onVerdict?: (kind: VerdictKind) => void; close: () => void }) {
+function VerdictLine({ onVerdict, close }: { onVerdict?: (kind: VerdictKind, fix?: VerdictFix) => void; close: () => void }) {
   const { verdict, text } = useThrottledSignal(selectVerdict, REFRESH_MS).value;
+  const settles = useThrottledSignal(selectSettlesLine, REFRESH_MS).value;
   return (
     <button
       type="button"
@@ -158,10 +161,15 @@ function VerdictLine({ onVerdict, close }: { onVerdict?: (kind: VerdictKind) => 
       onClick={() => {
         if (verdict.kind === 'growing') return;
         close();
-        onVerdict?.(verdict.kind);
+        onVerdict?.(verdict.kind, 'fix' in verdict ? (verdict.fix ?? undefined) : undefined);
       }}
     >
       {decorate(text)}
+      {settles && (
+        <span class="resource-sheet__settles" data-settles="">
+          {settles}
+        </span>
+      )}
     </button>
   );
 }
@@ -188,6 +196,7 @@ function FoodBlock({ onFoodJump, close }: { onFoodJump?: (t: FoodJump) => void; 
   const p = useThrottledSignal(selectFoodParts, REFRESH_MS).value;
   const [spent] = useState(() => foodSpentSince(Date.now() - HOUR_MS));
   const limitLine = useThrottledSignal(selectFoodLimitLine, REFRESH_MS).value;
+  const losses = useThrottledSignal(selectRunLosses, REFRESH_MS).value;
   const name = (target: FoodJump, label: string, n: number) => (
     <button
       type="button"
@@ -223,6 +232,14 @@ function FoodBlock({ onFoodJump, close }: { onFoodJump?: (t: FoodJump) => void; 
           </Fragment>
         ))}
       </p>
+      {losses.starvedWorkers + losses.starvedSoldiers > 0 && (
+        <p data-food="hunger">
+          LOST TO HUNGER: {formatFull(losses.starvedWorkers)} WORKERS
+          <Sep />
+          {formatFull(losses.starvedSoldiers)} SOLDIERS
+        </p>
+      )}
+      {losses.lostAtLimit > 0 && <p data-food="lost-limit">LOST AT THE LIMIT {formatFull(losses.lostAtLimit)}</p>}
       <p data-food="spent">
         SPENT THIS HOUR:{' '}
         {spent.length === 0

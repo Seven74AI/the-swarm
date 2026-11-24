@@ -137,13 +137,15 @@ export interface Settle {
  * already fed settles where it is. Pure.
  */
 export function getSettlesAt(s: GameState, bonuses?: TerritoryBonuses): Settle {
+  // Deaths never change the territory: its bonuses are read once (Story 9.17 reads this from the sheet).
+  const b = bonuses ?? territory.getBonuses(s);
   let cur = s;
-  while (netFoodOf(cur, bonuses ?? territory.getBonuses(cur)) < 0) {
-    const next = kill(cur, bonuses);
+  while (netFoodOf(cur, b) < 0) {
+    const next = kill(cur, b);
     if (!next) break;
     cur = next;
   }
-  return { workers: cur.resources.workers, soldiers: cur.combatSoldiers + cur.soldierPipeline.count, netFoodPerSec: netFoodOf(cur, bonuses ?? territory.getBonuses(cur)) };
+  return { workers: cur.resources.workers, soldiers: cur.combatSoldiers + cur.soldierPipeline.count, netFoodPerSec: netFoodOf(cur, b) };
 }
 
 export interface StarvationOptions {

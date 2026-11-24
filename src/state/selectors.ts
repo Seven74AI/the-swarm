@@ -57,7 +57,7 @@ import { canBuyAutoDig, isAutoDigOpen, nextRoom, pressChunk, type NextRoom } fro
 import { digBalance } from '../data/balance/dig';
 import { feedRefusal } from '../systems/Brood';
 import { resourceFlows, type ResourceFlows } from '../systems/ResourceFlows';
-import { getVerdict, verdictText, type Verdict } from '../systems/Verdict';
+import { getVerdict, settlesText, verdictText, type Verdict } from '../systems/Verdict';
 import { Phase as PhaseId } from '../phases/phases';
 import type { ResearchProjectId, ResearchProjectStatus } from './GameState';
 import { getCrowding } from '../systems/Crowding';
@@ -293,10 +293,44 @@ let lastVerdict: { readonly verdict: Verdict; readonly text: string } | null = n
 export const selectVerdict = computed<{ readonly verdict: Verdict; readonly text: string }>(() => {
   const verdict = getVerdict(gameState.value);
   const text = verdictText(verdict);
-  // Same line, same value: only a change of what it says notifies (#186).
-  if (lastVerdict && lastVerdict.text === text && lastVerdict.verdict.kind === verdict.kind) return lastVerdict;
+  const fix = 'fix' in verdict ? verdict.fix : null;
+  // Same line, same value: only a change of what it says (or where its tap goes) notifies (#186).
+  const lastFix = lastVerdict && 'fix' in lastVerdict.verdict ? lastVerdict.verdict.fix : null;
+  if (lastVerdict && lastVerdict.text === text && lastVerdict.verdict.kind === verdict.kind && lastFix === fix) return lastVerdict;
   lastVerdict = { verdict, text };
   return lastVerdict;
+});
+
+/**
+ * What the settling size depends on (Story 9.17): the eaters, their jobs and
+ * the food rate, under a starving or falling verdict; '' otherwise. A string,
+ * so the walk below reruns only when one of them changes, not on every tick.
+ */
+const settleKey = computed<string>(() => {
+  const kind = selectVerdict.value.verdict.kind;
+  if (kind !== 'starving' && kind !== 'food') return '';
+  const s = gameState.value;
+  const r = computeResourceRates(s, new TerritorySystem().getBonuses(s));
+  const a = s.workersAssigned;
+  return [kind, s.resources.workers, a.gather, a.forage, a.tend, a.dig, a.guard, a.researchers, s.combatSoldiers, s.soldierPipeline.count, r.foodProducedPerSec, r.foodConsumedPerSec].join('|');
+});
+
+/** Under a starving or falling verdict, `IF NOTHING CHANGES: SETTLES AT <n> WORKERS.` (Story 9.17), else null. */
+export const selectSettlesLine = computed<string | null>(() => (settleKey.value === '' ? null : settlesText(selectVerdict.peek().verdict, gameState.peek())));
+
+/** What hunger (Story 9.16) and the food limit (Story 9.15) cost the run so far (Story 9.17). */
+export interface RunLosses {
+  readonly starvedWorkers: number;
+  readonly starvedSoldiers: number;
+  readonly lostAtLimit: number;
+}
+let lastLosses: RunLosses | null = null;
+export const selectRunLosses = computed<RunLosses>(() => {
+  const s = gameState.value;
+  const next = { starvedWorkers: s.starvation.starvedWorkers, starvedSoldiers: s.starvation.starvedSoldiers, lostAtLimit: s.foodLostAtLimit };
+  if (lastLosses && lastLosses.starvedWorkers === next.starvedWorkers && lastLosses.starvedSoldiers === next.starvedSoldiers && lastLosses.lostAtLimit === next.lostAtLimit) return lastLosses;
+  lastLosses = next;
+  return lastLosses;
 });
 
 let lastFoodParts: FoodParts | null = null;
