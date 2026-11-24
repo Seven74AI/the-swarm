@@ -86,6 +86,18 @@ describe('the crowded probe (Story 9.13)', () => {
   });
 });
 
+describe('the food-lost probe (Story 9.15)', () => {
+  it('records the food lost at the limit by the end of the check-in, losses during play included', () => {
+    const start = createInitialState();
+    const p = new Probes(start);
+    p.beginCheckIn(0, start, 0);
+    p.observe({ ...start, foodLostAtLimit: start.foodLostAtLimit + 50 }, 1000, 1000);
+    p.endCheckIn();
+    const [c] = p.report().checkIns;
+    expect(c.foodLostAtLimit).toBeGreaterThan(start.foodLostAtLimit);
+  });
+});
+
 describe('payoff probes', () => {
   const start = createInitialState();
 

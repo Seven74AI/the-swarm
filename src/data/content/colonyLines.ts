@@ -72,6 +72,7 @@ const lines = {
   offline_starved_lost: { text: 'FOOD RAN OUT {time} AFTER YOU LEFT. {n} WORKERS LOST (NO MORE THAN {share}%).', from: Phase.EGG_LAYING },
   // Story 9.15: the food store filled while the player was away.
   offline_food_limit: { text: 'FOOD STOPPED AT THE LIMIT {time} AFTER YOU LEFT.', from: Phase.EGG_LAYING },
+  offline_food_limit_already: { text: 'THE FOOD STORE IS FULL. WHAT THE GATHERERS BRING IS LOST.', from: Phase.EGG_LAYING },
 
   // LOG → LEGACY: what prestige still needs (Story 5.1, FR28). Lifetime totals count every run.
   prestige_waits: { text: 'THE NEXT QUEEN WAITS ON THE SWARM.', from: Phase.COLONY },

@@ -85,6 +85,13 @@ describe('foodCriticalInCombat', () => {
     expect(foodCriticalInCombat(run)).toBe(2);
     expect(foodCriticalInCombat([])).toBe(0);
   });
+
+  it('counts only the check-ins both runs played in Combat, so a longer Combat alone adds nothing', () => {
+    const def = [rec(4, true), rec(5, false), rec(6, false, Phase.EXPANSION)];
+    const max = [rec(4, true), rec(5, true), rec(6, true), rec(7, true)];
+    expect(foodCriticalInCombat(max, def)).toBe(2);
+    expect(foodCriticalInCombat(def, max)).toBe(1);
+  });
 });
 
 describe('the army trade-off in the pacing harness (Story 4.4)', () => {

@@ -6,7 +6,7 @@ import { getEffects } from '../systems/BuildingSystem';
 import { armyUpkeepPerSec, computeResourceRates, foodParts, isStarving, type FoodParts } from '../systems/ResourceSystem';
 import { affordableKeys } from './affordances';
 import { getBuildAction, getNextAction, type NextAction } from '../systems/NextAction';
-import { assignedTotal, freeWorkers, getReallocation, workforceTotal, type Reallocation } from '../systems/Workforce';
+import { assignedTotal, freeWorkers, getReallocation, netFoodPerSec, workforceTotal, type Reallocation } from '../systems/Workforce';
 import { TerritorySystem } from '../systems/TerritorySystem';
 import { getSoldierDefense, getSoldierMaxHp, getSoldierSpeed, getSoldierStrength } from '../systems/SoldierSystem';
 import { canChoose } from '../systems/DecisionSystem';
@@ -111,9 +111,10 @@ export const selectFoodLimitLine = computed<string>(() => {
   const food = selectResources.value.food;
   const head = `LIMIT ${formatFull(limit)}`;
   if (food >= limit) return `${head} · FULL`;
-  const net = selectFoodRatePerSec.value;
+  // The rates the simulation runs at, territory included: the same net as the verdict's runway (Story 9.11).
+  const net = netFoodPerSec(gameState.value);
   if (net <= 0) return head;
-  return `${head} · FULL IN ${formatTime(Math.ceil(((limit - food) / net) * MS_PER_SEC)).toUpperCase()}`;
+  return `${head} · FULL IN ${formatTime(Math.max(MS_PER_SEC, Math.ceil(((limit - food) / net) * MS_PER_SEC))).toUpperCase()}`;
 });
 
 /** Room jobs (Story 9.14): counts by job and the rooms never assigned. */

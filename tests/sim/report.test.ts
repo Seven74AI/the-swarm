@@ -210,7 +210,7 @@ describe('criticalMoments (Story 3.11)', () => {
 });
 
 describe('foodLostPerDay (Story 9.15)', () => {
-  it('gives the food lost at the limit in each day, from the running count on arrival', () => {
+  it('gives the food lost at the limit in each day, from the running count at the end of each check-in', () => {
     const at = (day: number, h: number) => day * DAY_MS + h * HOUR_MS;
     const list = [
       checkIn(0, { startMs: at(0, 1), foodLostAtLimit: 0 }),

@@ -16,7 +16,7 @@ import './ResourceStrip.css';
  * Five equal cells: glyph, label (at most 4 letters; the full word is the
  * accessible name), value (`formatStrip`, at most 5 characters) and delta
  * (`formatDelta`: no `/s`, negatives in `warn` with `−`). A capped value turns
- * `warn` with ▲. Values come from the shared `ResourceFeed`, so the strip
+ * `warn` with ▲ (in the 3-cell strip, warn alone, with "capped" for a screen reader). Values come from the shared `ResourceFeed`, so the strip
  * redraws at most 4 times a second. Above about 125% text scale, or below 28
  * columns of the character grid (Story 1.31), it shows 3
  * cells (capped or falling first) plus a `+N ▸` cell. The whole strip is one
@@ -85,8 +85,15 @@ function trendOf(rate: number): 'up' | 'down' | 'flat' {
   return rate > 0 ? 'up' : rate < 0 ? 'down' : 'flat';
 }
 
-function Cell({ row }: { row: ResourceRow }) {
+function Cell({ row, compact }: { row: ResourceRow; compact: boolean }) {
   const def = RESOURCE_BY_ID[row.id];
+  // ▲ beside the value. The 3-cell strip (large text, narrow screens) has no room for it: there a
+  // capped value reads in warn, and a screen reader still hears "capped".
+  const cap = row.capped && !compact && (
+    <span class="strip-cell__cap">
+      <Abbr shown="▲" full="capped" />
+    </span>
+  );
   return (
     <span
       class="strip-cell"
@@ -104,16 +111,13 @@ function Cell({ row }: { row: ResourceRow }) {
         <span class="visually-hidden" data-name="">
           {def.name}
         </span>
+        {row.capped && compact && <span class="visually-hidden">capped</span>}
       </span>
       <span class="strip-cell__value">
         <span class="critical-value" data-value="">
           {formatStrip(row.amount)}
         </span>
-        {row.capped && (
-          <span class="strip-cell__cap">
-            <Abbr shown="▲" full="capped" />
-          </span>
-        )}
+        {cap}
       </span>
       <span class="strip-cell__delta" data-delta="" data-trend={trendOf(row.rate)}>
         {formatDelta(row.rate)}
@@ -146,7 +150,7 @@ export function ResourceStrip({ feed, sheets, onOpenSettings, onSeen, onVerdict,
       onClick={() => openResourceSheet(sheets, feed, { onOpenSettings, onSeen, onVerdict, onFoodJump })}
     >
       {shown.map((id) => (
-        <Cell key={id} row={byId.get(id)!} />
+        <Cell key={id} row={byId.get(id)!} compact={narrow} />
       ))}
       {hidden > 0 && (
         <span class="strip-cell strip-cell--more" data-strip-more="">

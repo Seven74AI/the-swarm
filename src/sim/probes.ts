@@ -55,7 +55,7 @@ export interface CheckInRecord {
   readonly starving: boolean;
   /** The run's starved workers and soldiers so far, when the check-in ended (Story 9.16). */
   readonly starvedTotal: number;
-  /** The run's food lost at the limit so far, on arrival (Story 9.15, `state.foodLostAtLimit`). */
+  /** The run's food lost at the limit so far, when the check-in ended (Story 9.15, `state.foodLostAtLimit`). */
   readonly foodLostAtLimit: number;
 }
 
@@ -194,6 +194,7 @@ export class Probes {
     const o = this.open;
     if (!o) return;
     this.lastStarved = s.starvation.starvedWorkers + s.starvation.starvedSoldiers;
+    o.foodLostAtLimit = s.foodLostAtLimit;
     if (!o.starving && isStarvingNow(s)) o.starving = true;
     if (s.phase !== o.phase) return;
     if (!o.foodCritical && isFoodCritical(s)) o.foodCritical = true;

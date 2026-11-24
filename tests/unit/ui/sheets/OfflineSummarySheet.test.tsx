@@ -112,6 +112,12 @@ describe('offline summary sheet', () => {
     expect(warn?.textContent).toBe(COLONY_LINES.offline_food_limit.text.replace('{time}', formatAway(90 * 60_000).toUpperCase()));
   });
 
+  it('says the store was already full when it filled on leaving (Story 9.15)', () => {
+    act(() => void openOfflineSummary(sheets, summary({ info: info({ foodFullAfterMs: 0 }) })));
+    const warn = popup()!.querySelector('[data-offline-warn="food-limit"]');
+    expect(warn?.textContent).toBe(COLONY_LINES.offline_food_limit_already.text);
+  });
+
   it('has no food limit line when the store never filled', () => {
     act(() => void openOfflineSummary(sheets, summary()));
     expect(popup()!.querySelector('[data-offline-warn="food-limit"]')).toBeNull();

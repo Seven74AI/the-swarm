@@ -212,4 +212,13 @@ describe('stripCells', () => {
     expect(cells).toHaveLength(3);
     expect(cells[0]).toBe('workers');
   });
+
+  it('a full food store keeps its place: it reads capped, but nothing worsens while it waits (Story 9.15)', async () => {
+    const { getFoodLimit } = await import('../../../../src/systems/FoodLimit');
+    // Egg Laying lists food last, past the 3 cells of a narrowed strip.
+    const snap = snapshotAt(Phase.EGG_LAYING, (s) => ({ ...s, resources: { ...s.resources, food: getFoodLimit(s) } }));
+    expect(row(snap, 'food').capped).toBe(true);
+    expect(STRIP_SETS[Phase.EGG_LAYING].indexOf('food')).toBeGreaterThanOrEqual(3);
+    expect(stripCells(snap, 3)).not.toContain('food');
+  });
 });

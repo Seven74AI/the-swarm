@@ -247,6 +247,8 @@ describe('resource sheet: the food block (Story 9.12)', () => {
     act(() => void openResourceSheet(sheets, feed));
     const line = () => sheet().querySelector<HTMLElement>('[data-food="limit"]')!;
     expect(line().textContent).toMatch(new RegExp(`^LIMIT ${formatFull(limit)}\\W+FULL IN \\d`));
+    // The separator is decoration: hidden from a screen reader, which hears a pause.
+    expect(line().querySelector('[aria-hidden="true"]')?.textContent).toBe('·');
     act(() => void (gameState.value = { ...gameState.value, resources: { ...gameState.value.resources, food: limit } }));
     act(() => void openResourceSheet(sheets, feed));
     expect(line().textContent).toMatch(/\WFULL$/);

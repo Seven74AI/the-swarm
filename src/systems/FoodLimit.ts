@@ -6,7 +6,8 @@ import { ROOM_JOB_IDS } from './RoomJobs';
 /**
  * The food store's limit (Story 9.15, FR62): the base, plus a share for every
  * room dug, plus each job's `foodLimit` (the Larder's) per room with it. It
- * never falls as rooms are dug. Pure; whole food.
+ * never falls as rooms are dug; it falls only when a Larder takes another job
+ * (the food above it is kept). Pure; whole food.
  */
 export function getFoodLimit(s: GameState): number {
   let limit = foodLimitBalance.base + foodLimitBalance.perRoom * Math.max(0, s.dig.roomsDug);

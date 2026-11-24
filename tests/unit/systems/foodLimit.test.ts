@@ -3,7 +3,6 @@ import fc from 'fast-check';
 import { createInitialState, type GameState } from '../../../src/state/GameState';
 import { Phase, PHASE_ORDER } from '../../../src/phases/phases';
 import { getFoodLimit } from '../../../src/systems/FoodLimit';
-import { foodLimitBalance } from '../../../src/data/balance/foodLimit';
 import { digBalance } from '../../../src/data/balance/dig';
 import { ROOM_JOBS } from '../../../src/data/content/roomJobs';
 import { ROOM_JOB_IDS, applyRoomJob } from '../../../src/systems/RoomJobs';
@@ -16,7 +15,7 @@ import { EventQueue } from '../../../src/engine/events';
 import { processTick } from '../../../src/engine/processTick';
 import { catchUpWithReport } from '../../../src/engine/catchUp';
 import { migrateSave } from '../../../src/persistence/migrations';
-import { SaveManager, type SaveData } from '../../../src/persistence/SaveManager';
+import type { SaveData } from '../../../src/persistence/SaveManager';
 import { prestige } from '../../../src/systems/PrestigeSystem';
 import { goalFor } from '../../../src/phases/transitions';
 import { listItems, itemPanel, itemPrice } from '../../../src/systems/NextAction';
@@ -132,17 +131,44 @@ describe('Story 9.15: food stops at the limit', () => {
     const short = catchUpWithReport(s, 1000, Math.floor(1000 / TICK_MS), deps);
     expect(short.report.foodFullAfterMs).toBeNull();
   });
+
+  const catchUpDeps = () => {
+    const bus = new EventBus();
+    return { resourceSystem: new ResourceSystem(bus), soldierSystem: new SoldierSystem(bus), mapSystem: new MapSystem(), territorySystem: new TerritorySystem(), latch: (x: GameState) => x };
+  };
+
+  it('catch-up caps at the limit the colony has after the absence: rooms dug while away hold food too', () => {
+    const base = nest(0, 0, 0, 40);
+    const s: GameState = { ...base, dig: { ...base.dig, auto: true }, resources: { ...base.resources, workers: 80 }, workersAssigned: { ...base.workersAssigned, dig: 40 } };
+    const ms = 8 * 3600_000;
+    const { state } = catchUpWithReport(s, ms, Math.floor(ms / TICK_MS), catchUpDeps());
+    expect(state.dig.roomsDug).toBeGreaterThan(s.dig.roomsDug);
+    expect(state.foodLostAtLimit).toBeGreaterThan(0);
+    expect(state.resources.food).toBe(getFoodLimit(state));
+    expect(state.resources.food).toBeGreaterThan(getFoodLimit(s));
+  });
+
+  it('a store full on leaving says so at zero; a store that never lost food says nothing', () => {
+    const full = nest(0, 0, getFoodLimit(nest(0)));
+    const ms = 3600_000;
+    const left = catchUpWithReport(full, ms, Math.floor(ms / TICK_MS), catchUpDeps());
+    expect(left.state.foodLostAtLimit).toBeGreaterThan(0);
+    expect(left.report.foodFullAfterMs).toBe(0);
+    const roomy = catchUpWithReport(nest(5, 5, 0), 60_000, Math.floor(60_000 / TICK_MS), catchUpDeps());
+    expect(roomy.state.foodLostAtLimit).toBe(0);
+    expect(roomy.report.foodFullAfterMs).toBeNull();
+  });
 });
 
 describe('Story 9.15: no catch-22 under the limit', () => {
-  /** The highest limit a colony can reach by a phase's guard: the rooms its workers need, every one a Larder. */
+  /** The limit every colony has by a phase's guard: the rooms its workers need, none a Larder (a Larder only adds). */
   function limitAtGuard(phase: Phase): number {
     const s0 = { ...createInitialState(), phase };
     // The most workers any guard up to this one asked for: the run has passed them all.
     const upTo = PHASE_ORDER.slice(0, PHASE_ORDER.indexOf(phase) + 1);
     const workers = Math.max(0, ...upTo.map((p) => goalFor(p)?.conditions.find((c) => c.id === 'workers')?.target({ ...s0, phase: p }) ?? 0));
     const rooms = phase === Phase.EGG_LAYING ? 0 : Math.max(0, Math.ceil((workers - s0.resources.nestCapacity) / digBalance.roomSize));
-    return getFoodLimit(nest(rooms, rooms));
+    return getFoodLimit(nest(rooms, 0));
   }
 
   it('every food price open in a phase, and its guard’s own food, fits under the limit reachable by that guard', () => {
@@ -164,7 +190,8 @@ describe('Story 9.15: no catch-22 under the limit', () => {
 
 describe('Story 9.15: saves and prestige', () => {
   it('a save from before the limit loads with nothing lost and no Larder, and keeps all its food', () => {
-    const v = SaveManager.SAVE_VERSION;
+    // The v39 → v40 step (Story 9.15), whatever the current version.
+    const v = 40;
     const s = structuredClone(createInitialState()) as unknown as Record<string, unknown>;
     delete s.foodLostAtLimit;
     const rj = s.roomJobs as { jobs: Record<string, number> };
@@ -182,4 +209,3 @@ describe('Story 9.15: saves and prestige', () => {
   });
 });
 
-void foodLimitBalance;

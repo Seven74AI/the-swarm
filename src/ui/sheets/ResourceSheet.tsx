@@ -1,3 +1,4 @@
+import { Fragment } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { formatDuration, formatFull, formatSheetRate } from '../../utils/format';
 import { Button } from '../primitives/Button';
@@ -214,7 +215,14 @@ function FoodBlock({ onFoodJump, close }: { onFoodJump?: (t: FoodJump) => void; 
         <Sep />
         {name('soldiers', 'soldiers', p.counts.soldiers)}
       </p>
-      <p data-food="limit">{limitLine}</p>
+      <p data-food="limit">
+        {limitLine.split(' · ').map((part, i) => (
+          <Fragment key={part}>
+            {i > 0 && <Sep />}
+            {part}
+          </Fragment>
+        ))}
+      </p>
       <p data-food="spent">
         SPENT THIS HOUR:{' '}
         {spent.length === 0

@@ -139,6 +139,14 @@ describe('ResourceStrip', () => {
     expect(more.textContent).toContain('▸');
   });
 
+  it('at large text a capped value reads warn and "capped", without the ▲ that would not fit its cell (Story 9.15)', () => {
+    const cap = selectEffectiveNestCapacity.value;
+    mount(Phase.COLONY, res({ workers: cap }), { compact: true });
+    expect(cell('workers').dataset.capped).toBe('true');
+    expect(cell('workers').textContent).not.toContain('▲');
+    expect(cell('workers').querySelector('.visually-hidden:not([data-name])')?.textContent).toBe('capped');
+  });
+
   it('opens the resource sheet on a tap', () => {
     mount(Phase.EGG_LAYING);
     act(() => strip().click());

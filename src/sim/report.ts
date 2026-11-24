@@ -129,17 +129,18 @@ export interface DayFoodLost {
 
 /**
  * Food lost at the limit, per day (Story 9.15): from the running count each
- * check-in records on arrival, so a day's loss is what its check-ins
- * found added since the day before. Pure.
+ * check-in records when it ends, so a day's loss is what was added by the end
+ * of its last check-in since the day before. Pure.
  */
 export function foodLostPerDay(checkIns: readonly CheckInRecord[]): DayFoodLost[] {
   if (checkIns.length === 0) return [];
   const lastDay = Math.floor(checkIns[checkIns.length - 1].startMs / DAY_MS) + 1;
   const out: DayFoodLost[] = [];
   let before = 0;
+  let i = 0;
   for (let day = 1; day <= lastDay; day++) {
-    const seen = checkIns.filter((c) => Math.floor(c.startMs / DAY_MS) + 1 <= day);
-    const upTo = seen.length > 0 ? Math.max(before, ...seen.map((c) => c.foodLostAtLimit)) : before;
+    let upTo = before;
+    for (; i < checkIns.length && Math.floor(checkIns[i].startMs / DAY_MS) + 1 <= day; i++) upTo = Math.max(upTo, checkIns[i].foodLostAtLimit);
     out.push({ day, lost: upTo - before });
     before = upTo;
   }
@@ -382,7 +383,7 @@ export interface ArmyComparison {
   readonly default: ArmyRun;
   readonly maxArmy: ArmyRun;
   /**
-   * Combat check-ins each run arrived at food-critical (Story 4.4's target as
+   * Combat check-ins both runs played where each was food-critical (Story 4.4's target as
    * restated by Story 9.15, #478: the max-army colony has at least as many).
    */
   readonly foodCriticalInCombat: { readonly default: number; readonly maxArmy: number };
@@ -425,16 +426,21 @@ function playCombat(entry: GameState, seed: number, schedule: CheckInSchedule, f
   };
 }
 
-/** How many of a run's Combat check-ins were food-critical (Story 4.4, restated by Story 9.15). Pure. */
-export function foodCriticalInCombat(checkIns: readonly CheckInRecord[]): number {
-  return checkIns.filter((c) => c.phase === Phase.COMBAT && c.foodCritical).length;
+/**
+ * How many of a run's Combat check-ins were food-critical (Story 4.4, restated
+ * by Story 9.15); with `other`, only those the other run also played in
+ * Combat, so a longer Combat alone adds nothing. Pure.
+ */
+export function foodCriticalInCombat(checkIns: readonly CheckInRecord[], other?: readonly CheckInRecord[]): number {
+  const both = other ? new Set(other.filter((c) => c.phase === Phase.COMBAT).map((c) => c.index)) : null;
+  return checkIns.filter((c) => c.phase === Phase.COMBAT && c.foodCritical && (both === null || both.has(c.index))).length;
 }
 
 /** Play Combat from `entry` with both players (Story 4.4). */
 export function compareArmies(entry: GameState, opts: { readonly seed: number; readonly schedule: CheckInSchedule; readonly first: number }): ArmyComparison {
   const def = playCombat(entry, opts.seed, opts.schedule, opts.first, defaultPolicy);
   const max = playCombat(entry, opts.seed, opts.schedule, opts.first, maxArmyPolicy);
-  return { seed: opts.seed, startCheckIn: opts.first, default: def, maxArmy: max, foodCriticalInCombat: { default: foodCriticalInCombat(def.checkIns), maxArmy: foodCriticalInCombat(max.checkIns) } };
+  return { seed: opts.seed, startCheckIn: opts.first, default: def, maxArmy: max, foodCriticalInCombat: { default: foodCriticalInCombat(def.checkIns, max.checkIns), maxArmy: foodCriticalInCombat(max.checkIns, def.checkIns) } };
 }
 
 /** A fresh game to Combat with the default player, then Combat with both players (Story 4.4). Null when Combat is never reached. */

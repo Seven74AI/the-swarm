@@ -196,9 +196,13 @@ export function createResourceFeed(opts: { windowMs?: number; intervalMs?: numbe
   return feed;
 }
 
-/** Capped or falling: the resources that need a look first. */
+/**
+ * Capped or falling: the resources that need a look first. A full food store
+ * (Story 9.15) reads capped where it is shown, but does not jump ahead: unlike
+ * a full nest or a falling stock, nothing worsens while it waits.
+ */
 export function needsAttention(row: ResourceRow): boolean {
-  return row.capped || row.rate < 0;
+  return (row.capped && row.id !== 'food') || row.rate < 0;
 }
 
 /**
