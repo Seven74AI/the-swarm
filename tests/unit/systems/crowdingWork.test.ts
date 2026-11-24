@@ -94,8 +94,8 @@ describe('Story 9.13: crowding slows work', () => {
   it('OVERCROWDING. may spawn only while crowding bites, and (Story 9.18) costs at least its share of the work', () => {
     const def = DECISIONS.find((d) => d.id === 'overcrowding');
     expect(def).toBeDefined();
-    // Brood fifteen times the room space: crowding costs well over the share.
-    const swamped = nest(400, 6_000, 400);
+    // Brood fifty times the room space: crowding holds the work at its floor, past the share.
+    const swamped = nest(400, 20_000, 400);
     expect(crowdedPercent(swamped)).toBeGreaterThanOrEqual(decisionBalance.overcrowdingMinWorkPercent);
     expect(isEligible(swamped, def!)).toBe(true);
     expect(isEligible(roomy, def!)).toBe(false);

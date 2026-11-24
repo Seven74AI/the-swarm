@@ -15,7 +15,8 @@ import { crowdedPercent, getCrowding } from './Crowding';
 /** The dig points room number `roomsDug` (from 0) costs: strictly more for every room dug. */
 export function roomCost(roomsDug: number): number {
   const n = Math.max(0, Math.floor(roomsDug));
-  const past = Math.max(0, n - digBalance.steepFromRoom);
+  // The squared term covers Combat's nest (rooms `steepFromRoom`–`steepToRoom`) and then holds: past it, rooms grow linearly again.
+  const past = Math.min(Math.max(0, n - digBalance.steepFromRoom), digBalance.steepToRoom - digBalance.steepFromRoom);
   return Math.floor(digBalance.firstRoomPoints * (1 + digBalance.roomGrowthPerRoom * n + digBalance.roomGrowthSquared * past * past)) + n;
 }
 

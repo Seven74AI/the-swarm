@@ -9,10 +9,10 @@ import { goalTarget } from './helpers/guards';
 test.describe('Phase 3 — Expansion', () => {
   test.beforeEach(async ({ page }) => {
     // Seed a COMBAT-phase state that satisfies COMBAT → EXPANSION
-    // (60 workers, 5 battles won), with 1000 food, 200 wood, 200 stone
+    // (its workers and battles won, read from the guard), with 1000 food, 200 wood, 200 stone
     // Plus 5 scouts for expedition testing
     // Note: 35 assigned (gather:24 + tend:8 + dig:3), 25 available workers
-    await page.addInitScript((target: number) => {
+    await page.addInitScript(({ target, won }: { target: number; won: number }) => {
       const data = {
         version: 11,
         timestamp: Date.now(),
@@ -41,7 +41,7 @@ test.describe('Phase 3 — Expansion', () => {
           equipment: { weapon: 0, armor: 0 },
           lastBattle: null,
           combatResources: { chitin: 0, silk: 0, venom: 0 },
-          battlesWon: 5,
+          battlesWon: won,
           battlesLost: 0,
           soldierPipeline: { count: 0, progress: 0 },
           territory: { ownedTiles: 0, bonuses: {} },
@@ -76,7 +76,7 @@ test.describe('Phase 3 — Expansion', () => {
         },
       };
       localStorage.setItem('the_swarm_save', JSON.stringify(data));
-    }, goalTarget('combat', 'workers'));
+    }, { target: goalTarget('combat', 'workers'), won: goalTarget('combat', 'battlesWon') });
     await page.goto('/');
 
     // Verify seed data was loaded into localStorage

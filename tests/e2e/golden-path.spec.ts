@@ -61,7 +61,7 @@ const SEED = {
     equipment: { weapon: 2, armor: 2 },
     lastBattle: null,
     combatResources: { chitin: 5, silk: 3, venom: 1 },
-    battlesWon: 5,
+    battlesWon: goalTarget('combat', 'battlesWon'),
     battlesLost: 1,
     soldierPipeline: { count: 0, progress: 0 },
     spaceExplorations: [],

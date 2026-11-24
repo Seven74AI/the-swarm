@@ -2576,7 +2576,7 @@ So that the first week ends with the colony I built, not a phase I finished on d
 | Army trade-off, Combat check-ins food-critical (default / max-army; both replay Combat from its entry, so the default count differs from the main run's) | 2 / 2 | 24 / 32 (strict) |
 | Pacing defects | 0 | 0 |
 
-Values: Combat → Expansion 1,500 workers and 40 battles won; Expansion → Space 5,000 workers; room cost gains a squared term past room 40 (`digBalance.roomGrowthSquared` 0.015, `steepFromRoom` 40); first room 3,100 → 2,800 points; crowding slope 0.02 → 0.015; Click Power 10 → 5 food. Crowding stays in Egg Laying (switching it off there moved gate 1 to 2m 20s). OVERCROWDING. spawns only once crowding costs at least 10 % of the work (`decisionBalance.overcrowdingMinWorkPercent`). Saves from before Story 9.14 keep 6 capacity per room (accepted, not migrated).
+Values: Combat → Expansion 1,500 workers and 40 battles won; Expansion → Space 5,000 workers; room cost gains a squared term from room 40 to room 260 (`digBalance.roomGrowthSquared` 0.015, `steepFromRoom` 40, `steepToRoom` 260; past 260 rooms grow linearly again, so Expansion is no wall: Space on day 31 in a 60-day run, never within 60 days without the cap); first room 3,100 → 2,800 points; crowding slope 0.02 → 0.015; Click Power 10 → 5 food. Crowding stays in Egg Laying (switching it off there moved gate 1 to 2m 20s). OVERCROWDING. spawns only once crowding costs at least 40 % of the work (`decisionBalance.overcrowdingMinWorkPercent`): Colony's crowding runs at 18–50 % of the work, so the event was always eligible; at 40 % it is eligible on about a third of Colony's looks. Saves from before Story 9.14 keep 6 capacity per room (accepted, not migrated).
 
 ### Batch 3: flavour (later)
 

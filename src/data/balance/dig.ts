@@ -19,6 +19,8 @@ export const digBalance = {
    */
   roomGrowthSquared: 0.015,
   steepFromRoom: 40,
+  /** The squared term stops growing here (about Combat's end), so Expansion's bigger nest is not a wall. */
+  steepToRoom: 260,
   /** Dig points a press adds on its own. */
   pressPoints: 10,
   /** Dig points every worker on the DIG role adds to each press (the sum floored to whole points). */

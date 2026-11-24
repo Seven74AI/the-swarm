@@ -19,9 +19,19 @@ const colony = (dig = 0, over: Parameters<typeof makeState>[0] = {}) =>
 
 describe('room cost', () => {
   it('rises strictly with every room dug', () => {
-    for (let n = 0; n < 200; n++) {
+    for (let n = 0; n < digBalance.steepToRoom + 200; n++) {
       expect(Number.isInteger(roomCost(n))).toBe(true);
       expect(roomCost(n + 1)).toBeGreaterThan(roomCost(n));
+    }
+  });
+
+  it('steepens through the Combat nest, then grows no faster than at its steepest (Story 9.18: no wall in Expansion)', () => {
+    const step = (n: number) => roomCost(n + 1) - roomCost(n);
+    const { steepFromRoom: from, steepToRoom: to } = digBalance;
+    expect(step(to - 1)).toBeGreaterThan(step(from));
+    for (let n = to; n < to + 2_000; n += 97) {
+      expect(roomCost(n + 1)).toBeGreaterThan(roomCost(n));
+      expect(step(n)).toBeLessThanOrEqual(step(to - 1));
     }
   });
 
