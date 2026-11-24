@@ -13,7 +13,11 @@ import './nest.css';
  * diggers it reads `NO DIGGERS`. It reads `selectNextRoom` at most 4 times a
  * second (`sceneBalance.viewRefreshMs`).
  *
- * Hooks: `[data-next-room]`, `[data-next-room-time]`, `[data-next-room-digs]`.
+ * While crowding bites (Story 9.13, UX-DR47) it adds `CROWDED · −<n>% WORK`
+ * in warn: the work the overfill costs, from the same multiplier.
+ *
+ * Hooks: `[data-next-room]`, `[data-next-room-time]`, `[data-next-room-digs]`,
+ * `[data-next-room-crowded]`.
  */
 export function NextRoomStrip() {
   const room = useThrottledSignal(selectNextRoom, sceneBalance.viewRefreshMs).value;
@@ -44,6 +48,11 @@ export function NextRoomStrip() {
         <Sep />
         <span data-next-room-digs="">{digs}</span>
       </span>
+      {room.crowdedPercent !== null && (
+        <span class="next-room__crowded" data-next-room-crowded="" data-warn="">
+          {`CROWDED · −${room.crowdedPercent}% WORK`}
+        </span>
+      )}
     </div>
   );
 }

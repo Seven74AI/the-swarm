@@ -14,7 +14,8 @@ import { gameState } from '../../../src/state/gameSignal';
 import type { GameState } from '../../../src/state/GameState';
 
 const colony = (dig = 0, over: Parameters<typeof makeState>[0] = {}) =>
-  makeState({ phase: Phase.COLONY, resources: { workers: Math.max(dig, 1) }, workersAssigned: { dig }, ...over });
+  // Room to spare: crowding (Story 9.13) is tested on its own.
+  makeState({ phase: Phase.COLONY, resources: { workers: Math.max(dig, 1), nestCapacity: 10_000 }, workersAssigned: { dig }, ...over });
 
 describe('room cost', () => {
   it('rises strictly with every room dug', () => {

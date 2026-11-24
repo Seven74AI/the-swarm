@@ -16,15 +16,17 @@ export interface NestView {
   readonly starving: boolean;
   /** Rooms dug (Story 9.6, `state.dig.roomsDug`): the scene draws them and frames the whole dug nest. 0 when absent. */
   readonly roomsDug?: number;
+  /** Creatures past the room space (Story 9.13, `getCrowding`), capped at what the scene draws (`sceneBalance.spillAntsMax`): spilled into the tunnels. 0 when absent. */
+  readonly overfill?: number;
 }
 
 const whole = (n: number): number => (Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
 
-/** The view of a state's resources (the strip's eggs, larvae and workers, floored) and whether it starves. */
-export function nestViewOf(r: GameState['resources'], starving = false, roomsDug = 0): NestView {
-  return { workers: whole(r.workers), eggs: whole(r.eggs), larvae: whole(r.larvae), starving, roomsDug: whole(roomsDug) };
+/** The view of a state's resources (the strip's eggs, larvae and workers, floored), whether it starves, its rooms and its overfill. */
+export function nestViewOf(r: GameState['resources'], starving = false, roomsDug = 0, overfill = 0): NestView {
+  return { workers: whole(r.workers), eggs: whole(r.eggs), larvae: whole(r.larvae), starving, roomsDug: whole(roomsDug), overfill: whole(overfill) };
 }
 
 export function sameNestView(a: NestView, b: NestView): boolean {
-  return a.workers === b.workers && a.eggs === b.eggs && a.larvae === b.larvae && a.starving === b.starving && (a.roomsDug ?? 0) === (b.roomsDug ?? 0);
+  return a.workers === b.workers && a.eggs === b.eggs && a.larvae === b.larvae && a.starving === b.starving && (a.roomsDug ?? 0) === (b.roomsDug ?? 0) && (a.overfill ?? 0) === (b.overfill ?? 0);
 }

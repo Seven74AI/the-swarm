@@ -112,6 +112,12 @@ export interface NestLayout {
   readonly rooms: readonly RoomGeometry[];
   /** Where the next room is being dug (its slot's centre): the crack grows here (Story 9.3). */
   readonly digFace: Point;
+  /**
+   * A crowded nest's overfill (Story 9.13): ants walking the founding tunnels,
+   * one per creature past the room space up to `sceneBalance.spillAntsMax`.
+   * Empty while the creatures fit. Placed by index, so a spilled ant keeps its place.
+   */
+  readonly spill: readonly Ant[];
 }
 
 /** A room dug (Story 9.6): a small chamber of its own, no label, no creatures of its own (no ant has a location). */
@@ -374,14 +380,14 @@ function broodSplit(eggs: number, larvae: number): { eggs: number; larvae: numbe
  * Starving (Story 8.7), only `starvingShown` of the individual ants (at least
  * one) and of the cloud's dots are drawn; the ants left out are `thinned`.
  */
-function workerSplit(workers: number, starving: boolean): { drawn: number; thinned: number; cloud: Cloud } {
+function workerSplit(workers: number, starving: boolean, budget: number = sceneBalance.animatedAntsMax): { drawn: number; thinned: number; cloud: Cloud } {
   const w = CHAMBERS.workers;
   const fits = fitting(areaOf(w), ANT_AREA);
   const shown = (n: number, least: number) => (starving ? Math.max(least, Math.floor(n * sceneBalance.starvingShown)) : n);
   const full =
-    workers <= Math.min(fits, sceneBalance.animatedAntsMax)
+    workers <= Math.min(fits, budget)
       ? workers
-      : Math.min(workers, Math.max(sceneBalance.cloudAntsMin, Math.min(fits, sceneBalance.animatedAntsMax)));
+      : Math.min(workers, Math.max(sceneBalance.cloudAntsMin, Math.min(fits, budget)));
   const drawn = Math.min(full, shown(full, 1));
   const count = workers - full;
   const area = { ...w, rx: w.rx * CLOUD_IN, ry: w.ry * CLOUD_IN };
@@ -492,11 +498,22 @@ function ants(n: number, area: Ellipse, routes: readonly Tunnel[]): Ant[] {
   });
 }
 
+/** The overfill's ants (see `NestLayout.spill`): each on a founding tunnel, keyed by its index. */
+function spill(n: number, routes: readonly Tunnel[]): Ant[] {
+  return Array.from({ length: n }, (_, i) => {
+    const rng = keyedStream(hashString('spill'), i);
+    const tunnel = routes[i % routes.length];
+    return { x: tunnel.curve[0].x, y: tunnel.curve[0].y, angle: 0, tunnel: tunnel.id, start: rng.float() };
+  });
+}
+
 export function nestLayout(view: NestView): NestLayout {
   const brood = CHAMBERS.brood;
   const workers = CHAMBERS.workers;
   const b = broodSplit(whole(view.eggs), whole(view.larvae));
-  const w = workerSplit(whole(view.workers), view.starving === true);
+  // A crowded nest's spilled ants (Story 9.13) come out of the workers' animation budget (AR14: ≤ animatedAntsMax in all).
+  const spilled = Math.min(whole(view.overfill ?? 0), sceneBalance.spillAntsMax);
+  const w = workerSplit(whole(view.workers), view.starving === true, sceneBalance.animatedAntsMax - spilled);
   const dug = rooms(whole(view.roomsDug ?? 0));
   const routes = tunnels();
   const height = frameHeight(dug.rooms.length);
@@ -518,5 +535,6 @@ export function nestLayout(view: NestView): NestLayout {
     thinned: w.thinned,
     rooms: dug.rooms,
     digFace: { x: face.x, y: face.y },
+    spill: spill(spilled, routes),
   };
 }

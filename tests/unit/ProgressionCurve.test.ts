@@ -2,20 +2,18 @@ import { describe, it, expect } from 'vitest';
 import {
   productionMultiplier,
   softCapEffectiveness,
-  workerEfficiency,
   buildingUpgradeCost,
   getPhaseNumber,
 } from '../../src/engine/ProgressionCurve';
 import { progressionBalance as P } from '../../src/data/balance/progression';
+import { crowdingMultiplier } from '../../src/systems/Crowding';
+import { crowdingBalance } from '../../src/data/balance/crowding';
 
 /** The documented curves, from the balance numbers (Story 3.2: never restated). */
 const production = (phaseNumber: number, lp: number): number =>
   P.productionPerPhase ** phaseNumber * (1 + P.productionPerLegacyPoint * lp);
 const softCap = (base: number, level: number): number =>
   level <= P.softCap.fullLevels ? base : base / (1 + P.softCap.falloffPerLevel * (level - P.softCap.fullLevels));
-const efficiency = (workers: number): number =>
-  workers <= P.scalePenalty.freeWorkers ? 1 : 1 / (1 + P.scalePenalty.falloffPerWorker * (workers - P.scalePenalty.freeWorkers));
-const FREE = P.scalePenalty.freeWorkers;
 const FULL = P.softCap.fullLevels;
 const G = P.buildingCostGrowth;
 
@@ -161,44 +159,23 @@ describe('ProgressionCurve', () => {
     });
   });
 
-  describe('workerEfficiency', () => {
-    it('returns 1.0 up to the scale-penalty threshold', () => {
-      expect(workerEfficiency(0)).toBe(1.0);
-      expect(workerEfficiency(FREE)).toBe(1.0);
+  // Story 9.13: the worker-count scale penalty became crowding. A colony of any
+  // size that fits its rooms works at full rate; only overfill slows it.
+  describe('crowdingMultiplier (replaces workerEfficiency)', () => {
+    it('is 1 for a colony of any size that fits its rooms', () => {
+      for (const n of [0, 1, 500, 5_000, 100_000]) expect(crowdingMultiplier(n, n)).toBe(1);
     });
 
-    it('drops slightly above the threshold', () => {
-      expect(workerEfficiency(FREE + 1)).toBeLessThan(1);
-      expect(workerEfficiency(FREE + 1)).toBeCloseTo(efficiency(FREE + 1), 4);
+    it('drops below 1 as soon as one creature is past the rooms', () => {
+      expect(crowdingMultiplier(501, 500)).toBeLessThan(1);
     });
 
-    it('drops more at twice the threshold', () => {
-      expect(workerEfficiency(2 * FREE)).toBeLessThan(workerEfficiency(FREE + 1));
-      expect(workerEfficiency(2 * FREE)).toBeCloseTo(efficiency(2 * FREE), 4);
-    });
-
-    it('drops further at four times the threshold', () => {
-      expect(workerEfficiency(4 * FREE)).toBeLessThan(workerEfficiency(2 * FREE));
-      expect(workerEfficiency(4 * FREE)).toBeCloseTo(efficiency(4 * FREE), 4);
-    });
-
-    it('asymptotically approaches 0 but never negative', () => {
-      expect(workerEfficiency(10000)).toBeGreaterThan(0);
-    });
-
-    it('monotonically decreases with more workers', () => {
-      const vals = [FREE, FREE + 100, FREE + 300, 2 * FREE, 4 * FREE].map(w => workerEfficiency(w));
-      for (let i = 1; i < vals.length; i++) {
-        expect(vals[i]).toBeLessThanOrEqual(vals[i - 1]);
-      }
-    });
-
-    it('returns efficiency between 0 and 1 inclusive', () => {
-      const testPoints = [0, 250, 500, 750, 1000, 5000, 10000];
-      for (const w of testPoints) {
-        const eff = workerEfficiency(w);
-        expect(eff).toBeGreaterThan(0);
-        expect(eff).toBeLessThanOrEqual(1);
+    it('monotonically decreases with more overfill, never below the floor', () => {
+      const vals = [500, 510, 600, 750, 1000, 5000].map((n) => crowdingMultiplier(n, 500));
+      for (let i = 1; i < vals.length; i++) expect(vals[i]).toBeLessThanOrEqual(vals[i - 1]);
+      for (const v of vals) {
+        expect(v).toBeGreaterThanOrEqual(crowdingBalance.floor);
+        expect(v).toBeLessThanOrEqual(1);
       }
     });
   });

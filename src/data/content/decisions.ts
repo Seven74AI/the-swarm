@@ -114,8 +114,8 @@ export interface DecisionDef {
   /** Countdown in game-time ms (free and costly only). */
   readonly timerMs?: number;
   /**
-   * When the event may spawn, beyond its phase: `crowded` waits for a nest
-   * near its capacity (`decisionBalance.crowdedShare`).
+   * When the event may spawn, beyond its phase: `crowded` waits for crowding
+   * to bite (`crowdingBites`, Story 9.13).
    */
   readonly spawnsWhen?: 'crowded';
   /** The event's name, upper case with a full stop (`OVERCROWDING.`, UX-DR42). */

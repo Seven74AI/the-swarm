@@ -21,7 +21,7 @@ export interface PrestigeBonuses {
   food: number;
   /** Multiplier for soldier training rate */
   soldierTraining: number;
-  /** Multiplier for worker efficiency (combined with workerEfficiency soft cap) */
+  /** Multiplier for worker efficiency (combined with the crowding multiplier, Story 9.13) */
   workerEfficiency: number;
   /** Whether auto-egg-laying is active (1 egg/sec into eggPipeline) */
   autoEggLayer: boolean;

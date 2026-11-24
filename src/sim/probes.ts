@@ -2,6 +2,7 @@ import type { GameState } from '../state/GameState';
 import { getNextAction, isCapacityCritical, isFoodCritical, isItemAffordable, itemKey, listItems } from '../systems/NextAction';
 import { conditionMet, goalFor } from '../state/queries';
 import { MS_PER_SEC } from '../data/constants';
+import { crowdingBites } from '../systems/Crowding';
 
 /** The moment a phase was entered (Story 3.7). */
 export interface PhaseEntry {
@@ -47,6 +48,8 @@ export interface CheckInRecord {
   readonly foodCritical: boolean;
   /** The nest was full (`isCapacityCritical`) on arrival or after any move or step of play (Story 3.11). */
   readonly capacityCritical: boolean;
+  /** Crowding bit on arrival (Story 9.13, `crowdingBites`). */
+  readonly startCrowded: boolean;
 }
 
 /** Eggs laid since the previous sample (Story 3.9): `tapped` of the `laid` came from LAY EGG taps. */
@@ -129,6 +132,7 @@ interface OpenCheckIn {
   byAction: Record<string, number>;
   foodCritical: boolean;
   capacityCritical: boolean;
+  startCrowded: boolean;
 }
 
 /**
@@ -169,7 +173,7 @@ export class Probes {
     this.lastCheckIn = index;
     this.open = {
       index, startMs: atMs, startActiveMs: this.nowActiveMs, phase: s.phase, decisionsAvailable: decisionsAvailable(s), waitMs: waitMs(s), actions: 0, taps: 0, digs: 0, feeds: 0, refused: 0, byAction: {},
-      foodCritical: false, capacityCritical: false,
+      foodCritical: false, capacityCritical: false, startCrowded: crowdingBites(s),
     };
     this.critical(s);
   }

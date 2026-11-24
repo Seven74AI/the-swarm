@@ -60,6 +60,8 @@ import { resourceFlows, type ResourceFlows } from '../systems/ResourceFlows';
 import { getVerdict, verdictText, type Verdict } from '../systems/Verdict';
 import { Phase as PhaseId } from '../phases/phases';
 import type { ResearchProjectId, ResearchProjectStatus } from './GameState';
+import { getCrowding } from '../systems/Crowding';
+import { sceneBalance } from '../data/balance/scene';
 import { nestViewOf, sameNestView, type NestView } from './nestView';
 import { conditionMet, goalFor, goalPercent, type GoalCondition, type Transition } from '../phases/transitions';
 
@@ -171,7 +173,7 @@ let lastNestView: NestView | null = null;
  * (`ui/primitives/throttledSignal.ts`, `sceneBalance.viewRefreshMs`).
  */
 export const selectNestView = computed<NestView>(() => {
-  const next = nestViewOf(selectResources.value, selectStarving.value, gameState.value.dig.roomsDug);
+  const next = nestViewOf(selectResources.value, selectStarving.value, gameState.value.dig.roomsDug, Math.min(getCrowding(gameState.value).overfill, sceneBalance.spillAntsMax));
   if (lastNestView && sameNestView(lastNestView, next)) return lastNestView;
   lastNestView = next;
   return next;
@@ -179,7 +181,7 @@ export const selectNestView = computed<NestView>(() => {
 
 let lastNextRoom: NextRoom | null = null;
 const sameNextRoom = (a: NextRoom, b: NextRoom): boolean =>
-  a.auto === b.auto && a.size === b.size && a.progress === b.progress && a.cost === b.cost && a.percent === b.percent && a.presses === b.presses && a.timeLeftMs === b.timeLeftMs;
+  a.auto === b.auto && a.size === b.size && a.progress === b.progress && a.cost === b.cost && a.percent === b.percent && a.presses === b.presses && a.timeLeftMs === b.timeLeftMs && a.crowdedPercent === b.crowdedPercent;
 
 /**
  * The NEXT ROOM strip (Story 9.3, FR56): how close the next room is, from

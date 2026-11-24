@@ -76,7 +76,7 @@ describe('maxArmyPolicy (Story 4.4)', () => {
 
 describe('onlyMaxArmyFoodCritical', () => {
   const rec = (index: number, foodCritical: boolean, phase: string = Phase.COMBAT): CheckInRecord => ({
-    index, startMs: 0, activeMs: 0, phase, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, digs: 0, feeds: 0, refused: 0, byAction: {}, foodCritical, capacityCritical: false,
+    index, startMs: 0, activeMs: 0, phase, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, digs: 0, feeds: 0, refused: 0, byAction: {}, foodCritical, capacityCritical: false, startCrowded: false,
   });
 
   it('keeps the Combat check-ins both runs played where only the max-army colony was food-critical', () => {

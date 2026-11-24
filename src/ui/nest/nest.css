@@ -146,6 +146,11 @@
 .next-room__meter {
   color: var(--color-accent);
 }
+/* Crowding bites (Story 9.13): CROWDED · −n% WORK, on its own line of the strip. */
+.next-room__crowded[data-warn] {
+  flex-basis: 100%;
+  color: var(--color-warn);
+}
 
 /* The brood control (Story 9.7): one line under the NEXT ROOM strip. */
 .brood-line {

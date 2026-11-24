@@ -29,6 +29,8 @@ export const sceneBalance = {
   cloudDotsMax: 1500,
   /** Every this-many-th individual ant walks a tunnel; the others sway in their chamber. */
   tunnelWalkerEvery: 6,
+  /** A crowded nest (Story 9.13) draws at most this many of its overfill as ants walking the tunnels, out of `animatedAntsMax`; keep `animatedAntsMax − spillAntsMax ≥ cloudAntsMin`. */
+  spillAntsMax: 8,
   /** A tunnel walker goes from one end of its tunnel to the other in this time, and back in the same. */
   tunnelWalkMs: 9000,
   /** An individually drawn worker is never smaller than this on screen, in CSS px (DESIGN.md). */

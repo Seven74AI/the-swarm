@@ -1,6 +1,6 @@
 import { createInitialState, type GameState } from '../state/GameState';
 import { Phase, PHASE_ORDER } from '../phases/phases';
-import { DAY_MS } from '../data/constants';
+import { DAY_MS, PERCENT } from '../data/constants';
 import { simBalance } from '../data/balance/sim';
 import { pacingReportDefaults, pacingTargets, type FirstWeekGates, type PacingTargets, type PhaseTarget } from '../data/balance/pacing';
 import { formatTime } from '../utils/format';
@@ -120,6 +120,26 @@ export function idleCheckIns(checkIns: readonly CheckInRecord[], limitMs: number
   return checkIns.filter((c) => c.actions === 0 && (c.waitMs === null || c.waitMs > limitMs));
 }
 
+/** One phase's crowded check-ins (Story 9.13): how many started with crowding biting, of how many. */
+export interface CrowdedShare {
+  readonly phase: string;
+  readonly checkIns: number;
+  readonly crowded: number;
+  /** Whole percent (floored, so 100 only when every one did) of the phase's check-ins that started crowded. */
+  readonly percent: number;
+}
+
+/** Per phase, in the order the run met them, the share of check-ins that started crowded (Story 9.13). Pure. */
+export function crowdedShares(checkIns: readonly CheckInRecord[]): CrowdedShare[] {
+  const phases: string[] = [];
+  for (const c of checkIns) if (!phases.includes(c.phase)) phases.push(c.phase);
+  return phases.map((phase) => {
+    const inPhase = checkIns.filter((c) => c.phase === phase);
+    const crowded = inPhase.filter((c) => c.startCrowded).length;
+    return { phase, checkIns: inPhase.length, crowded, percent: Math.floor((crowded * PERCENT) / inPhase.length) };
+  });
+}
+
 /** In how many of a phase's check-ins food, and capacity, was critical (Story 3.11). Pure. */
 export function criticalMoments(checkIns: readonly CheckInRecord[], phase: string): { food: number; capacity: number } {
   const inPhase = checkIns.filter((c) => c.phase === phase);
@@ -234,6 +254,8 @@ export interface PacingReport {
   readonly idle: readonly CheckInRecord[];
   /** Check-ins of `targets.criticalMoments.phase` where food, and capacity, was critical (Story 3.11). */
   readonly critical: { readonly food: number; readonly capacity: number };
+  /** Per phase, the share of check-ins that started crowded (Story 9.13). */
+  readonly crowded: readonly CrowdedShare[];
   /** The three first-week gates (Story 9.1). */
   readonly gates: readonly GateLine[];
   /** The default and the max-army player through Combat from the same seed (Story 4.4); absent when not run. */
@@ -380,6 +402,7 @@ export function buildPacingReport(result: SimResult, opts: { readonly seed: numb
     medianActions: median(probes.checkIns.map((c) => c.actions)),
     idle: idleCheckIns(probes.checkIns, targets.idleCheckInMaxMs),
     critical: criticalMoments(probes.checkIns, targets.criticalMoments.phase),
+    crowded: crowdedShares(probes.checkIns),
     gates: firstWeekGates(probes, spans, { atMs: result.elapsedMs }, targets.gates),
   };
 }
@@ -489,6 +512,7 @@ export function formatPacingReport(r: PacingReport): string {
     `Eggs from tapping, from Colony on: ${pct(r.tapShareAfterColony)} (target < ${t.tapShareAfterColonyMaxPercent}%)`,
     `Actions per check-in (taps excluded): median ${r.medianActions ?? 'n/a'}`,
     `${phaseLabel(r)} check-ins food-critical: ${r.critical.food}, capacity-critical: ${r.critical.capacity} (target ≥ ${t.criticalMoments.min} each)`,
+    `Check-ins that started crowded (Story 9.13): ${r.crowded.map((x) => `${x.phase} ${x.percent}% (${x.crowded} of ${x.checkIns})`).join(', ') || 'none'}`,
     ...(laterPhases(r).length > 0 ? ['Later phases (no GDD target in the MVP):', ...laterPhases(r)] : []),
     `Check-ins with nothing affordable within ${formatTime(t.idleCheckInMaxMs)} (pacing defects): ${r.idle.length}`,
     ...r.idle.map((c) => `  - check-in ${c.index + 1} (day ${Math.floor(c.startMs / DAY_MS) + 1}, ${c.phase}): ${c.waitMs === null ? 'nothing ever affordable at current rates' : `next in ${span(c.waitMs)}`}`),
