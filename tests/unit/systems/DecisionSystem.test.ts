@@ -14,6 +14,7 @@ import { EventBus } from '../../../src/engine/EventBus';
 import { Phase } from '../../../src/phases/phases';
 import type { GameState } from '../../../src/state/GameState';
 import { makeState, type StateOverrides } from '../helpers/makeState';
+import { crowdedPercent } from '../../../src/systems/Crowding';
 
 /**
  * Story 1.28 (D8, N3): decision events spawn on the session clock, at most one
@@ -117,8 +118,15 @@ describe('spawning on the session clock', () => {
     for (const def of crowdedOnly) {
       const phase = def.phases[0];
       const roomy = colony({ phase, resources: { workers: 10, nestCapacity: 1000 } });
-      const full = colony({ phase, resources: { workers: 1000, nestCapacity: 1000 } });
+      // Story 9.18: crowding has to cost at least `overcrowdingMinWorkPercent` of the work, not just bite.
+      const barely = colony({ phase, resources: { workers: 1001, nestCapacity: 1000, eggs: 0, larvae: 0 } });
+      const full = colony({ phase, resources: { workers: 1000, nestCapacity: 20, eggs: 0, larvae: 0 } });
+      // It bites (some work is lost), just not enough.
+      expect(crowdedPercent(barely)).not.toBeNull();
+      expect(crowdedPercent(barely)!).toBeLessThan(decisionBalance.overcrowdingMinWorkPercent);
+      expect(crowdedPercent(full)).toBeGreaterThanOrEqual(decisionBalance.overcrowdingMinWorkPercent);
       expect(isEligible(roomy, def)).toBe(false);
+      expect(isEligible(barely, def)).toBe(false);
       expect(isEligible(full, def)).toBe(true);
       for (const r of [0, 0.25, 0.5, 0.75, 0.999]) {
         const { state } = run(startDecisionSession(roomy), decisionBalance.spawnMaxMs + STEP_MS, { rand: () => r, shown: false });

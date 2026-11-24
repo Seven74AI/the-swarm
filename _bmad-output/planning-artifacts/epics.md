@@ -2563,6 +2563,21 @@ So that the first week ends with the colony I built, not a phase I finished on d
 
 **Covers:** FR64 (Phase 3+), FR65 (gates 2–3), FR54
 
+**Tuning record (built 2026-11-24, `pnpm sim`, seed 1, first-week schedule, 10 days):**
+
+| | Before (main, c016d4b) | After |
+|---|---|---|
+| Gate 1, longest idle gap in the first 30 min | 1m 55s PASS (window edge) | 1m 40s PASS |
+| Gate 2, day Combat ended | day 1 FAIL | day 7 PASS (seeds 1–4: day 7) |
+| Gate 3, check-ins after day 7 | median 20s FAIL | median 10s FAIL (see the PR and its issue) |
+| Egg Laying / Colony | 3m 25s ok / 46m 45s ok | 3m 15s ok / 46m 50s ok |
+| Combat food-critical, crowded, longest stretch at the floor | not judged | 21 of 35 (≥ 1, ≤ 80%) / 35 (≥ 1) / 0 (≤ 1): PASS |
+| Starvation bounds | PASS / PASS | PASS / PASS |
+| Army trade-off, Combat check-ins food-critical (default / max-army; both replay Combat from its entry, so the default count differs from the main run's) | 2 / 2 | 24 / 32 (strict) |
+| Pacing defects | 0 | 0 |
+
+Values: Combat → Expansion 1,500 workers and 40 battles won; Expansion → Space 5,000 workers; room cost gains a squared term from room 40 to room 260 (`digBalance.roomGrowthSquared` 0.015, `steepFromRoom` 40, `steepToRoom` 260; past 260 rooms grow linearly again, so Expansion is no wall: Space on day 31 in a 60-day run, never within 60 days without the cap); first room 3,100 → 2,800 points; crowding slope 0.02 → 0.015; Click Power 10 → 5 food. Crowding stays in Egg Laying (switching it off there moved gate 1 to 2m 20s). OVERCROWDING. spawns only once crowding costs at least 40 % of the work (`decisionBalance.overcrowdingMinWorkPercent`): Colony's crowding runs at 18–50 % of the work, so the event was always eligible; at 40 % it is eligible on about a third of Colony's looks. Saves from before Story 9.14 keep 6 capacity per room (accepted, not migrated).
+
 ### Batch 3: flavour (later)
 
 A nest close-up (a full-screen nest view, opened from the scene, where every chamber, count, room job, intruder and find can be tapped; it can take over the remaining peek sheets; owner, 2026-11-23), intruders (seeded randomness; guards help), finds, a rhythm bonus on DIG, the milestone pull-out at 1,000 and 10,000 ants, first-time event lines as the tutorial, sharper mandibles (stone), reinforced rooms (stone), a building that sets who starves first.

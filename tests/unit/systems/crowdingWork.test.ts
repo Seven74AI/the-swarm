@@ -1,6 +1,7 @@
+import { decisionBalance } from '../../../src/data/balance/decisions';
 import { describe, it, expect } from 'vitest';
 import { createInitialState, type GameState } from '../../../src/state/GameState';
-import { getCrowding } from '../../../src/systems/Crowding';
+import { crowdedPercent, getCrowding } from '../../../src/systems/Crowding';
 import { computeResourceRates } from '../../../src/systems/ResourceSystem';
 import { diggerPointsPerSec, nextRoom, pressChunk } from '../../../src/systems/Dig';
 import { digBalance } from '../../../src/data/balance/dig';
@@ -90,13 +91,21 @@ describe('Story 9.13: crowding slows work', () => {
     expect(loop.getWorkerEfficiency(roomy)).toBe(1);
   });
 
-  it('OVERCROWDING. may spawn exactly when crowding bites', () => {
+  it('OVERCROWDING. may spawn only while crowding bites, and (Story 9.18) costs at least its share of the work', () => {
     const def = DECISIONS.find((d) => d.id === 'overcrowding');
     expect(def).toBeDefined();
-    expect(isEligible(crowded, def!)).toBe(true);
+    // Brood fifty times the room space: crowding holds the work at its floor, past the share.
+    const swamped = nest(400, 20_000, 400);
+    expect(crowdedPercent(swamped)).toBeGreaterThanOrEqual(decisionBalance.overcrowdingMinWorkPercent);
+    expect(isEligible(swamped, def!)).toBe(true);
     expect(isEligible(roomy, def!)).toBe(false);
     // A nest whose workers fill it but whose brood does not overflow it: crowding does not bite, so no event.
     expect(isEligible(nest(400, 0, 400), def!)).toBe(false);
+    // Crowding that bites but costs little (the test nest `crowded`): no event either.
+    const light = crowded;
+    expect(crowdedPercent(light)).not.toBeNull();
+    expect(crowdedPercent(light)!).toBeLessThan(decisionBalance.overcrowdingMinWorkPercent);
+    expect(isEligible(light, def!)).toBe(false);
   });
 
   it('NEXT ROOM reads the work lost as a whole percent while crowded, and nothing otherwise', () => {

@@ -29,7 +29,7 @@ export const resourceBalance = {
   /** Extra eggs per tap for each Click Power level (FR1). */
   eggsPerTapPerLevel: 1,
   /** Click Power's food cost: `floor(baseCost × costMultiplier^level)`. */
-  clickPower: { baseCost: 10, costMultiplier: 1.15 },
+  clickPower: { baseCost: 5, costMultiplier: 1.15 },
   /** Eggs the Legacy auto egg layer lays. */
   autoEggLayerPerSec: 1,
 } as const;

@@ -10,6 +10,7 @@ import {
   buildPacingReport,
   formatPacingReport,
   criticalMoments,
+  combatMoments,
   starvationReport,
   crowdedShares,
   foodLostPerDay,
@@ -46,7 +47,7 @@ afterEach(() => {
 const MIN = 60_000;
 
 function checkIn(index: number, over: Partial<CheckInRecord> = {}): CheckInRecord {
-  return { index, startMs: index * HOUR_MS, activeMs: 5 * MIN, phase: Phase.COLONY, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, digs: 0, feeds: 0, refused: 0, byAction: {}, foodCritical: false, capacityCritical: false, startCrowded: false, starving: false, starvedTotal: 0, foodLostAtLimit: 0, ...over };
+  return { index, startMs: index * HOUR_MS, activeMs: 5 * MIN, phase: Phase.COLONY, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, digs: 0, feeds: 0, refused: 0, byAction: {}, foodCritical: false, capacityCritical: false, startCrowded: false, startAtFloor: false, starving: false, starvedTotal: 0, foodLostAtLimit: 0, ...over };
 }
 
 function egg(activeMs: number, phase: Phase, laid: number, tapped: number): EggSample {
@@ -209,6 +210,43 @@ describe('criticalMoments (Story 3.11)', () => {
   });
 });
 
+describe('combatMoments (Story 9.18)', () => {
+  const t = pacingTargets.combatMoments;
+  const combat = (i: number, over: Partial<CheckInRecord> = {}) => checkIn(i, { phase: Phase.COMBAT, ...over });
+
+  it('counts Combat check-ins that were food-critical and crowded, and the longest run held at the crowding floor', () => {
+    const list = [checkIn(0, { foodCritical: true }), combat(1, { foodCritical: true, startCrowded: true }), combat(2, { startCrowded: true, startAtFloor: true }), combat(3, { startCrowded: true, startAtFloor: true }), combat(4)];
+    const m = combatMoments(list, t);
+    expect(m).toMatchObject({ checkIns: 4, foodCritical: 1, crowded: 3, longestFloorStretch: 2 });
+    expect(m.floor).toBe('fail');
+    expect(m.food).toBe('pass');
+    expect(m.crowding).toBe('pass');
+  });
+
+  it('the bounds hold at their edges: a share at the limit and a floor stretch at the limit pass, one past either fails', () => {
+    const n = 100;
+    const at = Math.floor((t.foodCritical.maxSharePercent * n) / 100);
+    const share = (critical: number) => combatMoments(Array.from({ length: n }, (_, i) => combat(i, { foodCritical: i < critical, startCrowded: true })), t).food;
+    expect(share(at)).toBe('pass');
+    expect(share(at + 1)).toBe('fail');
+    // Just past the share, rounding must not let it through (21 of 26 is past 80%).
+    const odd = 26;
+    const past = Math.floor((t.foodCritical.maxSharePercent * odd) / 100) + 1;
+    expect(combatMoments(Array.from({ length: odd }, (_, i) => combat(i, { foodCritical: i < past, startCrowded: true })), t).food).toBe('fail');
+    const floorRun = (k: number) => combatMoments(Array.from({ length: k + 2 }, (_, i) => combat(i, { foodCritical: i === 0, startCrowded: true, startAtFloor: i >= 1 && i <= k })), t).floor;
+    expect(floorRun(t.crowded.maxFloorStretchCheckIns)).toBe('pass');
+    expect(floorRun(t.crowded.maxFloorStretchCheckIns + 1)).toBe('fail');
+  });
+
+  it('a Combat that is never food-critical, or food-critical past its share, fails; none crowded fails', () => {
+    expect(combatMoments([combat(0), combat(1)], t).food).toBe('fail');
+    const always = Array.from({ length: 10 }, (_, i) => combat(i, { foodCritical: true, startCrowded: true }));
+    expect(combatMoments(always, t).food).toBe('fail');
+    expect(combatMoments([combat(0, { foodCritical: true })], t).crowding).toBe('fail');
+    expect(combatMoments([], t)).toMatchObject({ food: 'open', crowding: 'open', floor: 'open' });
+  });
+});
+
 describe('foodLostPerDay (Story 9.15)', () => {
   it('gives the food lost at the limit in each day, from the running count at the end of each check-in', () => {
     const at = (day: number, h: number) => day * DAY_MS + h * HOUR_MS;
@@ -307,6 +345,10 @@ describe('the pacing report on a real run (Story 3.9)', () => {
     expect(report.medianActions).toBeGreaterThanOrEqual(Math.min(...actions));
     expect(report.medianActions).toBeLessThanOrEqual(Math.max(...actions));
     expect(report.idle).toEqual(idleCheckIns(result.probes.checkIns, targets.idleCheckInMaxMs));
+  });
+
+  it('prints the Combat critical moments with their bounds (Story 9.18)', () => {
+    expect(formatPacingReport(report)).toMatch(/Combat critical moments \(Story 9\.18\): food-critical \d+ of \d+/);
   });
 
   it('prints a line per phase with its target, and every idle check-in', () => {

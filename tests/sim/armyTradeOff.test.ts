@@ -4,9 +4,9 @@
  *
  * The max-army player ("train the maximum, then fight") and the default
  * player play Combat from the same entry state, seed and schedule. Soldiers
- * eat (`combatBalance.army`), so the max-army colony spends at least as
- * many Combat check-ins food-critical as the default one (restated by Story
- * 9.15 once food has a limit, #478; strictly more from Story 9.18). Reachability for both players is in
+ * eat (`combatBalance.army`), so the max-army colony spends more Combat
+ * check-ins food-critical than the default one (restated by Story 9.15 once
+ * food has a limit, #478; strict since Story 9.18 stretched Combat over the week). Reachability for both players is in
  * reachability.test.ts.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -77,7 +77,7 @@ describe('maxArmyPolicy (Story 4.4)', () => {
 
 describe('foodCriticalInCombat', () => {
   const rec = (index: number, foodCritical: boolean, phase: string = Phase.COMBAT): CheckInRecord => ({
-    index, startMs: 0, activeMs: 0, phase, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, digs: 0, feeds: 0, refused: 0, byAction: {}, foodCritical, capacityCritical: false, starving: false, starvedTotal: 0, startCrowded: false, foodLostAtLimit: 0,
+    index, startMs: 0, activeMs: 0, phase, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, digs: 0, feeds: 0, refused: 0, byAction: {}, foodCritical, capacityCritical: false, starving: false, starvedTotal: 0, startCrowded: false, startAtFloor: false, foodLostAtLimit: 0,
   });
 
   it('counts the Combat check-ins a run arrived at food-critical, and no other phase', () => {
@@ -100,8 +100,9 @@ describe('the army trade-off in the pacing harness (Story 4.4)', () => {
   let comparison: ArmyComparison;
   beforeEach(() => {
     comparison ??= runArmyComparison({ seed: SEED, days: DAYS })!;
-  });
+  }, 60_000);
 
+  // Combat spans the week (Story 9.18): replaying both players takes a few seconds, hence the timeout.
   it('both players start Combat from the same state', () => {
     const schedule = firstWeekSchedule(DAYS);
     const entry = combatEntry(SEED, schedule);
@@ -111,12 +112,11 @@ describe('the army trade-off in the pacing harness (Story 4.4)', () => {
     expect(again.default.checkIns).toEqual(comparison.default.checkIns);
     expect(again.maxArmy.checkIns).toEqual(comparison.maxArmy.checkIns);
     expect(comparison.default.checkIns[0].index).toBe(comparison.maxArmy.checkIns[0].index);
-  });
+  }, 30_000);
 
-  // Story 9.15 (owner decision on #478): at least as many while Combat lasts two check-ins in the sim; Story 9.18 makes it strict.
-  it('the max-army colony spends at least as many Combat check-ins food-critical as the default one (Story 9.15)', () => {
-    expect(comparison.foodCriticalInCombat.maxArmy).toBeGreaterThanOrEqual(comparison.foodCriticalInCombat.default);
-    expect(comparison.foodCriticalInCombat.maxArmy).toBeGreaterThan(0);
+  // Story 9.18: Combat spans the week, so the restated target (Story 9.15, #478) is strict.
+  it('the max-army colony spends more Combat check-ins food-critical than the default one (Stories 9.15, 9.18)', () => {
+    expect(comparison.foodCriticalInCombat.maxArmy).toBeGreaterThan(comparison.foodCriticalInCombat.default);
   });
 
   it('the max-army player trains more soldiers in the check-ins both play', () => {

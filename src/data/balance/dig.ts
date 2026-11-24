@@ -9,10 +9,18 @@
 export const digBalance = {
   /** Nest capacity one room adds (more than 1). Story 9.14 halved it (6 → 3): a Gallery room holds twice this, and most rooms get one. */
   roomSize: 3,
-  /** Dig points the first room costs (Story 9.13 lowered it to offset crowding in Colony, gate 1 held). */
-  firstRoomPoints: 3100,
+  /** Dig points the first room costs (Story 9.13 lowered it to offset crowding in Colony; Story 9.18 again, for gate 1's margin). */
+  firstRoomPoints: 2800,
   /** Each room dug adds this share of the first room's cost to every later room (linear, so a big nest stays diggable). */
   roomGrowthPerRoom: 0.22,
+  /**
+   * Past `steepFromRoom` rooms (Story 9.18), each room also adds this share of the first room's cost per room past it,
+   * squared: Colony's nest digs as before, a Combat-sized one slows, so the colony grows through the first week.
+   */
+  roomGrowthSquared: 0.015,
+  steepFromRoom: 40,
+  /** The squared term stops growing here (about Combat's end), so Expansion's bigger nest is not a wall. */
+  steepToRoom: 260,
   /** Dig points a press adds on its own. */
   pressPoints: 10,
   /** Dig points every worker on the DIG role adds to each press (the sum floored to whole points). */

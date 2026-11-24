@@ -147,7 +147,8 @@ for (const [name, policy] of POLICIES) describe(`every MVP phase goal is reachab
   };
 
   for (const phase of [Phase.EGG_LAYING, Phase.COLONY, Phase.COMBAT] as const) {
-    it(`${phase}: the goal is met within ${CEILING_FACTOR}× the GDD target, without prestige or a stalled day`, () => {
+    // Story 9.18 stretched Combat over the first week: playing it to its goal takes seconds, more on a slow CI runner.
+    it(`${phase}: the goal is met within ${CEILING_FACTOR}× the GDD target, without prestige or a stalled day`, { timeout: 30_000 }, () => {
       const entry = entryOf(phase);
       expect(entry.phase).toBe(phase);
       const r = runOf(phase);

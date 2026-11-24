@@ -2,7 +2,8 @@ import type { GameState } from '../state/GameState';
 import { getNextAction, isCapacityCritical, isFoodCritical, isItemAffordable, itemKey, listItems } from '../systems/NextAction';
 import { conditionMet, goalFor } from '../state/queries';
 import { MS_PER_SEC } from '../data/constants';
-import { crowdingBites } from '../systems/Crowding';
+import { crowdingBites, getCrowding } from '../systems/Crowding';
+import { crowdingBalance } from '../data/balance/crowding';
 import { isStarvingNow } from '../systems/Starvation';
 
 /** The moment a phase was entered (Story 3.7). */
@@ -51,6 +52,8 @@ export interface CheckInRecord {
   readonly capacityCritical: boolean;
   /** Crowding bit on arrival (Story 9.13, `crowdingBites`). */
   readonly startCrowded: boolean;
+  /** On arrival, crowding held the work at its floor (Story 9.18, `crowdingBalance.floor`). */
+  readonly startAtFloor: boolean;
   /** The colony starved (`isStarvingNow`) on arrival or after any move or step of play (Story 9.16). */
   readonly starving: boolean;
   /** The run's starved workers and soldiers so far, when the check-in ended (Story 9.16). */
@@ -140,6 +143,7 @@ interface OpenCheckIn {
   foodCritical: boolean;
   capacityCritical: boolean;
   startCrowded: boolean;
+  startAtFloor: boolean;
   starving: boolean;
   foodLostAtLimit: number;
 }
@@ -184,7 +188,7 @@ export class Probes {
     this.lastCheckIn = index;
     this.open = {
       index, startMs: atMs, startActiveMs: this.nowActiveMs, phase: s.phase, decisionsAvailable: decisionsAvailable(s), waitMs: waitMs(s), actions: 0, taps: 0, digs: 0, feeds: 0, refused: 0, byAction: {},
-      foodCritical: false, capacityCritical: false, startCrowded: crowdingBites(s), starving: false, foodLostAtLimit: s.foodLostAtLimit,
+      foodCritical: false, capacityCritical: false, startCrowded: crowdingBites(s), startAtFloor: getCrowding(s).multiplier <= crowdingBalance.floor, starving: false, foodLostAtLimit: s.foodLostAtLimit,
     };
     this.critical(s);
   }

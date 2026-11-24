@@ -15,4 +15,12 @@ export const decisionBalance = {
    * never the last one), no further.
    */
   workerFloorShare: 0.5,
+  /**
+   * OVERCROWDING. (Story 9.18) spawns only once crowding costs at least this
+   * whole percent of the work (`crowdedPercent`), a nest close to its floor:
+   * crowding bites all of Colony (18–50% of the work in the pacing harness), so
+   * "the nest is crowded" alone made it eligible always; at 40% it is eligible
+   * on about a third of Colony's looks.
+   */
+  overcrowdingMinWorkPercent: 40,
 } as const;
