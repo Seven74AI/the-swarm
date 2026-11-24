@@ -4,7 +4,7 @@ import { resume } from '../../../src/engine/resume';
 import { processTick } from '../../../src/engine/processTick';
 import { EventBus } from '../../../src/engine/EventBus';
 import { EventQueue } from '../../../src/engine/events';
-import { offlineWorkerFloor } from '../../../src/engine/offlineRules';
+import { applyOfflineRules, offlineRulesFor, offlineWorkerFloor } from '../../../src/engine/offlineRules';
 import { ResourceSystem } from '../../../src/systems/ResourceSystem';
 import { SoldierSystem } from '../../../src/systems/SoldierSystem';
 import { MapSystem } from '../../../src/systems/MapSystem';
@@ -177,15 +177,20 @@ describe('offline rules: automation', () => {
 });
 
 describe('offline rules: starvation floor (FR24)', () => {
-  it('the floor is ceil(OFFLINE_WORKER_FLOOR_SHARE × eaters before the absence), a whole number (Story 9.16: soldiers count)', () => {
+  it('the worker floor is ceil(OFFLINE_WORKER_FLOOR_SHARE × workers before the absence), a whole number', () => {
     for (const w of [0, 1, 7, 40, 999]) {
-      for (const soldiers of [0, 13]) {
-        const floor = offlineWorkerFloor(makeState({ resources: { workers: w }, combatSoldiers: soldiers }));
-        expect(Number.isInteger(floor)).toBe(true);
-        expect(floor).toBe(Math.ceil(OFFLINE_WORKER_FLOOR_SHARE * (w + soldiers)));
-        expect(floor).toBeLessThanOrEqual(w + soldiers);
-      }
+      const floor = offlineWorkerFloor(makeState({ resources: { workers: w }, combatSoldiers: 13 }));
+      expect(Number.isInteger(floor)).toBe(true);
+      expect(floor).toBe(Math.ceil(OFFLINE_WORKER_FLOOR_SHARE * w));
+      expect(floor).toBeLessThanOrEqual(w);
     }
+  });
+
+  it('never hands back soldiers lost in battle as workers (Story 9.16)', () => {
+    const before = makeState({ resources: { workers: 50 }, combatSoldiers: 40 });
+    const rules = offlineRulesFor(before);
+    const afterBattle = { ...before, combatSoldiers: 0 };
+    expect(applyOfflineRules(afterBattle, rules)).toBe(afterBattle);
   });
 
   it('property: starvation during catch-up never takes workers below the floor', () => {

@@ -14,6 +14,7 @@ import { SoldierSystem } from '../../../src/systems/SoldierSystem';
 import { MapSystem } from '../../../src/systems/MapSystem';
 import { TerritorySystem } from '../../../src/systems/TerritorySystem';
 import { catchUp } from '../../../src/engine/catchUp';
+import { offlineDeathCap } from '../../../src/engine/offlineRules';
 import { migrateSave } from '../../../src/persistence/migrations';
 import { SaveManager, type SaveData } from '../../../src/persistence/SaveManager';
 import { prestige } from '../../../src/systems/PrestigeSystem';
@@ -75,14 +76,15 @@ describe('Story 9.16: when starvation bites', () => {
   });
 
   it('then one eater dies every death interval, and a bigger deficit never kills faster', () => {
-    const small = hungry({ workers: 100, soldiers: 20 });
     const big = hungry({ workers: 1000, soldiers: 400 });
-    const span = graceMs(small) + 10 * deathIntervalMs(small);
-    const expected = Math.floor((span - graceMs(small)) / deathIntervalMs(small)) + 1;
-    expect(deaths(small, starve(small, span, 500))).toBeLessThanOrEqual(expected);
+    const bigger = hungry({ workers: 5000, soldiers: 2000 });
+    const span = graceMs(big) + 10 * deathIntervalMs(big);
+    const expected = Math.floor((span - graceMs(big)) / deathIntervalMs(big)) + 1;
+    // Both stay hungry the whole span: the same deaths, however big the deficit.
     expect(deaths(big, starve(big, span, 500))).toBe(expected);
-    expect(deathIntervalMs(small)).toBeGreaterThanOrEqual(2_000);
-    expect(deathIntervalMs(small)).toBeLessThanOrEqual(10_000);
+    expect(deaths(bigger, starve(bigger, span, 500))).toBe(expected);
+    expect(deathIntervalMs(big)).toBeGreaterThanOrEqual(2_000);
+    expect(deathIntervalMs(big)).toBeLessThanOrEqual(10_000);
   });
 
   it('eggs, larvae and the queen never starve; deaths are counted by kind', () => {
@@ -111,14 +113,14 @@ describe('Story 9.16: when starvation bites', () => {
     expect(kinds).toEqual(new Set(['w', 's']));
   });
 
-  it('a dead worker comes off the free pool first, then off the roles; roles never exceed workers', () => {
+  it('a dead worker comes off a role that brings in no food (free workers who feed themselves live); roles never exceed workers', () => {
     const s = hungry({ workers: 10, dig: 8, soldiers: 0 });
     let cur = s;
     for (let i = 0; i < 60; i++) {
       const next = tickStarvation(cur, sec(deathIntervalMs(s)));
       if (next.resources.workers < cur.resources.workers) {
-        const freeBefore = cur.resources.workers - getAssignedWorkers(cur);
-        if (freeBefore > 0) expect(next.workersAssigned).toEqual(cur.workersAssigned);
+        expect(next.workersAssigned.dig).toBe(cur.workersAssigned.dig - 1);
+        expect(next.resources.workers - getAssignedWorkers(next)).toBe(cur.resources.workers - getAssignedWorkers(cur));
       }
       expect(getAssignedWorkers(next)).toBeLessThanOrEqual(next.resources.workers);
       cur = next;
@@ -170,6 +172,45 @@ describe('Story 9.16: shrink to fit', () => {
   });
 });
 
+describe('Story 9.16: never wipes the run', () => {
+  /** Hungry, with free workers and gatherers who make more food than they eat. */
+  const mixed = (free: number, dig: number, gather: number, soldiers: number) => {
+    const s = hungry({ workers: free + dig + gather, gather, dig, soldiers });
+    return s;
+  };
+
+  it('a colony whose free workers and gatherers feed themselves settles above zero, and its gatherers never starve', () => {
+    for (const [free, dig, gather, soldiers] of [[10, 10, 0, 20], [50, 0, 0, 50], [5, 40, 10, 30], [0, 100, 20, 0]]) {
+      const s = mixed(free, dig, gather, soldiers);
+      const after = starve(s, 30 * 60_000, 1000);
+      expect(eaters(after), `${free}/${dig}/${gather}/${soldiers}`).toBeGreaterThan(0);
+      expect(after.workersAssigned.gather).toBe(s.workersAssigned.gather);
+      expect(getSettlesAt(s).workers + getSettlesAt(s).soldiers).toBeGreaterThan(0);
+    }
+  });
+
+  it('every death raises the food rate (only eaters who eat more than they make die)', () => {
+    let cur = mixed(10, 30, 5, 20);
+    for (let i = 0; i < 200; i++) {
+      const next = tickStarvation(cur, sec(deathIntervalMs(cur)));
+      if (eaters(next) < eaters(cur)) expect(netFoodOf(next)).toBeGreaterThan(netFoodOf(cur));
+      cur = next;
+    }
+  });
+});
+
+describe('Story 9.16: the clock after a cap', () => {
+  it('a stretch that stopped at the away cap owes at most one death on the next live step', () => {
+    const s = hungry({ workers: 200, soldiers: 50 });
+    const bus = new EventBus();
+    const deps = { resourceSystem: new ResourceSystem(bus), soldierSystem: new SoldierSystem(bus), mapSystem: new MapSystem(), territorySystem: new TerritorySystem(), latch: (x: GameState) => x };
+    const ms = 12 * 3600_000;
+    const away = catchUp(s, ms, Math.floor(ms / TICK_MS), deps);
+    expect(away.starvation.starvedWorkers + away.starvation.starvedSoldiers).toBe(offlineDeathCap(s));
+    expect(deaths(away, tickStarvation(away, TICK_MS / MS_PER_SEC))).toBeLessThanOrEqual(1);
+  });
+});
+
 describe('Story 9.16: the Pantry', () => {
   it('is a room job, as data', () => {
     expect(ROOM_JOB_IDS).toContain('pantry');
@@ -200,10 +241,29 @@ describe('Story 9.16: away, at most 20% of the eaters', () => {
         const ms = hours * 3600_000;
         const after = catchUp(s, ms, Math.floor(ms / TICK_MS), deps);
         const lost = after.starvation.starvedWorkers + after.starvation.starvedSoldiers;
-        expect(lost).toBeLessThanOrEqual(Math.ceil((1 - OFFLINE_WORKER_FLOOR_SHARE) * eaters(s)));
+        expect(lost).toBeLessThanOrEqual(offlineDeathCap(s));
+        expect(lost).toBeLessThanOrEqual(Math.round((1 - OFFLINE_WORKER_FLOOR_SHARE) * eaters(s)));
       }),
       { numRuns: 25 },
     );
+  });
+});
+
+describe('Story 9.16: away, food that runs out late still starves', () => {
+  it('a store that lasts most of a half-efficiency absence runs out, and then ants die', () => {
+    const s = hungry({ workers: 300, soldiers: 50 });
+    const bus = new EventBus();
+    const deps = { resourceSystem: new ResourceSystem(bus), soldierSystem: new SoldierSystem(bus), mapSystem: new MapSystem(), territorySystem: new TerritorySystem(), latch: (x: GameState) => x };
+    const ms = 8 * 3600_000;
+    // Enough food for about 3/4 of the absence at the current deficit.
+    const food = Math.floor(-netFoodOf(s) * (ms / MS_PER_SEC) * 0.75);
+    const after = catchUp({ ...s, resources: { ...s.resources, food } }, ms, Math.floor(ms / TICK_MS / 2), deps);
+    expect(after.starvation.starvedWorkers + after.starvation.starvedSoldiers).toBeGreaterThan(0);
+  });
+
+  it('the cap is a whole share of the eaters before: 20% of 10 is 2', () => {
+    expect(offlineDeathCap(hungry({ workers: 10, soldiers: 0 }))).toBe(2);
+    expect(offlineDeathCap(hungry({ workers: 80, soldiers: 20 }))).toBe(20);
   });
 });
 

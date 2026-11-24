@@ -96,7 +96,7 @@ export function OfflineSummarySheet({ summary }: { summary: OfflineSummary }) {
       )}
       {(info.starvedEaters ?? 0) > 0 && (
         <p class="offline-warn" data-offline-warn="starved-lost">
-          {colonyLine('offline_starved_lost', {
+          {colonyLine((info.foodRanOutAfterMs ?? 0) > 0 ? 'offline_starved_lost' : 'offline_starved_lost_already', {
             time: formatAway(info.foodRanOutAfterMs ?? 0),
             n: String(info.starvedEaters),
             share: String(Math.round((1 - OFFLINE_WORKER_FLOOR_SHARE) * 100)),

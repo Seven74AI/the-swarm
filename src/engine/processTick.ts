@@ -42,7 +42,7 @@ export function processTick(
   skipDeterministicResources: boolean = false,
   rng: RngStream = rngStream(state.rng),
   /** Starvation (Story 9.16): catch-up holds it until the food would have run out, and floors the eaters. */
-  starvation: { readonly allowed?: boolean; readonly maxDeaths?: number } = {},
+  starvation: { readonly allowed?: boolean; readonly dtSec?: number; readonly maxDeaths?: number } = {},
 ): GameState {
   let workingState = state;
 
@@ -79,7 +79,9 @@ export function processTick(
   // Automation targets (Story 4.10): after the step's production, so it can pay; offline too.
   newState = tickAutomationTargets(newState, dtSec, events, bonuses);
   // Starvation (Story 9.16): after the step's food and upkeep, deaths shrink the colony to fit.
-  if (starvation.allowed !== false) newState = tickStarvation(newState, dtSec, { bonuses, maxDeaths: starvation.maxDeaths });
+  // Catch-up holds it while the food would still have lasted: no stretch is running then.
+  if (starvation.allowed !== false) newState = tickStarvation(newState, starvation.dtSec ?? dtSec, { bonuses, maxDeaths: starvation.maxDeaths });
+  else if (newState.starvation.ms > 0) newState = { ...newState, starvation: { ...newState.starvation, ms: 0, stretchDeaths: 0 } };
 
   // Expedition system: tick timers and resolve completed ones
   newState = tickExpeditions(newState, dtSec);
