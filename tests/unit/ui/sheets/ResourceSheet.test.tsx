@@ -70,7 +70,9 @@ describe('resource sheet', () => {
     expect(cellOf('workers', 'cap')).toMatch(/█.*100%/);
     expect(cellOf('workers', 'cap')).toContain(formatFull(cap));
     expect(rowOf('workers').dataset.capped).toBe('true');
-    expect(rowOf('food').querySelector('[data-col="cap"]')).toBeNull();
+    expect(rowOf('wood').querySelector('[data-col="cap"]')).toBeNull();
+    // Food has a cap too since Story 9.15: the food limit.
+    expect(rowOf('food').querySelector('[data-col="cap"]')).not.toBeNull();
     for (const r of rows()) expect(r.querySelector('[data-glyph]')?.getAttribute('aria-hidden')).toBe('true');
   });
 
@@ -235,6 +237,21 @@ describe('resource sheet: the food block (Story 9.12)', () => {
     act(() => void openResourceSheet(sheets, feed, { onFoodJump }));
     act(() => sheet().querySelector<HTMLButtonElement>('[data-food-jump="soldiers"]')!.click());
     expect(onFoodJump).toHaveBeenLastCalledWith('soldiers');
+  });
+
+  it('reads the food limit, FULL IN <t> while food rises, and FULL at the limit (Story 9.15)', async () => {
+    const { getFoodLimit } = await import('../../../../src/systems/FoodLimit');
+    gameState.value = { ...colony(), resources: { ...colony().resources, food: 0 }, workersAssigned: { ...colony().workersAssigned, gather: 30, tend: 0 } };
+    const limit = getFoodLimit(gameState.value);
+    feed = createResourceFeed();
+    act(() => void openResourceSheet(sheets, feed));
+    const line = () => sheet().querySelector<HTMLElement>('[data-food="limit"]')!;
+    expect(line().textContent).toMatch(new RegExp(`^LIMIT ${formatFull(limit)}\\W+FULL IN \\d`));
+    // The separator is decoration: hidden from a screen reader, which hears a pause.
+    expect(line().querySelector('[aria-hidden="true"]')?.textContent).toBe('·');
+    act(() => void (gameState.value = { ...gameState.value, resources: { ...gameState.value.resources, food: limit } }));
+    act(() => void openResourceSheet(sheets, feed));
+    expect(line().textContent).toMatch(/\WFULL$/);
   });
 
   it('Phase 1 shows no food block', () => {

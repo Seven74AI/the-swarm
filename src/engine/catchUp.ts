@@ -4,12 +4,13 @@ import type { SoldierSystem } from '../systems/SoldierSystem';
 import type { MapSystem } from '../systems/MapSystem';
 import type { TerritorySystem } from '../systems/TerritorySystem';
 import { capOfflineMs, computeOfflineResourceDeltas } from '../systems/OfflineProgression';
-import { CATCH_UP_STEP_MS, TICK_MS } from '../data/constants';
+import { CATCH_UP_STEP_MS, MS_PER_SEC, TICK_MS } from '../data/constants';
 import { log } from '../utils/log';
 import { EventQueue } from './events';
 import { processTick } from './processTick';
 import { creditWhole } from '../utils/math';
 import { applyOfflineRules, offlineDeathCap, offlineRulesFor } from './offlineRules';
+import { capFood, getFoodLimit } from '../systems/FoodLimit';
 
 export interface CatchUpDeps {
   resourceSystem: ResourceSystem;
@@ -63,6 +64,8 @@ export interface CatchUpReport {
   foodRanOutAfterMs: number | null;
   /** Workers who starved during the absence (Story 9.16: the summary's `<n> WORKERS LOST`). */
   starvedEaters: number;
+  /** Ms after leaving when food reached the food limit (Story 9.15): 0 when already full on leaving; null when none was lost. */
+  foodFullAfterMs: number | null;
 }
 
 /** The starvation options of one catch-up step from `done` for `stepLen` ms (Story 9.16). */
@@ -76,6 +79,19 @@ function foodRunsOutMsOf(stock: number, foodDelta: number, effectiveMs: number):
   if (!(effectiveMs > 0) || !(foodDelta < 0)) return null;
   const at = (Math.max(0, stock) / -foodDelta) * effectiveMs;
   return at < effectiveMs ? Math.floor(at) : null;
+}
+
+/**
+ * When the closed-form food reached the limit (Story 9.15): the stock rises
+ * at one net rate over the whole absence, so it hits `limit` at
+ * `(limit − stock) / net`. Read only when food was lost at the limit; 0 when
+ * it was already full on leaving (or within a second).
+ */
+function foodFullAfterMsOf(stock: number, foodDelta: number, effectiveMs: number, limit: number): number {
+  if (!(effectiveMs > 0) || !(foodDelta > 0) || stock >= limit) return 0;
+  const at = ((limit - stock) / foodDelta) * effectiveMs;
+  // Under a second reads as full on leaving.
+  return at < MS_PER_SEC ? 0 : Math.min(Math.floor(at), effectiveMs);
 }
 
 /**
@@ -111,7 +127,10 @@ export function catchUpWithReport(
 
   // Credited in whole units, the fractions carried (Story 2.5, as in a live tick).
   const rem = state.resourceRemainder;
-  const food = creditWhole(state.resources.food, rem.food, d.foodDelta);
+  const credited = creditWhole(state.resources.food, rem.food, d.foodDelta);
+  // The food limit (Story 9.15) is applied once the steps below have run: they dig rooms
+  // (which raise it) and spend food (which makes room), as live ticks would.
+  const food = credited;
   const wood = creditWhole(state.resources.wood, rem.wood, d.woodDelta);
   const stone = creditWhole(state.resources.stone, rem.stone, d.stoneDelta);
   const nectar = creditWhole(state.resources.nectar, rem.nectar, d.nectarDelta);
@@ -162,5 +181,11 @@ export function catchUpWithReport(
   log.info('catch-up', `simulated ${simulatedMs} ms in ${steps} steps`, { effectiveMs, simulatedMs, steps, stepMs: step });
   const starvedMs = starvedMsOf(state.resources.food + rem.food, d.foodDelta, effectiveMs);
   const starvedEaters = s.starvation.starvedWorkers - state.starvation.starvedWorkers;
-  return { state: s, report: { starvedMs, foodRanOutAfterMs: foodRunsOutAtMs, starvedEaters } };
+  // The food limit (Story 9.15): what the absence would take past the limit the colony has
+  // after it is lost; a store already over it keeps its food.
+  const limit = getFoodLimit(s);
+  const capped = capFood(state.resources.food, s.resources.food, limit);
+  if (capped.lost > 0) s = { ...s, resources: { ...s.resources, food: capped.food }, foodLostAtLimit: s.foodLostAtLimit + capped.lost };
+  const foodFullAfterMs = capped.lost > 0 ? foodFullAfterMsOf(state.resources.food + rem.food, d.foodDelta, effectiveMs, limit) : null;
+  return { state: s, report: { starvedMs, foodRanOutAfterMs: foodRunsOutAtMs, starvedEaters, foodFullAfterMs } };
 }

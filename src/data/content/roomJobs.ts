@@ -13,6 +13,7 @@ export interface RoomJobCopy {
 export const ROOM_JOBS: readonly RoomJobCopy[] = [
   { id: 'gallery', label: 'GALLERY', hint: 'HOLDS TWICE AS MANY ANTS' },
   { id: 'pantry', label: 'PANTRY', hint: 'HUNGER BITES SLOWER' },
+  { id: 'larder', label: 'LARDER', hint: 'STORES MORE FOOD' },
 ];
 
 /** A room with no job. */

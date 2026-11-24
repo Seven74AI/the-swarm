@@ -18,6 +18,8 @@ export interface OfflineLoadInfo extends OfflinePlan {
   foodRanOutAfterMs: number | null;
   /** Workers and soldiers who starved during the absence (Story 9.16). */
   starvedEaters: number;
+  /** Ms after leaving when food reached the food limit (Story 9.15); null when it never did. */
+  foodFullAfterMs: number | null;
 }
 
 export interface ResumeResult {
@@ -64,7 +66,7 @@ export function resume(state: GameState, elapsedMs: number, deps: CatchUpDeps): 
     state: after,
     elapsedMs: elapsed,
     efficiency,
-    offline: { ...plan, efficiency, starvedMs: report.starvedMs, foodRanOutAfterMs: report.foodRanOutAfterMs, starvedEaters: report.starvedEaters },
+    offline: { ...plan, efficiency, starvedMs: report.starvedMs, foodRanOutAfterMs: report.foodRanOutAfterMs, starvedEaters: report.starvedEaters, foodFullAfterMs: report.foodFullAfterMs },
   };
 }
 

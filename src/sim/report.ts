@@ -3,7 +3,7 @@ import { Phase, PHASE_ORDER } from '../phases/phases';
 import { DAY_MS, PERCENT } from '../data/constants';
 import { simBalance } from '../data/balance/sim';
 import { pacingReportDefaults, pacingTargets, type FirstWeekGates, type PacingTargets, type PhaseTarget } from '../data/balance/pacing';
-import { formatTime } from '../utils/format';
+import { formatFull, formatTime } from '../utils/format';
 import { SimRunner, runSim, type SimResult } from './runner';
 import { firstWeekSchedule, type CheckInSchedule } from './schedule';
 import { defaultPolicy, maxArmyPolicy, type PlayerPolicy } from './policy';
@@ -118,6 +118,33 @@ export function median(values: readonly number[]): number | null {
  */
 export function idleCheckIns(checkIns: readonly CheckInRecord[], limitMs: number): CheckInRecord[] {
   return checkIns.filter((c) => c.actions === 0 && (c.waitMs === null || c.waitMs > limitMs));
+}
+
+/** The food lost at the limit in one day of the run (Story 9.15). */
+export interface DayFoodLost {
+  /** The day, from 1. */
+  readonly day: number;
+  readonly lost: number;
+}
+
+/**
+ * Food lost at the limit, per day (Story 9.15): from the running count each
+ * check-in records when it ends, so a day's loss is what was added by the end
+ * of its last check-in since the day before. Pure.
+ */
+export function foodLostPerDay(checkIns: readonly CheckInRecord[]): DayFoodLost[] {
+  if (checkIns.length === 0) return [];
+  const lastDay = Math.floor(checkIns[checkIns.length - 1].startMs / DAY_MS) + 1;
+  const out: DayFoodLost[] = [];
+  let before = 0;
+  let i = 0;
+  for (let day = 1; day <= lastDay; day++) {
+    let upTo = before;
+    for (; i < checkIns.length && Math.floor(checkIns[i].startMs / DAY_MS) + 1 <= day; i++) upTo = Math.max(upTo, checkIns[i].foodLostAtLimit);
+    out.push({ day, lost: upTo - before });
+    before = upTo;
+  }
+  return out;
 }
 
 /** One phase's crowded check-ins (Story 9.13): how many started with crowding biting, of how many. */
@@ -294,6 +321,8 @@ export interface PacingReport {
   readonly crowded: readonly CrowdedShare[];
   /** Starvation's deaths, stretches and bounds (Story 9.16). */
   readonly starvation: StarvationReport;
+  /** Food lost at the limit per day (Story 9.15). */
+  readonly foodLost: readonly DayFoodLost[];
   /** The three first-week gates (Story 9.1). */
   readonly gates: readonly GateLine[];
   /** The default and the max-army player through Combat from the same seed (Story 4.4); absent when not run. */
@@ -353,8 +382,11 @@ export interface ArmyComparison {
   readonly startCheckIn: number;
   readonly default: ArmyRun;
   readonly maxArmy: ArmyRun;
-  /** Check-ins both runs arrived at in Combat where the max-army colony was food-critical and the default one was not. */
-  readonly onlyMaxArmyFoodCritical: readonly number[];
+  /**
+   * Combat check-ins both runs played where each was food-critical (Story 4.4's target as
+   * restated by Story 9.15, #478: the max-army colony has at least as many).
+   */
+  readonly foodCriticalInCombat: { readonly default: number; readonly maxArmy: number };
 }
 
 /**
@@ -394,17 +426,21 @@ function playCombat(entry: GameState, seed: number, schedule: CheckInSchedule, f
   };
 }
 
-/** The check-ins both runs arrived at in Combat where only the max-army colony was food-critical. Pure. */
-export function onlyMaxArmyFoodCritical(def: readonly CheckInRecord[], max: readonly CheckInRecord[]): number[] {
-  const byIndex = new Map(def.filter((c) => c.phase === Phase.COMBAT).map((c) => [c.index, c]));
-  return max.filter((c) => c.phase === Phase.COMBAT && c.foodCritical && byIndex.get(c.index)?.foodCritical === false).map((c) => c.index);
+/**
+ * How many of a run's Combat check-ins were food-critical (Story 4.4, restated
+ * by Story 9.15); with `other`, only those the other run also played in
+ * Combat, so a longer Combat alone adds nothing. Pure.
+ */
+export function foodCriticalInCombat(checkIns: readonly CheckInRecord[], other?: readonly CheckInRecord[]): number {
+  const both = other ? new Set(other.filter((c) => c.phase === Phase.COMBAT).map((c) => c.index)) : null;
+  return checkIns.filter((c) => c.phase === Phase.COMBAT && c.foodCritical && (both === null || both.has(c.index))).length;
 }
 
 /** Play Combat from `entry` with both players (Story 4.4). */
 export function compareArmies(entry: GameState, opts: { readonly seed: number; readonly schedule: CheckInSchedule; readonly first: number }): ArmyComparison {
   const def = playCombat(entry, opts.seed, opts.schedule, opts.first, defaultPolicy);
   const max = playCombat(entry, opts.seed, opts.schedule, opts.first, maxArmyPolicy);
-  return { seed: opts.seed, startCheckIn: opts.first, default: def, maxArmy: max, onlyMaxArmyFoodCritical: onlyMaxArmyFoodCritical(def.checkIns, max.checkIns) };
+  return { seed: opts.seed, startCheckIn: opts.first, default: def, maxArmy: max, foodCriticalInCombat: { default: foodCriticalInCombat(def.checkIns, max.checkIns), maxArmy: foodCriticalInCombat(max.checkIns, def.checkIns) } };
 }
 
 /** A fresh game to Combat with the default player, then Combat with both players (Story 4.4). Null when Combat is never reached. */
@@ -442,6 +478,7 @@ export function buildPacingReport(result: SimResult, opts: { readonly seed: numb
     critical: criticalMoments(probes.checkIns, targets.criticalMoments.phase),
     starvation: starvationReport(probes.checkIns, targets.starvation),
     crowded: crowdedShares(probes.checkIns),
+    foodLost: foodLostPerDay(probes.checkIns),
     gates: firstWeekGates(probes, spans, { atMs: result.elapsedMs }, targets.gates),
   };
 }
@@ -518,7 +555,7 @@ export function formatArmyComparison(a: ArmyComparison): string[] {
     `            bought in Combat: ${a.default.bought.join(', ') || 'nothing'}`,
     armyLine('max-army', a.maxArmy),
     `            bought in Combat: ${a.maxArmy.bought.join(', ') || 'nothing'}`,
-    `  Food-critical for the max-army colony only: check-ins ${checkInList(a.onlyMaxArmyFoodCritical)} (target ≥ 1)`,
+    `  Combat check-ins food-critical: default ${a.foodCriticalInCombat.default}, max-army ${a.foodCriticalInCombat.maxArmy} (target: max-army at least as many)`,
   ];
 }
 
@@ -564,6 +601,7 @@ export function formatPacingReport(r: PacingReport): string {
     `Eggs from tapping, from Colony on: ${pct(r.tapShareAfterColony)} (target < ${t.tapShareAfterColonyMaxPercent}%)`,
     `Actions per check-in (taps excluded): median ${r.medianActions ?? 'n/a'}`,
     `${phaseLabel(r)} check-ins food-critical: ${r.critical.food}, capacity-critical: ${r.critical.capacity} (target ≥ ${t.criticalMoments.min} each)`,
+    `Food lost at the limit per day (Story 9.15): ${r.foodLost.map((d) => `day ${d.day} ${formatFull(d.lost)}`).join(', ') || 'none'}`,
     `Check-ins that started crowded (Story 9.13): ${r.crowded.map((x) => `${x.phase} ${x.percent}% (${x.crowded} of ${x.checkIns})`).join(', ') || 'none'}`,
     ...starvationLines(r),
     ...(laterPhases(r).length > 0 ? ['Later phases (no GDD target in the MVP):', ...laterPhases(r)] : []),

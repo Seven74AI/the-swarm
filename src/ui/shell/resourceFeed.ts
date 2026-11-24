@@ -1,7 +1,7 @@
 import { signal, type ReadonlySignal } from '@preact/signals';
 import {
   selectCombatResources,
-  selectEffectiveNestCapacity,
+  selectEffectiveNestCapacity, selectFoodLimit,
   selectPhase,
   selectResources,
   selectStats,
@@ -136,6 +136,7 @@ export function createResourceFeed(opts: { windowMs?: number; intervalMs?: numbe
     const longDt = now.atMs - oldest.atMs;
 
     const cap = selectEffectiveNestCapacity.peek();
+    const foodLimit = selectFoodLimit.peek();
     const rows = RESOURCES.map((def): ResourceRow => {
       const amount = now.amounts[def.id];
       const rate = dt > 0 ? Math.trunc(((amount - base.amounts[def.id]) * 1000) / dt) : 0;
@@ -143,7 +144,8 @@ export function createResourceFeed(opts: { windowMs?: number; intervalMs?: numbe
       const longPerSec = longDt > dt ? ((amount - oldest.amounts[def.id]) * 1000) / longDt : shortPerSec;
       const ratePerSec = rate !== 0 ? shortPerSec : longPerSec;
       const series = [...long.map((s) => s.amounts[def.id]), ...(long[long.length - 1] === now ? [] : [amount])];
-      const rowCap = def.id === 'workers' ? Math.floor(cap) : null;
+      // Workers stop at the nest capacity; food at the food limit (Story 9.15).
+      const rowCap = def.id === 'workers' ? Math.floor(cap) : def.id === 'food' ? foodLimit : null;
       return {
         id: def.id,
         amount,
@@ -194,9 +196,13 @@ export function createResourceFeed(opts: { windowMs?: number; intervalMs?: numbe
   return feed;
 }
 
-/** Capped or falling: the resources that need a look first. */
+/**
+ * Capped or falling: the resources that need a look first. A full food store
+ * (Story 9.15) reads capped where it is shown, but does not jump ahead: unlike
+ * a full nest or a falling stock, nothing worsens while it waits.
+ */
 export function needsAttention(row: ResourceRow): boolean {
-  return row.capped || row.rate < 0;
+  return (row.capped && row.id !== 'food') || row.rate < 0;
 }
 
 /**

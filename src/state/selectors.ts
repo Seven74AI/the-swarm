@@ -6,7 +6,7 @@ import { getEffects } from '../systems/BuildingSystem';
 import { armyUpkeepPerSec, computeResourceRates, foodParts, isStarving, type FoodParts } from '../systems/ResourceSystem';
 import { affordableKeys } from './affordances';
 import { getBuildAction, getNextAction, type NextAction } from '../systems/NextAction';
-import { assignedTotal, freeWorkers, getReallocation, workforceTotal, type Reallocation } from '../systems/Workforce';
+import { assignedTotal, freeWorkers, getReallocation, netFoodPerSec, workforceTotal, type Reallocation } from '../systems/Workforce';
 import { TerritorySystem } from '../systems/TerritorySystem';
 import { getSoldierDefense, getSoldierMaxHp, getSoldierSpeed, getSoldierStrength } from '../systems/SoldierSystem';
 import { canChoose } from '../systems/DecisionSystem';
@@ -61,6 +61,9 @@ import { getVerdict, verdictText, type Verdict } from '../systems/Verdict';
 import { Phase as PhaseId } from '../phases/phases';
 import type { ResearchProjectId, ResearchProjectStatus } from './GameState';
 import { getCrowding } from '../systems/Crowding';
+import { getFoodLimit } from '../systems/FoodLimit';
+import { formatFull, formatTime } from '../utils/format';
+import { MS_PER_SEC } from '../data/constants';
 import { plainRooms, roomJobCost, roomJobRefusal, ROOM_JOB_IDS, type RoomJobId, type RoomSlot } from '../systems/RoomJobs';
 import type { RoomJobRefusal } from '../data/content/roomJobs';
 import { sceneBalance } from '../data/balance/scene';
@@ -94,6 +97,26 @@ function slice<K extends keyof GameState>(key: K): ReadonlySignal<GameState[K]> 
 
 export const selectPhase = slice('phase');
 export const selectResources = slice('resources');
+/** The food limit (Story 9.15): the strip's capped food cell. */
+export const selectFoodLimit = computed(() => getFoodLimit(gameState.value));
+
+/**
+ * The food block's limit line (Story 9.15): `LIMIT 2,100 · FULL IN 3M 10S`
+ * while food rises under the limit (from the current rates, the runway's
+ * check), `LIMIT 2,100 · FULL` at or over it, else `LIMIT 2,100`. A string,
+ * so it notifies only when the text changes.
+ */
+export const selectFoodLimitLine = computed<string>(() => {
+  const limit = selectFoodLimit.value;
+  const food = selectResources.value.food;
+  const head = `LIMIT ${formatFull(limit)}`;
+  if (food >= limit) return `${head} · FULL`;
+  // The rates the simulation runs at, territory included: the same net as the verdict's runway (Story 9.11).
+  const net = netFoodPerSec(gameState.value);
+  if (net <= 0) return head;
+  return `${head} · FULL IN ${formatTime(Math.max(MS_PER_SEC, Math.ceil(((limit - food) / net) * MS_PER_SEC))).toUpperCase()}`;
+});
+
 /** Room jobs (Story 9.14): counts by job and the rooms never assigned. */
 export const selectRoomJobs = slice('roomJobs');
 export const selectRoomsDug = computed(() => gameState.value.dig.roomsDug);

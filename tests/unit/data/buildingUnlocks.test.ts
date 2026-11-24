@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { foodLimitBalance } from '../../../src/data/balance/foodLimit';
 import { createInitialState, type GameState } from '../../../src/state/GameState';
 import { Phase, PHASE_ORDER } from '../../../src/phases/phases';
 import { EventBus } from '../../../src/engine/EventBus';
@@ -207,7 +208,8 @@ describe('the producer table tells the truth (Story 3.5)', () => {
     return {
       ...s,
       phase,
-      resources: { ...s.resources, workers: per * (jobs.length + 1), food: 5_000, nestCapacity: 1_000 },
+      // Food under the food limit (Story 9.15), so income can show.
+      resources: { ...s.resources, workers: per * (jobs.length + 1), food: Math.floor(foodLimitBalance.base / 2), nestCapacity: 1_000 },
       workersAssigned: assigned,
     };
   }

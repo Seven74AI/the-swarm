@@ -7,9 +7,11 @@
 export const roomJobBalance = {
   jobs: {
     /** A Gallery holds twice as many ants: one more room's worth of nest capacity (`digBalance.roomSize`). */
-    gallery: { extraRooms: 1 },
+    gallery: { extraRooms: 1, foodLimit: 0 },
     /** A Pantry (Story 9.16): starvation warns sooner and bites slower (`starvationBalance.perPantry` a room); it never stops it. */
-    pantry: { extraRooms: 0 },
+    pantry: { extraRooms: 0, foodLimit: 0 },
+    /** A Larder (Story 9.15) holds food: it raises the food limit by this, far more than a plain room's share. */
+    larder: { extraRooms: 0, foodLimit: 2_000 },
   },
   /**
    * Stone to change a room's job, unless it is the first job of a room never

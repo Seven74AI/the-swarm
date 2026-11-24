@@ -136,6 +136,17 @@ describe('createResourceFeed', () => {
     expect(row(createResourceFeed().snapshot.value, 'workers').capped).toBe(false);
   });
 
+  it('marks food capped at the food limit (Story 9.15)', async () => {
+    const { getFoodLimit } = await import('../../../../src/systems/FoodLimit');
+    const limit = getFoodLimit(gameState.value);
+    write(advance(0, { food: limit }));
+    const snap = createResourceFeed().snapshot.value;
+    expect(row(snap, 'food').cap).toBe(limit);
+    expect(row(snap, 'food').capped).toBe(true);
+    write(advance(0, { food: limit - 1 }));
+    expect(row(createResourceFeed().snapshot.value, 'food').capped).toBe(false);
+  });
+
   it('refreshes at most 4 times a second while retained, and stops when released', () => {
     vi.useFakeTimers();
     expect(REFRESH_MS).toBeGreaterThanOrEqual(250);
@@ -200,5 +211,14 @@ describe('stripCells', () => {
     const cells = stripCells(snap, 3);
     expect(cells).toHaveLength(3);
     expect(cells[0]).toBe('workers');
+  });
+
+  it('a full food store keeps its place: it reads capped, but nothing worsens while it waits (Story 9.15)', async () => {
+    const { getFoodLimit } = await import('../../../../src/systems/FoodLimit');
+    // Egg Laying lists food last, past the 3 cells of a narrowed strip.
+    const snap = snapshotAt(Phase.EGG_LAYING, (s) => ({ ...s, resources: { ...s.resources, food: getFoodLimit(s) } }));
+    expect(row(snap, 'food').capped).toBe(true);
+    expect(STRIP_SETS[Phase.EGG_LAYING].indexOf('food')).toBeGreaterThanOrEqual(3);
+    expect(stripCells(snap, 3)).not.toContain('food');
   });
 });
