@@ -1606,7 +1606,7 @@ So that "train the maximum and wait" is not always the best play.
 **Given** the pacing harness
 **When** the max-army policy and the default policy both play Combat from the same seed
 **Then** the report shows at least one point where the max-army colony is food-critical while the default is not; the reachability test still passes for both
-**And** (restated by Story 9.15, owner decision 2026-11-24, #478) once food has a limit, the target is relative: the max-army colony spends more Combat check-ins food-critical than the default one
+**And** (restated by Story 9.15, owner decision 2026-11-24, #478) once food has a limit, the target is relative: the max-army colony spends at least as many Combat check-ins food-critical as the default one (Story 9.15), and more once Combat spans days 2–7 (Story 9.18)
 
 **Covers:** FR12 (army trade-off)
 
@@ -2459,7 +2459,7 @@ So that food is something I manage, not a number that only goes up.
 
 **Given** Story 4.4's army trade-off target
 **When** food has a limit
-**Then** the target is restated (owner decision 2026-11-24, #478): the max-army colony spends more Combat check-ins food-critical than the default one, and `tests/sim/armyTradeOff.test.ts` asserts that in place of "at least one check-in where only the max-army colony is food-critical" (a finite store leaves the default player no buffer from an absence, so the old target held only with an unlimited store); Story 9.18 keeps it as a critical-moment bound
+**Then** the target is restated (owner decision 2026-11-24, #478): the max-army colony spends more Combat check-ins food-critical than the default one. While Combat lasts two check-ins in the sim, both colonies are food-critical in both (#478), so `tests/sim/armyTradeOff.test.ts` asserts at least as many (owner decision 2026-11-24, option 1 on #478) in place of "at least one check-in where only the max-army colony is food-critical" (a finite store leaves the default player no buffer from an absence, so the old target held only with an unlimited store); Story 9.18 keeps it as a critical-moment bound
 
 **Covers:** FR62, FR63 (Larder) · FR27 · FR12 (restated)
 
@@ -2544,7 +2544,7 @@ So that the first week ends with the colony I built, not a phase I finished on d
 **Given** the critical moments (Story 3.11's food- and capacity-critical probes, crowding and starvation)
 **When** the report judges them
 **Then** each has a lower and an upper bound in `pacingTargets`: Combat has at least one food-critical and one crowded check-in, no crowded stretch holds work at the floor for more than one check-in, and Story 9.16's starvation bounds hold
-**And** Story 4.4's restated trade-off holds (Story 9.15): the max-army colony spends more Combat check-ins food-critical than the default one
+**And** Story 4.4's restated trade-off holds (Story 9.15): the max-army colony spends more Combat check-ins food-critical than the default one; `tests/sim/armyTradeOff.test.ts` tightens Story 9.15's "at least as many" to strictly more
 
 **Given** the pacing findings of batch 2 (owner triage 2026-11-24: #497, #499)
 **When** the agent tunes

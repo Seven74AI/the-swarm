@@ -383,7 +383,7 @@ export interface ArmyComparison {
   readonly maxArmy: ArmyRun;
   /**
    * Combat check-ins each run arrived at food-critical (Story 4.4's target as
-   * restated by Story 9.15, #478: the max-army colony has more).
+   * restated by Story 9.15, #478: the max-army colony has at least as many).
    */
   readonly foodCriticalInCombat: { readonly default: number; readonly maxArmy: number };
 }
@@ -549,7 +549,7 @@ export function formatArmyComparison(a: ArmyComparison): string[] {
     `            bought in Combat: ${a.default.bought.join(', ') || 'nothing'}`,
     armyLine('max-army', a.maxArmy),
     `            bought in Combat: ${a.maxArmy.bought.join(', ') || 'nothing'}`,
-    `  Combat check-ins food-critical: default ${a.foodCriticalInCombat.default}, max-army ${a.foodCriticalInCombat.maxArmy} (target: max-army more)`,
+    `  Combat check-ins food-critical: default ${a.foodCriticalInCombat.default}, max-army ${a.foodCriticalInCombat.maxArmy} (target: max-army at least as many)`,
   ];
 }
 

@@ -4,9 +4,9 @@
  *
  * The max-army player ("train the maximum, then fight") and the default
  * player play Combat from the same entry state, seed and schedule. Soldiers
- * eat (`combatBalance.army`), so the max-army colony spends more Combat
- * check-ins food-critical than the default one (restated by Story 9.15 once
- * food has a limit, #478). Reachability for both players is in
+ * eat (`combatBalance.army`), so the max-army colony spends at least as
+ * many Combat check-ins food-critical as the default one (restated by Story
+ * 9.15 once food has a limit, #478; strictly more from Story 9.18). Reachability for both players is in
  * reachability.test.ts.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -106,8 +106,10 @@ describe('the army trade-off in the pacing harness (Story 4.4)', () => {
     expect(comparison.default.checkIns[0].index).toBe(comparison.maxArmy.checkIns[0].index);
   });
 
-  it('the max-army colony spends more Combat check-ins food-critical than the default one (Story 9.15)', () => {
-    expect(comparison.foodCriticalInCombat.maxArmy).toBeGreaterThan(comparison.foodCriticalInCombat.default);
+  // Story 9.15 (owner decision on #478): at least as many while Combat lasts two check-ins in the sim; Story 9.18 makes it strict.
+  it('the max-army colony spends at least as many Combat check-ins food-critical as the default one (Story 9.15)', () => {
+    expect(comparison.foodCriticalInCombat.maxArmy).toBeGreaterThanOrEqual(comparison.foodCriticalInCombat.default);
+    expect(comparison.foodCriticalInCombat.maxArmy).toBeGreaterThan(0);
   });
 
   it('the max-army player trains more soldiers in the check-ins both play', () => {
