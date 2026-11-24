@@ -20,6 +20,7 @@ import { canBuyAutoDig, getAutoDigCost, isAutoDigOpen } from './Dig';
 import {
   AUTOMATION_BUILDINGS,
   RESEARCHES,
+  autoBuildingLockedBy,
   canBuildAuto,
   canResearch,
   getAutoBuildCost,
@@ -231,7 +232,7 @@ function defOf(ref: ItemRef): ItemDef {
       return {
         panel: 'automation_panel',
         name: def.name,
-        open: (s) => level(s) < def.maxLevel,
+        open: (s) => level(s) < def.maxLevel && !autoBuildingLockedBy(ref.id, s),
         cost: (s) => nonZero({ ...getAutoBuildCost(ref.id, level(s) + 1) }),
         affordable: (s) => canBuildAuto(ref.id, s),
         verb: () => 'BUILD',

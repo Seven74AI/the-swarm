@@ -4,6 +4,7 @@ import { build, canBuild, isBuildingOpen, type BuildingType } from '../systems/B
 import {
   AUTOMATION_BUILDINGS,
   RESEARCHES,
+  autoBuildingLockedBy,
   buildAuto,
   canBuildAuto,
   canResearch,
@@ -35,12 +36,13 @@ export function researchAutomation(deps: ActionDeps, id: ResearchType): ActionRe
   return r;
 }
 
-/** Build or level up an automation building. */
+/** Build or level up an automation building; `locked` until its research is done (#193). */
 export function buildAutomation(deps: ActionDeps, id: AutomationBuildingType): ActionResult {
   const s = current(deps);
   const def = AUTOMATION_BUILDINGS[id];
   if (!def) return refuse('unknown_id');
   if ((s.autoProduction.buildings[id] ?? 0) >= def.maxLevel) return refuse('max_level');
+  if (autoBuildingLockedBy(id, s)) return refuse('locked');
   if (!canBuildAuto(id, s)) return refuse('cannot_afford');
   const r = commit(deps, s, buildAuto(id, s));
   if (r.ok) deps.bus.emit('auto_building_complete', { building: id, level: current(deps).autoProduction.buildings[id] });

@@ -209,7 +209,29 @@ export function getAutoBuildCost(
 }
 
 /**
- * Check if an automation building can be built.
+ * The research whose effect unlocks a building (`unlocksBuilding`), or
+ * undefined when the building needs none (#193).
+ */
+export function researchUnlocking(building: AutomationBuildingType): ResearchType | undefined {
+  return (Object.keys(RESEARCHES) as ResearchType[]).find((r) => RESEARCHES[r].effect.unlocksBuilding === building);
+}
+
+/**
+ * The research a building still waits for, or null when it is open (#193).
+ * A building already owned keeps its levels and production; only building
+ * more needs the research.
+ */
+export function autoBuildingLockedBy(
+  building: AutomationBuildingType,
+  state: GameState,
+): ResearchType | null {
+  const r = researchUnlocking(building);
+  return r && !state.autoProduction.researches[r] ? r : null;
+}
+
+/**
+ * Check if an automation building can be built: its research is done, it is
+ * below its max level, and the colony can pay for the next level.
  */
 export function canBuildAuto(
   building: AutomationBuildingType,
@@ -217,6 +239,7 @@ export function canBuildAuto(
 ): boolean {
   const def = AUTOMATION_BUILDINGS[building];
   if (!def) return false;
+  if (autoBuildingLockedBy(building, state)) return false;
 
   const currentLevel = state.autoProduction.buildings[building] ?? 0;
   if (currentLevel >= def.maxLevel) return false;

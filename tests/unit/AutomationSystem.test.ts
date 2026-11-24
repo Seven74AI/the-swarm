@@ -211,9 +211,10 @@ describe('AutomationSystem', () => {
       expect(canBuildAuto('nursery', state)).toBe(false);
     });
 
-    it('returns true with enough resources', () => {
+    it('returns true with enough resources once its research is done', () => {
       state.resources.wood = 1000;
       state.resources.food = 1000;
+      state.autoProduction.researches.thermal_regulation = true;
       expect(canBuildAuto('nursery', state)).toBe(true);
     });
   });
@@ -222,6 +223,7 @@ describe('AutomationSystem', () => {
     it('increments building level on success', () => {
       state.resources.wood = 1000;
       state.resources.food = 1000;
+      state.autoProduction.researches.thermal_regulation = true;
       const before = state.autoProduction.buildings['nursery'];
       const result = buildAuto('nursery', state);
       expect(result.autoProduction.buildings['nursery']).toBeGreaterThan(before);
@@ -230,6 +232,7 @@ describe('AutomationSystem', () => {
     it('deducts resources on build', () => {
       state.resources.wood = 1000;
       state.resources.food = 1000;
+      state.autoProduction.researches.thermal_regulation = true;
       const result = buildAuto('nursery', state);
       expect(result.resources.wood).toBeLessThan(state.resources.wood);
     });
