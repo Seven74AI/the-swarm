@@ -255,7 +255,7 @@ Brownfield; no starter template. Adoption steps (each is a story):
 9. PWA details: service worker, update strategy, offline asset caching.
 10. Scene rendering budget and the SVG → Canvas/PixiJS fallback trigger.
 11. Pacing harness: simulated player, reachability check, local telemetry.
-12. Dependency hygiene (73 Dependabot alerts on `main` at the time of writing).
+12. Dependency hygiene (Dependabot alerts are development-scope; none ship to players).
 
 ## Architectural Decisions
 
@@ -266,16 +266,16 @@ Brownfield; no starter template. Adoption steps (each is a story):
 | D1 | Time model | 20 Hz fixed tick while visible; save and stop on hide; one `resume(elapsedMs)` for cold start and return; gaps < 60 s at full efficiency | n/a | Browsers suspend hidden tabs; one path is testable; no penalty for glancing away (owner) |
 | D2 | Offline catch-up | Macro-steps through the same `processTick` | n/a | Fits 12–24 h in < 500 ms with one simulation code path |
 | D3 | Phase flow | Conditions declared in `transitions.ts`; pure `evaluate()` + `commit()` on CONTINUE; latched goal | n/a | UX GOAL MET / CONTINUE; UI never restates thresholds |
-| D4 | Persistence | localStorage behind `SaveStore`; load status; persistent-storage request; settings outside the save | n/a | Works today, swappable for Capacitor, never fails silently |
+| D4 | Persistence | localStorage behind `SaveStore`; load status; persistent-storage request; settings outside the save | n/a | Works, swappable for Capacitor, never fails silently |
 | D5 | State | Single signal, one spread write per tick, `computed` selectors; delete `StateManager`, `Store`, `GameStatePool` | signals-core 1.x | Fixes #186 at the root; removes primitives agents copy |
 | D6 | Randomness | Seeded PRNG, state stored in game state | n/a | Reproducible simulations and bug replays (owner) |
 | D7 | UI shell | Tab registry + single `SheetController` + overlay layer | Preact 11.x | 23 panels → 5 tabs; sheets never stack |
 | D8 | Decision events | Session foreground clock; data-declared ignore policy; open event persisted | n/a | Fixes spawn-on-load; closing the app is no escape |
-| D9 | Platform services | `src/platform/` interfaces, web implementations now, Capacitor later; no notifications on web | Capacitor 8.x (later) | Store build stays possible; the web cannot detect events while closed (owner) |
+| D9 | Platform services | `src/platform/` interfaces, web implementations, Capacitor later; no notifications on web | Capacitor 8.x (later) | Store build stays possible; the web cannot detect events while closed (owner) |
 | D10 | Distribution / PWA | vite-plugin-pwa, precache everything, update on next cold start, `display: standalone` | vite-plugin-pwa ≥ 1.3 | Offline play, home-screen storage exemption, no mid-session reloads |
 | D11 | Scene rendering | SVG, ≤ 50 animated ants, dot cloud as one path, own rAF loop with ≤ 4 Hz slice reads | n/a | Frame budget on low-end phones, with a measured fallback |
 | D12 | Pacing harness | Headless `src/sim/`; reachability gates CI; duration targets are a report only | n/a | Soft-lock rule enforced; no balance numbers in tests |
-| D13 | Dependency hygiene | Policy set in Cross-cutting Concerns | n/a | 73 Dependabot alerts on `main` (2026-11-20) |
+| D13 | Dependency hygiene | Policy set in Cross-cutting Concerns | n/a | Development-scope; none ship to players |
 
 Versions verified on 2026-11-21: Vite 8.3.x, Preact 11.x (11.0 released October 2026),
 `@preact/signals` 2.x, `@preact/signals-core` 1.x, vite-plugin-pwa ≥ 1.3.0 (first release with Vite 8
@@ -321,7 +321,7 @@ D4–D13 accepted as recommended.
 - `Transition` gains `conditions: { id, label, current(s), target(s) }[]`; `guard` is derived as
   all-met. `transitions.ts` stays the only source of thresholds.
 - `PhaseStateMachine` splits into `evaluate(state) → Transition | null` (pure, every tick) and
-  `commit(transition, state, bus)` (runs `onEnter`, emits `phase_committed`, which replaces today's
+  `commit(transition, state, bus)` (runs `onEnter`, emits `phase_committed`, which replaces the existing
   `phase_changed`; see Event System), called only from CONTINUE.
 - **Latch:** when `evaluate` first returns a transition, `state.phaseGoal = { phase, latched: true }`
   is written. It survives dips and saves and is cleared by `commit` and by prestige.
@@ -350,14 +350,14 @@ D4–D13 accepted as recommended.
 - `src/state/selectors.ts` exports `computed` slices. Components and effects read only selectors,
   never `gameState.value` directly.
 - Delete `StateManager`, `Store` (dead outside their own tests) and `GameStatePool` (allocates
-  normally today; recycling would break selector reference equality).
+  normally; recycling would break selector reference equality).
 
 ### Randomness (D6)
 
 - A small seeded PRNG (for example a 32-bit generator) with its state in `GameState`. Systems take it
   as input and return the advanced state; no `Math.random` in `src/systems` or `src/sim`.
 - UI-only randomness (particles, wandering ants) may use `Math.random`.
-- Tests keep asserting invariants (`Victory | Defeat`), but a seed can now reproduce a reported bug.
+- Tests keep asserting invariants (`Victory | Defeat`), but a seed can reproduce a reported bug.
 
 ### UI Shell (D7)
 
@@ -383,7 +383,7 @@ D4–D13 accepted as recommended.
 ### Platform Services (D9)
 
 - `src/platform/` interfaces: `Audio`, `Haptics`, `Notifications`, `Storage`, `Lifecycle`.
-  Web implementations now; Capacitor implementations only when a store build is started.
+  Web implementations; Capacitor implementations only when a store build is started.
 - Haptics: `navigator.vibrate` where available, otherwise a no-op; never the only feedback.
 - Notifications: **none in the web build** (owner). The interface exists so that a store build can
   schedule local notifications at predicted times. The settings toggle is hidden on web.
