@@ -8,7 +8,7 @@
 
 Overlays used to be built per feature: the offline summary appended its own overlay to `<body>`, the decision popup
 sat bottom-right on its own timer. Two could be on screen at once, and none of them handled focus. Battle summaries,
-the resource sheet, the corrupt-save sheet and the map/star/chamber peeks are still to come.
+the resource sheet, the corrupt-save sheet and the map/star/chamber peeks were still to come.
 
 ## Decision
 
