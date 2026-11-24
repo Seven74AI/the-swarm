@@ -16,7 +16,7 @@ export interface NestView {
   readonly starving: boolean;
   /** Rooms dug (Story 9.6, `state.dig.roomsDug`): the scene draws them and frames the whole dug nest. 0 when absent. */
   readonly roomsDug?: number;
-  /** Creatures past the room space (Story 9.13, `getCrowding`): the scene spills them into the tunnels. 0 when absent. */
+  /** Creatures past the room space (Story 9.13, `getCrowding`), capped at what the scene draws (`sceneBalance.spillAntsMax`): spilled into the tunnels. 0 when absent. */
   readonly overfill?: number;
 }
 

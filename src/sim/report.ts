@@ -125,7 +125,7 @@ export interface CrowdedShare {
   readonly phase: string;
   readonly checkIns: number;
   readonly crowded: number;
-  /** Whole percent of the phase's check-ins that started crowded. */
+  /** Whole percent (floored, so 100 only when every one did) of the phase's check-ins that started crowded. */
   readonly percent: number;
 }
 
@@ -136,7 +136,7 @@ export function crowdedShares(checkIns: readonly CheckInRecord[]): CrowdedShare[
   return phases.map((phase) => {
     const inPhase = checkIns.filter((c) => c.phase === phase);
     const crowded = inPhase.filter((c) => c.startCrowded).length;
-    return { phase, checkIns: inPhase.length, crowded, percent: Math.round((crowded * PERCENT) / inPhase.length) };
+    return { phase, checkIns: inPhase.length, crowded, percent: Math.floor((crowded * PERCENT) / inPhase.length) };
   });
 }
 

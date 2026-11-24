@@ -9,7 +9,9 @@ export const crowdingBalance = {
   /**
    * Work lost per unit of overfill share: at an overfill share `o` (creatures
    * past the room space, over the room space) work runs at `1 − perOverfill × o`,
-   * never below `floor`. At 1, a nest holding half again its rooms is at the floor.
+   * never below `floor`. Gentle on purpose: in Colony the brood waiting for
+   * rooms is about ten times the rooms (Story 9.9's loop), so 0.02 costs that
+   * nest about 20% of its work, and gate 1 still passes. Story 9.18 retunes it.
    */
   perOverfill: 0.02,
 } as const;

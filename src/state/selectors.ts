@@ -61,6 +61,7 @@ import { getVerdict, verdictText, type Verdict } from '../systems/Verdict';
 import { Phase as PhaseId } from '../phases/phases';
 import type { ResearchProjectId, ResearchProjectStatus } from './GameState';
 import { getCrowding } from '../systems/Crowding';
+import { sceneBalance } from '../data/balance/scene';
 import { nestViewOf, sameNestView, type NestView } from './nestView';
 import { conditionMet, goalFor, goalPercent, type GoalCondition, type Transition } from '../phases/transitions';
 
@@ -172,7 +173,7 @@ let lastNestView: NestView | null = null;
  * (`ui/primitives/throttledSignal.ts`, `sceneBalance.viewRefreshMs`).
  */
 export const selectNestView = computed<NestView>(() => {
-  const next = nestViewOf(selectResources.value, selectStarving.value, gameState.value.dig.roomsDug, getCrowding(gameState.value).overfill);
+  const next = nestViewOf(selectResources.value, selectStarving.value, gameState.value.dig.roomsDug, Math.min(getCrowding(gameState.value).overfill, sceneBalance.spillAntsMax));
   if (lastNestView && sameNestView(lastNestView, next)) return lastNestView;
   lastNestView = next;
   return next;
