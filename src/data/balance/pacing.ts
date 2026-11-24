@@ -87,7 +87,7 @@ export const pacingTargets: PacingTargets = {
   idleCheckInMaxMs: 4 * HOUR_MS,
   /** Story 3.11: upkeep and capacity still bite. At least `min` check-ins of `phase` where food, and where capacity, is critical. */
   criticalMoments: { phase: Phase.COLONY, min: 1 },
-  // Food bites in Combat (soldiers eat) but is not a wall: never every check-in. Crowding bites, never pinned at its floor.
+  // Food bites in Combat (soldiers eat) but is not a wall: at most 80% of check-ins. Crowding bites, but holds work at its floor for one check-in at most.
   combatMoments: { phase: Phase.COMBAT, foodCritical: { min: 1, maxSharePercent: 80 }, crowded: { min: 1, maxFloorStretchCheckIns: 1 } },
   starvation: { session1MaxDeaths: 0, fromDay: 2, toDay: 7, maxStretchCheckIns: 1 },
   gates: {

@@ -223,6 +223,21 @@ describe('combatMoments (Story 9.18)', () => {
     expect(m.crowding).toBe('pass');
   });
 
+  it('the bounds hold at their edges: a share at the limit and a floor stretch at the limit pass, one past either fails', () => {
+    const n = 100;
+    const at = Math.floor((t.foodCritical.maxSharePercent * n) / 100);
+    const share = (critical: number) => combatMoments(Array.from({ length: n }, (_, i) => combat(i, { foodCritical: i < critical, startCrowded: true })), t).food;
+    expect(share(at)).toBe('pass');
+    expect(share(at + 1)).toBe('fail');
+    // Just past the share, rounding must not let it through (21 of 26 is past 80%).
+    const odd = 26;
+    const past = Math.floor((t.foodCritical.maxSharePercent * odd) / 100) + 1;
+    expect(combatMoments(Array.from({ length: odd }, (_, i) => combat(i, { foodCritical: i < past, startCrowded: true })), t).food).toBe('fail');
+    const floorRun = (k: number) => combatMoments(Array.from({ length: k + 2 }, (_, i) => combat(i, { foodCritical: i === 0, startCrowded: true, startAtFloor: i >= 1 && i <= k })), t).floor;
+    expect(floorRun(t.crowded.maxFloorStretchCheckIns)).toBe('pass');
+    expect(floorRun(t.crowded.maxFloorStretchCheckIns + 1)).toBe('fail');
+  });
+
   it('a Combat that is never food-critical, or food-critical past its share, fails; none crowded fails', () => {
     expect(combatMoments([combat(0), combat(1)], t).food).toBe('fail');
     const always = Array.from({ length: 10 }, (_, i) => combat(i, { foodCritical: true, startCrowded: true }));

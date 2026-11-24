@@ -113,17 +113,18 @@ export function tickDecisions(state: GameState, input: DecisionTickInput): GameS
 }
 
 /**
- * The nest is crowded enough for OVERCROWDING.: crowding (Story 9.13, the
- * same rule that slows the work) costs at least
- * `decisionBalance.overcrowdingMinWorkPercent` of it (Story 9.18).
+ * The nest is overcrowded, crowded enough for OVERCROWDING.: crowding (Story
+ * 9.13, the rule that slows the work) costs at least
+ * `decisionBalance.overcrowdingMinWorkPercent` of it (Story 9.18). Milder
+ * crowding still slows the work; it just raises no event.
  */
-export function isCrowded(state: GameState): boolean {
+export function isOvercrowded(state: GameState): boolean {
   return (crowdedPercent(state) ?? 0) >= decisionBalance.overcrowdingMinWorkPercent;
 }
 
 /** Whether `def` may spawn in this state, beyond its phase (Story 4.5: OVERCROWDING. needs a crowded nest). */
 export function isEligible(state: GameState, def: DecisionDef): boolean {
-  return def.spawnsWhen !== 'crowded' || isCrowded(state);
+  return def.spawnsWhen !== 'crowded' || isOvercrowded(state);
 }
 
 /** How much of a decision stock the colony holds. */

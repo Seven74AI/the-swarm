@@ -236,13 +236,14 @@ export function combatMoments(checkIns: readonly CheckInRecord[], bounds: Pacing
     longestFloorStretch = Math.max(longestFloorStretch, run);
   }
   if (inPhase.length === 0) return { checkIns: 0, foodCritical, crowded, longestFloorStretch, food: 'open', crowding: 'open', floor: 'open' };
-  const share = Math.floor((foodCritical * PERCENT) / inPhase.length);
+  // An upper bound must not round in a wall's favour: compare whole numbers, no division.
+  const withinShare = foodCritical * PERCENT <= bounds.foodCritical.maxSharePercent * inPhase.length;
   return {
     checkIns: inPhase.length,
     foodCritical,
     crowded,
     longestFloorStretch,
-    food: foodCritical >= bounds.foodCritical.min && share <= bounds.foodCritical.maxSharePercent ? 'pass' : 'fail',
+    food: foodCritical >= bounds.foodCritical.min && withinShare ? 'pass' : 'fail',
     crowding: crowded >= bounds.crowded.min ? 'pass' : 'fail',
     floor: longestFloorStretch <= bounds.crowded.maxFloorStretchCheckIns ? 'pass' : 'fail',
   };

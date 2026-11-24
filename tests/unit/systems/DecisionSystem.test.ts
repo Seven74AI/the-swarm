@@ -121,7 +121,9 @@ describe('spawning on the session clock', () => {
       // Story 9.18: crowding has to cost at least `overcrowdingMinWorkPercent` of the work, not just bite.
       const barely = colony({ phase, resources: { workers: 1001, nestCapacity: 1000, eggs: 0, larvae: 0 } });
       const full = colony({ phase, resources: { workers: 1000, nestCapacity: 100, eggs: 0, larvae: 0 } });
-      expect(crowdedPercent(barely)).toBeLessThan(decisionBalance.overcrowdingMinWorkPercent);
+      // It bites (some work is lost), just not enough.
+      expect(crowdedPercent(barely)).not.toBeNull();
+      expect(crowdedPercent(barely)!).toBeLessThan(decisionBalance.overcrowdingMinWorkPercent);
       expect(crowdedPercent(full)).toBeGreaterThanOrEqual(decisionBalance.overcrowdingMinWorkPercent);
       expect(isEligible(roomy, def)).toBe(false);
       expect(isEligible(barely, def)).toBe(false);

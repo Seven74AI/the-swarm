@@ -2563,7 +2563,7 @@ So that the first week ends with the colony I built, not a phase I finished on d
 
 **Covers:** FR64 (Phase 3+), FR65 (gates 2–3), FR54
 
-**Tuning record (built 2026-11-25, `pnpm sim`, seed 1, first-week schedule, 10 days):**
+**Tuning record (built 2026-11-24, `pnpm sim`, seed 1, first-week schedule, 10 days):**
 
 | | Before (main, c016d4b) | After |
 |---|---|---|
@@ -2573,7 +2573,7 @@ So that the first week ends with the colony I built, not a phase I finished on d
 | Egg Laying / Colony | 3m 25s ok / 46m 45s ok | 3m 15s ok / 46m 50s ok |
 | Combat food-critical, crowded, longest stretch at the floor | not judged | 21 of 35 (≥ 1, ≤ 80%) / 35 (≥ 1) / 0 (≤ 1): PASS |
 | Starvation bounds | PASS / PASS | PASS / PASS |
-| Army trade-off, Combat check-ins food-critical (default / max-army) | 2 / 2 | 24 / 32 (strict) |
+| Army trade-off, Combat check-ins food-critical (default / max-army; both replay Combat from its entry, so the default count differs from the main run's) | 2 / 2 | 24 / 32 (strict) |
 | Pacing defects | 0 | 0 |
 
 Values: Combat → Expansion 1,500 workers and 40 battles won; Expansion → Space 5,000 workers; room cost gains a squared term past room 40 (`digBalance.roomGrowthSquared` 0.015, `steepFromRoom` 40); first room 3,100 → 2,800 points; crowding slope 0.02 → 0.015; Click Power 10 → 5 food. Crowding stays in Egg Laying (switching it off there moved gate 1 to 2m 20s). OVERCROWDING. spawns only once crowding costs at least 10 % of the work (`decisionBalance.overcrowdingMinWorkPercent`). Saves from before Story 9.14 keep 6 capacity per room (accepted, not migrated).

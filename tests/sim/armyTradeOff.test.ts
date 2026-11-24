@@ -102,6 +102,7 @@ describe('the army trade-off in the pacing harness (Story 4.4)', () => {
     comparison ??= runArmyComparison({ seed: SEED, days: DAYS })!;
   }, 60_000);
 
+  // Combat spans the week (Story 9.18): replaying both players takes a few seconds, hence the timeout.
   it('both players start Combat from the same state', () => {
     const schedule = firstWeekSchedule(DAYS);
     const entry = combatEntry(SEED, schedule);
@@ -111,7 +112,6 @@ describe('the army trade-off in the pacing harness (Story 4.4)', () => {
     expect(again.default.checkIns).toEqual(comparison.default.checkIns);
     expect(again.maxArmy.checkIns).toEqual(comparison.maxArmy.checkIns);
     expect(comparison.default.checkIns[0].index).toBe(comparison.maxArmy.checkIns[0].index);
-    // Combat spans the week (Story 9.18): replaying both players takes a few seconds.
   }, 30_000);
 
   // Story 9.18: Combat spans the week, so the restated target (Story 9.15, #478) is strict.
