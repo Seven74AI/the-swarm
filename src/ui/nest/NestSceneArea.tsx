@@ -10,6 +10,8 @@ import { AutomationRow, type AutomationRowActions } from '../shell/AutomationRow
 import { crackStage } from '../scenes/nestLayout';
 import { NextRoomStrip } from './NextRoomStrip';
 import { BroodLine } from './BroodLine';
+import { RoomJobsLine } from './RoomJobsLine';
+import type { RoomJobActions } from '../sheets/RoomJobSheet';
 import { digPulse } from './digPulse';
 
 /**
@@ -27,7 +29,8 @@ import { digPulse } from './digPulse';
  * under the scene. Under it, once laying can be automated (Story 4.10), the
  * brood's automation target row: `KEEP [−] N [+] IN THE BROOD [AUTO]`.
  *
- * From Colony on the NEXT ROOM strip sits under the scene (Story 9.3), and the
+ * From Colony on the NEXT ROOM strip sits under the scene (Story 9.3), the room
+ * jobs line under the brood line once a room is dug (Story 9.14), and the
  * scene's dig-face crack follows the same `selectNextRoom`. From Colony on a tap
  * on the brood FEEDs it (Story 9.4, `selectFeed`) instead of opening its peek;
  * the workers chamber keeps its peek, and Phase 1 keeps the brood's.
@@ -38,12 +41,15 @@ export function NestSceneArea({
   lay,
   feed,
   automation,
+  roomJobs,
   sheets,
 }: {
   lay: () => { readonly ok: boolean };
   /** FEED (Story 9.4): `actions.feed`. From Colony on the brood button calls it instead of opening its peek. */
   feed?: () => { readonly ok: boolean };
   automation?: AutomationRowActions;
+  /** Room jobs (Story 9.14): `actions.setRoomJob`. From Colony on, NEST's room jobs line uses it. */
+  roomJobs?: RoomJobActions;
   sheets: SheetController;
 }) {
   const feedState = feed ? selectFeed.value : null;
@@ -62,6 +68,7 @@ export function NestSceneArea({
       />
       <NextRoomStrip />
       {phase1 ? automation && <AutomationRow verb="lay" actions={automation} /> : <BroodLine automation={automation} />}
+      {!phase1 && roomJobs && <RoomJobsLine sheets={sheets} actions={roomJobs} />}
     </div>
   );
 }

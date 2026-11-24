@@ -1,4 +1,6 @@
 import type { GameState } from '../state/GameState';
+import { crowdingBites } from '../systems/Crowding';
+import { roomJobRefusal, type RoomSlot } from '../systems/RoomJobs';
 import { Phase } from '../phases/phases';
 import { conditionMet, goalFor } from '../state/queries';
 import { getNextAction, isCapacityCritical, isFoodCritical, type ActionIntent } from '../systems/NextAction';
@@ -38,7 +40,9 @@ export type SimMove =
   /** A target row's `[−] N [+]` (`actions.setAutomationTarget`, Story 4.10). */
   | { readonly kind: 'setAutomationTarget'; readonly verb: AutomationVerb; readonly target: number }
   /** A target row's `[AUTO]` (`actions.setAutomation`). */
-  | { readonly kind: 'setAutomation'; readonly verb: AutomationVerb; readonly on: boolean };
+  | { readonly kind: 'setAutomation'; readonly verb: AutomationVerb; readonly on: boolean }
+  /** One room's job (`actions.setRoomJob`, Story 9.14). */
+  | { readonly kind: 'setRoomJob'; readonly from: RoomSlot; readonly to: RoomSlot };
 
 /** What the runner tells the policy about this look: the taps it has time for (only on its first look of a step). */
 export interface PolicyTurn {
@@ -185,9 +189,18 @@ function needsRoom(s: GameState): boolean {
   return s.resources.workers + s.resources.eggs + s.resources.larvae >= nestCapacity(s);
 }
 
+/**
+ * A new room's job (Story 9.14): a room never assigned gets the Gallery while
+ * crowding bites (its first job is free), and stays plain otherwise.
+ */
+function roomJobMoves(s: GameState): SimMove[] {
+  if (s.roomJobs.fresh <= 0 || !crowdingBites(s) || roomJobRefusal(s, 'plain', 'gallery') !== null) return [];
+  return [{ kind: 'setRoomJob', from: 'plain', to: 'gallery' }];
+}
+
 /** Every move but Combat's: the same for each player below, so they differ only in how they fight. */
 function baseMoves(s: GameState, turn: PolicyTurn): SimMove[] {
-  const moves: SimMove[] = [...layAutomation(s)];
+  const moves: SimMove[] = [...layAutomation(s), ...roomJobMoves(s)];
   // Auto-dig (Story 9.5): bought as soon as it can be; from then on the diggers dig and the player stops pressing DIG.
   if (canBuyAutoDig(s)) moves.push({ kind: 'intent', intent: { action: 'buyAutoDig' } });
   // The player's presses FEED larvae into free rooms (Story 9.4), else go to DIG while the nest is short of room

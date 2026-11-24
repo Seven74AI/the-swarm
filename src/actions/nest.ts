@@ -6,6 +6,7 @@ import type { RoleId } from '../data/content/roles';
 import { recordManual } from '../systems/AutomationTargets';
 import { buyAutoDig as buyAuto, canBuyAutoDig, digPress, isAutoDigOpen } from '../systems/Dig';
 import { feedBrood, feedRefusal } from '../systems/Brood';
+import { applyRoomJob, roomJobRefusal, type RoomSlot } from '../systems/RoomJobs';
 import { Phase } from '../phases/phases';
 
 /** Lay eggs by hand. Always allowed. */
@@ -29,7 +30,7 @@ export function dig(deps: ActionDeps): ActionResult {
   if (r.ok) {
     deps.bus.emit('dig_pressed', {});
     const rooms = current(deps).dig.roomsDug;
-    if (rooms > s.dig.roomsDug) deps.bus.emit('room_opened', { roomsDug: rooms });
+    if (rooms > s.dig.roomsDug) deps.bus.emit('room_opened', { roomsDug: rooms, byPress: true });
   }
   return r;
 }
@@ -44,6 +45,19 @@ export function feed(deps: ActionDeps): ActionResult {
   const why = feedRefusal(s);
   if (why) return refuse(why);
   return commit(deps, s, feedBrood(s));
+}
+
+/**
+ * Change one room's job (Story 9.14, FR59): `from` a job or plain, `to` a job
+ * or plain. A never-assigned room's first job is free; any other change costs
+ * stone. Refused in Egg Laying, with no such room, without the stone, or when
+ * the room taken away would leave workers over capacity.
+ */
+export function setRoomJob(deps: ActionDeps, from: RoomSlot, to: RoomSlot): ActionResult {
+  const s = current(deps);
+  const why = roomJobRefusal(s, from, to);
+  if (why) return refuse(why);
+  return commit(deps, s, applyRoomJob(s, from, to));
 }
 
 /** Buy auto-dig (Story 9.5, FR58): stone only; the diggers then press DIG on their own. */

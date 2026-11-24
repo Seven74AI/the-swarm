@@ -27,7 +27,8 @@ export interface SwarmEvents {
   /** A DIG press landed (Story 9.8): the crunch and the dirt puff. */
   dig_pressed: NoPayload;
   /** A room opened, by a press, the diggers or auto-dig (Story 9.8): the breakthrough. `roomsDug` after it. */
-  room_opened: { roomsDug: number };
+  /** A room opened; `byPress` when a DIG press opened it (Story 9.14: only those offer the job choice). */
+  room_opened: { roomsDug: number; byPress?: boolean };
 
   // ── Resources (ResourceSystem) ──
   eggs_changed: { eggs: number };

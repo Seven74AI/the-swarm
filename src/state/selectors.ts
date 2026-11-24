@@ -61,6 +61,8 @@ import { getVerdict, verdictText, type Verdict } from '../systems/Verdict';
 import { Phase as PhaseId } from '../phases/phases';
 import type { ResearchProjectId, ResearchProjectStatus } from './GameState';
 import { getCrowding } from '../systems/Crowding';
+import { plainRooms, roomJobCost, roomJobRefusal, ROOM_JOB_IDS, type RoomJobId, type RoomSlot } from '../systems/RoomJobs';
+import type { RoomJobRefusal } from '../data/content/roomJobs';
 import { sceneBalance } from '../data/balance/scene';
 import { nestViewOf, sameNestView, type NestView } from './nestView';
 import { conditionMet, goalFor, goalPercent, type GoalCondition, type Transition } from '../phases/transitions';
@@ -92,6 +94,36 @@ function slice<K extends keyof GameState>(key: K): ReadonlySignal<GameState[K]> 
 
 export const selectPhase = slice('phase');
 export const selectResources = slice('resources');
+/** Room jobs (Story 9.14): counts by job and the rooms never assigned. */
+export const selectRoomJobs = slice('roomJobs');
+export const selectRoomsDug = computed(() => gameState.value.dig.roomsDug);
+
+/** One way to change a room (Story 9.14): its stone cost (0 = free) and why it is refused, or null. */
+export interface RoomJobChange {
+  readonly stone: number;
+  readonly refused: RoomJobRefusal | null;
+}
+/** The room jobs sheet's rows: each job's rooms, and giving a plain room the job (`add`) or taking it back (`remove`). */
+export interface RoomJobRows {
+  readonly plain: number;
+  readonly jobs: readonly { readonly id: RoomJobId; readonly rooms: number; readonly add: RoomJobChange; readonly remove: RoomJobChange }[];
+}
+let lastRoomJobRows: RoomJobRows | null = null;
+let lastRoomJobKey = '';
+/** The room jobs sheet (Story 9.14), from `systems/RoomJobs`; keeps its last value while nothing it shows changed. */
+export const selectRoomJobRows = computed<RoomJobRows>(() => {
+  const s = gameState.value;
+  const change = (from: RoomSlot, to: RoomSlot): RoomJobChange => ({ stone: roomJobCost(s, from, to).stone, refused: roomJobRefusal(s, from, to) });
+  const next: RoomJobRows = {
+    plain: plainRooms(s),
+    jobs: ROOM_JOB_IDS.map((id) => ({ id, rooms: s.roomJobs.jobs[id], add: change('plain', id), remove: change(id, 'plain') })),
+  };
+  const key = JSON.stringify(next);
+  if (lastRoomJobRows && key === lastRoomJobKey) return lastRoomJobRows;
+  lastRoomJobKey = key;
+  lastRoomJobRows = next;
+  return next;
+});
 export const selectEggPipeline = slice('eggPipeline');
 export const selectLarvaPipeline = slice('larvaPipeline');
 export const selectSoldierPipeline = slice('soldierPipeline');

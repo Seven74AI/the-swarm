@@ -1,3 +1,4 @@
+import type { RoomJobId } from '../systems/RoomJobs';
 import { soldierBalance } from '../data/balance/soldiers';
 import { DEFAULT_SEED } from './seed';
 import { rngFromSeed } from '../utils/rng';
@@ -138,6 +139,15 @@ export interface GameState {
     roomsByHand: number;
     /** Auto-dig bought (Story 9.5): the diggers press DIG on their own. */
     auto: boolean;
+  };
+  /**
+   * Room jobs (Story 9.14, save v38): rooms by job, never more in total than
+   * `dig.roomsDug` (the rest are plain), and the plain rooms never assigned
+   * (`fresh`), whose first job is free. Reset by prestige with the run.
+   */
+  roomJobs: {
+    jobs: Record<RoomJobId, number>;
+    fresh: number;
   };
   /**
    * Resources whose resource-sheet row no longer reads `NEW` this run (Story
@@ -529,6 +539,7 @@ export function createInitialState(): GameState {
     nextEnemy: peekEnemy(rngFromSeed(DEFAULT_SEED), 0).type as EnemyType,
     soldierPipeline: { count: 0, progress: 0 },
     dig: { roomsDug: 0, progress: 0, carry: 0, roomsByHand: 0, auto: false },
+    roomJobs: { jobs: { gallery: 0 }, fresh: 0 },
     // Phase 1's resources are there from the start: never NEW.
     seenResources: ['eggs', 'larvae', 'workers', 'food'],
     resourceRemainder: { food: 0, wood: 0, stone: 0, nectar: 0 },
