@@ -195,6 +195,20 @@ export function formatTime(ms: number): string {
   return `${hours}h ${remainingMinutes}m`;
 }
 
+/**
+ * A duration for copy (#466, was the offline summary's `formatAway`): "45s",
+ * "12m 30s", "3h 14m", "8h": a zero minor unit is dropped.
+ */
+export function formatDuration(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  if (minutes > 0) return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+  return `${seconds}s`;
+}
+
 const SEC_PER_MIN = 60;
 
 /**
