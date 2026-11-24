@@ -75,16 +75,17 @@ export const COLONY_TO_COMBAT: Transition = transition({
 
 /**
  * COMBAT → EXPANSION transition.
- * Fires when workers >= 60 AND battlesWon >= 5.
- * (Pacing nerf: was 25/3, now 60/5.)
+ * Fires when workers >= 1,500 AND battlesWon >= 40 (Story 9.18: Combat fills
+ * the first week, ending on day 6–8 in the pacing harness). Neither waiting
+ * nor fighting alone clears it: the colony has to grow and to win.
  * The only way into EXPANSION: every run passes through COMBAT (FR17).
  */
 export const COMBAT_TO_EXPANSION: Transition = transition({
   from: Phase.COMBAT,
   to: Phase.EXPANSION,
   conditions: [
-    workers(400),
-    { id: 'battlesWon', label: 'battles won', one: 'battle won', current: (s) => s.battlesWon, target: () => 5 },
+    workers(1_500),
+    { id: 'battlesWon', label: 'battles won', one: 'battle won', current: (s) => s.battlesWon, target: () => 40 },
   ],
   onEnter: (state, eventBus) => {
     eventBus.emit('narrative', {
@@ -96,15 +97,15 @@ export const COMBAT_TO_EXPANSION: Transition = transition({
 
 /**
  * EXPANSION → SPACE transition.
- * Fires when workers >= 80 AND food >= 5000.
- * (Pacing nerf: was 30/2000, now 80/5000.)
- * The colony has grown large enough to reach for the stars.
+ * Fires when workers >= 5,000 AND food >= 5000 (Story 9.18; the food fits
+ * under the limit, Story 9.15). The colony has grown large enough to reach
+ * for the stars.
  */
 export const EXPANSION_TO_SPACE: Transition = transition({
   from: Phase.EXPANSION,
   to: Phase.SPACE,
   conditions: [
-    workers(600),
+    workers(5_000),
     { id: 'food', label: 'food', current: (s) => s.resources.food, target: () => 5000 },
   ],
   onEnter: (state, eventBus) => {

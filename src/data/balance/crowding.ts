@@ -11,7 +11,7 @@ export const crowdingBalance = {
    * past the room space, over the room space) work runs at `1 − perOverfill × o`,
    * never below `floor`. Gentle on purpose: in Colony the brood waiting for
    * rooms is about ten times the rooms (Story 9.9's loop), so 0.02 costs that
-   * nest about 20% of its work, and gate 1 still passes. Story 9.18 retunes it.
+   * nest about 20% of its work. Story 9.18 eased it to 0.015 for gate 1's margin (1m 40s against 2m).
    */
-  perOverfill: 0.02,
+  perOverfill: 0.015,
 } as const;

@@ -1,5 +1,5 @@
 import type { EventSink } from '../engine/events';
-import { crowdingBites } from './Crowding';
+import { crowdedPercent } from './Crowding';
 import type { GameState, OpenDecision } from '../state/GameState';
 import { decisionBalance } from '../data/balance/decisions';
 import { PERCENT } from '../data/constants';
@@ -112,9 +112,13 @@ export function tickDecisions(state: GameState, input: DecisionTickInput): GameS
   return withDecision(state, { open: opened, nextSpawnSessionMs });
 }
 
-/** The nest is crowded: crowding bites (Story 9.13), the same rule that slows the work, so the two never disagree. */
+/**
+ * The nest is crowded enough for OVERCROWDING.: crowding (Story 9.13, the
+ * same rule that slows the work) costs at least
+ * `decisionBalance.overcrowdingMinWorkPercent` of it (Story 9.18).
+ */
 export function isCrowded(state: GameState): boolean {
-  return crowdingBites(state);
+  return (crowdedPercent(state) ?? 0) >= decisionBalance.overcrowdingMinWorkPercent;
 }
 
 /** Whether `def` may spawn in this state, beyond its phase (Story 4.5: OVERCROWDING. needs a crowded nest). */

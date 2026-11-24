@@ -212,6 +212,42 @@ export function criticalMoments(checkIns: readonly CheckInRecord[], phase: strin
 /** A first-week gate's verdict (Story 9.1): `open` while the run is too short to say. */
 export type GateVerdict = 'pass' | 'fail' | 'open';
 
+/** Combat's critical moments against their bounds (Story 9.18). */
+export interface CombatMoments {
+  readonly checkIns: number;
+  readonly foodCritical: number;
+  readonly crowded: number;
+  /** The longest run of consecutive Combat check-ins that started at the crowding floor. */
+  readonly longestFloorStretch: number;
+  readonly food: GateVerdict;
+  readonly crowding: GateVerdict;
+  readonly floor: GateVerdict;
+}
+
+/** Combat's food-critical and crowded check-ins and its longest stretch at the crowding floor, judged by their bounds. Pure. */
+export function combatMoments(checkIns: readonly CheckInRecord[], bounds: PacingTargets['combatMoments']): CombatMoments {
+  const inPhase = checkIns.filter((c) => c.phase === bounds.phase);
+  const foodCritical = inPhase.filter((c) => c.foodCritical).length;
+  const crowded = inPhase.filter((c) => c.startCrowded).length;
+  let longestFloorStretch = 0;
+  let run = 0;
+  for (const c of inPhase) {
+    run = c.startAtFloor ? run + 1 : 0;
+    longestFloorStretch = Math.max(longestFloorStretch, run);
+  }
+  if (inPhase.length === 0) return { checkIns: 0, foodCritical, crowded, longestFloorStretch, food: 'open', crowding: 'open', floor: 'open' };
+  const share = Math.floor((foodCritical * PERCENT) / inPhase.length);
+  return {
+    checkIns: inPhase.length,
+    foodCritical,
+    crowded,
+    longestFloorStretch,
+    food: foodCritical >= bounds.foodCritical.min && share <= bounds.foodCritical.maxSharePercent ? 'pass' : 'fail',
+    crowding: crowded >= bounds.crowded.min ? 'pass' : 'fail',
+    floor: longestFloorStretch <= bounds.crowded.maxFloorStretchCheckIns ? 'pass' : 'fail',
+  };
+}
+
 /**
  * The longest stretch of play in `[0, windowMs]` of time played with no
  * payoff, counted from 0 and to the window's end (Story 9.1). Pure.
@@ -319,6 +355,8 @@ export interface PacingReport {
   readonly critical: { readonly food: number; readonly capacity: number };
   /** Per phase, the share of check-ins that started crowded (Story 9.13). */
   readonly crowded: readonly CrowdedShare[];
+  /** Combat's critical moments against their bounds (Story 9.18). */
+  readonly combat: CombatMoments;
   /** Starvation's deaths, stretches and bounds (Story 9.16). */
   readonly starvation: StarvationReport;
   /** Food lost at the limit per day (Story 9.15). */
@@ -384,7 +422,7 @@ export interface ArmyComparison {
   readonly maxArmy: ArmyRun;
   /**
    * Combat check-ins both runs played where each was food-critical (Story 4.4's target as
-   * restated by Story 9.15, #478: the max-army colony has at least as many).
+   * restated by Story 9.15, #478; strict from Story 9.18: the max-army colony has more).
    */
   readonly foodCriticalInCombat: { readonly default: number; readonly maxArmy: number };
 }
@@ -478,6 +516,7 @@ export function buildPacingReport(result: SimResult, opts: { readonly seed: numb
     critical: criticalMoments(probes.checkIns, targets.criticalMoments.phase),
     starvation: starvationReport(probes.checkIns, targets.starvation),
     crowded: crowdedShares(probes.checkIns),
+    combat: combatMoments(probes.checkIns, targets.combatMoments),
     foodLost: foodLostPerDay(probes.checkIns),
     gates: firstWeekGates(probes, spans, { atMs: result.elapsedMs }, targets.gates),
   };
@@ -555,8 +594,16 @@ export function formatArmyComparison(a: ArmyComparison): string[] {
     `            bought in Combat: ${a.default.bought.join(', ') || 'nothing'}`,
     armyLine('max-army', a.maxArmy),
     `            bought in Combat: ${a.maxArmy.bought.join(', ') || 'nothing'}`,
-    `  Combat check-ins food-critical: default ${a.foodCriticalInCombat.default}, max-army ${a.foodCriticalInCombat.maxArmy} (target: max-army at least as many)`,
+    `  Combat check-ins food-critical: default ${a.foodCriticalInCombat.default}, max-army ${a.foodCriticalInCombat.maxArmy} (target: max-army more)`,
   ];
+}
+
+/** Combat's critical moments with their bounds (Story 9.18): one line. */
+function combatMomentsLine(r: PacingReport): string {
+  const m = r.combat;
+  const b = r.targets.combatMoments;
+  const v = (x: GateVerdict) => (x === 'open' ? 'n/a' : x.toUpperCase());
+  return `Combat critical moments (Story 9.18): food-critical ${m.foodCritical} of ${m.checkIns} (target ≥ ${b.foodCritical.min}, ≤ ${b.foodCritical.maxSharePercent}%) ${v(m.food)}; crowded ${m.crowded} (target ≥ ${b.crowded.min}) ${v(m.crowding)}; longest stretch at the crowding floor ${m.longestFloorStretch} (target ≤ ${b.crowded.maxFloorStretchCheckIns}) ${v(m.floor)}`;
 }
 
 /** The starvation lines (Story 9.16): deaths per check-in, the stretches, and the two bounds. */
@@ -602,6 +649,7 @@ export function formatPacingReport(r: PacingReport): string {
     `Actions per check-in (taps excluded): median ${r.medianActions ?? 'n/a'}`,
     `${phaseLabel(r)} check-ins food-critical: ${r.critical.food}, capacity-critical: ${r.critical.capacity} (target ≥ ${t.criticalMoments.min} each)`,
     `Food lost at the limit per day (Story 9.15): ${r.foodLost.map((d) => `day ${d.day} ${formatFull(d.lost)}`).join(', ') || 'none'}`,
+    combatMomentsLine(r),
     `Check-ins that started crowded (Story 9.13): ${r.crowded.map((x) => `${x.phase} ${x.percent}% (${x.crowded} of ${x.checkIns})`).join(', ') || 'none'}`,
     ...starvationLines(r),
     ...(laterPhases(r).length > 0 ? ['Later phases (no GDD target in the MVP):', ...laterPhases(r)] : []),

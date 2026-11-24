@@ -18,6 +18,7 @@ import { simBalance } from '../../src/data/balance/sim';
 import { MS_PER_SEC, OFFLINE_CAP_BASE_MS, RESUME_FULL_EFFICIENCY_MS } from '../../src/data/constants';
 import { diggerPointsPerSec, roomCost } from '../../src/systems/Dig';
 import { isItemAffordable, listItems } from '../../src/systems/NextAction';
+import { crowdingBalance } from '../../src/data/balance/crowding';
 import { getCrowding } from '../../src/systems/Crowding';
 
 beforeEach(() => {
@@ -83,6 +84,18 @@ describe('the crowded probe (Story 9.13)', () => {
     expect(getCrowding(start).multiplier).toBe(1);
     expect(roomy.startCrowded).toBe(false);
     expect(crowded.startCrowded).toBe(true);
+  });
+
+  it('records whether a check-in started with the work held at the crowding floor (Story 9.18)', () => {
+    const start = { ...createInitialState(), phase: Phase.COLONY };
+    const swamped: GameState = { ...start, resources: { ...start.resources, eggs: start.resources.nestCapacity * 1_000 }, eggPipeline: { count: start.resources.nestCapacity * 1_000, progress: 0 } };
+    const p = new Probes(start);
+    p.beginCheckIn(0, start, 0);
+    p.beginCheckIn(1, swamped, 1000);
+    const [roomy, floored] = p.report().checkIns;
+    expect(getCrowding(swamped).multiplier).toBe(crowdingBalance.floor);
+    expect(roomy.startAtFloor).toBe(false);
+    expect(floored.startAtFloor).toBe(true);
   });
 });
 

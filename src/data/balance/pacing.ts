@@ -40,6 +40,19 @@ export interface PacingTargets {
   readonly tapShareAfterColonyMaxPercent: number;
   readonly idleCheckInMaxMs: number;
   readonly criticalMoments: { readonly phase: Phase; readonly min: number };
+  /**
+   * Combat's critical moments (Story 9.18), each with a lower and an upper
+   * bound, so neither a missing moment nor a wall passes: at least
+   * `foodCritical.min` food-critical check-ins and at most
+   * `foodCritical.maxSharePercent` % of them; at least `crowded.min` crowded
+   * check-ins, and no stretch longer than `crowded.maxFloorStretchCheckIns`
+   * check-ins that start with crowding holding the work at its floor.
+   */
+  readonly combatMoments: {
+    readonly phase: Phase;
+    readonly foodCritical: { readonly min: number; readonly maxSharePercent: number };
+    readonly crowded: { readonly min: number; readonly maxFloorStretchCheckIns: number };
+  };
   readonly gates: FirstWeekGates;
   /**
    * Starvation's bounds (Story 9.16): at most `session1MaxDeaths` deaths in
@@ -74,6 +87,8 @@ export const pacingTargets: PacingTargets = {
   idleCheckInMaxMs: 4 * HOUR_MS,
   /** Story 3.11: upkeep and capacity still bite. At least `min` check-ins of `phase` where food, and where capacity, is critical. */
   criticalMoments: { phase: Phase.COLONY, min: 1 },
+  // Food bites in Combat (soldiers eat) but is not a wall: never every check-in. Crowding bites, never pinned at its floor.
+  combatMoments: { phase: Phase.COMBAT, foodCritical: { min: 1, maxSharePercent: 80 }, crowded: { min: 1, maxFloorStretchCheckIns: 1 } },
   starvation: { session1MaxDeaths: 0, fromDay: 2, toDay: 7, maxStretchCheckIns: 1 },
   gates: {
     idleGap: { windowMs: 30 * MIN_MS, maxMs: 2 * MIN_MS },
