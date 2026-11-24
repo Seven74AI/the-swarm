@@ -102,6 +102,9 @@ function windowTolerance(state, T, dug) {
   };
 }
 
+/** Deaths to starvation between two states (Story 9.16). */
+const deathsIn = (a, b) => b.starvation.starvedWorkers + b.starvation.starvedSoldiers - a.starvation.starvedWorkers - a.starvation.starvedSoldiers;
+
 function expectIntegerInvariants(before, after, where) {
   for (const [key, value] of Object.entries(after.resources)) {
     expect(Number.isInteger(value), `${where}: resources.${key} = ${value} is an integer`).toBe(true);
@@ -109,9 +112,10 @@ function expectIntegerInvariants(before, after, where) {
   }
   expect(after.resources.eggs, `${where}: every egg is in the egg pipeline`).toBe(after.eggPipeline.count);
   expect(after.resources.larvae, `${where}: every larva is in the larva pipeline`).toBe(after.larvaPipeline.count);
-  const brood = (s) => s.resources.eggs + s.resources.larvae + s.resources.workers;
+  // Starved workers (Story 9.16) left the colony: they count with it here.
+  const brood = (s) => s.resources.eggs + s.resources.larvae + s.resources.workers + s.starvation.starvedWorkers;
   const laid = after.stats.totalEggsLaid - before.stats.totalEggsLaid;
-  expect(brood(after), `${where}: eggs + larvae + workers grow only by the eggs laid`).toBe(brood(before) + laid);
+  expect(brood(after), `${where}: eggs + larvae + workers (and the starved) grow only by the eggs laid`).toBe(brood(before) + laid);
 }
 
 describe('macro-stepped catch-up matches fine-stepped (Story 2.6)', { timeout: 60_000 }, () => {
@@ -139,7 +143,8 @@ describe('macro-stepped catch-up matches fine-stepped (Story 2.6)', { timeout: 6
           const reference = fine(input, dtSec);
           const where = `step ${i} (${dtSec} s)`;
           expectIntegerInvariants(input, macro, `${where}, macro`);
-          const dug = macro.resources.nestCapacity - input.resources.nestCapacity;
+          // Rooms dug, and rooms freed by starvation (Story 9.16), open to waiting larvae from the step's start.
+          const dug = macro.resources.nestCapacity - input.resources.nestCapacity + deathsIn(input, macro);
           const tol = windowTolerance(input, dtSec, dug);
           for (const key of ['eggs', 'larvae', 'workers'] as const) {
             expect(Math.abs(macro.resources[key] - reference.resources[key]), `${where}: ${key}`).toBeLessThanOrEqual(tol[key]);
@@ -179,7 +184,7 @@ describe('macro-stepped catch-up matches fine-stepped (Story 2.6)', { timeout: 6
         // Pipelines: within the sum of 2.5's per-window tolerance over the windows taken.
         const sum = { eggs: 0, larvae: 0, workers: 0 };
         for (const w of windows) {
-          const dug = w.output.resources.nestCapacity - w.input.resources.nestCapacity;
+          const dug = w.output.resources.nestCapacity - w.input.resources.nestCapacity + deathsIn(w.input, w.output);
           const tol = windowTolerance(w.input, w.dtSec, dug);
           sum.eggs += tol.eggs;
           sum.larvae += tol.larvae;

@@ -4,7 +4,8 @@ import type { SoldierSystem } from '../systems/SoldierSystem';
 import type { MapSystem } from '../systems/MapSystem';
 import type { TerritorySystem } from '../systems/TerritorySystem';
 import { capOfflineMs, computeOfflineResourceDeltas } from '../systems/OfflineProgression';
-import { CATCH_UP_STEP_MS, TICK_MS } from '../data/constants';
+import { CATCH_UP_STEP_MS, OFFLINE_WORKER_FLOOR_SHARE, TICK_MS } from '../data/constants';
+import { eaters } from '../systems/Starvation';
 import { log } from '../utils/log';
 import { EventQueue } from './events';
 import { processTick } from './processTick';
@@ -59,6 +60,10 @@ export function catchUp(
 export interface CatchUpReport {
   /** Whole ms of the simulated absence during which food stood at zero (upkeep outran it). */
   starvedMs: number;
+  /** Ms after leaving when the food ran out (Story 9.16); null when it never did. */
+  foodRanOutAfterMs: number | null;
+  /** Workers and soldiers who starved during the absence (Story 9.16). */
+  starvedEaters: number;
 }
 
 /**
@@ -66,6 +71,13 @@ export interface CatchUpReport {
  * Food is credited in closed form (one net rate over the whole absence), so the
  * stock runs out at `stock / −net` and stays at zero for the rest of it.
  */
+/** When the closed-form food ran out (Story 9.16): ms into the absence, or null when it never did. */
+function foodRunsOutMsOf(stock: number, foodDelta: number, effectiveMs: number): number | null {
+  if (!(effectiveMs > 0) || !(foodDelta < 0)) return null;
+  const at = (Math.max(0, stock) / -foodDelta) * effectiveMs;
+  return at < effectiveMs ? Math.floor(at) : null;
+}
+
 function starvedMsOf(stock: number, foodDelta: number, effectiveMs: number): number {
   if (!(effectiveMs > 0) || !(foodDelta < 0)) return 0;
   const netPerMs = foodDelta / effectiveMs;
@@ -122,11 +134,17 @@ export function catchUpWithReport(
   const rules = offlineRulesFor(state);
   const events = new EventQueue();
   let steps = 0;
+  // Starvation (Story 9.16): food is credited in closed form above, so the clock may run only
+  // once the stock would have run out; and at most a share of the eaters may die.
+  const foodRunsOutAtMs = foodRunsOutMsOf(state.resources.food + rem.food, d.foodDelta, effectiveMs);
+  const maxDeaths = state.starvation.starvedWorkers + state.starvation.starvedSoldiers + Math.floor((1 - OFFLINE_WORKER_FLOOR_SHARE) * eaters(state));
   for (let done = 0; done < simulatedMs; steps++) {
     const stepLen = Math.min(step, simulatedMs - done);
     s = processTick(
       s, deps.resourceSystem, deps.soldierSystem, deps.mapSystem, deps.territorySystem, events, stepLen / 1000,
       true, // skipDeterministicResources: added above in closed form
+      undefined,
+      { allowed: foodRunsOutAtMs !== null && done + stepLen > foodRunsOutAtMs, maxDeaths },
     );
     s = applyOfflineRules(s, rules);
     s = deps.latch(s);
@@ -135,5 +153,6 @@ export function catchUpWithReport(
   }
   log.info('catch-up', `simulated ${simulatedMs} ms in ${steps} steps`, { effectiveMs, simulatedMs, steps, stepMs: step });
   const starvedMs = starvedMsOf(state.resources.food + rem.food, d.foodDelta, effectiveMs);
-  return { state: s, report: { starvedMs } };
+  const starvedEaters = s.starvation.starvedWorkers + s.starvation.starvedSoldiers - (state.starvation.starvedWorkers + state.starvation.starvedSoldiers);
+  return { state: s, report: { starvedMs, foodRanOutAfterMs: foodRunsOutAtMs, starvedEaters } };
 }

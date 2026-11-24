@@ -10,6 +10,8 @@ import { EventBus } from '../../../src/engine/EventBus';
 import { netFoodPerSec } from '../../../src/systems/Workforce';
 import { Phase } from '../../../src/phases/phases';
 import { makeState } from '../helpers/makeState';
+import { deathIntervalMs } from '../../../src/systems/Starvation';
+import { formatTime } from '../../../src/utils/format';
 import type { GameState } from '../../../src/state/GameState';
 
 const colony = (over: Parameters<typeof makeState>[0] = {}) => makeState({ phase: Phase.COLONY, ...over });
@@ -19,8 +21,18 @@ const hungry = (food: number) => colony({ resources: { workers: 20, food, nestCa
 const full = () => colony({ resources: { workers: 30, nestCapacity: 30, food: 1_000_000, larvae: 7 }, larvaPipeline: { count: 7, progress: 0 }, workersAssigned: { gather: 30 } });
 
 describe('getVerdict', () => {
-  it('keeps its order in content: food first, then the nest, then all is well', () => {
-    expect(VERDICT_ORDER).toEqual(['food', 'nest', 'growing']);
+  it('keeps its order in content: starving, food falling, then the nest, then all is well (Story 9.16)', () => {
+    expect(VERDICT_ORDER).toEqual(['starving', 'food', 'nest', 'growing']);
+  });
+
+  it('escalates to STARVING · AN ANT DIES EVERY <t> once food is at zero and use outruns production (Story 9.16)', () => {
+    const s = hungry(0);
+    const v = getVerdict(s);
+    expect(v.kind).toBe('starving');
+    expect(v.warn).toBe(true);
+    expect(verdictText(v)).toBe(`STARVING · AN ANT DIES EVERY ${formatTime(deathIntervalMs(s)).toUpperCase()}`);
+    // Before the store is empty, the warning is the runway.
+    expect(getVerdict(hungry(500)).kind).toBe('food');
   });
 
   it('says food is falling, with its runway, before anything else', () => {

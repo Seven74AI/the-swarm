@@ -53,6 +53,12 @@ export function armyUpkeepPerSec(state: GameState): number {
  * Starving (Story 1.32, Story 4.4): the food store is empty and the colony
  * eats more than it makes. A starving colony trains no new soldiers.
  */
+/** The net food rate a second (produced − eaten), at the current rates. */
+export function netFoodOf(state: GameState, territoryBonuses?: TerritoryBonuses): number {
+  const r = computeResourceRates(state, territoryBonuses);
+  return r.foodProducedPerSec - r.foodConsumedPerSec;
+}
+
 export function isStarving(state: GameState, territoryBonuses?: TerritoryBonuses): boolean {
   if (state.resources.food > 0) return false;
   const r = computeResourceRates(state, territoryBonuses);

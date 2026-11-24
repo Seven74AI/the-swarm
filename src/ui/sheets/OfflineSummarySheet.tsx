@@ -1,4 +1,5 @@
 import type { OfflineLoadInfo } from '../../engine/resume';
+import { OFFLINE_WORKER_FLOOR_SHARE } from '../../data/constants';
 import type { GameState } from '../../state/GameState';
 import type { SheetController } from '../shell/SheetController';
 import { ModalSheet } from '../shell/Sheet';
@@ -91,6 +92,15 @@ export function OfflineSummarySheet({ summary }: { summary: OfflineSummary }) {
       {starved && (
         <p class="offline-warn" data-offline-warn="starved">
           {colonyLine('offline_starved', { time: formatAway(info.starvedMs) })}
+        </p>
+      )}
+      {(info.starvedEaters ?? 0) > 0 && (
+        <p class="offline-warn" data-offline-warn="starved-lost">
+          {colonyLine('offline_starved_lost', {
+            time: formatAway(info.foodRanOutAfterMs ?? 0),
+            n: String(info.starvedEaters),
+            share: String(Math.round((1 - OFFLINE_WORKER_FLOOR_SHARE) * 100)),
+          })}
         </p>
       )}
       {info.capped && (

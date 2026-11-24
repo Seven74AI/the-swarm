@@ -928,6 +928,19 @@ function migrateV37toV38(data: SaveData): SaveData {
   return { ...data, version: 38, gameState: { ...gs, roomJobs: { jobs: { gallery: 0 }, fresh: dug } } as unknown as GameState };
 }
 
+/**
+ * v38 → v39 (Story 9.16): starvation. Adds a still starvation clock with no
+ * deaths, and the Pantry room job at zero. A save that has the field keeps it.
+ */
+function migrateV38toV39(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  const rj = (gs.roomJobs ?? { jobs: {}, fresh: 0 }) as { jobs?: Record<string, unknown>; fresh?: unknown };
+  const jobs = { ...(rj.jobs ?? {}) };
+  if (typeof jobs.pantry !== 'number') jobs.pantry = 0;
+  const starvation = gs.starvation !== null && typeof gs.starvation === 'object' ? gs.starvation : { ms: 0, stretchDeaths: 0, starvedWorkers: 0, starvedSoldiers: 0 };
+  return { ...data, version: 39, gameState: { ...gs, roomJobs: { ...rj, jobs }, starvation } as unknown as GameState };
+}
+
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
   2: migrateV2toV3,
@@ -966,6 +979,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   35: migrateV35toV36,
   36: migrateV36toV37,
   37: migrateV37toV38,
+  38: migrateV38toV39,
 };
 
 /**

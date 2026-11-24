@@ -72,11 +72,13 @@ export const CATCH_UP_STEP_MS = 10_000 as const;
 export const CATCH_UP_MAX_STEPS = 8_640 as const;
 
 /**
- * The offline starvation floor (Story 2.7, FR24): inside a catch-up, workers
- * never fall below `floor(this × workers before the absence)`. Foreground
- * play has no floor. Applied by `src/engine/offlineRules.ts` only.
+ * The offline starvation floor (Story 2.7, FR24; Story 9.16 raised it from
+ * 0.5 and made it cover soldiers): an absence never leaves fewer eaters
+ * (workers and soldiers) than this share of those before it, so at most 20%
+ * can starve away. Foreground play has no floor. Applied by catch-up
+ * (`engine/catchUp.ts`, starvation's floor) and `engine/offlineRules.ts`.
  */
-export const OFFLINE_WORKER_FLOOR_SHARE = 0.5 as const;
+export const OFFLINE_WORKER_FLOOR_SHARE = 0.8 as const;
 
 /**
  * NFR4: a 12 h (24 h with upgrades) catch-up finishes within this on the

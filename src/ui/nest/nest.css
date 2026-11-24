@@ -177,3 +177,10 @@
   gap: 0 1ch;
   font-size: var(--type-meta);
 }
+
+/* Starving (Story 9.16): the verdict, in warn, under the NEXT ROOM strip. */
+.starving-line[data-warn] {
+  margin: 0;
+  font-size: var(--type-meta);
+  color: var(--color-warn);
+}

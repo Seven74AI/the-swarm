@@ -21,7 +21,7 @@ import type { Announcer } from './announcer';
 export const ANNOUNCE_COOLDOWN_MS = 30_000;
 
 export const GOAL_MET_LINE = 'Goal met. Continue is ready on the nest.';
-export const STARVING_LINE = 'Starving: the food store is empty.';
+export const STARVING_LINE = 'Starving: the food store is empty and ants are dying.';
 export const CAPACITY_LINE = 'Nest capacity reached.';
 /** Toasted and logged when saving starts failing (main, `SaveManager.onSaveFailed`). */
 export const SAVE_FAILED_LINE = 'SAVE FAILED: STORAGE IS FULL OR BLOCKED.';

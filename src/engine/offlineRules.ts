@@ -15,9 +15,11 @@ import { automationCount } from '../systems/AutomationTargets';
  * - Events go to a collecting queue that is never flushed: nothing plays or animates.
  * - Automation runs as the player set it (it is part of `processTick`):
  *   the targets of Story 4.10 included.
- * - The starvation floor (below): workers never end a step under
- *   `floor(OFFLINE_WORKER_FLOOR_SHARE × workers before the absence)`.
- *   Foreground play has no floor.
+ * - The starvation floor (below; Story 9.16 made it cover soldiers): the
+ *   eaters (workers and soldiers) never end a step under
+ *   `ceil(OFFLINE_WORKER_FLOOR_SHARE × eaters before the absence)`.
+ *   Starvation stops there (`catchUp` passes the same floor); this rule only
+ *   restores workers lost some other way. Foreground play has no floor.
  */
 export interface OfflineRules {
   /** The fewest workers the absence may leave. */
@@ -36,12 +38,15 @@ function convertedWorkers(s: GameState): number {
   return automationCount(s, 'train') * combatBalance.army.workersPerSoldier + automationCount(s, 'scout') + automationCount(s, 'warrior');
 }
 
+/** Eaters: workers, and soldiers trained or in training (Story 9.16). */
+const eatersOf = (s: GameState): number => s.resources.workers + s.combatSoldiers + s.soldierPipeline.count;
+
 /**
- * The starvation floor of an absence (FR24): the fewest workers a catch-up
- * may leave, `floor(OFFLINE_WORKER_FLOOR_SHARE × workers before the absence)`.
+ * The starvation floor of an absence (FR24, Story 9.16): the fewest eaters a
+ * catch-up may leave, `ceil(OFFLINE_WORKER_FLOOR_SHARE × eaters before the absence)`.
  */
 export function offlineWorkerFloor(before: GameState): number {
-  return Math.floor(OFFLINE_WORKER_FLOOR_SHARE * Math.max(0, before.resources.workers));
+  return Math.ceil(OFFLINE_WORKER_FLOOR_SHARE * Math.max(0, eatersOf(before)));
 }
 
 /** The rules for one absence, fixed from the state before it. */
@@ -55,7 +60,9 @@ export function offlineRulesFor(before: GameState): OfflineRules {
  * adds past the pre-absence count, and returns `state` itself when nothing changes.
  */
 export function applyOfflineRules(state: GameState, rules: OfflineRules): GameState {
+  // Soldiers the colony trained from its workers are eaters still; scouts and warriors are not.
   const floor = rules.workerFloor - Math.max(0, convertedWorkers(state) - rules.convertedBefore);
-  if (state.resources.workers >= floor) return state;
-  return { ...state, resources: { ...state.resources, workers: floor } };
+  const short = floor - eatersOf(state);
+  if (short <= 0) return state;
+  return { ...state, resources: { ...state.resources, workers: state.resources.workers + short } };
 }

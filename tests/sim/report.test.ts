@@ -10,6 +10,7 @@ import {
   buildPacingReport,
   formatPacingReport,
   criticalMoments,
+  starvationReport,
   crowdedShares,
   idleCheckIns,
   judgeSpan,
@@ -44,7 +45,7 @@ afterEach(() => {
 const MIN = 60_000;
 
 function checkIn(index: number, over: Partial<CheckInRecord> = {}): CheckInRecord {
-  return { index, startMs: index * HOUR_MS, activeMs: 5 * MIN, phase: Phase.COLONY, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, digs: 0, feeds: 0, refused: 0, byAction: {}, foodCritical: false, capacityCritical: false, startCrowded: false, ...over };
+  return { index, startMs: index * HOUR_MS, activeMs: 5 * MIN, phase: Phase.COLONY, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, digs: 0, feeds: 0, refused: 0, byAction: {}, foodCritical: false, capacityCritical: false, startCrowded: false, starving: false, starvedTotal: 0, ...over };
 }
 
 function egg(activeMs: number, phase: Phase, laid: number, tapped: number): EggSample {
@@ -226,6 +227,36 @@ describe('crowdedShares (Story 9.13)', () => {
   });
 });
 
+describe('starvationReport (Story 9.16)', () => {
+  const t = pacingTargets.starvation;
+  const at = (day: number, h: number) => day * DAY_MS + h * HOUR_MS;
+
+  it('gives each check-in its deaths, from the running count, and every starving stretch with its length', () => {
+    const list = [
+      checkIn(0, { startMs: at(0, 0), starvedTotal: 0 }),
+      checkIn(1, { startMs: at(1, 1), starving: true, starvedTotal: 3 }),
+      checkIn(2, { startMs: at(1, 5), starving: true, starvedTotal: 5 }),
+      checkIn(3, { startMs: at(1, 9), starvedTotal: 5 }),
+      checkIn(4, { startMs: at(2, 1), starving: true, starvedTotal: 6 }),
+    ];
+    const r = starvationReport(list, t);
+    expect(r.deathsPerCheckIn).toEqual([0, 3, 2, 0, 1]);
+    expect(r.stretches.map((s) => s.checkIns)).toEqual([2, 1]);
+    expect(r.stretches[0]).toMatchObject({ from: 1, to: 2 });
+  });
+
+  it('passes with no death in session 1 and no long stretch in days 2–7, and fails otherwise', () => {
+    const calm = [checkIn(0, { startMs: 0 }), checkIn(1, { startMs: at(2, 0), starving: true, starvedTotal: 1 })];
+    const r = starvationReport(calm, t);
+    expect(r.session1).toBe('pass');
+    expect(r.stretch).toBe('pass');
+    const early = [checkIn(0, { startMs: 0, starvedTotal: 1 })];
+    expect(starvationReport(early, t).session1).toBe('fail');
+    const long = Array.from({ length: t.maxStretchCheckIns + 1 }, (_, i) => checkIn(i + 1, { startMs: at(t.fromDay - 1, i), starving: true }));
+    expect(starvationReport([checkIn(0, { startMs: 0 }), ...long], t).stretch).toBe('fail');
+  });
+});
+
 describe('the pacing report on a real run (Story 3.9)', () => {
   const targets: PacingTargets = pacingTargets;
   const schedule = dailySchedule(1);
@@ -278,6 +309,13 @@ describe('the pacing report on a real run (Story 3.9)', () => {
     const text = formatPacingReport(report);
     expect(text).toMatch(/started crowded/i);
     for (const x of report.crowded) expect(text).toContain(`${x.phase} ${x.percent}%`);
+  });
+
+  it('prints the starvation deaths per check-in, the stretches and their bounds (Story 9.16)', () => {
+    expect(report.starvation).toEqual(starvationReport(result.probes.checkIns, targets.starvation));
+    const text = formatPacingReport(report);
+    expect(text).toMatch(/starvation deaths/i);
+    expect(text).toMatch(/starving stretch/i);
   });
 
   it('counts the critical moments of the target phase from the probes (Story 3.11)', () => {

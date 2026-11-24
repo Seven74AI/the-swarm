@@ -41,6 +41,12 @@ export interface PacingTargets {
   readonly idleCheckInMaxMs: number;
   readonly criticalMoments: { readonly phase: Phase; readonly min: number };
   readonly gates: FirstWeekGates;
+  /**
+   * Starvation's bounds (Story 9.16): at most `session1MaxDeaths` deaths in
+   * session 1, and no starving stretch (consecutive check-ins that starved)
+   * in days `fromDay`–`toDay` longer than `maxStretchCheckIns`.
+   */
+  readonly starvation: { readonly session1MaxDeaths: number; readonly fromDay: number; readonly toDay: number; readonly maxStretchCheckIns: number };
 }
 
 /**
@@ -68,6 +74,7 @@ export const pacingTargets: PacingTargets = {
   idleCheckInMaxMs: 4 * HOUR_MS,
   /** Story 3.11: upkeep and capacity still bite. At least `min` check-ins of `phase` where food, and where capacity, is critical. */
   criticalMoments: { phase: Phase.COLONY, min: 1 },
+  starvation: { session1MaxDeaths: 0, fromDay: 2, toDay: 7, maxStretchCheckIns: 1 },
   gates: {
     idleGap: { windowMs: 30 * MIN_MS, maxMs: 2 * MIN_MS },
     // "Phase 3 lasts to about day 7".

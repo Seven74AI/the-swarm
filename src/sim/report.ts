@@ -140,6 +140,42 @@ export function crowdedShares(checkIns: readonly CheckInRecord[]): CrowdedShare[
   });
 }
 
+/** A run of consecutive check-ins that starved (Story 9.16): first and last check-in index, and how many. */
+export interface StarvingStretch {
+  readonly from: number;
+  readonly to: number;
+  readonly checkIns: number;
+}
+
+export interface StarvationReport {
+  /** Deaths each check-in saw, the absence before it included. */
+  readonly deathsPerCheckIn: readonly number[];
+  readonly stretches: readonly StarvingStretch[];
+  /** No more than the bound's deaths in session 1. */
+  readonly session1: GateVerdict;
+  /** No stretch in the bound's days longer than its check-ins. */
+  readonly stretch: GateVerdict;
+}
+
+/** Starvation's deaths, stretches and bounds (Story 9.16). Pure. */
+export function starvationReport(checkIns: readonly CheckInRecord[], bounds: PacingTargets['starvation']): StarvationReport {
+  const deathsPerCheckIn = checkIns.map((c, i) => Math.max(0, c.starvedTotal - (i > 0 ? checkIns[i - 1].starvedTotal : 0)));
+  const stretches: StarvingStretch[] = [];
+  for (let i = 0; i < checkIns.length; i++) {
+    if (!checkIns[i].starving) continue;
+    let j = i;
+    while (j + 1 < checkIns.length && checkIns[j + 1].starving) j++;
+    stretches.push({ from: checkIns[i].index, to: checkIns[j].index, checkIns: j - i + 1 });
+    i = j;
+  }
+  const dayOf = (c: CheckInRecord) => Math.floor(c.startMs / DAY_MS) + 1;
+  const inDays = (st: StarvingStretch) =>
+    checkIns.some((c) => c.index >= st.from && c.index <= st.to && dayOf(c) >= bounds.fromDay && dayOf(c) <= bounds.toDay);
+  const session1: GateVerdict = checkIns.length === 0 ? 'open' : deathsPerCheckIn[0] <= bounds.session1MaxDeaths ? 'pass' : 'fail';
+  const stretch: GateVerdict = stretches.some((st) => inDays(st) && st.checkIns > bounds.maxStretchCheckIns) ? 'fail' : 'pass';
+  return { deathsPerCheckIn, stretches, session1, stretch };
+}
+
 /** In how many of a phase's check-ins food, and capacity, was critical (Story 3.11). Pure. */
 export function criticalMoments(checkIns: readonly CheckInRecord[], phase: string): { food: number; capacity: number } {
   const inPhase = checkIns.filter((c) => c.phase === phase);
@@ -256,6 +292,8 @@ export interface PacingReport {
   readonly critical: { readonly food: number; readonly capacity: number };
   /** Per phase, the share of check-ins that started crowded (Story 9.13). */
   readonly crowded: readonly CrowdedShare[];
+  /** Starvation's deaths, stretches and bounds (Story 9.16). */
+  readonly starvation: StarvationReport;
   /** The three first-week gates (Story 9.1). */
   readonly gates: readonly GateLine[];
   /** The default and the max-army player through Combat from the same seed (Story 4.4); absent when not run. */
@@ -402,6 +440,7 @@ export function buildPacingReport(result: SimResult, opts: { readonly seed: numb
     medianActions: median(probes.checkIns.map((c) => c.actions)),
     idle: idleCheckIns(probes.checkIns, targets.idleCheckInMaxMs),
     critical: criticalMoments(probes.checkIns, targets.criticalMoments.phase),
+    starvation: starvationReport(probes.checkIns, targets.starvation),
     crowded: crowdedShares(probes.checkIns),
     gates: firstWeekGates(probes, spans, { atMs: result.elapsedMs }, targets.gates),
   };
@@ -483,6 +522,19 @@ export function formatArmyComparison(a: ArmyComparison): string[] {
   ];
 }
 
+/** The starvation lines (Story 9.16): deaths per check-in, the stretches, and the two bounds. */
+function starvationLines(r: PacingReport): string[] {
+  const st = r.starvation;
+  const b = r.targets.starvation;
+  const deaths = st.deathsPerCheckIn.map((n, i) => (n > 0 ? `${i + 1}: ${n}` : null)).filter((x) => x !== null);
+  return [
+    `Starvation deaths per check-in (Story 9.16): ${deaths.join(', ') || 'none'}`,
+    `Starving stretches: ${st.stretches.map((s) => `check-ins ${s.from + 1}–${s.to + 1} (${s.checkIns})`).join(', ') || 'none'}`,
+    `  No starvation death in session 1 (≤ ${b.session1MaxDeaths}): ${GATE[st.session1]}`,
+    `  No starving stretch in days ${b.fromDay}–${b.toDay} longer than ${b.maxStretchCheckIns} check-in: ${GATE[st.stretch]}`,
+  ];
+}
+
 /** The report as a plain-text table (what `pnpm sim` prints). Pure. */
 export function formatPacingReport(r: PacingReport): string {
   const t = r.targets;
@@ -513,6 +565,7 @@ export function formatPacingReport(r: PacingReport): string {
     `Actions per check-in (taps excluded): median ${r.medianActions ?? 'n/a'}`,
     `${phaseLabel(r)} check-ins food-critical: ${r.critical.food}, capacity-critical: ${r.critical.capacity} (target ≥ ${t.criticalMoments.min} each)`,
     `Check-ins that started crowded (Story 9.13): ${r.crowded.map((x) => `${x.phase} ${x.percent}% (${x.crowded} of ${x.checkIns})`).join(', ') || 'none'}`,
+    ...starvationLines(r),
     ...(laterPhases(r).length > 0 ? ['Later phases (no GDD target in the MVP):', ...laterPhases(r)] : []),
     `Check-ins with nothing affordable within ${formatTime(t.idleCheckInMaxMs)} (pacing defects): ${r.idle.length}`,
     ...r.idle.map((c) => `  - check-in ${c.index + 1} (day ${Math.floor(c.startMs / DAY_MS) + 1}, ${c.phase}): ${c.waitMs === null ? 'nothing ever affordable at current rates' : `next in ${span(c.waitMs)}`}`),
