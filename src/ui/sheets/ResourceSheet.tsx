@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { formatFull, formatSheetRate } from '../../utils/format';
+import { formatDuration, formatFull, formatSheetRate } from '../../utils/format';
 import { Button } from '../primitives/Button';
 import { ModalSheet } from '../shell/Sheet';
 import type { SheetController } from '../shell/SheetController';
@@ -9,6 +9,7 @@ import { selectFoodParts, selectFoodRatePerSec, selectPhase, selectResourceFlows
 import { foodSpentSince } from './foodLedger';
 import { Phase } from '../../phases/phases';
 import { HOUR_MS } from '../../data/constants';
+import { sheetBalance } from '../../data/balance/sheet';
 import type { VerdictKind } from '../../data/content/verdicts';
 import { sheetOpened, type SheetMoment } from './sheetSince';
 import { useThrottledSignal } from '../primitives/throttledSignal';
@@ -305,7 +306,7 @@ function ResourceSheet({ feed, close, onOpenSettings, onSeen, onVerdict, onFoodJ
       {colonyOn && <FoodBlock onFoodJump={onFoodJump} close={close} />}
       {since && <SinceLine before={since.before} now={since.now} />}
       <p class="resource-sheet__header" data-resource-header="">
-        {decorate('AMOUNT · RATE · SOURCE · LAST 10 MIN · TAP FOR MORE')}
+        {decorate(`AMOUNT · RATE · SOURCE · LAST ${formatDuration(sheetBalance.sparkWindowMs).toUpperCase()} · TAP FOR MORE`)}
       </p>
       <ul class="resource-sheet__list" data-resource-list="">
         {layout.groups.map((g) => (

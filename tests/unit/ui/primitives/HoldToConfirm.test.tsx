@@ -343,3 +343,24 @@ describe('HoldToConfirm, two-tap mode (Story 1.13)', () => {
     expect(onConfirm).not.toHaveBeenCalled();
   });
 });
+
+describe('HoldToConfirm name (#466: found by the copy audit)', () => {
+  afterEach(() => cleanup());
+
+  it('a cost line given as markup never reads as [object Object]; it describes the button instead', () => {
+    const { container } = render(
+      <HoldToConfirm verb="CANCEL" target="IT" cost={<span>+5 FOOD BACK</span>} settings={settings()} onConfirm={() => OK} />,
+    );
+    const btn = button(container);
+    expect(btn.getAttribute('aria-label') ?? '').not.toMatch(/\[object /);
+    expect(btn.getAttribute('aria-label')).toContain('CANCEL IT');
+    const described = btn.getAttribute('aria-describedby');
+    expect(described).toBeTruthy();
+    expect(container.querySelector(`[id="${described}"]`)!.textContent).toContain('+5 FOOD BACK');
+  });
+
+  it('a cost line given as text stays in the name', () => {
+    const { container } = render(<HoldToConfirm verb="CANCEL" cost="LOSES IT ALL" settings={settings()} onConfirm={() => OK} />);
+    expect(button(container).getAttribute('aria-label')).toContain('LOSES IT ALL');
+  });
+});

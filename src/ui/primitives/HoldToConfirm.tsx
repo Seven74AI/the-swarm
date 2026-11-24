@@ -78,6 +78,7 @@ export function HoldToConfirm(props: HoldToConfirmProps) {
 
   const isDisabled = disabled !== false && disabled !== '';
   const costLine = isDisabled ? disabled : cost;
+  const costText = typeof costLine === 'string' || typeof costLine === 'number' ? String(costLine) : null;
   const holdMode = confirmStyle !== 'twoTaps';
 
   function show(n: number): void {
@@ -227,8 +228,11 @@ export function HoldToConfirm(props: HoldToConfirmProps) {
       data-armed={showArmed ? 'true' : undefined}
       data-progress={holdMode ? String(cells) : undefined}
       aria-disabled={isDisabled ? 'true' : undefined}
-      // The name holds every word on the face, the cost line too (WCAG 2.5.3, label in name).
-      aria-label={costLine != null ? `${action} ${costLine}` : action}
+      // The name holds every word on the face, a text cost line too (WCAG 2.5.3, label in name).
+      // A cost line drawn as markup can't go into a string (it read `[object Object]`, #466):
+      // it describes the button instead, as on Button.
+      aria-label={costText != null ? `${action} ${costText}` : action}
+      aria-describedby={costLine != null && costText == null ? costId : undefined}
       title={title}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerEnd}

@@ -18,6 +18,7 @@ import { ClickPowerCard } from '../../../../src/ui/nest/ClickPowerCard';
 import { testActions } from '../../helpers/actions';
 import { confirmSettings, holdFor } from '../../helpers/confirm';
 import { makeState } from '../../helpers/makeState';
+import { researchBalance } from '../../../../src/data/balance/research';
 import { visibleText } from '../../helpers/a11y';
 
 /**
@@ -269,7 +270,8 @@ describe('Research cards (Story 1.24, UX-DR19)', () => {
     expect(el.querySelector('[data-time-left]')!.textContent).toMatch(/LEFT/);
   });
 
-  it('while running, CANCEL (50 % BACK) shows the refund before confirming, and holding it refunds half', () => {
+  it('while running, CANCEL (<share> % BACK) shows the refund before confirming, and holding it refunds that share', () => {
+    const share = researchBalance.cancelRefundShare;
     vi.useFakeTimers();
     gameState.value = space({
       workersAssigned: { researchers: vcs.requiredResearchers },
@@ -281,10 +283,10 @@ describe('Research cards (Story 1.24, UX-DR19)', () => {
       <ResearchCards start={(id) => actions.startResearch(id)} cancel={(id) => actions.cancelResearch(id)} confirmSettings={settings} />,
     );
     const cancel = research(container, vcs.id)!.querySelector<HTMLButtonElement>('[data-action="cancel-research"]')!;
-    expect(cancel.getAttribute('aria-label')).toContain('CANCEL (50 % BACK)');
+    expect(cancel.getAttribute('aria-label')).toContain(`CANCEL (${formatFull(Math.floor(share * 100))} % BACK)`);
     const refund = research(container, vcs.id)!.querySelector('[data-refund]')!;
     for (const [res, amount] of Object.entries(vcs.cost)) {
-      if (Math.floor((amount as number) / 2) > 0) expect(refund.textContent).toContain(String(Math.floor((amount as number) / 2)));
+      if (Math.floor((amount as number) * share) > 0) expect(refund.textContent).toContain(formatFull(Math.floor((amount as number) * share)));
       void res;
     }
     const before = { ...gameState.value.resources };
@@ -295,7 +297,7 @@ describe('Research cards (Story 1.24, UX-DR19)', () => {
     expect(gameState.value.research.projects[vcs.id].status).not.toBe('running');
     for (const [res, amount] of Object.entries(vcs.cost)) {
       const key = res as keyof typeof before;
-      expect(gameState.value.resources[key]).toBe((before[key] as number) + Math.floor((amount as number) / 2));
+      expect(gameState.value.resources[key]).toBe((before[key] as number) + Math.floor((amount as number) * share));
     }
   });
 

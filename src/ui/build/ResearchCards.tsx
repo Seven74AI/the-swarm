@@ -8,6 +8,7 @@ import {
 } from '../../state/selectors';
 import { getProjects, getProjectsFor, itemKey, type ResearchProjectDef } from '../../state/queries';
 import { formatFull, formatTime } from '../../utils/format';
+import { researchBalance } from '../../data/balance/research';
 import { Button } from '../primitives/Button';
 import { Card } from '../primitives/Card';
 import { HoldToConfirm, type ConfirmSettings } from '../primitives/HoldToConfirm';
@@ -28,15 +29,18 @@ export interface ResearchCardsProps {
   confirmSettings: ReadonlySignal<ConfirmSettings>;
 }
 
-/** What cancelling gives back: half of each price entry, floored (ResearchSystem.cancelProject). */
+/** What cancelling gives back: the refund share of each price entry, floored (ResearchSystem.cancelProject). */
 function refundOf(price: Price): Price {
   const out: Record<string, number> = {};
   for (const [id, amount] of Object.entries(price) as [string, number | undefined][]) {
-    const half = Math.floor((amount ?? 0) / 2);
-    if (half > 0) out[id] = half;
+    const back = Math.floor((amount ?? 0) * researchBalance.cancelRefundShare);
+    if (back > 0) out[id] = back;
   }
   return out;
 }
+
+/** `(50 % BACK)`: the refund share, as the CANCEL button names it. */
+const refundTarget = () => `(${formatFull(Math.floor(researchBalance.cancelRefundShare * 100))} % BACK)`;
 
 function ResearchCard({ def, step, steps, selected, props }: { def: ResearchProjectDef; step: number; steps: number; selected: boolean; props: ResearchCardsProps }) {
   const status = selectResearchStatus(def.id).value;
@@ -68,7 +72,7 @@ function ResearchCard({ def, step, steps, selected, props }: { def: ResearchProj
     action = (
       <HoldToConfirm
         verb="CANCEL"
-        target="(50 % BACK)"
+        target={refundTarget()}
         cost={
           <span data-refund="">
             <PriceText price={refundOf(def.cost)} sign="+" /> BACK

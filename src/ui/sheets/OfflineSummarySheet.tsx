@@ -5,7 +5,7 @@ import { ModalSheet } from '../shell/Sheet';
 import { Abbr } from '../primitives/Deco';
 import { RESOURCES, type ResourceDef } from '../shell/resourceCatalog';
 import { colonyLine } from '../../data/content/colonyLines';
-import { formatDeltaFull } from '../../utils/format';
+import { formatDeltaFull, formatDuration } from '../../utils/format';
 import './OfflineSummarySheet.css';
 
 /**
@@ -28,16 +28,8 @@ import './OfflineSummarySheet.css';
 /** Upkeep shorter than this is not worth a line. */
 const STARVED_LINE_MIN_MS = 1000;
 
-/** "45s", "12m 30s", "3h 14m", "8h": a zero minor unit is dropped. */
-export function formatAway(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  if (hours > 0) return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-  if (minutes > 0) return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
-  return `${seconds}s`;
-}
+/** The away time as the sheet reads it (the shared duration formatter). */
+export const formatAway = formatDuration;
 
 /** The stocks a summary compares. */
 export interface SummaryStocks {
