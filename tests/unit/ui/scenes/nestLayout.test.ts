@@ -213,3 +213,36 @@ describe('nestLayout: a growing, starving colony (Story 8.7)', () => {
     expect([l.eggs.length, l.larvae.length]).toEqual([4, 3]);
   });
 });
+
+describe('nestLayout: a crowded nest spills into the tunnels (Story 9.13)', () => {
+  it('draws no spilled ant while the creatures fit the rooms', () => {
+    expect(nestLayout(view(5, 4, 37)).spill).toHaveLength(0);
+    expect(nestLayout({ ...view(5, 4, 37), overfill: 0 }).spill).toHaveLength(0);
+  });
+
+  it('draws the overfill as ants walking the tunnels: some, never more than the overfill or the cap', () => {
+    for (const overfill of [1, 3, 40, 5_000]) {
+      const layout = nestLayout({ ...view(5, 4, 37), overfill });
+      expect(layout.spill.length).toBeGreaterThan(0);
+      expect(layout.spill.length).toBeLessThanOrEqual(Math.min(overfill, sceneBalance.spillAntsMax));
+      const ids = new Set(layout.tunnels.map((t) => t.id));
+      for (const a of layout.spill) expect(a.tunnel !== null && ids.has(a.tunnel)).toBe(true);
+    }
+  });
+
+  it('never spills more as the overfill shrinks', () => {
+    const base = view(5, 4, 37);
+    expect(nestLayout({ ...base, overfill: 2 }).spill.length).toBeLessThanOrEqual(nestLayout({ ...base, overfill: 20 }).spill.length);
+  });
+
+  it('keeps the whole scene within the animation budget, and still counts every worker once', () => {
+    fc.assert(
+      fc.property(fc.nat(10_000_000), fc.nat(100_000), fc.boolean(), (workers, overfill, starving) => {
+        const l = nestLayout({ ...view(0, 0, workers, starving), overfill });
+        expect(l.workers.length + l.spill.length).toBeLessThanOrEqual(sceneBalance.animatedAntsMax);
+        expect(l.workers.length + chamberOf(l, 'workers').cloud.count + l.thinned).toBe(workers);
+      }),
+      { numRuns: 60 },
+    );
+  });
+});

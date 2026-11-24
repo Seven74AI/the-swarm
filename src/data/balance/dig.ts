@@ -9,8 +9,8 @@
 export const digBalance = {
   /** Nest capacity one room adds (more than 1). */
   roomSize: 6,
-  /** Dig points the first room costs. */
-  firstRoomPoints: 3500,
+  /** Dig points the first room costs (Story 9.13 lowered it to offset crowding in Colony, gate 1 held). */
+  firstRoomPoints: 3100,
   /** Each room dug adds this share of the first room's cost to every later room (linear, so a big nest stays diggable). */
   roomGrowthPerRoom: 0.22,
   /** Dig points a press adds on its own. */

@@ -50,6 +50,21 @@ describe('NextRoomStrip', () => {
     expect(container.querySelector('[data-next-room-time]')!.textContent).toMatch(/^IN /);
   });
 
+  it('adds CROWDED · −n% WORK in warn while crowding bites (Story 9.13), and nothing otherwise', () => {
+    gameState.value = colony(4, 100);
+    const roomy = render(<NextRoomStrip />);
+    expect(roomy.container.querySelector('[data-next-room-crowded]')).toBeNull();
+    cleanup();
+    const s = colony(4, 100);
+    gameState.value = { ...s, resources: { ...s.resources, eggs: s.resources.nestCapacity * 3 }, eggPipeline: { count: s.resources.nestCapacity * 3, progress: 0 } };
+    const pct = nextRoom(gameState.value).crowdedPercent;
+    expect(pct).not.toBeNull();
+    const { container } = render(<NextRoomStrip />);
+    const warn = container.querySelector('[data-next-room-crowded]')!;
+    expect(warn.textContent).toBe(`CROWDED · −${pct}% WORK`);
+    expect(warn.hasAttribute('data-warn')).toBe(true);
+  });
+
   it('reads NO DIGGERS in place of the time when nobody digs', () => {
     gameState.value = colony(0);
     const { container } = render(<NextRoomStrip />);

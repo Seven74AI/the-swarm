@@ -18,6 +18,7 @@ import { simBalance } from '../../src/data/balance/sim';
 import { MS_PER_SEC, OFFLINE_CAP_BASE_MS, RESUME_FULL_EFFICIENCY_MS } from '../../src/data/constants';
 import { diggerPointsPerSec, roomCost } from '../../src/systems/Dig';
 import { isItemAffordable, listItems } from '../../src/systems/NextAction';
+import { getCrowding } from '../../src/systems/Crowding';
 
 beforeEach(() => {
   vi.spyOn(console, 'info').mockImplementation(() => {});
@@ -67,6 +68,23 @@ function colonyWithoutGuard(): GameState {
     workersAssigned: { ...s.workersAssigned, guard: 0 },
   };
 }
+
+describe('the crowded probe (Story 9.13)', () => {
+  it('records whether a check-in started with crowding biting', () => {
+    const start = createInitialState();
+    const packed = (s: GameState): GameState => {
+      const brood = s.resources.nestCapacity * 3;
+      return { ...s, phase: Phase.COLONY, resources: { ...s.resources, eggs: brood }, eggPipeline: { count: brood, progress: 0 } };
+    };
+    const p = new Probes(start);
+    p.beginCheckIn(0, start, 0);
+    p.beginCheckIn(1, packed(start), 1000);
+    const [roomy, crowded] = p.report().checkIns;
+    expect(getCrowding(start).multiplier).toBe(1);
+    expect(roomy.startCrowded).toBe(false);
+    expect(crowded.startCrowded).toBe(true);
+  });
+});
 
 describe('payoff probes', () => {
   const start = createInitialState();

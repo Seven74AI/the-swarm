@@ -190,7 +190,7 @@ const at = (t: Token) => `translate(${t.x} ${t.y}) rotate(${t.angle})`;
 const antAt = (t: Token) => `${at(t)} scale(${ANT_SCALE})`;
 
 /** The individual workers, moved every frame by the scene clock without a render. */
-function Ants({ ants, tunnels, clock, live }: { ants: readonly Ant[]; tunnels: readonly Tunnel[]; clock: SceneClock; live: boolean }) {
+function Ants({ ants, tunnels, clock, live, part = 'worker' }: { ants: readonly Ant[]; tunnels: readonly Tunnel[]; clock: SceneClock; live: boolean; part?: 'worker' | 'spill' }) {
   const nodes = useRef<(SVGGElement | null)[]>([]);
   useSceneClock((t) => {
     for (let i = 0; i < ants.length; i++) nodes.current[i]?.setAttribute('transform', antAt(antPose(ants[i], tunnels, t)));
@@ -204,7 +204,7 @@ function Ants({ ants, tunnels, clock, live }: { ants: readonly Ant[]; tunnels: r
           ref={(el) => {
             nodes.current[i] = el;
           }}
-          data-scene-part="worker"
+          data-scene-part={part}
           class="nest-svg__creature"
           transform={antAt(antPose(a, tunnels, now))}
         >
@@ -369,6 +369,7 @@ export function NestScene({ view, onChamber, clock = sceneClock(), crack = 0, fe
         {/* The moving ants on a layer of their own: a frame repaints only them, never the soil and the cloud. */}
         <svg class="nest-svg nest-svg--ants" data-line-work="" viewBox={`0 0 ${layout.width} ${layout.height}`} aria-hidden="true" focusable="false">
           <Ants ants={layout.workers} tunnels={layout.tunnels} clock={clock} live={live} />
+          {layout.spill.length > 0 && <Ants ants={layout.spill} tunnels={layout.tunnels} clock={clock} live={live} part="spill" />}
         </svg>
         </div>
         {layout.chambers.map((c) => (

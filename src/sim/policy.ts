@@ -225,12 +225,18 @@ function canTrainNow(s: GameState): boolean {
 /**
  * Combat for the max-army player (Story 4.4): train a soldier from every free
  * worker the colony can pay for, whatever the enemy and whatever the food,
- * and fight only once nothing more can be trained and the last trainee has
- * joined the army.
+ * training first. It fights too once the trained army is not outmatched, or
+ * once nothing more can be trained and the last trainee has joined the army.
+ * (Story 9.13: with no worker-count penalty a growing colony always has
+ * another free worker, so "train until nothing is left" alone never fought.)
  */
 function maxArmyCombatMoves(s: GameState): SimMove[] {
   if (s.phase !== Phase.COMBAT) return [];
-  if (canTrainNow(s)) return [{ kind: 'trainSoldier' }];
+  if (canTrainNow(s)) {
+    const enemy = scaleEnemy(getEnemyDef(s.nextEnemy), s.battlesWon);
+    const strong = s.combatSoldiers > 0 && assessMatchup(s, enemy) !== 'dangerous';
+    return [{ kind: 'trainSoldier' }, ...(strong ? [{ kind: 'fight', enemyType: enemy.type } as const] : [])];
+  }
   if (s.combatSoldiers > 0 && s.soldierPipeline.count === 0) return [{ kind: 'fight', enemyType: s.nextEnemy }];
   return [];
 }

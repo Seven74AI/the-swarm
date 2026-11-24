@@ -1,4 +1,5 @@
 import type { EventSink } from '../engine/events';
+import { crowdingBites } from './Crowding';
 import type { GameState, OpenDecision } from '../state/GameState';
 import { decisionBalance } from '../data/balance/decisions';
 import { PERCENT } from '../data/constants';
@@ -10,7 +11,6 @@ import {
   type DecisionEffect,
   type DecisionStock,
 } from '../data/content/decisions';
-import { getEffects } from './BuildingSystem';
 
 /**
  * Decision events (Story 1.28, D8, N3): pure rules, no class, no hidden state.
@@ -112,10 +112,9 @@ export function tickDecisions(state: GameState, input: DecisionTickInput): GameS
   return withDecision(state, { open: opened, nextSpawnSessionMs });
 }
 
-/** The nest is near its capacity (warehouse included): `decisionBalance.crowdedShare` of it is filled. */
+/** The nest is crowded: crowding bites (Story 9.13), the same rule that slows the work, so the two never disagree. */
 export function isCrowded(state: GameState): boolean {
-  const cap = state.resources.nestCapacity + (getEffects('warehouse', state.buildings.warehouse.level).nestCapacity ?? 0);
-  return cap > 0 && state.resources.workers >= cap * decisionBalance.crowdedShare;
+  return crowdingBites(state);
 }
 
 /** Whether `def` may spawn in this state, beyond its phase (Story 4.5: OVERCROWDING. needs a crowded nest). */

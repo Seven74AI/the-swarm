@@ -10,6 +10,7 @@ import {
   buildPacingReport,
   formatPacingReport,
   criticalMoments,
+  crowdedShares,
   idleCheckIns,
   judgeSpan,
   median,
@@ -43,7 +44,7 @@ afterEach(() => {
 const MIN = 60_000;
 
 function checkIn(index: number, over: Partial<CheckInRecord> = {}): CheckInRecord {
-  return { index, startMs: index * HOUR_MS, activeMs: 5 * MIN, phase: Phase.COLONY, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, digs: 0, feeds: 0, refused: 0, byAction: {}, foodCritical: false, capacityCritical: false, ...over };
+  return { index, startMs: index * HOUR_MS, activeMs: 5 * MIN, phase: Phase.COLONY, decisionsAvailable: 0, waitMs: 0, actions: 0, taps: 0, digs: 0, feeds: 0, refused: 0, byAction: {}, foodCritical: false, capacityCritical: false, startCrowded: false, ...over };
 }
 
 function egg(activeMs: number, phase: Phase, laid: number, tapped: number): EggSample {
@@ -206,6 +207,25 @@ describe('criticalMoments (Story 3.11)', () => {
   });
 });
 
+describe('crowdedShares (Story 9.13)', () => {
+  it('gives, per phase, the whole percent of its check-ins that started crowded', () => {
+    const list = [
+      checkIn(0, { phase: Phase.EGG_LAYING }),
+      checkIn(1, { startCrowded: true }),
+      checkIn(2),
+      checkIn(3, { phase: Phase.COMBAT, startCrowded: true }),
+    ];
+    const shares = crowdedShares(list);
+    expect(shares.map((x) => x.phase)).toEqual([Phase.EGG_LAYING, Phase.COLONY, Phase.COMBAT]);
+    const colony = shares.find((x) => x.phase === Phase.COLONY)!;
+    expect(colony.checkIns).toBe(2);
+    expect(colony.crowded).toBe(1);
+    expect(colony.percent).toBeLessThan(shares.find((x) => x.phase === Phase.COMBAT)!.percent);
+    expect(shares.find((x) => x.phase === Phase.EGG_LAYING)!.percent).toBe(0);
+    for (const x of shares) expect(Number.isInteger(x.percent)).toBe(true);
+  });
+});
+
 describe('the pacing report on a real run (Story 3.9)', () => {
   const targets: PacingTargets = pacingTargets;
   const schedule = dailySchedule(1);
@@ -251,6 +271,13 @@ describe('the pacing report on a real run (Story 3.9)', () => {
     expect(text).toContain(`${report.idle.length}`);
     expect(text).toMatch(/food-critical/i);
     expect(text).toMatch(/capacity-critical/i);
+  });
+
+  it('prints the share of check-ins that started crowded, per phase (Story 9.13)', () => {
+    expect(report.crowded).toEqual(crowdedShares(result.probes.checkIns));
+    const text = formatPacingReport(report);
+    expect(text).toMatch(/started crowded/i);
+    for (const x of report.crowded) expect(text).toContain(`${x.phase} ${x.percent}%`);
   });
 
   it('counts the critical moments of the target phase from the probes (Story 3.11)', () => {

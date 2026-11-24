@@ -4,6 +4,7 @@ import { getEffects } from './BuildingSystem';
 import { MS_PER_SEC, PERCENT } from '../data/constants';
 import { automationBalance } from '../data/balance/automation';
 import { Phase } from '../phases/phases';
+import { crowdedPercent, getCrowding } from './Crowding';
 
 /**
  * DIG (Story 9.2, FR55): the dig state is `state.dig` (`roomsDug`, `progress`
@@ -17,17 +18,21 @@ export function roomCost(roomsDug: number): number {
   return Math.floor(digBalance.firstRoomPoints * (1 + digBalance.roomGrowthPerRoom * n)) + n;
 }
 
-/** The dig points one press adds: the base plus a share per worker on the DIG role (whole points). */
+/**
+ * The dig points one press adds: the base plus a share per worker on the DIG
+ * role (whole points). Crowding (Story 9.13) slows the diggers' share, never
+ * the press's own points: tapping stays a boost.
+ */
 export function pressChunk(s: GameState): number {
-  return digBalance.pressPoints + Math.floor(digBalance.pressPointsPerDigger * s.workersAssigned.dig);
+  return digBalance.pressPoints + Math.floor(digBalance.pressPointsPerDigger * s.workersAssigned.dig * getCrowding(s).multiplier);
 }
 
-/** Dig points the diggers dig a second on their own (Tunnels speed them up, Story 4.7). */
+/** Dig points the diggers dig a second on their own (Tunnels speed them up, Story 4.7; crowding slows them, Story 9.13). */
 export function diggerPointsPerSec(s: GameState): number {
   const diggers = s.workersAssigned.dig;
   if (diggers <= 0) return 0;
   const speed = 1 + (getEffects('tunnels', s.buildings.tunnels?.level ?? 0).digSpeedBonus ?? 0);
-  return diggers * digBalance.diggerPointsPerSec * speed;
+  return diggers * digBalance.diggerPointsPerSec * speed * getCrowding(s).multiplier;
 }
 
 /** Dig points auto-dig presses a second (Story 9.5): `pressesPerSec` chunks, once bought, while anyone is on DIG. */
@@ -121,6 +126,8 @@ export interface NextRoom {
   readonly timeLeftMs: number | null;
   /** Auto-dig is on (Story 9.5): the strip reads `NEXT ROOM · AUTO-DIG ON`. */
   readonly auto: boolean;
+  /** The work crowding costs as a whole percent, or null while the creatures fit (Story 9.13: `CROWDED · −<n>% WORK`). */
+  readonly crowdedPercent: number | null;
 }
 
 /** The next room, from the same rules the dig system uses. Pure. */
@@ -137,5 +144,6 @@ export function nextRoom(s: GameState): NextRoom {
     presses: Math.max(1, Math.ceil(left / pressChunk(s))),
     timeLeftMs: rate > 0 ? Math.ceil((Math.max(0, left - s.dig.carry) / rate) * MS_PER_SEC) : null,
     auto: s.dig.auto,
+    crowdedPercent: crowdedPercent(s),
   };
 }

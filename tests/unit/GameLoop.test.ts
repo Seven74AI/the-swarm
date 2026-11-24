@@ -6,7 +6,6 @@ import { progressionBalance as P } from '../../src/data/balance/progression';
 
 const production = (phaseNumber: number, lp: number): number =>
   P.productionPerPhase ** phaseNumber * (1 + P.productionPerLegacyPoint * lp);
-const FREE = P.scalePenalty.freeWorkers;
 
 describe('GameLoop', () => {
   let ticker: Ticker;
@@ -73,28 +72,24 @@ describe('GameLoop', () => {
     });
   });
 
+  // Story 9.13: the work rate is the crowding multiplier.
   describe('getWorkerEfficiency', () => {
     it('returns 1.0 with 0 workers', () => {
       const loop = new GameLoop(ticker);
-      const state = createInitialState();
+      expect(loop.getWorkerEfficiency(createInitialState())).toBe(1.0);
+    });
+
+    it('returns 1.0 for thousands of workers that fit their rooms', () => {
+      const loop = new GameLoop(ticker);
+      const s = createInitialState();
+      const state: GameState = { ...s, resources: { ...s.resources, workers: 5_000, nestCapacity: 5_000 } };
       expect(loop.getWorkerEfficiency(state)).toBe(1.0);
     });
 
-    it('returns 1.0 at exactly the scale-penalty threshold', () => {
+    it('drops below 1.0 once the nest is packed past its rooms', () => {
       const loop = new GameLoop(ticker);
-      const state: GameState = {
-        ...createInitialState(),
-        resources: { ...createInitialState().resources, workers: FREE },
-      };
-      expect(loop.getWorkerEfficiency(state)).toBe(1.0);
-    });
-
-    it('drops below 1.0 above the threshold', () => {
-      const loop = new GameLoop(ticker);
-      const state: GameState = {
-        ...createInitialState(),
-        resources: { ...createInitialState().resources, workers: FREE + 250 },
-      };
+      const s = createInitialState();
+      const state: GameState = { ...s, resources: { ...s.resources, workers: 100, nestCapacity: 100, eggs: 100 }, eggPipeline: { count: 100, progress: 0 } };
       expect(loop.getWorkerEfficiency(state)).toBeLessThan(1.0);
     });
   });

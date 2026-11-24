@@ -15,6 +15,4 @@ export const decisionBalance = {
    * never the last one), no further.
    */
   workerFloorShare: 0.5,
-  /** OVERCROWDING. spawns only once the workers fill this share of the nest's capacity. */
-  crowdedShare: 0.9,
 } as const;

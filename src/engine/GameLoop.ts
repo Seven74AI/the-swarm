@@ -1,6 +1,7 @@
 import type { Ticker } from './Ticker';
 import type { GameState } from '../state/GameState';
-import { productionMultiplierFor, workerEfficiency } from './ProgressionCurve';
+import { productionMultiplierFor } from './ProgressionCurve';
+import { getCrowding } from '../systems/Crowding';
 import { createTickContext, type TickContext } from './TickContext';
 import type { EventQueue } from './events';
 import { log } from '../utils/log';
@@ -122,10 +123,10 @@ export class GameLoop {
   }
 
   /**
-   * Get the current worker efficiency for the given game state.
-   * Applies diminishing returns above 500 workers.
+   * The share of normal work the colony does now: the crowding multiplier
+   * (Story 9.13), 1 while every creature fits the rooms.
    */
   getWorkerEfficiency(state: GameState): number {
-    return workerEfficiency(state.resources.workers);
+    return getCrowding(state).multiplier;
   }
 }

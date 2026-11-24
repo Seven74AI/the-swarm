@@ -12,7 +12,8 @@ import { combatBalance } from '../data/balance/combat';
 import { roleBalance } from '../data/balance/roles';
 import { getEffects } from './BuildingSystem';
 import { addDigPoints, digRate } from './Dig';
-import { productionMultiplierFor, workerEfficiency } from '../engine/ProgressionCurve';
+import { productionMultiplierFor } from '../engine/ProgressionCurve';
+import { getCrowding } from './Crowding';
 import { getPrestigeBonuses } from './PrestigeBonusSystem';
 import { getMutationEffects } from './MutationSystem';
 
@@ -89,7 +90,8 @@ function foodFlow(state: GameState, territoryBonuses?: TerritoryBonuses): FoodPa
   const gatherCount = state.workersAssigned.gather;
   const idleCount = Math.max(0, workers - getAssignedWorkers(state));
   const prodMult = productionMultiplierFor(state);
-  const workerEff = workerEfficiency(workers);
+  // Crowding (Story 9.13) slows the work; upkeep is never cut.
+  const workerEff = getCrowding(state).multiplier;
   // The Fungus Garden feeds gatherers only (Story 4.7).
   const gardenBonus = getEffects('fungus_garden', state.buildings.fungus_garden?.level ?? 0).gatherFoodBonus ?? 0;
   const mult = prodMult * workerEff * prestigeBonuses.food * prestigeBonuses.workerEfficiency * (1 + mutationEffects.gatherRate);
@@ -126,7 +128,7 @@ export function computeResourceRates(
   const gatherCount = assigned.gather;
 
   const prodMult = productionMultiplierFor(state);
-  const workerEff = workerEfficiency(workers);
+  const workerEff = getCrowding(state).multiplier;
 
   const food = foodFlow(state, territoryBonuses);
   const foodProducedPerSec = food.in.gatherers + food.in.idle;
