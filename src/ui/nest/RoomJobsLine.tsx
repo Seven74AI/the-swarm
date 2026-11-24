@@ -1,4 +1,4 @@
-import { selectRoomJobs, selectRoomsDug } from '../../state/selectors';
+import { selectRoomJobRows, selectRoomsDug } from '../../state/selectors';
 import { ROOM_JOBS } from '../../data/content/roomJobs';
 import { formatFull } from '../../utils/format';
 import { Sep } from '../primitives/Deco';
@@ -16,18 +16,17 @@ import './nest.css';
  */
 export function RoomJobsLine({ sheets, actions }: { sheets: SheetController; actions: RoomJobActions }) {
   const dug = selectRoomsDug.value;
-  const jobs = selectRoomJobs.value.jobs;
+  const rows = selectRoomJobRows.value;
   if (dug <= 0) return null;
-  const assigned = ROOM_JOBS.reduce((n, j) => n + jobs[j.id], 0);
-  const plain = Math.max(0, dug - assigned);
+  const plain = rows.plain;
   return (
     <div class="room-jobs-line" data-room-jobs="">
       <span class="room-jobs-line__counts">
         {`${formatFull(plain)} PLAIN ${plain === 1 ? 'ROOM' : 'ROOMS'}`}
-        {ROOM_JOBS.map((j) => (
-          <span key={j.id}>
+        {rows.jobs.map((r) => (
+          <span key={r.id}>
             <Sep />
-            {`${formatFull(jobs[j.id])} ${j.label}`}
+            {`${formatFull(r.rooms)} ${ROOM_JOBS.find((j) => j.id === r.id)?.label ?? r.id.toUpperCase()}`}
           </span>
         ))}
       </span>

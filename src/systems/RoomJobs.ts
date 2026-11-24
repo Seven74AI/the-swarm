@@ -52,8 +52,9 @@ export function roomJobRefusal(s: GameState, from: RoomSlot, to: RoomSlot): Extr
   if (s.phase === Phase.EGG_LAYING) return 'locked';
   if (from === to || roomsWith(s, from) <= 0) return 'unavailable';
   if (s.resources.stone < roomJobCost(s, from, to).stone) return 'cannot_afford';
-  const capacityAfter = roomSpace(s) + extraCapacity(to) - extraCapacity(from);
-  if (s.resources.workers > capacityAfter) return 'at_capacity';
+  // Only a change that takes room away can leave workers without one.
+  const lost = extraCapacity(from) - extraCapacity(to);
+  if (lost > 0 && s.resources.workers > roomSpace(s) - lost) return 'at_capacity';
   return null;
 }
 

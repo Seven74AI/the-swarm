@@ -13,6 +13,9 @@ export interface RoomJobActions {
   setRoomJob(from: RoomSlot, to: RoomSlot): ActionResult;
 }
 
+const costLine = (c: RoomJobChange): string => (c.stone === 0 ? 'FREE' : `${formatFull(c.stone)} STONE`);
+const refusal = (c: RoomJobChange): string | false => (c.refused ? ROOM_JOB_REFUSALS[c.refused] : false);
+
 /**
  * The room-opened choice (Story 9.14, FR59): a peek, never a modal, so it
  * never blocks DIG, FEED or CONTINUE. `ROOM OPENED.` with one tap for a job
@@ -22,6 +25,7 @@ export interface RoomJobActions {
  * Hooks: `[data-room-job-choice]`, `[data-room-job-pick="<job>|plain"]`.
  */
 function RoomJobChoice({ actions, close }: { actions: RoomJobActions; close: () => void }) {
+  const rows = selectRoomJobRows.value;
   return (
     <PeekSheet header="ROOM OPENED." data-room-job-choice="">
       <p class="room-jobs__line">{`+${digBalance.roomSize} ROOM. GIVE IT A JOB?`}</p>
@@ -31,6 +35,7 @@ function RoomJobChoice({ actions, close }: { actions: RoomJobActions; close: () 
             key={job.id}
             verb={job.label}
             cost={job.hint}
+            disabled={refusal(rows.jobs.find((r) => r.id === job.id)!.add)}
             data-room-job-pick={job.id}
             onPress={() => {
               const r = actions.setRoomJob('plain', job.id);
@@ -50,9 +55,6 @@ export function openRoomJobChoice(sheets: SheetController, actions: RoomJobActio
   return sheets.open({ priority: 'peek', render: (close) => <RoomJobChoice actions={actions} close={close} /> });
 }
 
-const costLine = (c: RoomJobChange): string => (c.stone === 0 ? 'FREE' : `${formatFull(c.stone)} STONE`);
-const refusal = (c: RoomJobChange): string | false => (c.refused ? ROOM_JOB_REFUSALS[c.refused] : false);
-
 /**
  * The room jobs sheet (Story 9.14): every job with its rooms, a way to give a
  * plain room the job and to take it back. A change costs stone, except a
@@ -67,7 +69,7 @@ function RoomJobsSheet({ actions }: { actions: RoomJobActions }) {
     <PeekSheet header="ROOMS" data-room-jobs-sheet="">
       <p class="room-jobs__line">{`${formatFull(rows.plain)} PLAIN`}</p>
       {rows.jobs.map((row) => {
-        const job = ROOM_JOBS.find((j) => j.id === row.id)!;
+        const job = ROOM_JOBS.find((j) => j.id === row.id) ?? { id: row.id, label: row.id.toUpperCase(), hint: '' };
         return (
           <div key={row.id} class="room-jobs__row" data-room-job-row={row.id}>
             <p class="room-jobs__line">{`${job.label} ${formatFull(row.rooms)} · ${job.hint}`}</p>

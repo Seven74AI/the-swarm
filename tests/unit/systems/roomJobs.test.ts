@@ -80,12 +80,16 @@ describe('Story 9.14: setting a job', () => {
     rooms: fc.integer({ min: 0, max: 40 }),
     freshShare: fc.double({ min: 0, max: 1, noNaN: true }),
     galleryShare: fc.double({ min: 0, max: 1, noNaN: true }),
+    // Workers up to past the room space (a crowded nest), and stone from none to plenty.
+    fill: fc.double({ min: 0, max: 1.5, noNaN: true }),
+    stone: fc.constantFrom(0, roomJobBalance.changeCostStone - 1, roomJobBalance.changeCostStone, 1_000_000),
     from: fc.constantFrom(...slots),
     to: fc.constantFrom(...slots),
-  }).map(({ rooms, freshShare, galleryShare, from, to }) => {
+  }).map(({ rooms, freshShare, galleryShare, fill, stone, from, to }) => {
     const gallery = Math.floor(rooms * galleryShare);
     const fresh = Math.floor((rooms - gallery) * freshShare);
-    return { s: nest(rooms, fresh, gallery), from, to };
+    const s = nest(rooms, fresh, gallery);
+    return { s: { ...s, resources: { ...s.resources, stone, workers: Math.floor(roomSpace(s) * fill) } }, from, to };
   });
 
   it('never has more jobs than rooms, never a negative count, and the fresh rooms are plain', () => {
@@ -126,6 +130,17 @@ describe('Story 9.14: setting a job', () => {
     // Every room assigned once: the next plain → job costs stone too.
     const used = nest(2, 0);
     expect(roomJobCost(used, 'plain', 'gallery').stone).toBeGreaterThan(0);
+  });
+
+  it('never refuses a change that adds room for lack of room, however crowded', () => {
+    fc.assert(
+      fc.property(arb, ({ s, from, to }) => {
+        const rooms = (slot: RoomSlot) => (slot === 'plain' ? 0 : roomJobBalance.jobs[slot].extraRooms);
+        if (rooms(to) >= rooms(from)) expect(roomJobRefusal(s, from, to)).not.toBe('at_capacity');
+        // A change that takes room away is allowed only while every worker still has one.
+        if (rooms(to) < rooms(from) && roomJobRefusal(s, from, to) === null) expect(s.resources.workers).toBeLessThanOrEqual(roomSpace(applyRoomJob(s, from, to)));
+      }),
+    );
   });
 
   it('refuses what it can’t do, and explains it', () => {

@@ -59,6 +59,14 @@ describe('the room-opened choice', () => {
     expect(q('[data-room-job-choice]')).toBeNull();
   });
 
+  it('explains a GALLERY it can’t give (the room’s free job was already used, and no stone)', () => {
+    gameState.value = colony(1, 0, 0, 0);
+    act(() => void openRoomJobChoice(sheets, testActions(new EventBus())));
+    const pick = q<HTMLButtonElement>('[data-room-job-pick="gallery"]')!;
+    expect(pick.getAttribute('aria-disabled')).toBe('true');
+    expect(pick.textContent).toContain(ROOM_JOB_REFUSALS.cannot_afford);
+  });
+
   it('PLAIN, or closing it, leaves the room plain', () => {
     gameState.value = colony(1);
     act(() => void openRoomJobChoice(sheets, testActions(new EventBus())));

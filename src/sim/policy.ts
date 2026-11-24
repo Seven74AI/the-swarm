@@ -189,7 +189,6 @@ function needsRoom(s: GameState): boolean {
   return s.resources.workers + s.resources.eggs + s.resources.larvae >= nestCapacity(s);
 }
 
-/** Every move but Combat's: the same for each player below, so they differ only in how they fight. */
 /**
  * A new room's job (Story 9.14): a room never assigned gets the Gallery while
  * crowding bites (its first job is free), and stays plain otherwise.
@@ -199,6 +198,7 @@ function roomJobMoves(s: GameState): SimMove[] {
   return [{ kind: 'setRoomJob', from: 'plain', to: 'gallery' }];
 }
 
+/** Every move but Combat's: the same for each player below, so they differ only in how they fight. */
 function baseMoves(s: GameState, turn: PolicyTurn): SimMove[] {
   const moves: SimMove[] = [...layAutomation(s), ...roomJobMoves(s)];
   // Auto-dig (Story 9.5): bought as soon as it can be; from then on the diggers dig and the player stops pressing DIG.

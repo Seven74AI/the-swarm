@@ -41,8 +41,11 @@ test.describe('room jobs (Story 9.14)', () => {
     await expect(choice).toBeVisible();
     await expect(choice).toContainText('ROOM OPENED');
     await expect(page.locator('[data-sheet="modal"]')).toHaveCount(0);
-    // DIG is not blocked: the choice covers nothing it needs (a click on a covered button fails here).
+    // DIG is not blocked: a press under the open choice lands (the next room moves on).
+    const digsLeft = page.locator('[data-next-room-digs]');
+    const before = (await digsLeft.textContent()) ?? '';
     await dig.click();
+    await expect(digsLeft).not.toHaveText(before);
     await expect(choice).toBeVisible();
     await page.locator('[data-room-job-pick="gallery"]').click();
     await expect(page.locator('[data-room-jobs]')).toContainText('1 GALLERY');

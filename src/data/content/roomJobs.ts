@@ -19,7 +19,7 @@ export const PLAIN_ROOM = { label: 'PLAIN', hint: 'NO JOB' } as const;
 export const ROOM_JOB_REFUSALS = {
   locked: 'LOCKED',
   unavailable: 'NO SUCH ROOM',
-  cannot_afford: "CAN'T AFFORD",
+  cannot_afford: 'NOT ENOUGH STONE',
   at_capacity: 'WORKERS WOULD HAVE NO ROOM',
 } as const;
 export type RoomJobRefusal = keyof typeof ROOM_JOB_REFUSALS;
