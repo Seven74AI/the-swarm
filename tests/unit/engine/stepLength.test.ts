@@ -17,6 +17,7 @@ import { automationBalance } from '../../../src/data/balance/automation';
 import { combatBalance } from '../../../src/data/balance/combat';
 import { AUTOMATION_VERB_IDS } from '../../../src/data/content/automation';
 import { automationCount, autoLayPerSec } from '../../../src/systems/AutomationTargets';
+import { getCrowding } from '../../../src/systems/Crowding';
 
 /**
  * Story 2.5 (FR2, AR4): every system gives the same result for any step length.
@@ -233,6 +234,12 @@ describe('Story 2.5: systems give the same result for any step length', { timeou
       }),
       { seed: SEED, numRuns: RUNS },
     );
+  });
+
+  it('draws crowded nests too (Story 9.13), so every property here covers crowding', () => {
+    const draws = fc.sample(arbState, { seed: SEED, numRuns: RUNS });
+    expect(draws.filter((s) => getCrowding(s).multiplier < 1).length).toBeGreaterThan(RUNS / 4);
+    expect(draws.some((s) => getCrowding(s).multiplier === 1)).toBe(true);
   });
 
   it('dig workers add the same nest capacity for any step length', () => {
