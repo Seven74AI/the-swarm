@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { VerdictKind } from '../../data/content/verdicts';
+import type { VerdictFix, VerdictKind } from '../../data/content/verdicts';
 import type { FoodJump } from '../sheets/ResourceSheet';
 import { formatDelta, formatStrip } from '../../utils/format';
 import { RESOURCE_BY_ID } from './resourceCatalog';
@@ -74,7 +74,7 @@ export interface ResourceStripProps {
   /** The resource sheet closed having shown these resources (Story 9.10: `actions.markResourcesSeen`). */
   onSeen?: (ids: readonly string[]) => void;
   /** The resource sheet's verdict line was tapped (Story 9.11): open the screen that fixes it. */
-  onVerdict?: (kind: VerdictKind) => void;
+  onVerdict?: (kind: VerdictKind, fix?: VerdictFix) => void;
   /** A name in the resource sheet's food block was tapped (Story 9.12). */
   onFoodJump?: (target: FoodJump) => void;
   /** Force the 3-cell layout on or off; by default it follows the text scale. */

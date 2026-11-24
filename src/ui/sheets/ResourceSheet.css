@@ -111,6 +111,11 @@
   cursor: pointer;
 }
 .resource-sheet__verdict[data-warn] { color: var(--color-warn); }
+/* Where a starving or falling colony settles (Story 9.17): its own line under the verdict. */
+.resource-sheet__settles {
+  display: block;
+  font-size: var(--type-meta);
+}
 .resource-sheet__since {
   margin: 0;
   font-size: var(--type-aside);

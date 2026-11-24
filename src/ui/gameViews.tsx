@@ -19,6 +19,7 @@ import type { ConfirmSettings } from './primitives/HoldToConfirm';
 import { NestPrimary } from './nest/NestPrimary';
 import { AutoDigCard } from './build/AutoDigCard';
 import { NestSceneArea } from './nest/NestSceneArea';
+import { openRoomJobs } from './sheets/RoomJobSheet';
 import { ClickPowerCard } from './nest/ClickPowerCard';
 import { NestUpgradeCards, NestUpgradesHeading } from './nest/NestUpgradeCard';
 import { EventLines } from './nest/EventLines';
@@ -97,8 +98,14 @@ export function gameViews(d: GameViewDeps): ShellViews {
             sheets={d.sheets}
             onOpenSettings={d.onOpenSettings}
             onSeen={(ids) => d.actions.markResourcesSeen(ids)}
-            // The verdict opens the screen that fixes it (Story 9.11): WRKR's Gather row for food, NEST for a full nest.
-            onVerdict={(kind) => (kind === 'food' ? d.jump.jump('worker_assignment', '[data-role="gather"]') : d.jump.jump('phase_indicator'))}
+            // The verdict opens the screen that fixes it (Stories 9.11, 9.17): WRKR's Gather row for hunger, NEST's room
+            // jobs when a Larder or Pantry is what helps, NEST for a full nest.
+            onVerdict={(_kind, fix) => {
+              // In Egg Laying WRKR is not open yet: NEST, where the colony is, instead.
+              if (fix === 'gather' && d.jump.canJump('worker_assignment')) return d.jump.jump('worker_assignment', '[data-role="gather"]');
+              d.jump.jump('phase_indicator');
+              if (fix === 'room_jobs') openRoomJobs(d.sheets, d.actions);
+            }}
             // A name in the food block opens its row (Story 9.12): WRKR's Gather row, WRKR, or WAR for soldiers.
             onFoodJump={(target) =>
               target === 'soldiers'

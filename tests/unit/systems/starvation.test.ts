@@ -159,6 +159,32 @@ describe('Story 9.16: shrink to fit', () => {
     );
   });
 
+  it('settles at the largest size the food feeds: at n the rate is zero or better, with the last eater to die back it is below zero (Story 9.17)', () => {
+    fc.assert(
+      fc.property(arb, ({ s }) => {
+        const start = { ...s, resources: { ...s.resources, food: 0 } };
+        const settle = getSettlesAt(start);
+        // Let the colony starve for real, one death interval at a time, until nobody more dies.
+        let cur = start;
+        let beforeLast: GameState | null = null;
+        for (let i = 0; i < 2_000 && isStarvingNow(cur); i++) {
+          const next = tickStarvation(cur, sec(i === 0 ? graceMs(cur) : deathIntervalMs(cur)));
+          if (eaters(next) < eaters(cur)) beforeLast = cur;
+          if (eaters(next) === eaters(cur) && i > 0) break;
+          cur = next;
+        }
+        if (settle.netFoodPerSec < 0) return; // No death helps: the line is not shown (see Verdict).
+        // Where starvation stopped is where getSettlesAt said it would.
+        expect(cur.resources.workers + cur.combatSoldiers + cur.soldierPipeline.count).toBe(settle.workers + settle.soldiers);
+        expect(netFoodOf(cur)).toBeGreaterThanOrEqual(0);
+        // With the last eater to die added back, the colony starved.
+        if (settle.workers + settle.soldiers < eaters(start)) expect(beforeLast).not.toBeNull();
+        if (beforeLast) expect(netFoodOf(beforeLast)).toBeLessThan(0);
+      }),
+      { numRuns: 200 },
+    );
+  });
+
   it('dies the same number for any step length, within one', () => {
     fc.assert(
       fc.property(arb, fc.integer({ min: 1, max: 200 }), ({ s }, n) => {

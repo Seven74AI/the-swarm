@@ -186,8 +186,53 @@ describe('resource sheet: am I okay? (Story 9.11)', () => {
     act(() => void openResourceSheet(sheets, feed, { onVerdict }));
     expect(onVerdict).not.toHaveBeenCalled();
     act(() => sheet().querySelector<HTMLButtonElement>('[data-verdict]')!.click());
-    expect(onVerdict).toHaveBeenCalledWith('food');
+    expect(onVerdict).toHaveBeenCalledWith('food', 'gather');
     expect(document.querySelector('[data-resource-sheet]')).toBeNull();
+  });
+
+  it('under a falling verdict, says where the colony settles if nothing changes (Story 9.17)', async () => {
+    const { getSettlesAt } = await import('../../../../src/systems/Starvation');
+    gameState.value = hungry();
+    feed = createResourceFeed();
+    act(() => void openResourceSheet(sheets, feed));
+    const settles = sheet().querySelector<HTMLElement>('[data-verdict] [data-settles]');
+    expect(settles?.textContent).toBe(`IF NOTHING CHANGES: SETTLES AT ${formatFull(getSettlesAt(gameState.value).workers)} WORKERS.`);
+  });
+
+  it('a fed colony has no settles line (Story 9.17)', () => {
+    const s = createInitialState();
+    gameState.value = { ...s, phase: Phase.COLONY, resources: { ...s.resources, workers: 5, food: 1_000, nestCapacity: 50 }, workersAssigned: { ...s.workersAssigned, gather: 5 } };
+    feed = createResourceFeed();
+    act(() => void openResourceSheet(sheets, feed));
+    expect(sheet().querySelector('[data-settles]')).toBeNull();
+  });
+
+  it('the food block counts what hunger and the limit cost the run, each only once above zero (Story 9.17)', () => {
+    const base = hungry();
+    gameState.value = base;
+    feed = createResourceFeed();
+    act(() => void openResourceSheet(sheets, feed));
+    expect(sheet().querySelector('[data-food="hunger"]')).toBeNull();
+    expect(sheet().querySelector('[data-food="lost-limit"]')).toBeNull();
+    act(() => sheets.close(sheets.state.value.open!.id));
+    gameState.value = { ...base, starvation: { ...base.starvation, starvedWorkers: 12, starvedSoldiers: 3 }, foodLostAtLimit: 4_500 };
+    act(() => void openResourceSheet(sheets, feed));
+    expect(sheet().querySelector('[data-food="hunger"]')?.textContent).toMatch(/^LOST TO HUNGER: 12 WORKERS\W+3 SOLDIERS$/);
+    expect(sheet().querySelector('[data-food="lost-limit"]')?.textContent).toBe(`LOST AT THE LIMIT ${formatFull(4_500)}`);
+  });
+
+  it('shows each loss line on its own: hunger without the limit, the limit without hunger (Story 9.17)', () => {
+    const base = hungry();
+    feed = createResourceFeed();
+    gameState.value = { ...base, starvation: { ...base.starvation, starvedWorkers: 4 } };
+    act(() => void openResourceSheet(sheets, feed));
+    expect(sheet().querySelector('[data-food="hunger"]')).not.toBeNull();
+    expect(sheet().querySelector('[data-food="lost-limit"]')).toBeNull();
+    act(() => sheets.close(sheets.state.value.open!.id));
+    gameState.value = { ...base, foodLostAtLimit: 7 };
+    act(() => void openResourceSheet(sheets, feed));
+    expect(sheet().querySelector('[data-food="hunger"]')).toBeNull();
+    expect(sheet().querySelector('[data-food="lost-limit"]')).not.toBeNull();
   });
 
   it('the first opening shows no SINCE line; the next one shows the food change and the net rate then and now', async () => {
