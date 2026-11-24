@@ -7,8 +7,8 @@
  * the `pnpm sim` gates.
  */
 export const digBalance = {
-  /** Nest capacity one room adds (more than 1). */
-  roomSize: 6,
+  /** Nest capacity one room adds (more than 1). Story 9.14 halved it (6 → 3): a Gallery room holds twice this, and most rooms get one. */
+  roomSize: 3,
   /** Dig points the first room costs (Story 9.13 lowered it to offset crowding in Colony, gate 1 held). */
   firstRoomPoints: 3100,
   /** Each room dug adds this share of the first room's cost to every later room (linear, so a big nest stays diggable). */

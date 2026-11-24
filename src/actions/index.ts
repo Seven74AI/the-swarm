@@ -10,6 +10,7 @@
 import type { ActionDeps } from './context';
 import type { WorkerRole } from '../systems/ResourceSystem';
 import type { MoveSource } from '../systems/Workforce';
+import type { RoomSlot } from '../systems/RoomJobs';
 import type { RoleId } from '../data/content/roles';
 import type { BuildingType } from '../systems/BuildingSystem';
 import type { AutomationBuildingType, ResearchType } from '../systems/AutomationSystem';
@@ -41,6 +42,7 @@ export function createActions(deps: ActionDeps) {
     dig: () => nest.dig(deps),
     feed: () => nest.feed(deps),
     buyAutoDig: () => nest.buyAutoDig(deps),
+    setRoomJob: (from: RoomSlot, to: RoomSlot) => nest.setRoomJob(deps, from, to),
     markResourcesSeen: (ids: readonly string[]) => nest.markResourcesSeen(deps, ids),
     assignWorker: (role: WorkerRole) => nest.assignWorker(deps, role),
     unassignWorker: (role: WorkerRole) => nest.unassignWorker(deps, role),

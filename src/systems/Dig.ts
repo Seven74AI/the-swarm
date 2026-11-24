@@ -91,6 +91,8 @@ export function addDigPoints(s: GameState, points: number): GameState {
   return {
     ...s,
     dig: { ...s.dig, progress, roomsDug },
+    // Every room opens plain and never assigned (Story 9.14).
+    roomJobs: opened > 0 ? { ...s.roomJobs, fresh: s.roomJobs.fresh + opened } : s.roomJobs,
     resources: opened > 0 ? { ...s.resources, nestCapacity: s.resources.nestCapacity + opened * digBalance.roomSize } : s.resources,
   };
 }

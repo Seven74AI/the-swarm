@@ -228,6 +228,8 @@ export class SimRunner {
         return this.actions.setAutomationTarget(move.verb, move.target);
       case 'setAutomation':
         return this.actions.setAutomation(move.verb, move.on);
+      case 'setRoomJob':
+        return this.actions.setRoomJob(move.from, move.to);
     }
   }
 

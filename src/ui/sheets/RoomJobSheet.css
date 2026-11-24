@@ -1,0 +1,14 @@
+/* Room jobs (Story 9.14): the room-opened choice and the room jobs sheet. */
+.room-jobs__line {
+  margin: 0;
+}
+.room-jobs__picks,
+.room-jobs__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1ch;
+}
+.room-jobs__row .room-jobs__line {
+  flex-basis: 100%;
+}

@@ -915,6 +915,19 @@ function migrateV36toV37(data: SaveData): SaveData {
   return { ...data, version: 37, gameState: { ...gs, seenResources: null } as unknown as GameState };
 }
 
+/**
+ * v37 → v38 (Story 9.14): room jobs. Adds `roomJobs` with no job, and every
+ * room the save has dug as plain and never assigned (its first job is free).
+ * A save that has the field keeps it.
+ */
+function migrateV37toV38(data: SaveData): SaveData {
+  const gs = data.gameState as unknown as Record<string, unknown>;
+  if (gs.roomJobs !== null && typeof gs.roomJobs === 'object') return { ...data, version: 38 };
+  const dig = gs.dig as { roomsDug?: unknown } | undefined;
+  const dug = typeof dig?.roomsDug === 'number' && Number.isFinite(dig.roomsDug) ? Math.max(0, Math.floor(dig.roomsDug)) : 0;
+  return { ...data, version: 38, gameState: { ...gs, roomJobs: { jobs: { gallery: 0 }, fresh: dug } } as unknown as GameState };
+}
+
 const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   1: migrateV1toV2,
   2: migrateV2toV3,
@@ -952,6 +965,7 @@ const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
   34: migrateV34toV35,
   35: migrateV35toV36,
   36: migrateV36toV37,
+  37: migrateV37toV38,
 };
 
 /**

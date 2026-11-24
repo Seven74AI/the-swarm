@@ -72,6 +72,7 @@ import { bindAnnouncements, battleLine, IMPORT_FAILED_LINE, SAVE_FAILED_LINE, SA
 import { SaveFailedMarker } from './ui/shell/SaveFailedMarker';
 import { openUnreadableSave } from './ui/sheets/UnreadableSaveSheet';
 import { openHomeScreenHint } from './ui/sheets/HomeScreenHintSheet';
+import { openRoomJobChoice } from './ui/sheets/RoomJobSheet';
 import { bindDurability } from './persistence/durability';
 import { createWebPlatform, type Platform } from './platform';
 import { serviceWorkerWanted } from './platform/serviceWorker';
@@ -360,6 +361,11 @@ export function bootstrap(): {
   });
   // A save rebuilt from its backup is told once (the next save writes the primary again).
   if (opened.status === 'recoveredFromBackup') toasts.show(SAVE_RECOVERED_LINE);
+  // A room a DIG press opened offers its job choice (Story 9.14), a peek that never blocks play.
+  // Rooms opened by the diggers, auto-dig or catch-up open plain.
+  bus.subscribe('room_opened', ({ byPress }) => {
+    if (byPress && gameState.peek().phase !== Phase.EGG_LAYING) openRoomJobChoice(sheets, actions);
+  });
   bus.subscribe('decision_resolved', ({ id, timedOut, policy }) => {
     if (timedOut && policy === 'costly') toasts.show(timeoutLine(getDecision(id)));
   });

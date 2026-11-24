@@ -167,3 +167,13 @@
   color: var(--color-dim);
   line-height: 1.2;
 }
+
+/* The room jobs line (Story 9.14): under the brood line from the first room dug. */
+.room-jobs-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 1ch;
+  font-size: var(--type-meta);
+}
