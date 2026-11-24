@@ -2,6 +2,7 @@ import type { GameState } from '../state/GameState';
 import { VERDICT_COPY, VERDICT_ORDER, type VerdictKind } from '../data/content/verdicts';
 import { netFoodPerSec } from './Workforce';
 import { freeRooms } from './Brood';
+import { deathIntervalMs, isStarvingNow } from './Starvation';
 import { formatFull, formatTime } from '../utils/format';
 import { MS_PER_SEC } from '../data/constants';
 
@@ -15,12 +16,15 @@ import { MS_PER_SEC } from '../data/constants';
  * - `growing`: neither.
  */
 export type Verdict =
+  | { readonly kind: 'starving'; readonly deathEveryMs: number; readonly warn: true }
   | { readonly kind: 'food'; readonly runwayMs: number; readonly warn: true }
   | { readonly kind: 'nest'; readonly larvae: number; readonly warn: true }
   | { readonly kind: 'growing'; readonly warn: false };
 
 function check(s: GameState, kind: VerdictKind): Verdict | null {
   switch (kind) {
+    case 'starving':
+      return isStarvingNow(s) ? { kind, deathEveryMs: deathIntervalMs(s), warn: true } : null;
     case 'food': {
       const net = netFoodPerSec(s);
       if (net >= 0) return null;
@@ -46,6 +50,8 @@ export function getVerdict(s: GameState): Verdict {
 /** The verdict as the sheet prints it. */
 export function verdictText(v: Verdict): string {
   switch (v.kind) {
+    case 'starving':
+      return VERDICT_COPY.starving(formatTime(v.deathEveryMs).toUpperCase());
     case 'food':
       return v.runwayMs > 0 ? VERDICT_COPY.foodLasts(formatTime(v.runwayMs).toUpperCase()) : VERDICT_COPY.foodGone;
     case 'nest':

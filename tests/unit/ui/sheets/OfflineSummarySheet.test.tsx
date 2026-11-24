@@ -25,7 +25,7 @@ import { visibleText } from '../../helpers/a11y';
 function info(overrides: Partial<OfflineLoadInfo> = {}): OfflineLoadInfo {
   return {
     elapsedMs: 11_640_000, effectiveMs: 11_640_000, offlineTicks: 116_400, efficiency: 0.5,
-    capMs: 43_200_000, capped: false, starvedMs: 0, ...overrides,
+    capMs: 43_200_000, capped: false, starvedMs: 0, foodRanOutAfterMs: null, starvedEaters: 0, ...overrides,
   };
 }
 
@@ -91,6 +91,19 @@ describe('offline summary sheet', () => {
     act(() => void openOfflineSummary(sheets, summary({ info: info({ starvedMs: 20 * 60_000 }) })));
     const warn = popup()!.querySelector('[data-offline-warn="starved"]');
     expect(warn?.textContent).toBe(COLONY_LINES.offline_starved.text.replace('{time}', formatAway(20 * 60_000).toUpperCase()));
+  });
+
+  it('says when the food ran out and how many starved, capped at 20% (Story 9.16)', () => {
+    act(() => void openOfflineSummary(sheets, summary({ info: info({ foodRanOutAfterMs: 2 * 3600_000, starvedEaters: 12 }) })));
+    const warn = popup()!.querySelector('[data-offline-warn="starved-lost"]');
+    expect(warn?.textContent).toBe(
+      COLONY_LINES.offline_starved_lost.text.replace('{time}', formatAway(2 * 3600_000).toUpperCase()).replace('{n}', '12').replace('{share}', '20'),
+    );
+  });
+
+  it('has no starvation-loss line when nobody starved', () => {
+    act(() => void openOfflineSummary(sheets, summary({ info: info({ foodRanOutAfterMs: 2 * 3600_000, starvedEaters: 0 }) })));
+    expect(popup()!.querySelector('[data-offline-warn="starved-lost"]')).toBeNull();
   });
 
   it('has no upkeep line when food never ran out', () => {

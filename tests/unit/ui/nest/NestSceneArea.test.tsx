@@ -206,3 +206,24 @@ describe('NestSceneArea (Story 1.22, Story 8.5)', () => {
     expect(c.querySelectorAll('[data-scene-part="room"]')).toHaveLength(3);
   });
 });
+
+describe('NestSceneArea: the starving line (Story 9.16)', () => {
+  beforeEach(() => {
+    sheets = createSheetController();
+  });
+  afterEach(() => {
+    cleanup();
+    gameState.value = initial;
+  });
+
+  it('reads the starving verdict in warn while the colony starves, and nothing otherwise', async () => {
+    const { verdictText, getVerdict } = await import('../../../../src/systems/Verdict');
+    gameState.value = makeState({ phase: Phase.COLONY, resources: { workers: 20, food: 0, nestCapacity: 100 }, workersAssigned: { tend: 20 } });
+    const line = area().querySelector('[data-starving-line]')!;
+    expect(line.textContent).toBe(verdictText(getVerdict(gameState.value)));
+    expect(line.hasAttribute('data-warn')).toBe(true);
+    cleanup();
+    gameState.value = makeState({ phase: Phase.COLONY, resources: { workers: 20, food: 5_000, nestCapacity: 100 }, workersAssigned: { gather: 20 } });
+    expect(area().querySelector('[data-starving-line]')).toBeNull();
+  });
+});

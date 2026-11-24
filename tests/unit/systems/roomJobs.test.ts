@@ -175,7 +175,8 @@ describe('Story 9.14: saves and prestige', () => {
   afterEach(() => localStorage.clear());
 
   it('a save from before room jobs loads with no jobs, every dug room fresh', () => {
-    const v = SaveManager.SAVE_VERSION;
+    // The v37 → v38 step (Story 9.14), migrated on to the current version.
+    const v = 38;
     const s = structuredClone(createInitialState()) as unknown as Record<string, unknown>;
     delete s.roomJobs;
     const old: SaveData = {
@@ -184,7 +185,7 @@ describe('Story 9.14: saves and prestige', () => {
       playTimeMs: 0,
       gameState: { ...s, dig: { ...(s.dig as object), roomsDug: 7 } } as unknown as GameState,
     };
-    const gs = migrateSave(old, v - 1, v).gameState;
+    const gs = migrateSave(old, v - 1, SaveManager.SAVE_VERSION).gameState;
     expect(totalJobs(gs)).toBe(0);
     expect(gs.roomJobs.fresh).toBe(7);
   });

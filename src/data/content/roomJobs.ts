@@ -10,7 +10,10 @@ export interface RoomJobCopy {
 }
 
 /** The room jobs in the order the choice lists them. */
-export const ROOM_JOBS: readonly RoomJobCopy[] = [{ id: 'gallery', label: 'GALLERY', hint: 'HOLDS TWICE AS MANY ANTS' }];
+export const ROOM_JOBS: readonly RoomJobCopy[] = [
+  { id: 'gallery', label: 'GALLERY', hint: 'HOLDS TWICE AS MANY ANTS' },
+  { id: 'pantry', label: 'PANTRY', hint: 'HUNGER BITES SLOWER' },
+];
 
 /** A room with no job. */
 export const PLAIN_ROOM = { label: 'PLAIN', hint: 'NO JOB' } as const;

@@ -3,6 +3,7 @@ import { getNextAction, isCapacityCritical, isFoodCritical, isItemAffordable, it
 import { conditionMet, goalFor } from '../state/queries';
 import { MS_PER_SEC } from '../data/constants';
 import { crowdingBites } from '../systems/Crowding';
+import { isStarvingNow } from '../systems/Starvation';
 
 /** The moment a phase was entered (Story 3.7). */
 export interface PhaseEntry {
@@ -50,6 +51,10 @@ export interface CheckInRecord {
   readonly capacityCritical: boolean;
   /** Crowding bit on arrival (Story 9.13, `crowdingBites`). */
   readonly startCrowded: boolean;
+  /** The colony starved (`isStarvingNow`) on arrival or after any move or step of play (Story 9.16). */
+  readonly starving: boolean;
+  /** The run's starved workers and soldiers so far, when the check-in ended (Story 9.16). */
+  readonly starvedTotal: number;
 }
 
 /** Eggs laid since the previous sample (Story 3.9): `tapped` of the `laid` came from LAY EGG taps. */
@@ -133,6 +138,7 @@ interface OpenCheckIn {
   foodCritical: boolean;
   capacityCritical: boolean;
   startCrowded: boolean;
+  starving: boolean;
 }
 
 /**
@@ -157,6 +163,8 @@ export class Probes {
   /** Time played at the last observation, and the check-in it was in. */
   private nowActiveMs = 0;
   private lastCheckIn = 0;
+  /** The run's starved count at the last look (Story 9.16). */
+  private lastStarved = 0;
 
   constructor(start: GameState) {
     this.lastPhase = start.phase;
@@ -173,7 +181,7 @@ export class Probes {
     this.lastCheckIn = index;
     this.open = {
       index, startMs: atMs, startActiveMs: this.nowActiveMs, phase: s.phase, decisionsAvailable: decisionsAvailable(s), waitMs: waitMs(s), actions: 0, taps: 0, digs: 0, feeds: 0, refused: 0, byAction: {},
-      foodCritical: false, capacityCritical: false, startCrowded: crowdingBites(s),
+      foodCritical: false, capacityCritical: false, startCrowded: crowdingBites(s), starving: false,
     };
     this.critical(s);
   }
@@ -181,7 +189,10 @@ export class Probes {
   /** Raise the open check-in's critical-moment flags that hold in `s` (only in the phase it started in). */
   private critical(s: GameState): void {
     const o = this.open;
-    if (!o || s.phase !== o.phase) return;
+    if (!o) return;
+    this.lastStarved = s.starvation.starvedWorkers + s.starvation.starvedSoldiers;
+    if (!o.starving && isStarvingNow(s)) o.starving = true;
+    if (s.phase !== o.phase) return;
     if (!o.foodCritical && isFoodCritical(s)) o.foodCritical = true;
     if (!o.capacityCritical && isCapacityCritical(s)) o.capacityCritical = true;
   }
@@ -262,7 +273,7 @@ export class Probes {
   endCheckIn(): void {
     if (!this.open) return;
     const { startActiveMs, ...open } = this.open;
-    this.records.push({ ...open, activeMs: this.nowActiveMs - startActiveMs, byAction: { ...open.byAction } });
+    this.records.push({ ...open, activeMs: this.nowActiveMs - startActiveMs, byAction: { ...open.byAction }, starvedTotal: this.lastStarved });
     this.open = null;
   }
 

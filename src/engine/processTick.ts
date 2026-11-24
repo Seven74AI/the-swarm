@@ -12,6 +12,7 @@ import { tickEntropy } from '../systems/EntropySystem';
 import { tickMissions, resolveMission } from '../systems/SpaceshipSystem';
 import { tickAutoProduction } from './AutoProductionLoop';
 import { tickAutomationTargets } from '../systems/AutomationTargets';
+import { tickStarvation } from '../systems/Starvation';
 import { rngStream, type RngStream } from '../utils/rng';
 import { MS_PER_SEC } from '../data/constants';
 import { roleBalance } from '../data/balance/roles';
@@ -40,6 +41,8 @@ export function processTick(
   dtSec: number,
   skipDeterministicResources: boolean = false,
   rng: RngStream = rngStream(state.rng),
+  /** Starvation (Story 9.16): catch-up holds it until the food would have run out, and floors the eaters. */
+  starvation: { readonly allowed?: boolean; readonly dtSec?: number; readonly maxDeaths?: number } = {},
 ): GameState {
   let workingState = state;
 
@@ -75,6 +78,10 @@ export function processTick(
   newState = tickAutoProduction(newState, dtSec);
   // Automation targets (Story 4.10): after the step's production, so it can pay; offline too.
   newState = tickAutomationTargets(newState, dtSec, events, bonuses);
+  // Starvation (Story 9.16): after the step's food and upkeep, deaths shrink the colony to fit.
+  // Catch-up holds it while the food would still have lasted: no stretch is running then.
+  if (starvation.allowed !== false) newState = tickStarvation(newState, starvation.dtSec ?? dtSec, { bonuses, maxDeaths: starvation.maxDeaths });
+  else if (newState.starvation.ms > 0) newState = { ...newState, starvation: { ...newState.starvation, ms: 0, stretchDeaths: 0 } };
 
   // Expedition system: tick timers and resolve completed ones
   newState = tickExpeditions(newState, dtSec);

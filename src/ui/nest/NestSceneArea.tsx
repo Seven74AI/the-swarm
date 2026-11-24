@@ -9,6 +9,7 @@ import { LayEggButton } from './LayEggButton';
 import { AutomationRow, type AutomationRowActions } from '../shell/AutomationRow';
 import { crackStage } from '../scenes/nestLayout';
 import { NextRoomStrip } from './NextRoomStrip';
+import { StarvingLine } from './StarvingLine';
 import { BroodLine } from './BroodLine';
 import { RoomJobsLine } from './RoomJobsLine';
 import type { RoomJobActions } from '../sheets/RoomJobSheet';
@@ -67,6 +68,7 @@ export function NestSceneArea({
         queen={phase1 ? undefined : <LayEggButton variant="secondary" lay={lay} />}
       />
       <NextRoomStrip />
+      <StarvingLine />
       {phase1 ? automation && <AutomationRow verb="lay" actions={automation} /> : <BroodLine automation={automation} />}
       {!phase1 && roomJobs && <RoomJobsLine sheets={sheets} actions={roomJobs} />}
     </div>

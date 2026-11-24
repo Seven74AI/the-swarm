@@ -150,6 +150,17 @@ export interface GameState {
     fresh: number;
   };
   /**
+   * The starvation clock (Story 9.16, save v39): `ms` starving in the current
+   * stretch (food at zero, eating more than it makes), `stretchDeaths` in it,
+   * and the run's starved workers and soldiers. Reset by prestige.
+   */
+  starvation: {
+    ms: number;
+    stretchDeaths: number;
+    starvedWorkers: number;
+    starvedSoldiers: number;
+  };
+  /**
    * Resources whose resource-sheet row no longer reads `NEW` this run (Story
    * 9.10, save v37): marked when the sheet closes; wiped by prestige. `null`
    * (an older save) means everything unlocked so far counts as seen.
@@ -539,7 +550,8 @@ export function createInitialState(): GameState {
     nextEnemy: peekEnemy(rngFromSeed(DEFAULT_SEED), 0).type as EnemyType,
     soldierPipeline: { count: 0, progress: 0 },
     dig: { roomsDug: 0, progress: 0, carry: 0, roomsByHand: 0, auto: false },
-    roomJobs: { jobs: { gallery: 0 }, fresh: 0 },
+    roomJobs: { jobs: { gallery: 0, pantry: 0 }, fresh: 0 },
+    starvation: { ms: 0, stretchDeaths: 0, starvedWorkers: 0, starvedSoldiers: 0 },
     // Phase 1's resources are there from the start: never NEW.
     seenResources: ['eggs', 'larvae', 'workers', 'food'],
     resourceRemainder: { food: 0, wood: 0, stone: 0, nectar: 0 },

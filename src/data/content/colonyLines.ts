@@ -67,6 +67,9 @@ const lines = {
   // The offline summary's warn lines (Story 2.9, UX-DR24); shown in any phase.
   offline_starved: { text: 'UPKEEP OUTRAN FOOD FOR {time}.', from: Phase.EGG_LAYING },
   offline_cap: { text: 'THE NEST STOPPED GROWING AFTER {cap}.', from: Phase.EGG_LAYING },
+  // Story 9.16: the food ran out while away, and some ants starved (never more than the offline share).
+  offline_starved_lost_already: { text: 'NO FOOD WHEN YOU LEFT. {n} WORKERS LOST (NO MORE THAN {share}%).', from: Phase.EGG_LAYING },
+  offline_starved_lost: { text: 'FOOD RAN OUT {time} AFTER YOU LEFT. {n} WORKERS LOST (NO MORE THAN {share}%).', from: Phase.EGG_LAYING },
 
   // LOG → LEGACY: what prestige still needs (Story 5.1, FR28). Lifetime totals count every run.
   prestige_waits: { text: 'THE NEXT QUEEN WAITS ON THE SWARM.', from: Phase.COLONY },
