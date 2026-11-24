@@ -1606,6 +1606,7 @@ So that "train the maximum and wait" is not always the best play.
 **Given** the pacing harness
 **When** the max-army policy and the default policy both play Combat from the same seed
 **Then** the report shows at least one point where the max-army colony is food-critical while the default is not; the reachability test still passes for both
+**And** (restated by Story 9.15, owner decision 2026-11-24, #478) once food has a limit, the target is relative: the max-army colony spends more Combat check-ins food-critical than the default one
 
 **Covers:** FR12 (army trade-off)
 
@@ -2456,7 +2457,11 @@ So that food is something I manage, not a number that only goes up.
 **When** the pacing report runs
 **Then** it prints the food lost at the limit per day, and gate 1 still passes (before and after verdicts in the PR)
 
-**Covers:** FR62, FR63 (Larder) · FR27
+**Given** Story 4.4's army trade-off target
+**When** food has a limit
+**Then** the target is restated (owner decision 2026-11-24, #478): the max-army colony spends more Combat check-ins food-critical than the default one, and `tests/sim/armyTradeOff.test.ts` asserts that in place of "at least one check-in where only the max-army colony is food-critical" (a finite store leaves the default player no buffer from an absence, so the old target held only with an unlimited store); Story 9.18 keeps it as a critical-moment bound
+
+**Covers:** FR62, FR63 (Larder) · FR27 · FR12 (restated)
 
 ### Story 9.16: Starvation warns, then shrinks the colony to fit
 
@@ -2495,6 +2500,8 @@ So that hunger has stakes without ever wiping my run.
 **When** the pacing report runs
 **Then** it prints deaths per check-in and every starving stretch with its length
 **And** the bounds are data in `pacingTargets`, report verdicts: no starvation death in session 1, and no starving stretch in days 2–7 longer than one check-in; gate 1 still passes (before and after verdicts in the PR)
+
+**As built** (#502; owner decision 2026-11-24, #501): only an eater whose death raises the food rate starves (soldiers, workers on a role that brings in no food, and free workers only while an idle worker eats more than it makes), so gatherers and self-feeding free workers never starve and the colony settles instead of dying out; a Pantry stretches the grace and the death interval only (the runway warning does not come sooner). Story 9.17 builds on these.
 
 **Covers:** FR61, FR24, FR4, FR63 (Pantry) · NFR5
 
@@ -2537,6 +2544,13 @@ So that the first week ends with the colony I built, not a phase I finished on d
 **Given** the critical moments (Story 3.11's food- and capacity-critical probes, crowding and starvation)
 **When** the report judges them
 **Then** each has a lower and an upper bound in `pacingTargets`: Combat has at least one food-critical and one crowded check-in, no crowded stretch holds work at the floor for more than one check-in, and Story 9.16's starvation bounds hold
+**And** Story 4.4's restated trade-off holds (Story 9.15): the max-army colony spends more Combat check-ins food-critical than the default one
+
+**Given** the pacing findings of batch 2 (owner triage 2026-11-24: #497, #499)
+**When** the agent tunes
+**Then** gate 1 passes with a margin (not at the window edge: after Stories 9.13–9.16 it stood at 1m 55s against 2m), using the room size (`digBalance.roomSize`, halved to 3 by Story 9.14), room costs and the crowding slope (`crowdingBalance.perOverfill`) among its values
+**And** it decides, and states in the PR, whether crowding should bite in Egg Laying (it does today, where no DIG or NEXT ROOM strip can show or fix it) and how often OVERCROWDING. may spawn in Colony (crowding bites almost all of Colony, so the event is nearly always eligible)
+**And** saves from before Story 9.14 keep the capacity of the rooms they already dug (6 a room); this is accepted, not migrated
 
 **Given** gate 3 can't be met by values alone
 **When** the agent tunes
