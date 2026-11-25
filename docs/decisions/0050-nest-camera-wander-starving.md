@@ -60,11 +60,11 @@ had already given `NestScene` a `zoom` prop (1 = close) eased in CSS, and arriva
 
 The camera steps (`sceneBalance.cameraSteps`, `nestCamera.ts`, the 2× crop) hid the workers chamber on phones and
 are gone, with what served only them: `ui/nest/cameraPullBack.ts`, the `camera-pull-back` feel trigger and
-`feelBalance.cameraPullBackMs`. `nestLayout` now draws the founding brood and workers chambers plus one small room per
+`feelBalance.cameraPullBackMs`. `nestLayout` draws the founding brood and workers chambers plus one small room per
 room dug (`view.roomsDug`, from `state.dig`): six under the brood, then rows of eight below the nest, each on a tunnel
 to the nest above, at fixed slots so a room never moves. The layout's `width` × `height` is the frame that holds every
 room and the next dig face (`digFace`, where the crack grows); the scene uses it as the viewBox and the stage takes its
 aspect, so nothing is ever cropped. The frame is always `SCENE_WIDTH` wide, so `MIN_STAGE_PX` keeps a drawn worker at
 `antMinPx` or more from a 320 px phone. A room that opens after the first draw arrives (`[data-arrive="room"]`): its
 wall fades in and a few crumbs fall over `feelBalance.roomOpenMs`, nothing under reduced motion. The feel table's row
-is now `room-open` (Story 9.8 adds its sound and haptic). The dot cloud and the 50-ant budget are unchanged.
+is `room-open` (Story 9.8 adds its sound and haptic). The dot cloud and the 50-ant budget are unchanged.
