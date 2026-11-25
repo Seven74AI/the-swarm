@@ -138,6 +138,34 @@ describe('NestSceneArea (Story 1.22, Story 8.5)', () => {
     expect(c.querySelector('[data-feed-reason]')!.textContent).toMatch(/^FEED\s*·.*NO LARVAE$/);
   });
 
+  it('the brood shows the feed prompt only while FEED can act, else BROOD with the reason, never both (#491)', () => {
+    const states = [
+      makeState({ phase: Phase.COLONY, resources: { eggs: 3, larvae: 4, workers: 7, nestCapacity: 20 }, larvaPipeline: { count: 4, progress: 0 } }),
+      makeState({ phase: Phase.COLONY, resources: { larvae: 4, workers: 20, nestCapacity: 20 }, larvaPipeline: { count: 4, progress: 0 } }),
+      makeState({ phase: Phase.COLONY, resources: { larvae: 0, workers: 5, nestCapacity: 20 } }),
+    ];
+    const seen = new Set<boolean>();
+    for (const state of states) {
+      const actions = testActions();
+      gameState.value = state;
+      const c = area(actions.feed);
+      const brood = c.querySelector<HTMLButtonElement>('button[data-chamber="brood"]')!;
+      const prompt = /^FEED THE BROOD/.test(brood.textContent ?? '');
+      const named = /^Feed the brood/.test(brood.getAttribute('aria-label') ?? '');
+      const reason = c.querySelector('[data-feed-reason]') !== null;
+      // FEED's own Result, from the very state the label was drawn from.
+      const acts = actions.feed().ok;
+      seen.add(acts);
+      expect(prompt).toBe(acts);
+      expect(named).toBe(acts);
+      expect(reason).toBe(!acts);
+      if (!acts) expect(brood.textContent).toMatch(/^BROOD/);
+      cleanup();
+    }
+    // Both sides were exercised.
+    expect(seen).toEqual(new Set([true, false]));
+  });
+
   it('from Colony on: the brood line under the scene, the laying target in it, and LAY EGG on the queen (Story 9.7)', () => {
     gameState.value = makeState({ phase: Phase.COLONY, resources: { eggs: 4, larvae: 2, workers: 5 }, automation: { performed: { lay: 20 } } });
     const c = render(

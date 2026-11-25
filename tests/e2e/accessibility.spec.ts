@@ -216,7 +216,8 @@ test.describe('sheets', () => {
     const scene = page.getByRole('group', { name: /^Nest: \d+ workers?, \d+ eggs?, \d+ larvae?$/ });
     await expect(scene).toBeVisible();
     // From Colony on the brood feeds instead of peeking (Story 9.4): a named button that passes axe.
-    await expect(scene.getByRole('button', { name: /^Feed the brood: \d+ eggs?, \d+ larvae?/ })).toBeVisible();
+    // It is "Feed the brood" while FEED can act, else "Brood" with the reason (#491).
+    await expect(scene.getByRole('button', { name: /^(Feed the brood: \d+ eggs?, \d+ larvae?$|Brood: \d+ eggs?, \d+ larvae?\. Feed: )/ })).toBeVisible();
     expect(await axe(page)).toEqual([]);
     for (const [name, chamber] of [[/^Workers: \d+$/, 'workers']] as const) {
       await scene.getByRole('button', { name }).click();
