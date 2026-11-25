@@ -11,7 +11,7 @@ Story 9.16 makes hunger kill: after a grace at zero food, one eater an interval,
 - `state.starvation` holds the clock (`ms` starving in the current stretch, `stretchDeaths` in it) and the run's counts (`starvedWorkers`, `starvedSoldiers`). Deaths come due from the clock alone (`grace`, then one per `interval`), so one long step and many short ones owe the same deaths.
 - Each due death happens only while the colony still starves (food at zero, net rate below zero), so it shrinks the colony to fit and stops. The clock resets once it no longer starves.
 - The victim (a worker or a soldier, by their counts) comes from `keyedStream(hash('starvation'), seed, prestige count, death number)`: the order is fixed by the death's number, not by call order, so any step length kills the same kinds. A worker leaves the free pool first, then the role with the most on it.
-- `systems/Starvation.ts` runs inside `processTick`, after production, training and automation. Catch-up passes two options: starvation waits until the closed-form food would have run out, and the run's deaths may not pass 20% of the eaters before the absence (`OFFLINE_WORKER_FLOOR_SHARE`, now 0.8).
+- `systems/Starvation.ts` runs inside `processTick`, after production, training and automation. Catch-up passes two options: starvation waits until the closed-form food would have run out, and the run's deaths may not pass 20% of the eaters before the absence (`OFFLINE_WORKER_FLOOR_SHARE`, 0.8).
 - Pantry rooms stretch the grace and the interval, up to `starvationBalance.pantryMaxFactor`; they never stop starvation.
 
 ## Consequences
