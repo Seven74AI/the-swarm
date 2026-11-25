@@ -1,8 +1,8 @@
 /**
  * Coach mark primitive (Story 1.12, UX-DR29).
  *
- * One element, one line, once per concept. A 1 px `accent` box around the
- * target plus a one-line caption on `raised` with `[ GOT IT ]`. It is
+ * One element, one short line, once per concept. A 1 px `accent` box around the
+ * target plus a caption on `raised` with `[ GOT IT ]` (it wraps, never clips: #490). It is
  * dismissed by performing the action it points to (a click on the target,
  * which still runs that action) or by `[ GOT IT ]`, whose tap is consumed:
  * nothing under or around it sees it. The caption is announced politely.
