@@ -66,8 +66,9 @@ export interface NestSceneProps {
   readonly crack?: number;
   /**
    * FEED (Story 9.4): from Colony on the brood button feeds instead of peeking.
-   * It is named "Feed the brood", and while `blocked` it is disabled with its reason
-   * (`FEED · NEST FULL`). Absent: the brood button peeks (Phase 1).
+   * It is named "Feed the brood"; while `blocked` it is disabled, named and
+   * labelled `BROOD`, with its reason (`FEED · NEST FULL`) (#491). Absent: the
+   * brood button peeks (Phase 1).
    */
   readonly feed?: { readonly blocked: string | null } | null;
   /**
@@ -155,6 +156,8 @@ function ChamberButton({
 }) {
   const feeds = chamber.id === 'brood' && !!feed;
   const blocked = feeds ? feed!.blocked : null;
+  // The feed prompt only while FEED can act; blocked, it is BROOD plus the reason, never both (#491).
+  const prompt = feeds && !blocked;
   // Anchored at its chamber, and shifted by the same share of its own size, so it never leaves the scene.
   const x = `${(anchor.x * 100).toFixed(1)}%`;
   const y = `${(anchor.y * 100).toFixed(1)}%`;
@@ -164,7 +167,7 @@ function ChamberButton({
       class="nest-chamber"
       data-chamber={chamber.id}
       data-feeds={feeds ? '' : undefined}
-      aria-label={blocked ? `${chamberAriaLabel(chamber.id, view, feeds)}. Feed: ${blocked.toLowerCase()}` : chamberAriaLabel(chamber.id, view, feeds)}
+      aria-label={blocked ? `${chamberAriaLabel(chamber.id, view)}. Feed: ${blocked.toLowerCase()}` : chamberAriaLabel(chamber.id, view, prompt)}
       aria-disabled={blocked ? 'true' : undefined}
       style={{ left: x, top: y, transform: `translate(-${x}, -${y})` }}
       onClick={() => {
@@ -172,7 +175,7 @@ function ChamberButton({
       }}
     >
       <span class="nest-chamber__plate">
-        <ChamberText id={chamber.id} view={view} feeds={feeds} />
+        <ChamberText id={chamber.id} view={view} feeds={prompt} />
         {blocked && ' '}
         {blocked && (
           <span class="nest-chamber__reason" data-feed-reason="">

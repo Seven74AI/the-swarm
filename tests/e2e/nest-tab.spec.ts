@@ -321,6 +321,21 @@ test.describe('NEST tab', () => {
     await expect(brood.locator('[data-feed-reason]')).toHaveText(/^FEED\s*·.*NEST FULL$/);
   });
 
+  // #491: a full nest with larvae waiting shows BROOD and the reason, never the feed prompt.
+  for (const width of [320, 412]) {
+    test(`a full nest labels the brood BROOD with its reason, never FEED THE BROOD, at ${width} px (#491)`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await seed(page, { ...COLONY, resources: { ...COLONY.resources, workers: 100, nestCapacity: 100, larvae: 2 }, larvaPipeline: { count: 2, progress: 0 } });
+      await settleReveals(page);
+      const brood = page.locator('[data-scene="nest"] button[data-chamber="brood"]');
+      await expect(brood).toHaveAttribute('aria-disabled', 'true');
+      await expect(brood.locator('[data-feed-reason]')).toHaveText(/^FEED\s*·.*NEST FULL$/);
+      await expect(brood).toHaveText(/^BROOD/);
+      await expect(brood).not.toContainText('FEED THE BROOD');
+      await expect(brood).toHaveAttribute('aria-label', /^Brood:/);
+    });
+  }
+
   // Story 8.6 (AR14): thousands of ants draw as a dot cloud under at most the budget of moving ants.
   const BIG = {
     ...COLONY,
