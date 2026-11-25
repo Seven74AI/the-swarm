@@ -164,3 +164,63 @@ test('seedSave(…, { introSeen: true }) skips it, even without a save; { introS
   await fresh.goto('/');
   await expect(fresh.locator(CINEMATIC)).toBeVisible();
 });
+
+/**
+ * #490: the first coach mark is the game's first sentence to a new player. At
+ * every phone width, and at 200 % text, the whole instruction is shown: it
+ * wraps instead of clipping, and nothing of it is cut off or ellipsed.
+ */
+for (const { width, fontPx } of [
+  { width: 320, fontPx: 16 },
+  { width: 360, fontPx: 16 },
+  { width: 412, fontPx: 16 },
+  { width: 320, fontPx: 32 },
+  { width: 412, fontPx: 32 },
+]) {
+  test(`the LAY EGG coach mark shows its whole instruction at ${width} px, ${fontPx * 6.25} % text`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 640 });
+    await page.addInitScript((px: number) => {
+      const apply = () => document.documentElement?.style.setProperty('font-size', `${px}px`);
+      apply();
+      document.addEventListener('DOMContentLoaded', apply);
+    }, fontPx);
+    await page.clock.install();
+    await page.clock.pauseAt(Date.now() + 1000);
+    await page.goto('/');
+    await expect(cinematic(page)).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: TITLE_COPY.wake }).click();
+    await page.clock.runFor(TITLE_BEATS.aloneMs);
+    await expect(cinematic(page)).toHaveCount(0);
+    await page.clock.resume();
+
+    const text = page.locator('[data-coach-mark="lay-egg"] .coach-mark__text');
+    await expect(text).toBeVisible();
+    await expect(text).toHaveText(TITLE_COPY.layEggCoach);
+    const fit = await text.evaluate((el) => {
+      const style = getComputedStyle(el);
+      // Words wrap whole: each word's text sits on a single line box.
+      const node = el.firstChild;
+      const split: string[] = [];
+      const re = /\S+/g;
+      let m: RegExpExecArray | null;
+      while (node && (m = re.exec(node.textContent ?? ''))) {
+        const range = document.createRange();
+        range.setStart(node, m.index);
+        range.setEnd(node, m.index + m[0].length);
+        if (new Set([...range.getClientRects()].map((r) => Math.round(r.top))).size > 1) split.push(m[0]);
+      }
+      return {
+        split,
+        wide: el.scrollWidth - el.clientWidth,
+        tall: el.scrollHeight - el.clientHeight,
+        ellipsis: style.textOverflow === 'ellipsis' && style.whiteSpace === 'nowrap',
+      };
+    });
+    expect(fit.split).toEqual([]);
+    expect(fit.wide).toBeLessThanOrEqual(0);
+    expect(fit.tall).toBeLessThanOrEqual(0);
+    expect(fit.ellipsis).toBe(false);
+    await expect(page.locator('[data-coach-mark="lay-egg"] .coach-mark__caption')).toBeInViewport({ ratio: 1 });
+  });
+}
