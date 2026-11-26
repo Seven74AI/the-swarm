@@ -28,6 +28,7 @@ import { lockedTarget, type TargetLock } from '../shell/targetLock';
 import { roleBar } from './roleBar';
 import './wrkr.css';
 import { Sep } from '../primitives/Deco';
+import { foodLineDecimals, foodLineScaledNet } from '../shell/foodLine';
 
 /** The actions WRKR uses (a subset of `Actions`). */
 export interface WorkersActions {
@@ -41,13 +42,7 @@ const DIG_TOOLTIP = `Each digger adds ${digBalance.pressPointsPerDigger} to ever
 
 const plural = (n: number, one: string) => (n === 1 ? `one ${one}` : `${n} ${one}s`);
 
-/**
- * One precision for the whole food line: a decimal while the rates are small,
- * whole numbers once they reach 100. Exported for the tests.
- */
-export function foodLineDecimals(production: number, upkeep: number): number {
-  return Math.max(Math.abs(production), Math.abs(upkeep)) < 100 ? 1 : 0;
-}
+export { foodLineDecimals };
 
 /**
  * Food in, food eaten and the net, all per second (DESIGN.md → Upkeep readout).
@@ -61,7 +56,7 @@ function UpkeepReadout() {
   const scale = 10 ** dec;
   const upkeep = Math.round(rawUp * scale);
   const production = Math.round(rawProd * scale);
-  const net = production - upkeep;
+  const net = foodLineScaledNet(rawProd, rawUp);
   const show = (scaled: number) => (dec === 0 ? formatFull(scaled) : (scaled / scale).toFixed(dec));
   const trend = net < 0 ? 'down' : net > 0 ? 'up' : 'flat';
   const sign = net < 0 ? '−' : net > 0 ? '+' : '';
