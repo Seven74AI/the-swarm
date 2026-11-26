@@ -138,8 +138,14 @@ test.describe('NEST tab', () => {
     await expect.poll(async () => (await state(page)).stats.totalClicks).toBeGreaterThan(start + 2);
     await tap(page, '#click-egg');
     await expect(page.locator('[data-lay-egg][data-laying="false"]')).toBeVisible();
+    // A repeat tick already queued when the stop tap lands can still fire once:
+    // the interval is cleared on the next effect flush, after `data-laying`
+    // flips. Wait for that tick to land, then confirm nothing more is laid.
+    const atStop = await state(page);
+    await expect
+      .poll(async () => (await state(page)).stats.playTimeMs)
+      .toBeGreaterThanOrEqual(atStop.stats.playTimeMs + 500);
     const stopped = await state(page);
-    // Let at least 500 ms of game time pass (ticks, not the wall clock), then nothing more was laid.
     await expect
       .poll(async () => (await state(page)).stats.playTimeMs)
       .toBeGreaterThanOrEqual(stopped.stats.playTimeMs + 500);
