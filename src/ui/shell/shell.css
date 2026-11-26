@@ -70,6 +70,10 @@
 }
 
 .shell-scroll {
+  /* The containing block for absolutely positioned content (the cards' .visually-hidden
+     labels): without it they were placed against <body>, past the viewport, so the
+     whole page scrolled into blank space at 320 px (#492). */
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;

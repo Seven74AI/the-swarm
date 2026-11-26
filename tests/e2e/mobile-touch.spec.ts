@@ -87,3 +87,19 @@ test.describe('Touch (#370)', () => {
     await expect(sheet).toHaveCount(0);
   });
 });
+
+test.describe('Phone shell fits the viewport (#492)', () => {
+  test.use({ viewport: { width: 320, height: 568 } });
+
+  test('at 320×568 with Phase 1 upgrade cards shown, only the content area scrolls', async ({ page }) => {
+    // Food enough to afford every Phase 1 upgrade, so their cards (and their hidden labels) render.
+    await seed(page, { ...EGG_LAYING, resources: { ...EGG_LAYING.resources, food: 100_000 } });
+    const scroll = page.locator('.shell-scroll');
+    await expect(page.locator('[data-card]').first()).toBeVisible();
+    // The content is taller than the phone, so the scroll area really does overflow...
+    expect(await scroll.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+    // ...but the page itself never grows past the viewport.
+    const page_ = await page.evaluate(() => ({ height: document.scrollingElement!.scrollHeight, viewport: innerHeight }));
+    expect(page_.height).toBeLessThanOrEqual(page_.viewport);
+  });
+});
