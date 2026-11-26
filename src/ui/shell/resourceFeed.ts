@@ -2,6 +2,8 @@ import { signal, type ReadonlySignal } from '@preact/signals';
 import {
   selectCombatResources,
   selectEffectiveNestCapacity, selectFoodLimit,
+  selectFoodProductionPerSec,
+  selectFoodUpkeepPerSec,
   selectPhase,
   selectResources,
   selectStats,
@@ -10,6 +12,7 @@ import { Phase, PHASE_ORDER } from '../../phases/phases';
 import { RESOURCES, STRIP_SETS, type ResourceId } from './resourceCatalog';
 import { sheetBalance } from '../../data/balance/sheet';
 import { sparkline } from '../../utils/format';
+import { foodLineNet } from './foodLine';
 
 /**
  * The resource feed (Story 1.16; UX-DR7, UX-DR8).
@@ -24,6 +27,11 @@ import { sparkline } from '../../utils/format';
  * conversions), counts consumption, and stays right across offline catch-up,
  * because catch-up advances game time too. A pause adds no game time, so the
  * window (and the rates) hold still until the game runs again.
+ *
+ * One exception (#494): food is clamped at 0, so while the colony starves the
+ * store stops moving and a measured rate reads 0. Then food's rate is the net
+ * WRKR shows (`foodLineNet`), at least one whole unit a second, so the strip
+ * reads falling and never disagrees with WRKR's sign.
  */
 
 /** Strip and sheet refresh period: at most 4 updates a second. */
@@ -137,12 +145,16 @@ export function createResourceFeed(opts: { windowMs?: number; intervalMs?: numbe
 
     const cap = selectEffectiveNestCapacity.peek();
     const foodLimit = selectFoodLimit.peek();
+    // Held at 0 by the clamp while more is eaten than made: the net, not the (still) store.
+    const starvingNet = now.amounts.food <= 0 ? foodLineNet(selectFoodProductionPerSec.peek(), selectFoodUpkeepPerSec.peek()) : 0;
     const rows = RESOURCES.map((def): ResourceRow => {
       const amount = now.amounts[def.id];
-      const rate = dt > 0 ? Math.trunc(((amount - base.amounts[def.id]) * 1000) / dt) : 0;
       const shortPerSec = dt > 0 ? ((amount - base.amounts[def.id]) * 1000) / dt : 0;
       const longPerSec = longDt > dt ? ((amount - oldest.amounts[def.id]) * 1000) / longDt : shortPerSec;
-      const ratePerSec = rate !== 0 ? shortPerSec : longPerSec;
+      const clamped = def.id === 'food' && starvingNet < 0;
+      const measured = dt > 0 ? Math.trunc(((amount - base.amounts[def.id]) * 1000) / dt) : 0;
+      const rate = clamped ? Math.min(-1, Math.trunc(starvingNet)) : measured;
+      const ratePerSec = clamped ? starvingNet : rate !== 0 ? shortPerSec : longPerSec;
       const series = [...long.map((s) => s.amounts[def.id]), ...(long[long.length - 1] === now ? [] : [amount])];
       // Workers stop at the nest capacity; food at the food limit (Story 9.15).
       const rowCap = def.id === 'workers' ? Math.floor(cap) : def.id === 'food' ? foodLimit : null;
