@@ -60,6 +60,17 @@ describe('battle summary sheet (Story 1.25)', () => {
     expect(sheet()!.querySelector('[data-drop="silk"]')).toBeNull();
     expect(sheet()!.textContent!.toUpperCase()).toContain('BEETLE');
   });
+
+  it('says a loss once: no minus sign after LOST (#496)', () => {
+    for (const outcome of ['victory', 'defeat', 'draw'] as const) {
+      const { sheet } = open(result({ outcome, victory: outcome === 'victory', soldiersLost: 6 }));
+      const line = sheet()!.querySelector('[data-losses]')!.textContent!;
+      expect(line).toMatch(/SOLDIERS LOST \d/);
+      expect(line).not.toMatch(/LOST\s*[−-]/);
+      cleanup();
+      document.body.replaceChildren();
+    }
+  });
 });
 
 const card = (over: Partial<CounterCard> = {}): CounterCard => ({

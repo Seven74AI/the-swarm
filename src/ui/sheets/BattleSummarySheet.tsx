@@ -82,7 +82,7 @@ export function BattleSummarySheet({
     >
       <ul class="battle-summary__lines">
         <li data-losses="">
-          <span aria-hidden="true">▼ </span>SOLDIERS LOST −{formatFull(result.soldiersLost)}
+          <span aria-hidden="true">▼ </span>SOLDIERS LOST {formatFull(result.soldiersLost)}
         </li>
         {result.foodGained > 0 && <li data-drop="food">FOOD +{formatFull(result.foodGained)}</li>}
         {DROPS.filter((d) => result.specialLoot[d.id] > 0).map((d) => (
