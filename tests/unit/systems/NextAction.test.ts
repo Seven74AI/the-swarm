@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   getNextAction,
+  isBroodOnly,
+  isCapacityCritical,
   itemCost,
   itemKey,
   isItemAffordable,
@@ -22,6 +24,8 @@ import type { GameState } from '../../../src/state/GameState';
 import { makeState, type StateOverrides } from '../helpers/makeState';
 import { testActions } from '../helpers/actions';
 import { EventBus } from '../../../src/engine/EventBus';
+import fc from 'fast-check';
+import { arbState } from '../helpers/randomPlay';
 
 /**
  * Story 1.21 (UX-DR12): `getNextAction(state)` picks the one most useful next
@@ -251,6 +255,57 @@ describe('getNextAction (Story 1.21)', () => {
       const s = withCost(full(colony({ phase })), ref);
       expect(isItemAffordable(s, ref)).toBe(true);
       expect(act(getNextAction(s)).rule).toBe('capacity');
+    });
+  });
+
+  describe('capacity critical: no brood boosters (#495)', () => {
+    const ref = (key: string): ItemRef => listItems().find((r) => itemKey(r) === key)!;
+    /** The item a result points at: the suggestion's target, or NEXT AFFORDABLE's. */
+    const pointedAt = (n: NextAction): ItemRef | undefined =>
+      listItems().find((r) => itemKey(r) === (n.kind === 'act' ? n.key : n.nextAffordable?.key));
+
+    it('Click Power and Warm Brood only add eggs or larvae; a Warehouse, Lean Rations and Side Chamber do more', () => {
+      const s = colony();
+      expect(isBroodOnly(s, ref('upgrade:click_power'))).toBe(true);
+      expect(isBroodOnly(s, ref('upgrade:warm_brood'))).toBe(true);
+      expect(isBroodOnly(s, ref('building:warehouse'))).toBe(false);
+      expect(isBroodOnly(s, ref('upgrade:lean_rations'))).toBe(false);
+      expect(isBroodOnly(s, ref('upgrade:side_chamber'))).toBe(false);
+    });
+
+    it('in Colony with the nest full and no Warehouse or DIG fix, BUILD does not suggest Click Power', () => {
+      const base = full(colony());
+      const s = withCost({ ...base, workersAssigned: { ...base.workersAssigned, gather: base.resources.workers } }, ref('upgrade:click_power'));
+      expect(isCapacityCritical(s)).toBe(true);
+      expect(isItemAffordable(s, ref('upgrade:click_power'))).toBe(true);
+      const n = getNextAction(s);
+      expect(n.kind === 'act' ? n.key : n.nextAffordable?.key).not.toBe('upgrade:click_power');
+    });
+
+    it('while the nest is capacity-critical, never points at an item that only adds eggs or larvae', () => {
+      fc.assert(
+        fc.property(arbState, fc.integer({ min: 0, max: 50 }), (st, extra) => {
+          const cap = effectiveCap(st);
+          fc.pre(cap > 0);
+          const workers = cap + extra;
+          const s: GameState = {
+            ...st,
+            resources: { ...st.resources, workers },
+            workersAssigned: { ...st.workersAssigned, gather: workers, tend: 0, forage: 0, dig: 0, guard: 0 },
+          };
+          fc.pre(isCapacityCritical(s));
+          const target = pointedAt(getNextAction(s));
+          if (target) expect(isBroodOnly(s, target), itemKey(target)).toBe(false);
+        }),
+        { numRuns: 300 },
+      );
+    });
+
+    it('out of capacity trouble, brood boosters are still suggested', () => {
+      const s = withCost(colony(), ref('upgrade:click_power'));
+      expect(isCapacityCritical(s)).toBe(false);
+      const n = act(getNextAction(s));
+      expect(isBroodOnly(s, pointedAt(n)!)).toBe(true);
     });
   });
 
