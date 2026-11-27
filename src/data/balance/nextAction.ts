@@ -12,4 +12,9 @@ export const nextActionBalance = {
   targetLockMs: 1000,
   /** A job the food and capacity fixes never take below this many workers (the Colony goal needs a guard). */
   minGuards: 1,
+  /**
+   * Effect names (`systems/NextAction.ts` `itemEffects`) that only add eggs or larvae: more per tap, a faster hatch.
+   * While the nest is capacity-critical the rule skips an item whose every effect is one of these (#495).
+   */
+  broodEffects: ['eggsPerTap', 'hatchPercent', 'hatchRate'] as readonly string[],
 } as const;

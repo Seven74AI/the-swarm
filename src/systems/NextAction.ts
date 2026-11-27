@@ -422,6 +422,17 @@ function foodFix(s: GameState): SuggestedAction | null {
   return null;
 }
 
+/**
+ * Whether one more of the item only adds eggs or larvae (its effects, as data, are all
+ * `nextActionBalance.broodEffects`). With the nest full those have nowhere to go (#495).
+ */
+export function isBroodOnly(s: GameState, ref: ItemRef): boolean {
+  const effects = itemEffects(s, ref);
+  if (!effects) return false;
+  const names = Object.keys(effects);
+  return names.length > 0 && names.every((k) => nextActionBalance.broodEffects.includes(k));
+}
+
 /** Rule 3: workers fill the nest → a Warehouse if affordable, else a worker on DIG. */
 function capacityFix(s: GameState): SuggestedAction | null {
   if (!isCapacityCritical(s)) return null;
@@ -468,7 +479,8 @@ function nextAffordable(s: GameState, among?: (ref: ItemRef) => boolean): NoActi
  *
  * 1. the goal has latched → CONTINUE;
  * 2. food critical (net rate below zero, stock under the upkeep window) → the allocation fix;
- * 3. capacity critical → a Warehouse, or a worker on DIG;
+ * 3. capacity critical → a Warehouse, or a worker on DIG; failing both, rules 4–6
+ *    skip items that only add eggs or larvae (`isBroodOnly`, #495);
  * 4. an affordable item from the phase's critical-path table, in table order;
  * 5. any affordable item;
  * 6. none, with the item that becomes affordable soonest (`NEXT AFFORDABLE: <item> IN ~<time>`).
@@ -483,11 +495,14 @@ export function getNextAction(state: GameState): NextAction {
   }
   const fix = foodFix(state) ?? capacityFix(state);
   if (fix) return fix;
-  const path = (CRITICAL_PATH[state.phase as Phase] ?? []).find((ref) => isItemAffordable(state, ref));
+  // With the nest full, eggs and larvae have nowhere to go: skip what only adds them (#495).
+  const full = isCapacityCritical(state);
+  const useful = (ref: ItemRef) => !full || !isBroodOnly(state, ref);
+  const path = (CRITICAL_PATH[state.phase as Phase] ?? []).find((ref) => useful(ref) && isItemAffordable(state, ref));
   if (path) return suggestItem(state, path, 'critical_path');
-  const any = listItems().find((ref) => isItemAffordable(state, ref));
+  const any = listItems().find((ref) => useful(ref) && isItemAffordable(state, ref));
   if (any) return suggestItem(state, any, 'affordable');
-  const next = nextAffordable(state);
+  const next = nextAffordable(state, full ? useful : undefined);
   return { kind: 'none', key: next ? `none:${next.key}:${next.inSec}` : 'none', nextAffordable: next };
 }
 
